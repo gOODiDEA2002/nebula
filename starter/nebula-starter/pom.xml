@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nebula-starter</artifactId>
+    <name>Nebula Starter</name>
+    <description>Nebula framework Spring Boot starter</description>
+
+    <dependencies>
+        <!-- Core Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-core-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-core-config</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-core-metrics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-core-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Data Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-access</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-persistence</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-nosql</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-cache</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Messaging Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Web Module -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-web</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Scheduling Module -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-scheduling</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Batch Module -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-batch</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Spring Boot Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        
+        <!-- Configuration Processor -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>
