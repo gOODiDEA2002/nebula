@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nebula-rpc-core</artifactId>
+    <name>Nebula RPC Core</name>
+    <description>Nebula framework RPC abstraction layer</description>
+
+    <dependencies>
+        <!-- Discovery Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Core Common -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-foundation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Spring Boot Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        
+        <!-- Spring Web (for HTTP-based RPC) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+    </dependencies>
+</project>

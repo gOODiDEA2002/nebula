@@ -65,14 +65,4 @@ public abstract class BaseController {
             throw new ValidationException(fieldErrors);
         }
     }
-    
-    /**
-     * 获取当前用户ID（需要子类实现）
-     */
-    protected abstract Long getCurrentUserId();
-    
-    /**
-     * 获取当前用户名（需要子类实现）
-     */
-    protected abstract String getCurrentUsername();
 }

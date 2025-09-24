@@ -1,49 +1,64 @@
 # Nebula Framework
 
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.java.net/projects/jdk/21/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-green.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.12-green.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java 21 构建，提供企业级应用开发的完整解决方案。
 
 ## ✨ 特性
 
-- 🚀 **现代化技术栈**: Java 21 + Spring Boot 3.x + Maven
-- 🏗️ **模块化架构**: 基于 DDD 原则的清晰模块划分
-- 📊 **监控与指标**: 内置性能监控和指标收集
-- 🔒 **安全组件**: 加密工具、JWT 支持
-- 💾 **数据访问**: 支持关系型和 NoSQL 数据库
-- 📨 **消息传递**: 统一的消息处理抽象
-- 🌐 **Web 支持**: 完整的 Web 开发支持
-- ⚙️ **任务调度**: 灵活的任务调度系统
-- 📦 **批处理**: Spring Batch 集成
-- 🔧 **配置管理**: 类型安全的配置属性
+- **现代化技术栈**: Java 21 + Spring Boot 3.x + Maven
+- **模块化架构**: 基于 DDD 原则的清晰模块划分
+- **安全组件**: 加密工具、JWT 支持
+- **数据访问**: 统一的数据访问抽象层，支持多种存储后端
+- **持久化层**: MyBatis-Plus集成，支持读写分离和分库分表
+- **文档数据库**: MongoDB完整支持，包含地理查询和聚合
+- **多级缓存**: 本地+分布式缓存，防穿透/雪崩保护
+- **消息传递**: 统一的消息处理抽象
+- **Web 支持**: 完整的 Web 开发支持
+- **任务调度**: 灵活的任务调度系统
+- **配置管理**: 类型安全的配置属性
 
 ## 🏛️ 架构设计
 
 ```
 Nebula Framework
 ├── 核心层 (Core Layer)
-│   ├── nebula-core-common      # 通用工具和异常处理
-│   ├── nebula-core-config      # 配置管理
-│   ├── nebula-core-metrics     # 监控指标
-│   └── nebula-core-security    # 安全组件
+│   └── nebula-foundation       # 基础工具和异常处理
 ├── 基础设施层 (Infrastructure Layer)
-│   ├── nebula-data-access      # 数据访问抽象
-│   ├── nebula-data-persistence # 关系型数据库支持
-│   ├── nebula-data-nosql       # NoSQL 数据库支持
-│   ├── nebula-data-cache       # 缓存支持
-│   ├── nebula-messaging-core   # 消息传递核心
-│   ├── nebula-rpc-core         # RPC 抽象
-│   ├── nebula-rpc-http         # HTTP RPC 实现
-│   └── nebula-discovery-nacos  # 服务发现
+│   ├── 数据访问 (Data Access)
+│   │   ├── nebula-data-access      # 数据访问抽象层
+│   │   ├── nebula-data-persistence # MyBatis-Plus 集成
+│   │   ├── nebula-data-mongodb     # MongoDB 支持
+│   │   └── nebula-data-cache       # 多级缓存
+│   ├── 消息传递 (Messaging)
+│   │   ├── nebula-messaging-core   # 消息传递核心
+│   │   └── nebula-messaging-rabbitmq  # RabbitMQ 实现
+│   ├── RPC 通信 (RPC)
+│   │   ├── nebula-rpc-core         # RPC 抽象
+│   │   └── nebula-rpc-http         # HTTP RPC 实现
+│   ├── 服务发现 (Discovery)
+│   │   ├── nebula-discovery-core   # 服务发现核心
+│   │   └── nebula-discovery-nacos  # Nacos 实现
+│   ├── 存储服务 (Storage)
+│   │   ├── nebula-storage-core     # 存储抽象
+│   │   ├── nebula-storage-minio    # MinIO 实现
+│   │   └── nebula-storage-aliyun-oss # 阿里云OSS实现
+│   ├── 搜索服务 (Search)
+│   │   ├── nebula-search-core      # 搜索抽象
+│   │   └── nebula-search-elasticsearch # Elasticsearch实现
+│   └── AI 服务 (AI)
+│       ├── nebula-ai-core          # AI 核心
+│       └── nebula-ai-spring        # Spring AI 集成
 ├── 应用层 (Application Layer)
-│   ├── nebula-web              # Web 框架
-│   ├── nebula-scheduling       # 任务调度
-│   └── nebula-batch            # 批处理
-└── 集成层 (Integration Layer)
-    ├── nebula-starter          # Spring Boot Starter
-    └── nebula-example          # 使用示例
+│   ├── nebula-web                 # Web 框架
+│   └── nebula-task                # 任务调度
+├── 集成层 (Integration Layer)
+│   └── nebula-integration-payment # 支付集成
+└── Starter 模块 (Starter Modules)
+    ├── nebula-starter             # Spring Boot Starter
+    └── nebula-example             # 使用示例
 ```
 
 ## 🚀 快速开始
@@ -122,75 +137,98 @@ nebula:
 
 ### 核心模块
 
-#### nebula-core-common
-提供基础的通用功能：
+#### nebula-foundation
+提供基础功能和异常处理：
 - 统一异常处理体系
-- 标准化响应格式
-- 常用工具类
-
-#### nebula-core-config
-配置管理功能：
-- 类型安全的配置属性
-- 配置验证
-- 环境特定配置
-
-#### nebula-core-metrics
-监控指标功能：
-- 性能监控
-- 指标收集
-- 自动监控切面
-
-#### nebula-core-security
-安全组件：
-- 加密工具
-- JWT 支持
-- 密码哈希
+- 常用工具类和工具方法
+- 基础配置支持
+- 通用工具函数
 
 ### 数据访问模块
 
 #### nebula-data-access
-数据访问抽象层：
-- 通用仓储接口
-- 查询构建器
-- 事务管理
+统一数据访问抽象层：
+- 通用Repository接口和实现
+- 链式QueryBuilder查询构建器
+- 统一事务管理接口
+- 完善的异常处理体系
 
 #### nebula-data-persistence
-关系型数据库支持：
-- MyBatis-Plus 集成
-- 分页插件
-- 乐观锁支持
+关系型数据库完整解决方案：
+- MyBatis-Plus深度集成
+- 智能读写分离（主从路由/负载均衡）
+- ShardingSphere分库分表支持
+- 声明式和编程式事务
+- 代码生成器和性能监控
 
-#### nebula-data-nosql
-NoSQL 数据库支持：
-- MongoDB 集成
-- Redis 支持
-- 文档操作模板
+#### nebula-data-mongodb
+MongoDB文档数据库支持：
+- 完整的CRUD操作
+- 地理位置查询和索引
+- 聚合管道查询
+- 嵌入文档和数组操作
+- 事务支持和性能优化
 
 #### nebula-data-cache
-缓存支持：
-- 多级缓存
-- 缓存策略
-- 自动过期
+企业级多级缓存：
+- 本地缓存（Caffeine）+ 分布式缓存（Redis）
+- Cache-Aside/Write-Through/Write-Back模式
+- 缓存穿透/击穿/雪崩防护
+- 注解驱动的缓存管理
+- 缓存统计和监控
 
 ### 应用模块
 
 #### nebula-web
 Web 框架支持：
-- 控制器基类
+- 控制器基类和工具类
 - 全局异常处理
-- 参数验证
+- 参数验证和转换
+- 认证和授权支持
+- 性能监控和限流
 
-#### nebula-scheduling
-任务调度：
-- 定时任务
-- 任务执行器
+#### nebula-task
+任务调度框架：
+- 定时任务管理
+- 任务执行器抽象
 - 执行结果跟踪
+- 分布式任务协调
 
-#### nebula-batch
-批处理支持：
-- Spring Batch 集成
-- 作业管理
-- 批量数据处理
+### 基础设施模块
+
+#### 消息传递 (Messaging)
+- **nebula-messaging-core**: 统一的消息处理抽象和核心接口
+- **nebula-messaging-rabbitmq**: RabbitMQ 消息队列实现
+
+#### RPC 通信 (RPC)
+- **nebula-rpc-core**: RPC 调用抽象和协议定义
+- **nebula-rpc-http**: 基于 HTTP 的 RPC 实现
+
+#### 服务发现 (Discovery)
+- **nebula-discovery-core**: 服务发现核心抽象和负载均衡
+- **nebula-discovery-nacos**: Nacos 服务注册与发现实现
+
+#### 存储服务 (Storage)
+- **nebula-storage-core**: 统一的对象存储抽象接口
+- **nebula-storage-minio**: MinIO 对象存储实现
+- **nebula-storage-aliyun-oss**: 阿里云 OSS 对象存储实现
+
+#### 搜索服务 (Search)
+- **nebula-search-core**: 统一的搜索服务抽象
+- **nebula-search-elasticsearch**: Elasticsearch 搜索引擎实现
+
+#### AI 服务 (AI)
+- **nebula-ai-core**: AI 服务核心抽象和工具
+- **nebula-ai-spring**: Spring AI 集成和自动化配置
+
+### 集成模块
+
+#### nebula-integration-payment
+支付集成模块：
+- 统一支付接口抽象
+- 多支付渠道支持
+- 支付结果回调处理
+- 交易状态管理
 
 ## 🛠️ 开发指南
 
@@ -208,10 +246,10 @@ mvn install -DskipTests
 
 ```bash
 # 编译基础测试程序
-javac -cp "$(find ~/.m2 -name 'nebula-core-common-*.jar' | head -1)" TestApp.java
+javac -cp "$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp.java
 
 # 运行基础功能测试
-java -cp ".:$(find ~/.m2 -name 'nebula-core-common-*.jar' | head -1)" TestApp
+java -cp ".:$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp
 ```
 
 ### 运行完整示例应用
@@ -230,13 +268,23 @@ mvn spring-boot:run -Dspring-boot.run.profiles=simple
 应用启动成功后，可以访问以下接口：
 ```bash
 # 系统信息
-curl http://localhost:8080/api/example/info
+curl http://localhost:8080/api/info
 
 # 健康检查
-curl http://localhost:8080/api/example/health
+curl http://localhost:8080/api/health
+
+# Hello接口
+curl http://localhost:8080/api/hello
 
 # 用户管理
 curl http://localhost:8080/api/users
+
+# 测试接口
+curl http://localhost:8080/api/test/success
+
+# 性能监控（需要启用性能监控配置）
+curl http://localhost:8080/performance/status
+curl http://localhost:8080/performance/metrics
 ```
 
 ### 配置说明
@@ -253,6 +301,14 @@ curl http://localhost:8080/api/users
 - **缓存**: Redis（需要单独安装和配置）
 - **消息队列**: RabbitMQ（可选）
 - **服务发现**: Nacos（可选）
+- **对象存储**: MinIO/阿里云OSS（可选）
+- **搜索引擎**: Elasticsearch（可选）
+- **AI服务**: Spring AI集成（可选）
+
+#### 其他配置选项
+- `application-minimal.yml`: 最小化配置，仅包含基础功能
+- `application-docker.yml`: Docker容器化部署配置
+- `application-xxljob-optimized.yml`: XXL-Job任务调度优化配置
 
 ### 故障排除
 
@@ -272,9 +328,10 @@ mvn test
 
 框架内置了完整的监控体系：
 
-1. **性能监控**: 使用 `@Monitored` 注解自动收集方法执行时间
-2. **指标收集**: 支持计数器、定时器、仪表盘等指标类型
-3. **健康检查**: 集成 Spring Boot Actuator
+1. **性能监控**: 自动收集HTTP请求性能指标，包括响应时间、成功率、失败率等
+2. **系统监控**: 实时监控CPU、内存、线程等系统资源使用情况
+3. **健康检查**: 集成 Spring Boot Actuator 健康端点
+4. **性能端点**: 提供 `/performance/metrics`, `/performance/system`, `/performance/status` 等监控接口
 
 ## 🔧 配置
 
@@ -298,18 +355,59 @@ nebula:
 
 ```yaml
 nebula:
+  # 数据访问配置
+  data:
+    # 数据源配置
+    sources:
+      primary:
+        type: mysql
+        url: jdbc:mysql://localhost:3306/nebula_db
+        username: root
+        password: password
+        pool:
+          min-size: 5
+          max-size: 20
+    
+    # 缓存配置
+    cache:
+      enabled: true
+      type: multi-level  # local, redis, multi-level
+      local:
+        max-size: 10000
+        expire-after-write: 300s
+      redis:
+        enabled: true
+        key-prefix: "nebula:cache:"
+    
+    # 读写分离配置
+    read-write-separation:
+      enabled: true
+      clusters:
+        default:
+          master: primary
+          slaves: [slave1, slave2]
+          load-balance-strategy: ROUND_ROBIN
+    
+    # 分库分表配置
+    sharding:
+      enabled: true
+      schemas:
+        default:
+          data-sources: [ds0, ds1]
+          tables:
+            - logic-table: t_user
+              actual-data-nodes: ds${0..1}.t_user_${0..1}
+    
+    # MongoDB配置
+    mongodb:
+      enabled: true
+      database: nebula_mongo
+      
   # 安全配置
   security:
     jwt:
       secret: ${JWT_SECRET:your-secret-key}
       expiration: 86400
-  
-  # 缓存配置
-  cache:
-    type: redis
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
   
   # 消息配置
   messaging:

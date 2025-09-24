@@ -1,0 +1,206 @@
+# Nebula ShardingSphere分片配置示例
+
+nebula:
+  data:
+    # 数据源配置
+    sources:
+      # 分片数据源配置
+      ds0:
+        type: mysql
+        url: jdbc:mysql://localhost:3306/sharding_db0?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+        pool:
+          min-size: 5
+          max-size: 20
+          connection-timeout: 30s
+      
+      ds1:
+        type: mysql
+        url: jdbc:mysql://localhost:3306/sharding_db1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+        pool:
+          min-size: 5
+          max-size: 20
+          connection-timeout: 30s
+      
+      # 读写分离数据源配置（可选）
+      ds0_slave:
+        type: mysql
+        url: jdbc:mysql://localhost:3307/sharding_db0_slave?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+        pool:
+          min-size: 3
+          max-size: 15
+          connection-timeout: 30s
+      
+      ds1_slave:
+        type: mysql
+        url: jdbc:mysql://localhost:3308/sharding_db1_slave?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+        pool:
+          min-size: 3
+          max-size: 15
+          connection-timeout: 30s
+    
+    # 分片配置
+    sharding:
+      enabled: true                              # 启用分片功能
+      
+      # 默认分片策略
+      default-database-strategy:
+        sharding-column: user_id                 # 默认分库字段
+        algorithm-name: mod-algorithm            # 默认分库算法
+      
+      default-table-strategy:
+        sharding-column: id                      # 默认分表字段
+        algorithm-name: mod-algorithm            # 默认分表算法
+      
+      # Schema配置
+      schemas:
+        # 默认schema
+        default:
+          data-sources: [ds0, ds1]               # 使用的数据源列表
+          read-write-separation-enabled: true    # 启用读写分离
+          
+          # 读写分离配置
+          read-write-separation:
+            data-sources:
+              ds0:
+                write-data-source: ds0
+                read-data-sources: [ds0_slave]
+                load-balance-algorithm: ROUND_ROBIN
+              ds1:
+                write-data-source: ds1
+                read-data-sources: [ds1_slave]
+                load-balance-algorithm: ROUND_ROBIN
+          
+          # 表分片配置
+          tables:
+            # 用户表分片配置
+            - logic-table: t_user
+              actual-data-nodes: ds${0..1}.t_user_${0..1}
+              database-sharding-config:
+                sharding-column: user_id
+                algorithm-name: user-db-mod
+                algorithm-expression: ds${user_id % 2}
+              table-sharding-config:
+                sharding-column: user_id
+                algorithm-name: user-table-mod
+                algorithm-expression: t_user_${user_id % 2}
+              key-generate-config:
+                column: id
+                algorithm-name: snowflake
+            
+            # 订单表分片配置（按用户ID分库，按订单ID分表）
+            - logic-table: t_order
+              actual-data-nodes: ds${0..1}.t_order_${0..3}
+              database-sharding-config:
+                sharding-column: user_id
+                algorithm-name: order-db-mod
+                algorithm-expression: ds${user_id % 2}
+              table-sharding-config:
+                sharding-column: order_id
+                algorithm-name: order-table-mod
+                algorithm-expression: t_order_${order_id % 4}
+              key-generate-config:
+                column: order_id
+                algorithm-name: snowflake
+            
+            # 订单详情表（绑定表，与订单表使用相同分片键）
+            - logic-table: t_order_item
+              actual-data-nodes: ds${0..1}.t_order_item_${0..3}
+              database-sharding-config:
+                sharding-column: order_id
+                algorithm-name: order-item-db-mod
+                algorithm-expression: ds${order_id % 2}
+              table-sharding-config:
+                sharding-column: order_id
+                algorithm-name: order-item-table-mod
+                algorithm-expression: t_order_item_${order_id % 4}
+              key-generate-config:
+                column: item_id
+                algorithm-name: snowflake
+            
+            # 日志表分片配置（按时间分表）
+            - logic-table: t_log
+              actual-data-nodes: ds${0..1}.t_log_${202401..202412}
+              database-sharding-config:
+                sharding-column: user_id
+                algorithm-name: log-db-mod
+                algorithm-expression: ds${user_id % 2}
+              table-sharding-config:
+                sharding-column: create_time
+                algorithm-name: log-table-date
+              key-generate-config:
+                column: log_id
+                algorithm-name: snowflake
+        
+        # 分析业务schema
+        analytics:
+          data-sources: [ds0, ds1]
+          tables:
+            # 用户行为分析表（按日期分表）
+            - logic-table: t_user_behavior
+              actual-data-nodes: ds${0..1}.t_user_behavior_${202401..202412}
+              database-sharding-config:
+                sharding-column: user_id
+                algorithm-name: behavior-db-mod
+                algorithm-expression: ds${user_id % 2}
+              table-sharding-config:
+                sharding-column: behavior_date
+                algorithm-name: behavior-table-date
+              key-generate-config:
+                column: behavior_id
+                algorithm-name: uuid
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 主键策略：使用ShardingSphere的主键生成
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# ShardingSphere配置（底层配置）
+spring:
+  shardingsphere:
+    # 显示SQL
+    props:
+      sql-show: true
+      sql-simple: true
+    
+    # 数据源配置（与nebula.data.sources保持一致）
+    datasource:
+      names: ds0,ds1,ds0_slave,ds1_slave
+      ds0:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_db0?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+      ds1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/sharding_db1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+      ds0_slave:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3307/sharding_db0_slave?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password
+      ds1_slave:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3308/sharding_db1_slave?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+        username: root
+        password: password

@@ -18,27 +18,10 @@
         <!-- Core Modules -->
         <dependency>
             <groupId>io.nebula</groupId>
-            <artifactId>nebula-core-common</artifactId>
+            <artifactId>nebula-foundation</artifactId>
             <version>${project.version}</version>
         </dependency>
         
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-core-config</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-core-metrics</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-core-security</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         
         <!-- Data Modules -->
         <dependency>
@@ -56,7 +39,7 @@
         
         <dependency>
             <groupId>io.nebula</groupId>
-            <artifactId>nebula-data-nosql</artifactId>
+            <artifactId>nebula-data-mongodb</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
@@ -76,6 +59,102 @@
             <optional>true</optional>
         </dependency>
         
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-rabbitmq</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Storage Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-minio</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-aliyun-oss</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Search Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-search-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-search-elasticsearch</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Integration Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-integration-payment</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- AI Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-spring</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- RPC Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-http</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Service Discovery Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-nacos</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
         <!-- Web Module -->
         <dependency>
             <groupId>io.nebula</groupId>
@@ -84,18 +163,10 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- Scheduling Module -->
+        <!-- Task Module -->
         <dependency>
             <groupId>io.nebula</groupId>
-            <artifactId>nebula-scheduling</artifactId>
-            <version>${project.version}</version>
-            <optional>true</optional>
-        </dependency>
-        
-        <!-- Batch Module -->
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-batch</artifactId>
+            <artifactId>nebula-task</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>

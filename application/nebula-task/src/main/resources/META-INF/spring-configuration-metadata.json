@@ -1,0 +1,103 @@
+{
+  "groups": [
+    {
+      "name": "nebula.task",
+      "type": "io.nebula.task.autoconfigure.TaskProperties",
+      "description": "Nebula 任务模块配置属性"
+    },
+    {
+      "name": "nebula.task.executor",
+      "type": "io.nebula.task.autoconfigure.TaskProperties$Executor",
+      "description": "任务执行器配置"
+    },
+    {
+      "name": "nebula.task.xxl-job",
+      "type": "io.nebula.task.autoconfigure.TaskProperties$XxlJob",
+      "description": "XXL-JOB 配置"
+    }
+  ],
+  "properties": [
+    {
+      "name": "nebula.task.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否启用任务功能"
+    },
+    {
+      "name": "nebula.task.executor.core-pool-size",
+      "type": "java.lang.Integer",
+      "defaultValue": 10,
+      "description": "线程池核心线程数"
+    },
+    {
+      "name": "nebula.task.executor.max-pool-size",
+      "type": "java.lang.Integer",
+      "defaultValue": 200,
+      "description": "线程池最大线程数"
+    },
+    {
+      "name": "nebula.task.executor.keep-alive-seconds",
+      "type": "java.lang.Integer",
+      "defaultValue": 60,
+      "description": "线程空闲时间（秒）"
+    },
+    {
+      "name": "nebula.task.executor.queue-capacity",
+      "type": "java.lang.Integer",
+      "defaultValue": 1000,
+      "description": "队列容量"
+    },
+    {
+      "name": "nebula.task.executor.thread-name-prefix",
+      "type": "java.lang.String",
+      "defaultValue": "nebula-task-",
+      "description": "线程名前缀"
+    },
+    {
+      "name": "nebula.task.xxl-job.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否启用 XXL-JOB"
+    },
+    {
+      "name": "nebula.task.xxl-job.executor-name",
+      "type": "java.lang.String",
+      "description": "执行器名称"
+    },
+    {
+      "name": "nebula.task.xxl-job.executor-ip",
+      "type": "java.lang.String",
+      "description": "执行器IP"
+    },
+    {
+      "name": "nebula.task.xxl-job.executor-port",
+      "type": "java.lang.Integer",
+      "defaultValue": 9999,
+      "description": "执行器端口"
+    },
+    {
+      "name": "nebula.task.xxl-job.log-path",
+      "type": "java.lang.String",
+      "defaultValue": "./logs/xxl-job",
+      "description": "日志路径"
+    },
+    {
+      "name": "nebula.task.xxl-job.log-retention-days",
+      "type": "java.lang.Integer",
+      "defaultValue": 30,
+      "description": "日志保留天数"
+    },
+    {
+      "name": "nebula.task.xxl-job.admin-addresses",
+      "type": "java.lang.String",
+      "defaultValue": "http://localhost:8080/xxl-job-admin",
+      "description": "管理端地址"
+    },
+    {
+      "name": "nebula.task.xxl-job.access-token",
+      "type": "java.lang.String",
+      "defaultValue": "xxl-job",
+      "description": "访问令牌"
+    }
+  ]
+}

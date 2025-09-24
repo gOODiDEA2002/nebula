@@ -1,0 +1,58 @@
+{
+  "properties": [
+    {
+      "name": "nebula.task.xxl-job.heartbeat-interval",
+      "type": "java.lang.Integer",
+      "description": "XXL-JOB执行器心跳注册间隔时间（秒），用于保持与调度中心的连接。",
+      "defaultValue": 30
+    },
+    {
+      "name": "nebula.task.xxl-job.registry-retry-count",
+      "type": "java.lang.Integer", 
+      "description": "XXL-JOB执行器注册失败时的重试次数。",
+      "defaultValue": 3
+    },
+    {
+      "name": "nebula.task.xxl-job.registry-timeout",
+      "type": "java.lang.Integer",
+      "description": "XXL-JOB执行器注册请求的超时时间（秒）。",
+      "defaultValue": 10
+    }
+  ],
+  "hints": [
+    {
+      "name": "nebula.task.xxl-job.heartbeat-interval",
+      "values": [
+        {
+          "value": 30,
+          "description": "推荐值：30秒，平衡性能和及时性"
+        },
+        {
+          "value": 60,
+          "description": "较大值：60秒，减少网络请求"
+        },
+        {
+          "value": 15,
+          "description": "较小值：15秒，更快的故障检测"
+        }
+      ]
+    },
+    {
+      "name": "nebula.task.xxl-job.registry-retry-count",
+      "values": [
+        {
+          "value": 3,
+          "description": "推荐值：3次重试，平衡可靠性和性能"
+        },
+        {
+          "value": 5,
+          "description": "较大值：5次重试，增强可靠性"
+        },
+        {
+          "value": 1,
+          "description": "较小值：1次重试，快速失败"
+        }
+      ]
+    }
+  ]
+}

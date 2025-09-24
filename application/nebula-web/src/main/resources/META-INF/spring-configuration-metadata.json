@@ -1,0 +1,116 @@
+{
+  "groups": [
+    {
+      "name": "nebula.web",
+      "type": "io.nebula.web.autoconfigure.WebProperties",
+      "description": "Nebula Web configuration properties."
+    },
+    {
+      "name": "nebula.web.exception-handler",
+      "type": "io.nebula.web.autoconfigure.WebProperties$ExceptionHandler",
+      "description": "Global exception handler configuration."
+    },
+    {
+      "name": "nebula.web.api-doc",
+      "type": "io.nebula.web.autoconfigure.WebProperties$ApiDoc",
+      "description": "API documentation configuration."
+    },
+    {
+      "name": "nebula.web.cors",
+      "type": "io.nebula.web.autoconfigure.WebProperties$Cors",
+      "description": "CORS configuration."
+    }
+  ],
+  "properties": [
+    {
+      "name": "nebula.web.exception-handler.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable global exception handler.",
+      "defaultValue": true
+    },
+    {
+      "name": "nebula.web.exception-handler.log-stack-trace",
+      "type": "java.lang.Boolean",
+      "description": "Whether to log exception stack trace.",
+      "defaultValue": true
+    },
+    {
+      "name": "nebula.web.exception-handler.include-exception-details",
+      "type": "java.lang.Boolean",
+      "description": "Whether to include exception details in response (only for development).",
+      "defaultValue": false
+    },
+    {
+      "name": "nebula.web.api-doc.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable API documentation.",
+      "defaultValue": true
+    },
+    {
+      "name": "nebula.web.api-doc.title",
+      "type": "java.lang.String",
+      "description": "API documentation title.",
+      "defaultValue": "Nebula API Documentation"
+    },
+    {
+      "name": "nebula.web.api-doc.description",
+      "type": "java.lang.String",
+      "description": "API documentation description.",
+      "defaultValue": "Nebula Framework REST API Documentation"
+    },
+    {
+      "name": "nebula.web.api-doc.version",
+      "type": "java.lang.String",
+      "description": "API version.",
+      "defaultValue": "2.0.0"
+    },
+    {
+      "name": "nebula.web.api-doc.contact-name",
+      "type": "java.lang.String",
+      "description": "API contact name.",
+      "defaultValue": "Nebula Team"
+    },
+    {
+      "name": "nebula.web.api-doc.contact-email",
+      "type": "java.lang.String",
+      "description": "API contact email.",
+      "defaultValue": "nebula@example.com"
+    },
+    {
+      "name": "nebula.web.cors.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable CORS.",
+      "defaultValue": false
+    },
+    {
+      "name": "nebula.web.cors.allowed-origins",
+      "type": "java.lang.String[]",
+      "description": "Allowed origins for CORS.",
+      "defaultValue": ["*"]
+    },
+    {
+      "name": "nebula.web.cors.allowed-methods",
+      "type": "java.lang.String[]",
+      "description": "Allowed methods for CORS.",
+      "defaultValue": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    },
+    {
+      "name": "nebula.web.cors.allowed-headers",
+      "type": "java.lang.String[]",
+      "description": "Allowed headers for CORS.",
+      "defaultValue": ["*"]
+    },
+    {
+      "name": "nebula.web.cors.allow-credentials",
+      "type": "java.lang.Boolean",
+      "description": "Whether to allow credentials for CORS.",
+      "defaultValue": true
+    },
+    {
+      "name": "nebula.web.cors.max-age",
+      "type": "java.lang.Long",
+      "description": "Max age for CORS preflight cache in seconds.",
+      "defaultValue": 3600
+    }
+  ]
+}
