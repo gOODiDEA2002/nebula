@@ -30,6 +30,7 @@ import io.nebula.web.health.checkers.MemoryHealthChecker;
 import io.nebula.web.health.checkers.DiskSpaceHealthChecker;
 import io.nebula.web.controller.HealthController;
 import io.nebula.web.controller.PerformanceController;
+import io.nebula.web.config.JacksonConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import org.springframework.context.ApplicationContext;
@@ -65,7 +66,7 @@ import java.util.List;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(DispatcherServlet.class)
 @EnableConfigurationProperties(WebProperties.class)
-@Import({HealthController.class, PerformanceController.class})
+@Import({HealthController.class, PerformanceController.class, JacksonConfig.class})
 public class WebAutoConfiguration {
     
     /**

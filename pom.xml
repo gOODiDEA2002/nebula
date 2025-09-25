@@ -243,7 +243,14 @@
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
-            
+
+            <!-- Jackson JSR310 支持 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
             <!-- 监控 -->
             <dependency>
                 <groupId>io.micrometer</groupId>
