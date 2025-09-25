@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Primary;
  */
 @Configuration
 @ConditionalOnClass({ConnectionFactory.class, Connection.class})
-@ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(RabbitMQProperties.class)
 public class RabbitMQAutoConfiguration {
     

@@ -706,6 +706,72 @@ public class LocalCacheManager implements CacheManager {
     }
     
     /**
+     * LocalCacheManager构建器
+     */
+    public static class Builder {
+        private int maximumSize = 10000;
+        private int initialCapacity = 1000;
+        private Duration expireAfterWrite = Duration.ofMinutes(30);
+        private Duration expireAfterAccess = Duration.ofHours(1);
+        private Duration cleanupInterval = Duration.ofMinutes(5);
+        private EvictionPolicy evictionPolicy = EvictionPolicy.LRU;
+        private boolean recordStats = true;
+        
+        public Builder maximumSize(int maximumSize) {
+            this.maximumSize = maximumSize;
+            return this;
+        }
+        
+        public Builder initialCapacity(int initialCapacity) {
+            this.initialCapacity = initialCapacity;
+            return this;
+        }
+        
+        public Builder expireAfterWrite(Duration expireAfterWrite) {
+            this.expireAfterWrite = expireAfterWrite;
+            return this;
+        }
+        
+        public Builder expireAfterAccess(Duration expireAfterAccess) {
+            this.expireAfterAccess = expireAfterAccess;
+            return this;
+        }
+        
+        public Builder cleanupInterval(Duration cleanupInterval) {
+            this.cleanupInterval = cleanupInterval;
+            return this;
+        }
+        
+        public Builder evictionPolicy(EvictionPolicy evictionPolicy) {
+            this.evictionPolicy = evictionPolicy;
+            return this;
+        }
+        
+        public Builder recordStats(boolean recordStats) {
+            this.recordStats = recordStats;
+            return this;
+        }
+        
+        public LocalCacheManager build() {
+            LocalCacheConfig config = new LocalCacheConfig(
+                    maximumSize,
+                    initialCapacity,
+                    expireAfterWrite,
+                    cleanupInterval,
+                    evictionPolicy
+            );
+            return new LocalCacheManager(config);
+        }
+    }
+    
+    /**
+     * 创建构建器
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+    
+    /**
      * 驱逐策略
      */
     public enum EvictionPolicy {

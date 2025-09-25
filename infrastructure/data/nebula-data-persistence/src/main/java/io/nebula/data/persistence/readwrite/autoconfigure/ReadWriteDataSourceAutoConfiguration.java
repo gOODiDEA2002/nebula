@@ -35,7 +35,7 @@ public class ReadWriteDataSourceAutoConfiguration {
     
     @Bean
     @Primary
-    @ConditionalOnProperty(prefix = "nebula.data.read-write-separation", name = "dynamic-routing", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "nebula.data.read-write-separation", name = "dynamic-routing", havingValue = "true", matchIfMissing = false)
     public DataSource dynamicDataSource(ReadWriteDataSourceManager readWriteManager) {
         log.info("Creating DynamicDataSource for default cluster");
         return new DynamicDataSource(readWriteManager, "default");
@@ -43,7 +43,7 @@ public class ReadWriteDataSourceAutoConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "nebula.data.read-write-separation", name = "aspect-enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "nebula.data.read-write-separation", name = "aspect-enabled", havingValue = "true", matchIfMissing = false)
     public ReadWriteDataSourceAspect readWriteDataSourceAspect() {
         log.info("Creating ReadWriteDataSourceAspect");
         return new ReadWriteDataSourceAspect();

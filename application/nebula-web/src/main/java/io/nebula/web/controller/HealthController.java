@@ -19,11 +19,10 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/health")
-@ConditionalOnBean(HealthCheckService.class)
 @ConditionalOnProperty(name = "nebula.web.health.enabled", havingValue = "true", matchIfMissing = true)
 public class HealthController {
     
-    @Autowired
+    @Autowired(required = false)
     private HealthCheckService healthCheckService;
     
     /**
@@ -31,6 +30,14 @@ public class HealthController {
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> health() {
+        if (healthCheckService == null) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "UP");
+            result.put("message", "健康检查服务未配置，默认状态正常");
+            result.put("timestamp", java.time.LocalDateTime.now());
+            return ResponseEntity.ok(result);
+        }
+        
         Map<String, Object> result = healthCheckService.checkHealth();
         
         // 根据状态设置 HTTP 状态码
@@ -99,7 +106,7 @@ public class HealthController {
     }
     
     /**
-     * 健康检查探针（简单版本）
+     * 健康检查探针
      */
     @GetMapping("/ping")
     public Map<String, String> ping() {

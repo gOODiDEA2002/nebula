@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  */
 @AutoConfiguration
 @ConditionalOnClass({ChatModel.class, EmbeddingModel.class, VectorStore.class})
-@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(AIProperties.class)
 public class AIAutoConfiguration {
 

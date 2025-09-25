@@ -27,7 +27,7 @@ public class PaymentAutoConfiguration {
      */
     @Bean
     @Primary
-    @ConditionalOnProperty(prefix = "nebula.payment.mock", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "nebula.payment.mock", name = "enabled", havingValue = "true", matchIfMissing = false)
     @ConditionalOnMissingBean(PaymentService.class)
     public PaymentService mockPaymentService() {
         logger.info("Configuring Mock Payment Service");

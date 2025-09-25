@@ -29,7 +29,7 @@ import java.util.Map;
 @Slf4j
 @AutoConfiguration
 @EnableConfigurationProperties({TaskProperties.class})
-@ConditionalOnProperty(prefix = "nebula.task", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.task", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class TaskAutoConfiguration {
     
     @Autowired

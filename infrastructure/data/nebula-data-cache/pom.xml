@@ -22,13 +22,13 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Spring Boot Starter Data Redis -->
+        <!-- Spring Boot Starter Data Redis - 核心依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
         
-        <!-- Redisson Spring Boot Starter -->
+        <!-- Redisson Spring Boot Starter - 核心依赖 -->
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>

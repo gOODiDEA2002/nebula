@@ -28,6 +28,8 @@ import io.nebula.web.health.HealthChecker;
 import io.nebula.web.health.checkers.ApplicationHealthChecker;
 import io.nebula.web.health.checkers.MemoryHealthChecker;
 import io.nebula.web.health.checkers.DiskSpaceHealthChecker;
+import io.nebula.web.controller.HealthController;
+import io.nebula.web.controller.PerformanceController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import org.springframework.context.ApplicationContext;
@@ -40,6 +42,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
@@ -62,6 +65,7 @@ import java.util.List;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(DispatcherServlet.class)
 @EnableConfigurationProperties(WebProperties.class)
+@Import({HealthController.class, PerformanceController.class})
 public class WebAutoConfiguration {
     
     /**
@@ -70,7 +74,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "nebula.web.exception-handler.enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(name = "nebula.web.exception-handler.enabled", havingValue = "true", matchIfMissing = true )
     public GlobalExceptionHandler globalExceptionHandler() {
         return new GlobalExceptionHandler();
     }
@@ -103,7 +107,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "nebula.web.cors.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "nebula.web.cors.enabled", havingValue = "true", matchIfMissing = true)
     public CorsConfigurationSource corsConfigurationSource(WebProperties webProperties) {
         WebProperties.Cors corsConfig = webProperties.getCors();
         
@@ -158,7 +162,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "nebula.web.request-logging.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "nebula.web.request-logging.enabled", havingValue = "true" , matchIfMissing = true)
     public FilterRegistrationBean<RequestLoggingFilter> requestLoggingFilter(WebProperties webProperties) {
         FilterRegistrationBean<RequestLoggingFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new RequestLoggingFilter(webProperties.getRequestLogging()));
@@ -217,7 +221,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true", matchIfMissing = true)
     public ResponseCache responseCache(WebProperties webProperties) {
         WebProperties.Cache config = webProperties.getCache();
         return new MemoryResponseCache(config.getMaxSize());
@@ -228,7 +232,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true", matchIfMissing = true)
     public CacheKeyGenerator cacheKeyGenerator(WebProperties webProperties) {
         WebProperties.Cache config = webProperties.getCache();
         return new DefaultCacheKeyGenerator(config.getKeyPrefix());
@@ -239,7 +243,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true", matchIfMissing = true)
     public FilterRegistrationBean<ResponseCacheFilter> responseCacheFilter(WebProperties webProperties) {
         FilterRegistrationBean<ResponseCacheFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new ResponseCacheFilter(webProperties.getCache()));
@@ -254,7 +258,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true", matchIfMissing = true)
     public WebMvcConfigurer responseCacheWebMvcConfigurer(ResponseCache responseCache,
                                                          CacheKeyGenerator cacheKeyGenerator,
                                                          WebProperties webProperties) {
@@ -377,7 +381,7 @@ public class WebAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(name = "applicationHealthChecker")
-    @ConditionalOnProperty(name = "nebula.web.health.enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(name = "nebula.web.health.enabled", havingValue = "true", matchIfMissing = true )
     public HealthChecker applicationHealthChecker(ApplicationContext applicationContext) {
         return new ApplicationHealthChecker(applicationContext);
     }

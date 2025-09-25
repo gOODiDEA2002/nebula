@@ -24,7 +24,7 @@ import java.util.concurrent.Executors;
 @Slf4j
 @AutoConfiguration
 @ConditionalOnClass(name = "com.baomidou.mybatisplus.core.mapper.BaseMapper")
-@ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties
 @Import({
     MyBatisPlusConfiguration.class,

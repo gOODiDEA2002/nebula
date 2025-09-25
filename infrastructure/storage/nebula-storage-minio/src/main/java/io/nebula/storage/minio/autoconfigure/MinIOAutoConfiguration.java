@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Configuration
 @ConditionalOnClass({MinioClient.class})
-@ConditionalOnProperty(prefix = "nebula.storage.minio", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.storage.minio", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(MinIOProperties.class)
 public class MinIOAutoConfiguration {
     

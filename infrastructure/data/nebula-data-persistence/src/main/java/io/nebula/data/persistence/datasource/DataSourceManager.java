@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "nebula.data", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.data", name = "enabled", havingValue = "true", matchIfMissing = false)
 @ConfigurationProperties(prefix = "nebula.data")
 public class DataSourceManager implements InitializingBean, DisposableBean {
     

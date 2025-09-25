@@ -47,7 +47,7 @@ import java.util.List;
  */
 @AutoConfiguration(after = ElasticsearchDataAutoConfiguration.class)
 @ConditionalOnClass({ElasticsearchClient.class, ElasticsearchOperations.class})
-@ConditionalOnProperty(prefix = "search.elasticsearch", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "search.elasticsearch", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(ElasticsearchProperties.class)
 public class ElasticsearchAutoConfiguration {
 
