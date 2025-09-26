@@ -5,7 +5,10 @@ import io.nebula.data.persistence.config.MyBatisPlusConfiguration;
 import io.nebula.data.persistence.datasource.DataSourceManager;
 import io.nebula.data.persistence.transaction.DefaultTransactionManager;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -13,8 +16,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import javax.sql.DataSource;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -22,7 +27,7 @@ import java.util.concurrent.Executors;
  * 数据持久层自动配置类
  */
 @Slf4j
-@AutoConfiguration
+@AutoConfiguration(before = org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class)
 @ConditionalOnClass(name = "com.baomidou.mybatisplus.core.mapper.BaseMapper")
 @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties
@@ -37,6 +42,49 @@ import java.util.concurrent.Executors;
     "**.mapper"
 }, markerInterface = io.nebula.data.persistence.mapper.BaseMapper.class)
 public class DataPersistenceAutoConfiguration {
+    
+    @Autowired(required = false)
+    private DataSourceManager dataSourceManager;
+    
+    /**
+     * 将 DataSourceManager 的主数据源注册为 Spring 的 DataSource Bean
+     * 这样 MyBatis-Plus 就能自动使用它
+     */
+    @Bean("dataSource")
+    @Primary
+    @ConditionalOnProperty(prefix = "nebula.data", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean(name = "dataSource")
+    public DataSource primaryDataSource() {
+        //log.info("开始创建 Nebula 主数据源 Bean");
+        
+        if (dataSourceManager == null) {
+            log.warn("DataSourceManager 未初始化，无法提供主数据源");
+            return null;
+        }
+        
+        try {
+            DataSource primaryDataSource = dataSourceManager.getPrimaryDataSource();
+            //log.info("成功使用 Nebula DataSourceManager 的主数据源作为 Spring 的 DataSource Bean");
+            return primaryDataSource;
+        } catch (Exception e) {
+            log.error("无法获取 Nebula 主数据源", e);
+            return null;
+        }
+    }
+    
+    /**
+     * 为 MyBatis-Plus 配置 SqlSessionFactory
+     */
+    @Bean
+    @Primary
+    @ConditionalOnProperty(prefix = "nebula.data", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean(SqlSessionFactory.class)
+    public SqlSessionFactory sqlSessionFactory(DataSource dataSource) throws Exception {
+        //log.info("配置 MyBatis-Plus SqlSessionFactory，使用 Nebula 数据源");
+        SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
+        factoryBean.setDataSource(dataSource);
+        return factoryBean.getObject();
+    }
     
     /**
      * 默认事务管理器

@@ -51,8 +51,11 @@ public class DataSourceManager implements InitializingBean, DisposableBean {
     
     @Override
     public void afterPropertiesSet() throws Exception {
+        //log.info("DataSourceManager 开始初始化，配置的数据源: {}", sources != null ? sources.keySet() : "null");
         if (sources != null && !sources.isEmpty()) {
             initializeDataSources();
+        } else {
+            log.warn("没有配置数据源，DataSourceManager 将不会初始化任何数据源");
         }
     }
     
