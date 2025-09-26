@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "nebula.data", name = "enabled", havingValue = "true", matchIfMissing = false)
-@ConfigurationProperties(prefix = "nebula.data")
+@ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = false)
+@ConfigurationProperties(prefix = "nebula.data.persistence")
 public class DataSourceManager implements InitializingBean, DisposableBean {
     
     /**
@@ -51,7 +51,7 @@ public class DataSourceManager implements InitializingBean, DisposableBean {
     
     @Override
     public void afterPropertiesSet() throws Exception {
-        //log.info("DataSourceManager 开始初始化，配置的数据源: {}", sources != null ? sources.keySet() : "null");
+        log.info("DataSourceManager 开始初始化，配置的数据源: {}", sources != null ? sources.keySet() : "null");
         if (sources != null && !sources.isEmpty()) {
             initializeDataSources();
         } else {

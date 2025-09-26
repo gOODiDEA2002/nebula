@@ -15,13 +15,13 @@
     <description>Nebula framework data persistence layer with MyBatis-Plus</description>
 
     <dependencies>
-        <!-- Data Access -->
+        <!-- Core Common -->
         <dependency>
             <groupId>io.nebula</groupId>
-            <artifactId>nebula-data-access</artifactId>
+            <artifactId>nebula-foundation</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
         <!-- MyBatis Plus Spring Boot 3 Starter -->
         <dependency>
             <groupId>com.baomidou</groupId>
@@ -62,7 +62,6 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-
 
         <!-- ShardingSphere Spring Boot Starter -->
         <dependency>

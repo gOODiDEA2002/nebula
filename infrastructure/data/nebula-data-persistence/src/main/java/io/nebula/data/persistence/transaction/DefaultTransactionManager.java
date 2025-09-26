@@ -1,6 +1,6 @@
 package io.nebula.data.persistence.transaction;
 
-import io.nebula.data.access.transaction.TransactionManager;
+import io.nebula.data.persistence.transaction.TransactionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

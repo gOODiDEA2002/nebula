@@ -47,12 +47,11 @@ public class DataPersistenceAutoConfiguration {
     private DataSourceManager dataSourceManager;
     
     /**
-     * 将 DataSourceManager 的主数据源注册为 Spring 的 DataSource Bean
-     * 这样 MyBatis-Plus 就能自动使用它
+     * 将 DataSourceManager 的主数据源注册为 Spring 的 DataSource Bean,( for MyBatis-Plus
      */
     @Bean("dataSource")
     @Primary
-    @ConditionalOnProperty(prefix = "nebula.data", name = "enabled", havingValue = "true")
+    @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean(name = "dataSource")
     public DataSource primaryDataSource() {
         //log.info("开始创建 Nebula 主数据源 Bean");
@@ -77,7 +76,7 @@ public class DataPersistenceAutoConfiguration {
      */
     @Bean
     @Primary
-    @ConditionalOnProperty(prefix = "nebula.data", name = "enabled", havingValue = "true")
+    @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean(SqlSessionFactory.class)
     public SqlSessionFactory sqlSessionFactory(DataSource dataSource) throws Exception {
         //log.info("配置 MyBatis-Plus SqlSessionFactory，使用 Nebula 数据源");
@@ -90,7 +89,7 @@ public class DataPersistenceAutoConfiguration {
      * 默认事务管理器
      */
     @Bean
-    @ConditionalOnMissingBean(io.nebula.data.access.transaction.TransactionManager.class)
+    @ConditionalOnMissingBean(io.nebula.data.persistence.transaction.TransactionManager.class)
     public DefaultTransactionManager nebulaTransactionManager(
             PlatformTransactionManager platformTransactionManager,
             Executor taskExecutor) {
