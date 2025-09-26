@@ -15,23 +15,26 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * JWT 工具类
  */
+@Slf4j
+@RequiredArgsConstructor
 public class JwtUtils {
-    
-    private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
     
     private final SecretKey secretKey;
     private final int expiration;
     private final ObjectMapper objectMapper;
-    
+
     public JwtUtils(String secret, int expiration, ObjectMapper objectMapper) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expiration = expiration;
         this.objectMapper = objectMapper;
     }
-    
+        
     /**
      * 生成JWT令牌
      * 
@@ -68,7 +71,7 @@ public class JwtUtils {
                     .compact();
                     
         } catch (Exception e) {
-            logger.error("Failed to generate JWT token for user: {}", user.getUserId(), e);
+            log.error("Failed to generate JWT token for user: {}", user.getUserId(), e);
             throw new RuntimeException("Failed to generate JWT token", e);
         }
     }
@@ -113,7 +116,7 @@ public class JwtUtils {
             return user;
             
         } catch (Exception e) {
-            logger.warn("Failed to parse JWT token: {}", e.getMessage());
+            log.warn("Failed to parse JWT token: {}", e.getMessage());
             return null;
         }
     }
@@ -128,7 +131,7 @@ public class JwtUtils {
         try {
             return parseTokenClaims(token) != null;
         } catch (Exception e) {
-            logger.debug("JWT token validation failed: {}", e.getMessage());
+            log.debug("JWT token validation failed: {}", e.getMessage());
             return false;
         }
     }
@@ -153,9 +156,9 @@ public class JwtUtils {
             
             long remaining = expiration.getTime() - System.currentTimeMillis();
             return remaining > 0 ? remaining / 1000 : -1;
-            
+
         } catch (Exception e) {
-            logger.debug("Failed to get token remaining time: {}", e.getMessage());
+            log.debug("Failed to get token remaining time: {}", e.getMessage());
             return -1;
         }
     }
@@ -171,7 +174,7 @@ public class JwtUtils {
             Claims claims = parseTokenClaims(token);
             return claims != null ? claims.getSubject() : null;
         } catch (Exception e) {
-            logger.debug("Failed to get user ID from token: {}", e.getMessage());
+            log.debug("Failed to get user ID from token: {}", e.getMessage());
             return null;
         }
     }
@@ -195,19 +198,19 @@ public class JwtUtils {
                     .getPayload();
                     
         } catch (ExpiredJwtException e) {
-            logger.debug("JWT token expired: {}", e.getMessage());
+            log.debug("JWT token expired: {}", e.getMessage());
             throw e;
         } catch (UnsupportedJwtException e) {
-            logger.debug("JWT token unsupported: {}", e.getMessage());
+            log.debug("JWT token unsupported: {}", e.getMessage());
             throw e;
         } catch (MalformedJwtException e) {
-            logger.debug("JWT token malformed: {}", e.getMessage());
+            log.debug("JWT token malformed: {}", e.getMessage());
             throw e;
         } catch (SecurityException e) {
-            logger.debug("JWT token security error: {}", e.getMessage());
+            log.debug("JWT token security error: {}", e.getMessage());
             throw e;
         } catch (IllegalArgumentException e) {
-            logger.debug("JWT token illegal argument: {}", e.getMessage());
+            log.debug("JWT token illegal argument: {}", e.getMessage());
             throw e;
         }
     }

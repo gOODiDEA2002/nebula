@@ -2,7 +2,8 @@ package io.nebula.web.auth;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,9 +11,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * 默认认证服务实现
  * 基于JWT和内存黑名单的简单实现
  */
+@Slf4j
+@RequiredArgsConstructor
 public class DefaultAuthService implements AuthService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(DefaultAuthService.class);
     
     private final JwtUtils jwtUtils;
     
@@ -21,21 +22,17 @@ public class DefaultAuthService implements AuthService {
      */
     private final Set<String> blacklist = ConcurrentHashMap.newKeySet();
     
-    public DefaultAuthService(JwtUtils jwtUtils) {
-        this.jwtUtils = jwtUtils;
-    }
-    
     @Override
     public AuthUser getUser(String token) {
         if (isTokenBlacklisted(token)) {
-            logger.debug("Token is blacklisted: {}", maskToken(token));
+            log.debug("Token is blacklisted: {}", maskToken(token));
             return null;
         }
         
         try {
             return jwtUtils.parseToken(token);
         } catch (Exception e) {
-            logger.debug("Failed to parse user from token: {}", e.getMessage());
+            log.debug("Failed to parse user from token: {}", e.getMessage());
             return null;
         }
     }
@@ -49,7 +46,7 @@ public class DefaultAuthService implements AuthService {
         try {
             return jwtUtils.validateToken(token);
         } catch (Exception e) {
-            logger.debug("Token validation failed: {}", e.getMessage());
+            log.debug("Token validation failed: {}", e.getMessage());
             return false;
         }
     }
@@ -59,7 +56,7 @@ public class DefaultAuthService implements AuthService {
         try {
             return jwtUtils.generateToken(user);
         } catch (Exception e) {
-            logger.error("Failed to generate token for user: {}", user.getUserId(), e);
+            log.error("Failed to generate token for user: {}", user.getUserId(), e);
             throw new RuntimeException("Failed to generate token", e);
         }
     }
@@ -78,7 +75,7 @@ public class DefaultAuthService implements AuthService {
         // 生成新令牌
         String newToken = generateToken(user);
         
-        logger.debug("Token refreshed for user: {}", user.getUserId());
+        log.debug("Token refreshed for user: {}", user.getUserId());
         return newToken;
     }
     
@@ -90,7 +87,7 @@ public class DefaultAuthService implements AuthService {
             // 清理过期的黑名单令牌（可选优化）
             cleanupBlacklist();
             
-            logger.debug("Token logged out: {}", maskToken(token));
+            log.debug("Token logged out: {}", maskToken(token));
         }
     }
     
@@ -110,7 +107,7 @@ public class DefaultAuthService implements AuthService {
         if (blacklist.size() > 10000) {
             // 当黑名单过大时，清理一半
             blacklist.clear();
-            logger.info("Blacklist cleared due to size limit");
+            log.info("Blacklist cleared due to size limit");
         }
     }
     
