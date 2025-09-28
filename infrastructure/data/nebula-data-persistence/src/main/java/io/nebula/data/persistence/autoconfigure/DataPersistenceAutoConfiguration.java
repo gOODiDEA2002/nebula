@@ -6,7 +6,10 @@ import io.nebula.data.persistence.datasource.DataSourceManager;
 import io.nebula.data.persistence.transaction.DefaultTransactionManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.SqlSessionFactoryBean;
+import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -63,7 +66,7 @@ public class DataPersistenceAutoConfiguration {
         
         try {
             DataSource primaryDataSource = dataSourceManager.getPrimaryDataSource();
-            //log.info("成功使用 Nebula DataSourceManager 的主数据源作为 Spring 的 DataSource Bean");
+            log.info("成功使用 Nebula DataSourceManager 的主数据源作为 Spring 的 DataSource Bean");
             return primaryDataSource;
         } catch (Exception e) {
             log.error("无法获取 Nebula 主数据源", e);
@@ -78,10 +81,34 @@ public class DataPersistenceAutoConfiguration {
     @Primary
     @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean(SqlSessionFactory.class)
-    public SqlSessionFactory sqlSessionFactory(DataSource dataSource) throws Exception {
-        //log.info("配置 MyBatis-Plus SqlSessionFactory，使用 Nebula 数据源");
-        SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
+    public SqlSessionFactory sqlSessionFactory(
+            DataSource dataSource,
+            MybatisPlusInterceptor mybatisPlusInterceptor,
+            com.baomidou.mybatisplus.core.handlers.MetaObjectHandler metaObjectHandler) throws Exception {
+        log.info("配置 MyBatis-Plus SqlSessionFactory，使用 Nebula 数据源");
+        
+        MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
+        
+        // 设置 MyBatis-Plus 全局配置
+        GlobalConfig globalConfig = new GlobalConfig();
+        globalConfig.setMetaObjectHandler(metaObjectHandler);
+        factoryBean.setGlobalConfig(globalConfig);
+        
+        // 设置插件
+        factoryBean.setPlugins(mybatisPlusInterceptor);
+        
+        // 设置类型别名包
+        factoryBean.setTypeAliasesPackage("io.nebula.**.entity,**.entity,io.nebula.**.entity.dos,**.entity.dos");
+        
+        // 设置 mapper XML 文件位置（如果有的话）
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        try {
+            factoryBean.setMapperLocations(resolver.getResources("classpath*:/mapper/**/*.xml"));
+        } catch (Exception e) {
+            log.debug("No mapper XML files found, which is fine for annotation-based mappers");
+        }
+        
         return factoryBean.getObject();
     }
     
