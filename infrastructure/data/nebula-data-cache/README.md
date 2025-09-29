@@ -4,6 +4,8 @@
 
 `nebula-data-cache`是Nebula框架的缓存抽象层，提供统一的缓存操作接口，支持多种缓存后端，包括本地缓存（Caffeine）、分布式缓存（Redis）以及多级缓存架构。
 
+> **🔄 v2.0.0重大更新**：完全模块化架构，Redis配置完全封装，统一配置前缀，依赖精简优化。详见[配置优化说明](#-配置优化说明-v200)。
+
 ## 核心特性
 
 - 🚀 **统一接口**：提供一致的缓存API，支持多种缓存实现
@@ -70,20 +72,24 @@ nebula:
         remote-cache-enabled: true
         sync-on-update: true           # 更新时同步到所有缓存层
 
-# Redis连接配置
-spring:
-  redis:
-    host: 192.168.111.130    # Redis服务器地址
-    port: 6379               # Redis端口
-    password: lilishop       # Redis密码
-    timeout: 2000ms          # 连接超时时间
-    database: 0              # 数据库索引
-    lettuce:
-      pool:
-        max-active: 20       # 连接池最大连接数
-        max-idle: 10         # 连接池最大空闲连接数
-        min-idle: 5          # 连接池最小空闲连接数
-        max-wait: 2000ms     # 连接池最大等待时间
+# Redis连接配置（已集成到nebula.data.cache.redis配置中）
+# 注意：从v2.0.0版本开始，Redis配置已完全集成到nebula缓存配置中
+# 无需单独配置spring.data.redis，使用以下统一配置：
+
+nebula:
+  data:
+    cache:
+      redis:
+        host: 192.168.111.130    # Redis服务器地址
+        port: 6379               # Redis端口
+        password: lilishop       # Redis密码
+        timeout: 2000ms          # 连接超时时间
+        database: 0              # 数据库索引
+        pool:
+          max-active: 20         # 连接池最大连接数
+          max-idle: 10           # 连接池最大空闲连接数
+          min-idle: 5            # 连接池最小空闲连接数
+          max-wait: 2000ms       # 连接池最大等待时间
 ```
 
 ### 3. 基本使用
@@ -1172,6 +1178,93 @@ spring:
     password: lilishop
 ```
 
+## 🔄 配置优化说明 (v2.0.0+)
+
+### 重要变更
+
+从v2.0.0版本开始，nebula-data-cache进行了重要的架构优化：
+
+#### 1. 完全模块化封装
+- **✅ 优化前**：Redis配置分散在应用层（RedisConfig.java）
+- **✅ 优化后**：Redis配置完全封装在nebula-data-cache模块内部
+
+#### 2. 统一配置规范  
+- **✅ 优化前**：使用`spring.data.redis.*`配置前缀
+- **✅ 优化后**：统一使用`nebula.data.cache.redis.*`配置前缀
+
+#### 3. 依赖精简
+- **✅ 移除**：不必要的`redisson-spring-boot-starter`依赖
+- **✅ 保留**：只依赖必要的`spring-boot-starter-data-redis`
+
+#### 4. 自动配置增强
+- **✅ 新增**：RedisConnectionFactory自动配置
+- **✅ 新增**：RedisTemplate自动配置  
+- **✅ 新增**：完整的连接池配置支持
+
+### 迁移指南
+
+如果您从早期版本升级，请按以下步骤迁移：
+
+#### 1. 移除应用层Redis配置
+```java
+// 删除应用中的这类文件
+@Configuration
+public class RedisConfig {
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(...) {
+        // 不再需要手动配置
+    }
+}
+```
+
+#### 2. 更新配置文件
+```yaml
+# 旧配置 - 请移除
+spring:
+  data:
+    redis:
+      host: 192.168.111.130
+      port: 6379
+      password: lilishop
+
+# 新配置 - 使用统一前缀
+nebula:
+  data:
+    cache:
+      enabled: true
+      type: multi-level
+      redis:
+        host: 192.168.111.130
+        port: 6379
+        password: lilishop
+        database: 1
+        timeout: 2000ms
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 2000ms
+```
+
+#### 3. 移除Redisson排除配置
+```yaml
+# 不再需要排除Redisson自动配置
+spring:
+  autoconfigure:
+    exclude:
+      # - org.redisson.spring.starter.RedissonAutoConfigurationV2  # 已移除
+```
+
+### 配置验证
+
+成功配置后，启动日志会显示：
+```
+INFO --- Configuring Redis Connection Factory
+INFO --- Configuring RedisTemplate
+INFO --- Configuring Multi-Level Cache Manager
+INFO --- MultiLevelCacheManager initialized with L1: LocalCache, L2: DefaultCache
+```
+
 ## 常见问题排查
 
 ### 1. 缓存不生效
@@ -1202,6 +1295,14 @@ telnet 192.168.111.130 6379
 - 确保Redis Pub/Sub功能正常
 - 检查多级缓存配置中的sync-on-update设置
 - 查看日志确认缓存更新事件
+
+### 4. 配置迁移问题
+
+**问题**：升级后缓存不工作
+**解决方案**：
+- 检查是否按迁移指南更新了配置
+- 确认移除了旧的Redis配置文件
+- 验证新的配置前缀是否正确
 
 ## 性能优化建议
 
