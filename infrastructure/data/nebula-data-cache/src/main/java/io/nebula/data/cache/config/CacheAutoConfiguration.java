@@ -13,6 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -28,6 +29,7 @@ import java.time.Duration;
  */
 @Slf4j
 @AutoConfiguration
+@EnableCaching
 @ConditionalOnProperty(prefix = "nebula.data.cache", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(CacheProperties.class)
 public class CacheAutoConfiguration {

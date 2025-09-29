@@ -57,17 +57,36 @@ public class CacheProperties {
         /**
          * 本地缓存
          */
-        LOCAL,
+        LOCAL("local"),
         
         /**
          * Redis缓存
          */
-        REDIS,
+        REDIS("redis"),
         
         /**
          * 多级缓存
          */
-        MULTI_LEVEL
+        MULTI_LEVEL("multi-level");
+        
+        private final String value;
+        
+        CacheType(String value) {
+            this.value = value;
+        }
+        
+        public String getValue() {
+            return value;
+        }
+        
+        public static CacheType fromValue(String value) {
+            for (CacheType type : values()) {
+                if (type.value.equals(value)) {
+                    return type;
+                }
+            }
+            return LOCAL; // 默认返回本地缓存
+        }
     }
     
     /**

@@ -73,15 +73,17 @@ nebula:
 # Redis连接配置
 spring:
   redis:
-    host: localhost
-    port: 6379
-    password: 
-    timeout: 2000ms
+    host: 192.168.111.130    # Redis服务器地址
+    port: 6379               # Redis端口
+    password: lilishop       # Redis密码
+    timeout: 2000ms          # 连接超时时间
+    database: 0              # 数据库索引
     lettuce:
       pool:
-        max-active: 20
-        max-idle: 10
-        min-idle: 5
+        max-active: 20       # 连接池最大连接数
+        max-idle: 10         # 连接池最大空闲连接数
+        min-idle: 5          # 连接池最小空闲连接数
+        max-wait: 2000ms     # 连接池最大等待时间
 ```
 
 ### 3. 基本使用
@@ -1103,6 +1105,165 @@ public class CacheRepairService {
             cacheManager.put(key, products, Duration.ofMinutes(30));
         }
         // ... 其他key的预热逻辑
+    }
+}
+```
+
+## 部署和配置示例
+
+### 1. 生产环境Redis配置
+
+```yaml
+nebula:
+  data:
+    cache:
+      enabled: true
+      type: multi-level
+      default-ttl: 1800s              # 生产环境建议30分钟
+      
+      # 本地缓存配置（L1）
+      local:
+        enabled: true
+        max-size: 50000               # 生产环境适当增大
+        expire-after-write: 300s      # 5分钟写入过期
+        expire-after-access: 600s     # 10分钟访问过期
+        
+      # 多级缓存配置
+      multi-level:
+        enabled: true
+        local-cache-enabled: true
+        remote-cache-enabled: true
+        sync-on-update: true
+        l1-write-back-enabled: true
+
+# 生产环境Redis配置
+spring:
+  redis:
+    host: 192.168.111.130
+    port: 6379
+    password: lilishop
+    timeout: 5000ms
+    database: 0
+    lettuce:
+      pool:
+        max-active: 200              # 生产环境连接池
+        max-idle: 50
+        min-idle: 10
+        max-wait: 3000ms
+      cluster:
+        refresh:
+          adaptive: true             # 自适应刷新拓扑
+          period: 30s                # 定期刷新间隔
+```
+
+### 2. 开发环境简化配置
+
+```yaml
+nebula:
+  data:
+    cache:
+      enabled: true
+      type: local                    # 开发环境使用本地缓存
+      
+spring:
+  redis:
+    host: 192.168.111.130
+    port: 6379
+    password: lilishop
+```
+
+## 常见问题排查
+
+### 1. 缓存不生效
+
+**问题**：@Cacheable注解不生效
+**解决方案**：
+- 确保启用了`@EnableCaching`（已自动配置）
+- 检查方法是否为public
+- 确认方法不在同一个类内部调用
+- 验证缓存配置是否正确
+
+### 2. Redis连接失败
+
+**问题**：连接Redis服务器失败
+**解决方案**：
+```bash
+# 检查Redis服务状态
+redis-cli -h 192.168.111.130 -p 6379 -a lilishop ping
+
+# 检查网络连通性
+telnet 192.168.111.130 6379
+```
+
+### 3. 多级缓存同步问题
+
+**问题**：L1和L2缓存数据不一致
+**解决方案**：
+- 确保Redis Pub/Sub功能正常
+- 检查多级缓存配置中的sync-on-update设置
+- 查看日志确认缓存更新事件
+
+## 性能优化建议
+
+### 1. 缓存命中率优化
+```java
+@Component
+public class CacheOptimizer {
+    
+    @Scheduled(fixedRate = 300000) // 每5分钟检查一次
+    public void monitorCachePerformance() {
+        CacheStats stats = cacheManager.getStats();
+        double hitRate = stats.getHitRate();
+        
+        if (hitRate < 0.8) {
+            log.warn("缓存命中率过低: {:.2f}%, 建议检查缓存策略", hitRate * 100);
+        }
+        
+        log.info("缓存统计 - 命中: {}, 未命中: {}, 命中率: {:.2f}%", 
+                stats.getHitCount(), stats.getMissCount(), hitRate * 100);
+    }
+}
+```
+
+### 2. 内存使用优化
+- 合理设置L1缓存大小，避免OOM
+- 使用合适的TTL，及时清理过期数据
+- 监控缓存大小，必要时调整配置
+
+### 3. 网络优化
+- 使用连接池减少连接开销
+- 启用Redis pipeline批量操作
+- 考虑使用Redis Cluster分散负载
+
+## 集成测试
+
+```java
+@SpringBootTest
+class CacheIntegrationTest {
+    
+    @Autowired
+    private CacheManager cacheManager;
+    
+    @Test
+    void testMultiLevelCache() {
+        String key = "test:key";
+        String value = "test:value";
+        
+        // 测试存储
+        cacheManager.set(key, value);
+        
+        // 测试L1缓存命中
+        Optional<String> l1Result = cacheManager.get(key, String.class);
+        assertThat(l1Result).isPresent();
+        assertThat(l1Result.get()).isEqualTo(value);
+        
+        // 清除L1，测试L2命中
+        if (cacheManager instanceof MultiLevelCacheManager) {
+            ((MultiLevelCacheManager) cacheManager).clearL1();
+            Optional<String> l2Result = cacheManager.get(key, String.class);
+            assertThat(l2Result).isPresent();
+            assertThat(l2Result.get()).isEqualTo(value);
+        }
     }
 }
 ```

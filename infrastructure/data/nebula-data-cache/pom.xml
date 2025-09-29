@@ -15,13 +15,7 @@
     <description>Nebula framework cache support with Redis and local cache</description>
 
     <dependencies>
-        <!-- Data Access -->
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-data-access</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        
+
         <!-- Spring Boot Starter Data Redis - 核心依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

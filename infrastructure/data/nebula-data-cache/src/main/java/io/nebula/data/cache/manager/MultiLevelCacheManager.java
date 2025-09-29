@@ -572,7 +572,7 @@ public class MultiLevelCacheManager implements CacheManager {
     /**
      * 多级缓存统计信息
      */
-    private class MultiLevelCacheStats implements CacheStats {
+    public class MultiLevelCacheStats implements CacheStats {
         
         @Override
         public long getHitCount() {
