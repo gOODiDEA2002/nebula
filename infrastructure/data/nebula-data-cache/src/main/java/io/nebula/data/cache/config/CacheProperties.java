@@ -146,9 +146,29 @@ public class CacheProperties {
         private boolean enabled = false;
         
         /**
+         * Redis服务器主机名
+         */
+        private String host = "localhost";
+        
+        /**
+         * Redis服务器端口
+         */
+        private int port = 6379;
+        
+        /**
+         * Redis密码
+         */
+        private String password;
+        
+        /**
          * 数据库索引
          */
         private int database = 0;
+        
+        /**
+         * 连接超时时间
+         */
+        private Duration timeout = Duration.ofSeconds(2);
         
         /**
          * 键前缀
@@ -159,6 +179,63 @@ public class CacheProperties {
          * 序列化类型
          */
         private SerializationType serialization = SerializationType.JSON;
+        
+        /**
+         * SSL配置
+         */
+        private Ssl ssl = new Ssl();
+        
+        /**
+         * Lettuce连接池配置
+         */
+        private Pool pool = new Pool();
+    }
+    
+    /**
+     * SSL配置
+     */
+    @Data
+    public static class Ssl {
+        /**
+         * 是否启用SSL
+         */
+        private boolean enabled = false;
+        
+        /**
+         * SSL Bundle名称
+         */
+        private String bundle;
+    }
+    
+    /**
+     * 连接池配置
+     */
+    @Data
+    public static class Pool {
+        /**
+         * 最大活跃连接数
+         */
+        private int maxActive = 8;
+        
+        /**
+         * 最大空闲连接数
+         */
+        private int maxIdle = 8;
+        
+        /**
+         * 最小空闲连接数
+         */
+        private int minIdle = 0;
+        
+        /**
+         * 最大等待时间
+         */
+        private Duration maxWait = Duration.ofMillis(-1);
+        
+        /**
+         * 连接超时时间
+         */
+        private Duration connectTimeout;
     }
     
     /**

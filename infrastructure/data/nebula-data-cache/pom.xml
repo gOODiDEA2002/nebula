@@ -22,11 +22,6 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
         
-        <!-- Redisson Spring Boot Starter - 核心依赖 -->
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson-spring-boot-starter</artifactId>
-        </dependency>
         
         <!-- Spring Boot Starter Cache -->
         <dependency>

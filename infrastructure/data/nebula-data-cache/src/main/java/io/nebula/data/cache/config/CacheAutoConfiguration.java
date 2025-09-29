@@ -17,7 +17,14 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import java.time.Duration;
 
@@ -33,6 +40,95 @@ import java.time.Duration;
 @ConditionalOnProperty(prefix = "nebula.data.cache", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(CacheProperties.class)
 public class CacheAutoConfiguration {
+    
+    /**
+     * Redis连接工厂配置
+     */
+    @Bean("redisConnectionFactory")
+    @ConditionalOnClass(RedisConnectionFactory.class)
+    @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "redis")
+    @ConditionalOnMissingBean(RedisConnectionFactory.class)
+    public RedisConnectionFactory redisConnectionFactory(CacheProperties properties) {
+        log.info("Configuring Redis Connection Factory");
+        
+        CacheProperties.RedisCache redisConfig = properties.getRedis();
+        
+        // Redis单机配置
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+        config.setHostName(redisConfig.getHost());
+        config.setPort(redisConfig.getPort());
+        config.setDatabase(redisConfig.getDatabase());
+        if (redisConfig.getPassword() != null) {
+            config.setPassword(redisConfig.getPassword());
+        }
+        
+        // Lettuce连接池配置
+        GenericObjectPoolConfig<?> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMaxTotal(redisConfig.getPool().getMaxActive());
+        poolConfig.setMaxIdle(redisConfig.getPool().getMaxIdle());
+        poolConfig.setMinIdle(redisConfig.getPool().getMinIdle());
+        poolConfig.setMaxWait(redisConfig.getPool().getMaxWait());
+        
+        LettucePoolingClientConfiguration.LettucePoolingClientConfigurationBuilder builder = 
+                LettucePoolingClientConfiguration.builder()
+                        .commandTimeout(redisConfig.getTimeout())
+                        .poolConfig(poolConfig);
+        
+        if (redisConfig.getPool().getConnectTimeout() != null) {
+            builder.commandTimeout(redisConfig.getPool().getConnectTimeout());
+        }
+        
+        LettucePoolingClientConfiguration clientConfig = builder.build();
+        
+        return new LettuceConnectionFactory(config, clientConfig);
+    }
+    
+    /**
+     * Redis连接工厂配置（多级缓存）
+     */
+    @Bean("multiLevelRedisConnectionFactory")
+    @ConditionalOnClass(RedisConnectionFactory.class)
+    @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "multi-level")
+    @ConditionalOnMissingBean(RedisConnectionFactory.class)
+    public RedisConnectionFactory multiLevelRedisConnectionFactory(CacheProperties properties) {
+        return redisConnectionFactory(properties);
+    }
+    
+    /**
+     * RedisTemplate配置
+     */
+    @Bean("redisTemplate")
+    @ConditionalOnClass(RedisTemplate.class)
+    @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "redis")
+    @ConditionalOnMissingBean(name = "redisTemplate")
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        log.info("Configuring RedisTemplate");
+        
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(redisConnectionFactory);
+        
+        // 设置key序列化器
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        
+        // 设置value序列化器
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        
+        template.afterPropertiesSet();
+        return template;
+    }
+    
+    /**
+     * RedisTemplate配置（多级缓存）
+     */
+    @Bean("multiLevelRedisTemplate")
+    @ConditionalOnClass(RedisTemplate.class)
+    @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "multi-level")
+    @ConditionalOnMissingBean(name = "redisTemplate")
+    public RedisTemplate<String, Object> multiLevelRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        return redisTemplate(redisConnectionFactory);
+    }
     
     /**
      * 本地缓存管理器
