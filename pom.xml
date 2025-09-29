@@ -23,7 +23,6 @@
         <module>core/nebula-foundation</module>
 
         <!-- 数据访问层 -->
-        <module>infrastructure/data/nebula-data-access</module>
         <module>infrastructure/data/nebula-data-persistence</module>
         <module>infrastructure/data/nebula-data-mongodb</module>
         <module>infrastructure/data/nebula-data-cache</module>
