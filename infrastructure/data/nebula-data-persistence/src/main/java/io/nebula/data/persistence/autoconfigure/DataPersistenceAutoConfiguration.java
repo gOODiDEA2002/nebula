@@ -14,6 +14,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -50,15 +51,19 @@ public class DataPersistenceAutoConfiguration {
     private DataSourceManager dataSourceManager;
     
     /**
-     * 将 DataSourceManager 的主数据源注册为 Spring 的 DataSource Bean,( for MyBatis-Plus
+     * 将 DataSourceManager 的主数据源注册为 Spring 的 DataSource Bean (for MyBatis-Plus)
+     * 
+     * 条件：
+     * 1. nebula.data.persistence.enabled = true
+     * 2. 没有其他 dataSource Bean（通过类型检查）
+     * 3. 分片功能未启用（分片优先级更高）
+     * 4. 读写分离动态路由未启用（读写分离优先级更高）
      */
     @Bean("dataSource")
     @Primary
-    @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true")
-    @ConditionalOnMissingBean(name = "dataSource")
+    @ConditionalOnExpression("'${nebula.data.persistence.enabled:false}' == 'true' && '${nebula.data.sharding.enabled:false}' != 'true'")
+    @ConditionalOnMissingBean(DataSource.class)
     public DataSource primaryDataSource() {
-        //log.info("开始创建 Nebula 主数据源 Bean");
-        
         if (dataSourceManager == null) {
             log.warn("DataSourceManager 未初始化，无法提供主数据源");
             return null;
@@ -66,7 +71,7 @@ public class DataPersistenceAutoConfiguration {
         
         try {
             DataSource primaryDataSource = dataSourceManager.getPrimaryDataSource();
-            log.info("成功使用 Nebula DataSourceManager 的主数据源作为 Spring 的 DataSource Bean");
+            log.info("成功使用 Nebula DataSourceManager 的主数据源作为 Spring 的 DataSource Bean（普通数据访问模式）");
             return primaryDataSource;
         } catch (Exception e) {
             log.error("无法获取 Nebula 主数据源", e);

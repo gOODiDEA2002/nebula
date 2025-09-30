@@ -514,15 +514,6 @@ nebula:
     sharding:
       enabled: true
       
-      # 默认分片策略
-      default-database-strategy:
-        sharding-column: user_id
-        algorithm-name: mod-db-algorithm
-      
-      default-table-strategy:
-        sharding-column: order_id
-        algorithm-name: mod-table-algorithm
-      
       # Schema配置
       schemas:
         default:
@@ -533,36 +524,28 @@ nebula:
             - logic-table: t_order   # 逻辑表名
               actual-data-nodes: ds${0..1}.t_order_${0..1}  # 实际数据节点
               
-              # 分库策略：根据 user_id 分库
+              # 分库策略：根据 user_id 分库（自动创建 INLINE 算法）
               database-sharding-config:
                 sharding-column: user_id
+                algorithm-name: database-user-mod
                 algorithm-expression: ds${user_id % 2}
               
-              # 分表策略：根据 order_id 分表
+              # 分表策略：根据 id 分表（自动创建 INLINE 算法）
               table-sharding-config:
-                sharding-column: order_id
-                algorithm-expression: t_order_${order_id % 2}
+                sharding-column: id
+                algorithm-name: table-order-mod
+                algorithm-expression: t_order_${id % 2}
               
-              # 主键生成策略
+              # 主键生成策略（雪花算法）
               key-generate-config:
-                column: order_id
+                column: id
                 algorithm-name: snowflake
-      
-      # 分片算法配置
-      algorithms:
-        mod-db-algorithm:
-          type: INLINE
-          props:
-            algorithm-expression: ds${user_id % 2}
-        mod-table-algorithm:
-          type: INLINE
-          props:
-            algorithm-expression: t_order_${order_id % 2}
-        snowflake:
-          type: SNOWFLAKE
-          props:
-            worker-id: 1
 ```
+
+**重要说明**：
+- 配置中的 `algorithm-expression` 会自动创建对应的 INLINE 算法
+- 不需要手动配置 `algorithms` 节点，框架会根据表配置自动生成
+- 支持的主键生成算法：`snowflake`（雪花算法）、`uuid`（UUID）
 
 ### 实体类定义
 
@@ -657,6 +640,169 @@ public class ShardingDemoServiceImpl implements ShardingDemoService {
 ### 演示和测试
 
 完整的分库分表功能演示请参考：[Nebula 分库分表功能测试指南](../../../nebula-example/docs/nebula-sharding-test.md)
+
+---
+
+## 🔄 三种场景并存配置
+
+### 场景说明
+
+在实际业务中，常常需要在同一个应用中同时使用三种数据访问方式：
+
+1. **普通数据访问** - 用于用户表、字典表等小数据量表
+2. **读写分离访问** - 用于产品表、文章表等读多写少的表
+3. **分片访问** - 用于订单表、日志表等大数据量表
+
+Nebula 数据持久层支持这三种场景在同一应用中并存，通过数据源优先级策略自动管理。
+
+### 数据源优先级
+
+```
+分片数据源 > 读写分离数据源 > 普通数据源
+```
+
+当配置了分片功能时，分片数据源会成为主数据源（`@Primary`），其他数据源通过不同方式访问。
+
+### 配置示例
+
+详细配置请参考：`nebula-example/src/main/resources/application-combined.yml`
+
+```yaml
+nebula:
+  data:
+    persistence:
+      enabled: true
+      sources:
+        # 1. 普通数据源
+        primary:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_example
+          username: root
+          password: password
+        
+        # 2. 读写分离数据源
+        master:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_master
+          username: root
+          password: password
+        slave01:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_slave1
+          username: root
+          password: password
+        
+        # 3. 分片数据源
+        ds0:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_shard_0
+          username: root
+          password: password
+        ds1:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_shard_1
+          username: root
+          password: password
+    
+    # 读写分离配置（用于产品表）
+    read-write-separation:
+      enabled: true
+      dynamic-routing: false      # 不作为主数据源（分片优先）
+      aspect-enabled: true         # 启用切面，通过注解控制
+      clusters:
+        product-cluster:
+          enabled: true
+          master: master
+          slaves: [slave01]
+          load-balance-strategy: ROUND_ROBIN
+    
+    # 分片配置（用于订单表）- 优先级最高
+    sharding:
+      enabled: true
+      schemas:
+        default:
+          data-sources: [ds0, ds1]
+          tables:
+            - logic-table: t_order
+              actual-data-nodes: ds${0..1}.t_order_${0..1}
+              database-sharding-config:
+                sharding-column: user_id
+                algorithm-name: database-user-mod
+                algorithm-expression: ds${user_id % 2}
+              table-sharding-config:
+                sharding-column: id
+                algorithm-name: table-order-mod
+                algorithm-expression: t_order_${id % 2}
+              key-generate-config:
+                column: id
+                algorithm-name: snowflake
+```
+
+### 使用方式
+
+#### 1. 用户表（普通数据访问）
+
+```java
+@Service
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> 
+        implements UserService {
+    
+    // 无需任何注解，默认使用分片数据源（但 t_user 未配置分片规则，相当于普通访问）
+    @Override
+    @Transactional
+    public void createUser(User user) {
+        save(user);
+    }
+}
+```
+
+#### 2. 产品表（读写分离访问）
+
+```java
+@Service
+public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
+        implements ProductService {
+    
+    // 读操作：使用 @ReadDataSource 路由到从库
+    @Override
+    @ReadDataSource(cluster = "product-cluster")
+    public Product getProduct(Long id) {
+        return getById(id);
+    }
+    
+    // 写操作：使用 @WriteDataSource 路由到主库
+    @Override
+    @WriteDataSource(cluster = "product-cluster")
+    @Transactional
+    public void saveProduct(Product product) {
+        save(product);
+    }
+}
+```
+
+#### 3. 订单表（分片访问）
+
+```java
+@Service
+public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> 
+        implements OrderService {
+    
+    // 无需注解，ShardingSphere 自动根据分片键路由
+    @Override
+    @Transactional
+    public void createOrder(Order order) {
+        save(order);  // 自动路由到 ds{user_id % 2}.t_order_{id % 2}
+    }
+}
+```
+
+### 路由规则总结
+
+| 表名 | 数据访问方式 | 路由方式 | 数据源 |
+|------|------------|----------|--------|
+| t_user | 普通访问 | 默认 | 分片数据源（无分片规则） |
+| t_product | 读写分离 | @ReadDataSource / @WriteDataSource | master/slave01 |
+| t_order | 分片 | 自动路由 | ds0/ds1 |
 
 ---
 

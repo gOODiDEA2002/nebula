@@ -2,7 +2,7 @@ package io.nebula.data.persistence.sharding;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.driver.api.ShardingSphereDataSourceFactory;
-import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
@@ -73,8 +73,8 @@ public class ShardingSphereManager {
             ruleConfig.getTables().add(tableRuleConfig);
         }
         
-        // 配置分片算法
-        configureShardingAlgorithms(ruleConfig);
+        // 配置分片算法（根据表配置动态创建）
+        configureShardingAlgorithms(ruleConfig, tableConfigs);
         
         // 配置默认分片策略
         configureDefaultShardingStrategy(ruleConfig);
@@ -128,36 +128,97 @@ public class ShardingSphereManager {
     }
     
     /**
-     * 配置分片算法
+     * 配置分片算法（根据表配置动态创建）
      */
-    private void configureShardingAlgorithms(ShardingRuleConfiguration ruleConfig) {
+    private void configureShardingAlgorithms(ShardingRuleConfiguration ruleConfig, List<TableShardingConfig> tableConfigs) {
         Map<String, AlgorithmConfiguration> algorithms = ruleConfig.getShardingAlgorithms();
-        
-        // 配置内置分片算法
-        
-        // 取模算法
-        algorithms.put("mod-algorithm", new AlgorithmConfiguration("MOD", createModProperties()));
-        
-        // 哈希取模算法
-        algorithms.put("hash-mod-algorithm", new AlgorithmConfiguration("HASH_MOD", createHashModProperties()));
-        
-        // 范围分片算法
-        algorithms.put("range-algorithm", new AlgorithmConfiguration("RANGE", createRangeProperties()));
-        
-        // 时间范围分片算法
-        algorithms.put("datetime-range-algorithm", new AlgorithmConfiguration("DATETIME_RANGE", createDatetimeRangeProperties()));
-        
-        // 内联分片算法（自定义表达式）
-        algorithms.put("inline-algorithm", new AlgorithmConfiguration("INLINE", createInlineProperties()));
-        
-        // 配置主键生成算法
         Map<String, AlgorithmConfiguration> keyGenerators = ruleConfig.getKeyGenerators();
         
-        // 雪花算法
-        keyGenerators.put("snowflake", new AlgorithmConfiguration("SNOWFLAKE", new Properties()));
+        // 1. 为每个表的分片策略创建对应的算法
+        for (TableShardingConfig tableConfig : tableConfigs) {
+            // 1.1 数据库分片算法
+            if (tableConfig.getDatabaseShardingConfig() != null) {
+                DatabaseShardingConfig dbConfig = tableConfig.getDatabaseShardingConfig();
+                createShardingAlgorithm(algorithms, dbConfig.getAlgorithmName(), dbConfig.getAlgorithmExpression());
+            }
+            
+            // 1.2 表分片算法
+            if (tableConfig.getTableShardingConfig() != null) {
+                TableShardingConfigInternal tbConfig = tableConfig.getTableShardingConfig();
+                createShardingAlgorithm(algorithms, tbConfig.getAlgorithmName(), tbConfig.getAlgorithmExpression());
+            }
+            
+            // 1.3 主键生成算法
+            if (tableConfig.getKeyGenerateConfig() != null) {
+                KeyGenerateConfig keyConfig = tableConfig.getKeyGenerateConfig();
+                String algorithmName = keyConfig.getAlgorithmName();
+                if (!keyGenerators.containsKey(algorithmName)) {
+                    keyGenerators.put(algorithmName, createKeyGenerateAlgorithm(algorithmName));
+                }
+            }
+        }
         
-        // UUID算法
-        keyGenerators.put("uuid", new AlgorithmConfiguration("UUID", new Properties()));
+        // 2. 配置默认算法（如果需要）
+        if (shardingConfig.getDefaultDatabaseStrategy() != null) {
+            DatabaseShardingConfig defaultDbStrategy = shardingConfig.getDefaultDatabaseStrategy();
+            if (defaultDbStrategy.getAlgorithmExpression() != null) {
+                createShardingAlgorithm(algorithms, defaultDbStrategy.getAlgorithmName(), 
+                    defaultDbStrategy.getAlgorithmExpression());
+            }
+        }
+        
+        if (shardingConfig.getDefaultTableStrategy() != null) {
+            TableShardingConfigInternal defaultTableStrategy = shardingConfig.getDefaultTableStrategy();
+            if (defaultTableStrategy.getAlgorithmExpression() != null) {
+                createShardingAlgorithm(algorithms, defaultTableStrategy.getAlgorithmName(), 
+                    defaultTableStrategy.getAlgorithmExpression());
+            }
+        }
+        
+        // 3. 确保雪花算法和UUID算法总是可用
+        keyGenerators.putIfAbsent("snowflake", new AlgorithmConfiguration("SNOWFLAKE", new Properties()));
+        keyGenerators.putIfAbsent("uuid", new AlgorithmConfiguration("UUID", new Properties()));
+        
+        log.info("已配置 {} 个分片算法, {} 个主键生成算法", algorithms.size(), keyGenerators.size());
+    }
+    
+    /**
+     * 创建分片算法
+     */
+    private void createShardingAlgorithm(Map<String, AlgorithmConfiguration> algorithms, 
+                                        String algorithmName, String algorithmExpression) {
+        if (algorithmName == null || algorithms.containsKey(algorithmName)) {
+            return;
+        }
+        
+        if (algorithmExpression != null && !algorithmExpression.isEmpty()) {
+            // 使用 INLINE 算法
+            Properties props = new Properties();
+            props.setProperty("algorithm-expression", algorithmExpression);
+            algorithms.put(algorithmName, new AlgorithmConfiguration("INLINE", props));
+            log.debug("创建 INLINE 算法: {} -> {}", algorithmName, algorithmExpression);
+        } else {
+            // 默认使用 MOD 算法
+            Properties props = new Properties();
+            props.setProperty("sharding-count", "2");
+            algorithms.put(algorithmName, new AlgorithmConfiguration("MOD", props));
+            log.debug("创建 MOD 算法: {} (默认)", algorithmName);
+        }
+    }
+    
+    /**
+     * 创建主键生成算法
+     */
+    private AlgorithmConfiguration createKeyGenerateAlgorithm(String algorithmName) {
+        switch (algorithmName.toLowerCase()) {
+            case "snowflake":
+                return new AlgorithmConfiguration("SNOWFLAKE", new Properties());
+            case "uuid":
+                return new AlgorithmConfiguration("UUID", new Properties());
+            default:
+                log.warn("未知的主键生成算法: {}, 使用默认的 SNOWFLAKE", algorithmName);
+                return new AlgorithmConfiguration("SNOWFLAKE", new Properties());
+        }
     }
     
     /**
@@ -187,55 +248,6 @@ public class ShardingSphereManager {
         }
     }
     
-    /**
-     * 创建取模算法属性
-     */
-    private Properties createModProperties() {
-        Properties props = new Properties();
-        props.setProperty("sharding-count", "4"); // 默认分4个片
-        return props;
-    }
-    
-    /**
-     * 创建哈希取模算法属性
-     */
-    private Properties createHashModProperties() {
-        Properties props = new Properties();
-        props.setProperty("sharding-count", "4");
-        return props;
-    }
-    
-    /**
-     * 创建范围分片算法属性
-     */
-    private Properties createRangeProperties() {
-        Properties props = new Properties();
-        props.setProperty("range-lower", "1");
-        props.setProperty("range-upper", "1000000");
-        props.setProperty("sharding-count", "4");
-        return props;
-    }
-    
-    /**
-     * 创建时间范围分片算法属性
-     */
-    private Properties createDatetimeRangeProperties() {
-        Properties props = new Properties();
-        props.setProperty("datetime-pattern", "yyyy-MM-dd HH:mm:ss");
-        props.setProperty("datetime-lower", "2024-01-01 00:00:00");
-        props.setProperty("datetime-upper", "2024-12-31 23:59:59");
-        props.setProperty("sharding-suffix-pattern", "yyyyMM");
-        return props;
-    }
-    
-    /**
-     * 创建内联分片算法属性
-     */
-    private Properties createInlineProperties() {
-        Properties props = new Properties();
-        props.setProperty("algorithm-expression", "ds${user_id % 2}");
-        return props;
-    }
     
     /**
      * 获取所有分片数据源
