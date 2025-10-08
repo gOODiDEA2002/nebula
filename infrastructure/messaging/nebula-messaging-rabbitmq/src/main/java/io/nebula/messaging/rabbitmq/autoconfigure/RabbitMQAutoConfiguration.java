@@ -4,6 +4,7 @@ import io.nebula.messaging.core.serializer.MessageSerializer;
 import io.nebula.messaging.core.serializer.JsonMessageSerializer;
 import io.nebula.messaging.core.router.MessageRouter;
 import io.nebula.messaging.core.router.DefaultMessageRouter;
+import io.nebula.messaging.core.annotation.MessageHandlerProcessor;
 import io.nebula.messaging.rabbitmq.producer.RabbitMQMessageProducer;
 import io.nebula.messaging.rabbitmq.consumer.RabbitMQMessageConsumer;
 import io.nebula.messaging.rabbitmq.exchange.RabbitMQExchangeManager;
@@ -100,5 +101,11 @@ public class RabbitMQAutoConfiguration {
                                                         RabbitMQMessageConsumer consumer,
                                                         RabbitMQExchangeManager exchangeManager) {
         return new RabbitMQMessageManager(producer, consumer, exchangeManager);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public MessageHandlerProcessor messageHandlerProcessor(RabbitMQMessageManager messageManager) {
+        return new MessageHandlerProcessor(messageManager);
     }
 }
