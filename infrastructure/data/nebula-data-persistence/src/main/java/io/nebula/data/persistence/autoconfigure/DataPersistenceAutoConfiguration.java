@@ -103,8 +103,8 @@ public class DataPersistenceAutoConfiguration {
         // 设置插件
         factoryBean.setPlugins(mybatisPlusInterceptor);
         
-        // 设置类型别名包
-        factoryBean.setTypeAliasesPackage("io.nebula.**.entity,**.entity,io.nebula.**.entity.dos,**.entity.dos");
+        // 设置类型别名包 - 只扫描 io.nebula 包下的实体类，避免扫描第三方库导致别名冲突
+        factoryBean.setTypeAliasesPackage("io.nebula.**.entity.dos");
         
         // 设置 mapper XML 文件位置（如果有的话）
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
