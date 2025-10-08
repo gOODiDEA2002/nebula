@@ -1,6 +1,6 @@
 #!/bin/bash
 # 创建所有必要的目录
-ROOT_DIR=/Users/andy/DevOps/SourceCode/nebula-projects/nebula-data
+ROOT_DIR=/Users/andy/DevOps/SourceCode/nebula-projects/nebula-middleware
 #mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,mongodb,nacos}
 mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,nacos}
 mkdir -p $ROOT_DIR/mysql/data
