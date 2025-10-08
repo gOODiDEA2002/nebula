@@ -32,7 +32,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.security.KeyStore;
@@ -142,7 +142,9 @@ public class ElasticsearchAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ElasticsearchClient elasticsearchClient(RestClient restClient, ObjectMapper objectMapper) {
+        objectMapper.registerModule(new JavaTimeModule());
         JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(objectMapper);
+        //
         ElasticsearchTransport transport = new RestClientTransport(restClient, jsonpMapper);
         return new ElasticsearchClient(transport);
     }
