@@ -36,18 +36,19 @@ Nebula 框架的 Elasticsearch 搜索服务实现模块。
 ### 2. 配置 Elasticsearch
 
 ```yaml
-search:
-  elasticsearch:
-    enabled: true
-    uris:
-      - http://localhost:9200
-    username: elastic
-    password: changeme
-    connection-timeout: 10s
-    read-timeout: 30s
-    index-prefix: myapp
-    default-shards: 1
-    default-replicas: 1
+nebula:
+  search:
+    elasticsearch:
+      enabled: true
+      uris:
+        - http://localhost:9200
+      username: elastic
+      password: changeme
+      connection-timeout: 10s
+      read-timeout: 30s
+      index-prefix: myapp
+      default-shards: 1
+      default-replicas: 1
 ```
 
 ### 3. 使用搜索服务
@@ -60,27 +61,23 @@ public class ProductSearchService {
     private SearchService searchService;
     
     public void indexProduct(Product product) {
-        SearchDocument document = SearchDocument.builder()
-            .id(product.getId())
-            .data(Map.of(
-                "name", product.getName(),
-                "description", product.getDescription(),
-                "price", product.getPrice()
-            ))
+        SearchDocument<Product> document = SearchDocument.<Product>builder()
+            .id(product.getId().toString())
+            .source(product)
             .build();
             
-        searchService.indexDocument("products", product.getId(), document);
+        searchService.indexDocument("products", product.getId().toString(), document);
     }
     
-    public SearchResult searchProducts(String query) {
+    public SearchResult<Product> searchProducts(String query) {
         SearchQuery searchQuery = SearchQuery.builder()
             .index("products")
-            .query(query)
+            .query(Map.of("query", query))
             .from(0)
             .size(10)
             .build();
             
-        return searchService.search(searchQuery);
+        return searchService.search(searchQuery, Product.class);
     }
 }
 ```
@@ -91,47 +88,47 @@ public class ProductSearchService {
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `search.elasticsearch.enabled` | `true` | 是否启用 Elasticsearch |
-| `search.elasticsearch.uris` | `["http://localhost:9200"]` | Elasticsearch 节点地址 |
-| `search.elasticsearch.username` | - | 用户名 |
-| `search.elasticsearch.password` | - | 密码 |
+| `nebula.search.elasticsearch.enabled` | `true` | 是否启用 Elasticsearch |
+| `nebula.search.elasticsearch.uris` | `["http://localhost:9200"]` | Elasticsearch 节点地址 |
+| `nebula.search.elasticsearch.username` | - | 用户名 |
+| `nebula.search.elasticsearch.password` | - | 密码 |
 
 ### 连接配置
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `search.elasticsearch.connection-timeout` | `10s` | 连接超时时间 |
-| `search.elasticsearch.read-timeout` | `30s` | 读取超时时间 |
-| `search.elasticsearch.max-connections` | `100` | 最大连接数 |
-| `search.elasticsearch.max-connections-per-route` | `10` | 每个路由的最大连接数 |
+| `nebula.search.elasticsearch.connection-timeout` | `10s` | 连接超时时间 |
+| `nebula.search.elasticsearch.read-timeout` | `30s` | 读取超时时间 |
+| `nebula.search.elasticsearch.max-connections` | `100` | 最大连接数 |
+| `nebula.search.elasticsearch.max-connections-per-route` | `10` | 每个路由的最大连接数 |
 
 ### 索引配置
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `search.elasticsearch.index-prefix` | `nebula` | 索引名前缀 |
-| `search.elasticsearch.default-shards` | `1` | 默认分片数 |
-| `search.elasticsearch.default-replicas` | `1` | 默认副本数 |
+| `nebula.search.elasticsearch.index-prefix` | `nebula` | 索引名前缀 |
+| `nebula.search.elasticsearch.default-shards` | `1` | 默认分片数 |
+| `nebula.search.elasticsearch.default-replicas` | `1` | 默认副本数 |
 
 ### 操作配置
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `search.elasticsearch.bulk-size` | `1000` | 批量操作大小 |
-| `search.elasticsearch.bulk-timeout` | `30s` | 批量操作超时 |
-| `search.elasticsearch.search-timeout` | `30s` | 搜索超时时间 |
-| `search.elasticsearch.scroll-timeout` | `1m` | 滚动查询超时 |
-| `search.elasticsearch.scroll-size` | `1000` | 滚动查询大小 |
+| `nebula.search.elasticsearch.bulk-size` | `1000` | 批量操作大小 |
+| `nebula.search.elasticsearch.bulk-timeout` | `30s` | 批量操作超时 |
+| `nebula.search.elasticsearch.search-timeout` | `30s` | 搜索超时时间 |
+| `nebula.search.elasticsearch.scroll-timeout` | `1m` | 滚动查询超时 |
+| `nebula.search.elasticsearch.scroll-size` | `1000` | 滚动查询大小 |
 
 ### SSL 配置
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `search.elasticsearch.ssl-enabled` | `false` | 是否启用 SSL |
-| `search.elasticsearch.ssl-verification-enabled` | `true` | 是否验证 SSL 证书 |
-| `search.elasticsearch.ssl-certificate-path` | - | SSL 证书路径 |
-| `search.elasticsearch.ssl-key-path` | - | SSL 密钥路径 |
-| `search.elasticsearch.ssl-ca-path` | - | SSL CA 证书路径 |
+| `nebula.search.elasticsearch.ssl-enabled` | `false` | 是否启用 SSL |
+| `nebula.search.elasticsearch.ssl-verification-enabled` | `true` | 是否验证 SSL 证书 |
+| `nebula.search.elasticsearch.ssl-certificate-path` | - | SSL 证书路径 |
+| `nebula.search.elasticsearch.ssl-key-path` | - | SSL 密钥路径 |
+| `nebula.search.elasticsearch.ssl-ca-path` | - | SSL CA 证书路径 |
 
 ## 使用示例
 
@@ -139,21 +136,15 @@ public class ProductSearchService {
 
 ```java
 // 索引文档
-SearchDocument document = SearchDocument.builder()
-    .id("1")
-    .data(Map.of("title", "测试文档", "content", "这是一个测试文档"))
-    .build();
-IndexResult result = searchService.indexDocument("docs", "1", document);
+Map<String, Object> docData = Map.of("title", "测试文档", "content", "这是一个测试文档");
+DocumentResult result = searchService.indexDocument("docs", "1", docData);
 
 // 获取文档
-DocumentResult result = searchService.getDocument("docs", "1");
+Map<String, Object> document = searchService.getDocument("docs", "1", Map.class);
 
 // 更新文档
-SearchDocument updateDoc = SearchDocument.builder()
-    .id("1")
-    .data(Map.of("title", "更新后的标题"))
-    .build();
-DocumentResult result = searchService.updateDocument("docs", "1", updateDoc);
+Map<String, Object> updateData = Map.of("title", "更新后的标题");
+DocumentResult result = searchService.updateDocument("docs", "1", updateData);
 
 // 删除文档
 DocumentResult result = searchService.deleteDocument("docs", "1");
@@ -165,34 +156,39 @@ DocumentResult result = searchService.deleteDocument("docs", "1");
 // 基础搜索
 SearchQuery query = SearchQuery.builder()
     .index("docs")
-    .query("测试")
+    .query(Map.of("query", "测试"))
     .from(0)
     .size(10)
     .build();
-SearchResult result = searchService.search(query);
+SearchResult<Map> result = searchService.search(query, Map.class);
 
 // 高级搜索（带排序和高亮）
 SearchQuery query = SearchQuery.builder()
     .index("docs")
-    .query("测试")
+    .query(Map.of("query", "测试"))
     .from(0)
     .size(10)
-    .sorts(Map.of("_score", "desc", "created_at", "desc"))
-    .highlight(true)
-    .includes(List.of("title", "content"))
+    .sort(List.of(
+        Map.of("_score", Map.of("order", "desc")),
+        Map.of("created_at", Map.of("order", "desc"))
+    ))
+    .highlight(Map.of(
+        "fields", Map.of("title", Map.of(), "content", Map.of())
+    ))
+    .source(List.of("title", "content"))
     .build();
-SearchResult result = searchService.search(query);
+SearchResult<Map> result = searchService.search(query, Map.class);
 ```
 
 ### 批量操作
 
 ```java
 // 批量索引
-List<SearchDocument> documents = Arrays.asList(
-    SearchDocument.builder().id("1").data(Map.of("title", "文档1")).build(),
-    SearchDocument.builder().id("2").data(Map.of("title", "文档2")).build()
+Map<String, Map<String, Object>> documents = Map.of(
+    "1", Map.of("title", "文档1"),
+    "2", Map.of("title", "文档2")
 );
-BulkResult result = searchService.bulkIndex("docs", documents);
+BulkResult result = searchService.bulkIndexDocuments("docs", documents);
 ```
 
 ### 聚合分析
@@ -274,35 +270,38 @@ if (result.getScrollId() != null) {
 ### 多节点配置
 
 ```yaml
-search:
-  elasticsearch:
-    uris:
-      - http://es-node1:9200
-      - http://es-node2:9200
-      - http://es-node3:9200
-    max-connections: 300
-    max-connections-per-route: 100
+nebula:
+  search:
+    elasticsearch:
+      uris:
+        - http://es-node1:9200
+        - http://es-node2:9200
+        - http://es-node3:9200
+      max-connections: 300
+      max-connections-per-route: 100
 ```
 
 ### SSL 安全配置
 
 ```yaml
-search:
-  elasticsearch:
-    ssl-enabled: true
-    ssl-verification-enabled: true
-    ssl-ca-path: /path/to/ca.crt
-    ssl-certificate-path: /path/to/client.crt
-    ssl-key-path: /path/to/client.key
+nebula:
+  search:
+    elasticsearch:
+      ssl-enabled: true
+      ssl-verification-enabled: true
+      ssl-ca-path: /path/to/ca.crt
+      ssl-certificate-path: /path/to/client.crt
+      ssl-key-path: /path/to/client.key
 ```
 
 ### 认证配置
 
 ```yaml
-search:
-  elasticsearch:
-    username: elastic
-    password: ${ELASTICSEARCH_PASSWORD}
+nebula:
+  search:
+    elasticsearch:
+      username: elastic
+      password: ${ELASTICSEARCH_PASSWORD}
 ```
 
 ## 性能优化
@@ -310,30 +309,33 @@ search:
 ### 批量操作优化
 
 ```yaml
-search:
-  elasticsearch:
-    bulk-size: 5000        # 增加批量大小
-    bulk-timeout: 60s      # 增加超时时间
+nebula:
+  search:
+    elasticsearch:
+      bulk-size: 5000        # 增加批量大小
+      bulk-timeout: 60s      # 增加超时时间
 ```
 
 ### 连接池优化
 
 ```yaml
-search:
-  elasticsearch:
-    max-connections: 500
-    max-connections-per-route: 50
-    connection-timeout: 5s
-    read-timeout: 120s
+nebula:
+  search:
+    elasticsearch:
+      max-connections: 500
+      max-connections-per-route: 50
+      connection-timeout: 5s
+      read-timeout: 120s
 ```
 
 ### 搜索优化
 
 ```yaml
-search:
-  elasticsearch:
-    search-timeout: 10s    # 减少搜索超时
-    scroll-size: 5000      # 增加滚动大小
+nebula:
+  search:
+    elasticsearch:
+      search-timeout: 10s    # 减少搜索超时
+      scroll-size: 5000      # 增加滚动大小
 ```
 
 ## 监控和日志

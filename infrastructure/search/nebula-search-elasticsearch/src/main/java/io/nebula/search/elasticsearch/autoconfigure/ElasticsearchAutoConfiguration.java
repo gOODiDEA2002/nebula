@@ -47,7 +47,7 @@ import java.util.List;
  */
 @AutoConfiguration(after = ElasticsearchDataAutoConfiguration.class)
 @ConditionalOnClass({ElasticsearchClient.class, ElasticsearchOperations.class})
-@ConditionalOnProperty(prefix = "search.elasticsearch", name = "enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(prefix = "nebula.search.elasticsearch", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(ElasticsearchProperties.class)
 public class ElasticsearchAutoConfiguration {
 
@@ -157,15 +157,6 @@ public class ElasticsearchAutoConfiguration {
                                        ElasticsearchOperations elasticsearchOperations) {
         logger.info("Configuring Nebula Elasticsearch Search Service");
         return new ElasticsearchSearchService(elasticsearchClient, elasticsearchOperations, properties);
-    }
-
-    /**
-     * 配置对象映射器
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
     }
 
     /**
