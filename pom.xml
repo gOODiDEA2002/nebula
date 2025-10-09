@@ -34,6 +34,7 @@
         <!-- RPC层 -->
         <module>infrastructure/rpc/nebula-rpc-core</module>
         <module>infrastructure/rpc/nebula-rpc-http</module>
+        <module>infrastructure/rpc/nebula-rpc-grpc</module>
         
         <!-- 服务注册与发现层 -->
         <module>infrastructure/discovery/nebula-discovery-core</module>

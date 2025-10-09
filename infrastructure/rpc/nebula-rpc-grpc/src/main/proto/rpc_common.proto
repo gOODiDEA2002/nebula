@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package io.nebula.rpc.grpc;
+
+option java_multiple_files = true;
+option java_package = "io.nebula.rpc.grpc.proto";
+option java_outer_classname = "RpcCommonProto";
+
+// 通用RPC请求消息
+message RpcRequest {
+  // 请求ID
+  string request_id = 1;
+  
+  // 服务接口名
+  string service_name = 2;
+  
+  // 方法名
+  string method_name = 3;
+  
+  // 参数类型列表(全限定类名)
+  repeated string parameter_types = 4;
+  
+  // 参数值(JSON序列化)
+  repeated string parameters = 5;
+  
+  // 元数据
+  map<string, string> metadata = 6;
+  
+  // 时间戳
+  int64 timestamp = 7;
+}
+
+// 通用RPC响应消息
+message RpcResponse {
+  // 请求ID(对应请求)
+  string request_id = 1;
+  
+  // 是否成功
+  bool success = 2;
+  
+  // 返回值(JSON序列化)
+  string result = 3;
+  
+  // 错误码
+  string error_code = 4;
+  
+  // 错误消息
+  string error_message = 5;
+  
+  // 异常堆栈
+  string stack_trace = 6;
+  
+  // 元数据
+  map<string, string> metadata = 7;
+  
+  // 时间戳
+  int64 timestamp = 8;
+}
+
+// 通用RPC服务定义
+service GenericRpcService {
+  // 一元调用
+  rpc Call(RpcRequest) returns (RpcResponse);
+  
+  // 服务器流式调用
+  rpc ServerStream(RpcRequest) returns (stream RpcResponse);
+  
+  // 客户端流式调用
+  rpc ClientStream(stream RpcRequest) returns (RpcResponse);
+  
+  // 双向流式调用
+  rpc BidirectionalStream(stream RpcRequest) returns (stream RpcResponse);
+}
+
