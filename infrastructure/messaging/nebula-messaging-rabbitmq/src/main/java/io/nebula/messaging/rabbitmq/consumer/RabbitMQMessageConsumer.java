@@ -87,8 +87,9 @@ public class RabbitMQMessageConsumer implements MessageConsumer<Object> {
                 try {
                     consumedCount.incrementAndGet();
                     
-                    // 反序列化消息
-                    Object payload = messageSerializer.deserialize(delivery.getBody(), Object.class);
+                    // 反序列化消息 - 使用处理器指定的类型
+                    Class<Object> messageType = handler.getMessageType();
+                    Object payload = messageSerializer.deserialize(delivery.getBody(), messageType);
                     
                     // 创建消息对象
                     Message<Object> message = Message.<Object>builder()
@@ -159,7 +160,9 @@ public class RabbitMQMessageConsumer implements MessageConsumer<Object> {
                 try {
                     consumedCount.incrementAndGet();
                     
-                    Object payload = messageSerializer.deserialize(delivery.getBody(), Object.class);
+                    // 反序列化消息 - 使用处理器指定的类型
+                    Class<Object> messageType = handler.getMessageType();
+                    Object payload = messageSerializer.deserialize(delivery.getBody(), messageType);
                     
                     Message<Object> message = Message.<Object>builder()
                         .id(delivery.getProperties().getMessageId())
@@ -239,6 +242,7 @@ public class RabbitMQMessageConsumer implements MessageConsumer<Object> {
                     continue;
                 }
                 
+                // 使用 Object.class 反序列化（pull 方法无法获取具体类型）
                 Object payload = messageSerializer.deserialize(response.getBody(), Object.class);
                 
                 Message<Object> message = Message.<Object>builder()

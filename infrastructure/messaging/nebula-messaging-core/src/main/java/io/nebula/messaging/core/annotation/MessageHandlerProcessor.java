@@ -123,6 +123,9 @@ public class MessageHandlerProcessor implements BeanPostProcessor {
      * 创建消息处理器
      */
     private io.nebula.messaging.core.consumer.MessageHandler<Object> createHandler(Object bean, Method method) {
+        // 提取方法参数的泛型类型
+        Class<?> messageType = extractMessageType(method);
+        
         return new io.nebula.messaging.core.consumer.MessageHandler<Object>() {
             @Override
             public void handle(Message<Object> message) {
@@ -149,10 +152,48 @@ public class MessageHandlerProcessor implements BeanPostProcessor {
             }
             
             @Override
+            @SuppressWarnings("unchecked")
             public Class<Object> getMessageType() {
-                return Object.class;
+                return (Class<Object>) messageType;
             }
         };
+    }
+    
+    /**
+     * 从方法参数中提取消息载荷类型
+     * 
+     * @param method 处理方法
+     * @return 消息载荷类型
+     */
+    private Class<?> extractMessageType(Method method) {
+        if (method.getParameterCount() == 0) {
+            return Object.class;
+        }
+        
+        // 获取第一个参数类型
+        java.lang.reflect.Type paramType = method.getGenericParameterTypes()[0];
+        
+        // 检查是否是 Message<T> 类型
+        if (paramType instanceof java.lang.reflect.ParameterizedType) {
+            java.lang.reflect.ParameterizedType pType = (java.lang.reflect.ParameterizedType) paramType;
+            
+            // 确认原始类型是 Message
+            if (pType.getRawType() == Message.class) {
+                // 获取泛型参数 T
+                java.lang.reflect.Type[] actualTypeArguments = pType.getActualTypeArguments();
+                if (actualTypeArguments.length > 0) {
+                    java.lang.reflect.Type actualType = actualTypeArguments[0];
+                    if (actualType instanceof Class) {
+                        log.debug("提取到消息载荷类型: method={}, type={}", 
+                                method.getName(), ((Class<?>) actualType).getName());
+                        return (Class<?>) actualType;
+                    }
+                }
+            }
+        }
+        
+        log.warn("无法提取消息载荷类型，使用 Object.class: method={}", method.getName());
+        return Object.class;
     }
     
     /**
