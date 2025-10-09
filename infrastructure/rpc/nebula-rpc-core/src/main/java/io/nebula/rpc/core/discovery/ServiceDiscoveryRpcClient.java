@@ -251,20 +251,20 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
      * 从 @RpcClient 注解获取服务名
      * 
      * @param serviceClass 服务接口类
-     * @return 服务名称
+     * @return 服务名称(应用名,用于从 Nacos 获取服务实例)
      */
     private String getServiceName(Class<?> serviceClass) {
         io.nebula.rpc.core.annotation.RpcClient annotation = 
                 serviceClass.getAnnotation(io.nebula.rpc.core.annotation.RpcClient.class);
         
         if (annotation != null) {
-            // 优先使用 name 属性
-            if (StringUtils.hasText(annotation.name())) {
-                return annotation.name();
-            }
-            // 其次使用 value 属性
+            // 优先使用 value 属性(应用名,用于服务发现)
             if (StringUtils.hasText(annotation.value())) {
                 return annotation.value();
+            }
+            // 其次使用 name 属性(兼容旧版本)
+            if (StringUtils.hasText(annotation.name())) {
+                return annotation.name();
             }
         }
         

@@ -4,6 +4,7 @@ import io.nebula.discovery.core.ServiceDiscovery;
 import io.nebula.discovery.core.ServiceDiscoveryException;
 import io.nebula.discovery.core.ServiceInstance;
 import io.nebula.discovery.nacos.config.NacosProperties;
+import io.nebula.discovery.nacos.util.NetworkUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.boot.web.servlet.context.ServletWebServerInitializedEvent;
@@ -131,15 +132,13 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
 
     /**
      * 获取本地 IP 地址
+     * 支持首选网络和忽略接口配置
      */
     private String getLocalIp() {
-        try {
-            InetAddress localHost = InetAddress.getLocalHost();
-            return localHost.getHostAddress();
-        } catch (UnknownHostException e) {
-            log.warn("获取本地 IP 失败,使用默认值 localhost", e);
-            return "127.0.0.1";
-        }
+        return NetworkUtils.getLocalHost(
+                nacosProperties.getPreferredNetworks(),
+                nacosProperties.getIgnoredInterfaces()
+        );
     }
 }
 

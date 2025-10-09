@@ -96,4 +96,17 @@ public class NacosProperties {
      * 元数据
      */
     private java.util.Map<String, String> metadata = new java.util.HashMap<>();
+    
+    /**
+     * 首选网络地址列表
+     * 用于过滤本机IP地址,优先选择匹配的网段
+     * 例如: ["192.168.2", "10.0"]
+     */
+    private java.util.List<String> preferredNetworks = new java.util.ArrayList<>();
+    
+    /**
+     * 忽略的网络接口
+     * 例如: ["docker0", "veth"]
+     */
+    private java.util.List<String> ignoredInterfaces = new java.util.ArrayList<>();
 }
