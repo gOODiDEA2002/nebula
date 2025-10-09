@@ -6,8 +6,8 @@ import io.nebula.discovery.core.LoadBalancer;
 import io.nebula.discovery.core.LoadBalancerFactory;
 import io.nebula.discovery.core.LoadBalanceStrategy;
 import io.nebula.discovery.core.ServiceDiscoveryException;
-import io.nebula.rpc.core.client.RpcClient;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -18,16 +18,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * 自动从服务发现中获取服务实例，并进行负载均衡
  */
 @Slf4j
-public class ServiceDiscoveryRpcClient implements RpcClient {
+public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcClient {
     
     private final ServiceDiscovery serviceDiscovery;
     private final LoadBalancer loadBalancer;
-    private final RpcClient delegateClient;
+    private final io.nebula.rpc.core.client.RpcClient delegateClient;
     private final ConcurrentHashMap<String, List<ServiceInstance>> serviceCache = new ConcurrentHashMap<>();
     
     public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery, 
                                    LoadBalancer loadBalancer, 
-                                   RpcClient delegateClient) {
+                                   io.nebula.rpc.core.client.RpcClient delegateClient) {
         this.serviceDiscovery = serviceDiscovery;
         this.loadBalancer = loadBalancer;
         this.delegateClient = delegateClient;
@@ -38,18 +38,19 @@ public class ServiceDiscoveryRpcClient implements RpcClient {
     
     public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery, 
                                    LoadBalanceStrategy strategy, 
-                                   RpcClient delegateClient) {
+                                   io.nebula.rpc.core.client.RpcClient delegateClient) {
         this(serviceDiscovery, LoadBalancerFactory.getLoadBalancer(strategy), delegateClient);
     }
     
     public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery, 
-                                   RpcClient delegateClient) {
+                                   io.nebula.rpc.core.client.RpcClient delegateClient) {
         this(serviceDiscovery, LoadBalancerFactory.getDefaultLoadBalancer(), delegateClient);
     }
     
     @Override
     public <T> T call(Class<T> serviceClass, String methodName, Object... args) {
-        String serviceName = serviceClass.getName();
+        // 从 @RpcClient 注解获取服务名
+        String serviceName = getServiceName(serviceClass);
         ServiceInstance instance = selectServiceInstance(serviceName);
         
         if (instance == null) {
@@ -167,7 +168,7 @@ public class ServiceDiscoveryRpcClient implements RpcClient {
      * @param client RPC客户端
      * @param instance 服务实例
      */
-    private void setTargetAddress(RpcClient client, ServiceInstance instance) {
+    private void setTargetAddress(io.nebula.rpc.core.client.RpcClient client, ServiceInstance instance) {
         // 这是一个抽象方法，具体实现需要根据RpcClient的类型来决定
         // 对于HttpRpcClient，可能需要设置baseUrl
         // 对于其他类型的客户端，可能需要设置不同的连接参数
@@ -183,7 +184,7 @@ public class ServiceDiscoveryRpcClient implements RpcClient {
      * 可配置的RPC客户端接口
      * 用于设置目标地址
      */
-    public interface ConfigurableRpcClient extends RpcClient {
+    public interface ConfigurableRpcClient extends io.nebula.rpc.core.client.RpcClient {
         /**
          * 设置目标地址
          * 
@@ -244,5 +245,30 @@ public class ServiceDiscoveryRpcClient implements RpcClient {
      */
     public LoadBalancer getLoadBalancer() {
         return loadBalancer;
+    }
+    
+    /**
+     * 从 @RpcClient 注解获取服务名
+     * 
+     * @param serviceClass 服务接口类
+     * @return 服务名称
+     */
+    private String getServiceName(Class<?> serviceClass) {
+        io.nebula.rpc.core.annotation.RpcClient annotation = 
+                serviceClass.getAnnotation(io.nebula.rpc.core.annotation.RpcClient.class);
+        
+        if (annotation != null) {
+            // 优先使用 name 属性
+            if (StringUtils.hasText(annotation.name())) {
+                return annotation.name();
+            }
+            // 其次使用 value 属性
+            if (StringUtils.hasText(annotation.value())) {
+                return annotation.value();
+            }
+        }
+        
+        // 默认使用接口全限定名
+        return serviceClass.getName();
     }
 }

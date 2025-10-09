@@ -43,12 +43,13 @@ public class RpcDiscoveryAutoConfiguration {
     /**
      * 服务发现 RPC 客户端配置
      */
-    @Bean
+    @Bean(name = "serviceDiscoveryRpcClient")
     @ConditionalOnMissingBean(name = "serviceDiscoveryRpcClient")
     public ServiceDiscoveryRpcClient serviceDiscoveryRpcClient(
             ServiceDiscovery serviceDiscovery,
             LoadBalancer loadBalancer,
-            RpcClient delegateRpcClient) {
+            @org.springframework.beans.factory.annotation.Qualifier("httpRpcClient") 
+            io.nebula.rpc.core.client.RpcClient delegateRpcClient) {
         
         ServiceDiscoveryRpcClient client = new ServiceDiscoveryRpcClient(
                 serviceDiscovery, loadBalancer, delegateRpcClient);

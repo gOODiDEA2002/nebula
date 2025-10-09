@@ -1,5 +1,6 @@
 package io.nebula.rpc.http.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.core.discovery.ServiceDiscoveryRpcClient;
 import io.nebula.rpc.core.message.RpcRequest;
@@ -23,11 +24,13 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     private final RestTemplate restTemplate;
     private volatile String baseUrl;
     private final Executor executor;
+    private final ObjectMapper objectMapper;
     
-    public HttpRpcClient(RestTemplate restTemplate, String baseUrl, Executor executor) {
+    public HttpRpcClient(RestTemplate restTemplate, String baseUrl, Executor executor, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.baseUrl = baseUrl;
         this.executor = executor;
+        this.objectMapper = objectMapper;
     }
     
     @Override
@@ -61,13 +64,28 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                 serviceClass.getClassLoader(),
                 new Class<?>[]{serviceClass},
                 (proxy, method, args) -> {
-                    // 对于Object类的方法，直接调用
+                    // 对于Object类的方法,直接调用
                     if (method.getDeclaringClass() == Object.class) {
                         return method.invoke(this, args);
                     }
                     
-                    // RPC调用
-                    return call(serviceClass, method.getName(), args);
+                    // 使用实际方法的参数类型构建 RPC 请求,而不是根据参数值推断
+                    RpcRequest request = buildRequestWithMethodInfo(serviceClass.getName(), method, args);
+                    RpcResponse response = sendRequest(request);
+                    
+                    if (response.isSuccess()) {
+                        Object result = response.getResult();
+                        
+                        // 类型转换(解决 Jackson 反序列化导致的类型不匹配)
+                        Class<?> returnType = method.getReturnType();
+                        if (result != null && !returnType.isInstance(result)) {
+                            result = objectMapper.convertValue(result, returnType);
+                        }
+                        
+                        return result;
+                    } else {
+                        throw new RuntimeException("RPC调用失败: " + response.getMessage());
+                    }
                 }
         );
     }
@@ -101,6 +119,23 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                 .methodName(methodName)
                 .parameters(args)
                 .parameterTypes(getParameterTypes(args))
+                .timestamp(System.currentTimeMillis())
+                .timeout(30000) // 默认30秒超时
+                .version("1.0")
+                .build();
+    }
+    
+    /**
+     * 使用方法信息构建 RPC 请求
+     * 直接使用方法声明的参数类型,避免通过参数值推断导致的类型不匹配
+     */
+    private RpcRequest buildRequestWithMethodInfo(String serviceName, java.lang.reflect.Method method, Object[] args) {
+        return RpcRequest.builder()
+                .requestId(UUID.randomUUID().toString())
+                .serviceName(serviceName)
+                .methodName(method.getName())
+                .parameters(args)
+                .parameterTypes(method.getParameterTypes())
                 .timestamp(System.currentTimeMillis())
                 .timeout(30000) // 默认30秒超时
                 .version("1.0")

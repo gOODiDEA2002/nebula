@@ -2,10 +2,9 @@ package io.nebula.web.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 /**
  * Jackson 配置类
@@ -17,19 +16,17 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 public class JacksonConfig {
 
     /**
-     * 配置 Jackson ObjectMapper 以支持 Java 8 日期时间类型
+     * 定制 Jackson ObjectMapper 以支持 Java 8 日期时间类型
      * <p>
-     * 这个配置会被所有使用 nebula-web 的项目继承，无需重复配置
+     * 使用 Jackson2ObjectMapperBuilderCustomizer 来定制 Spring Boot 自动配置的 ObjectMapper
+     * 这样可以避免多个 @Primary ObjectMapper Bean 冲突
      */
     @Bean
-    @Primary
-    public ObjectMapper objectMapper(Jackson2ObjectMapperBuilder builder) {
-        ObjectMapper objectMapper = builder.build();
-
-        // 注册 JSR310 模块来支持 Java 8 日期时间类型
-        // 支持 LocalDateTime, LocalDate, LocalTime, OffsetDateTime, ZonedDateTime 等
-        objectMapper.registerModule(new JavaTimeModule());
-
-        return objectMapper;
+    public Jackson2ObjectMapperBuilderCustomizer jacksonCustomizer() {
+        return builder -> {
+            // 注册 JSR310 模块来支持 Java 8 日期时间类型
+            // 支持 LocalDateTime, LocalDate, LocalTime, OffsetDateTime, ZonedDateTime 等
+            builder.modules(new JavaTimeModule());
+        };
     }
 }
