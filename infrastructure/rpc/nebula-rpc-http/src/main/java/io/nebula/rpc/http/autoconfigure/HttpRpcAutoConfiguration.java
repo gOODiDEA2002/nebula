@@ -37,6 +37,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class HttpRpcAutoConfiguration {
     
     /**
+     * 配置 RestTemplateBuilder (如果不存在)
+     * 某些场景下可能没有引入 spring-boot-starter-web，需要手动创建
+     */
+    @Bean
+    @ConditionalOnMissingBean(RestTemplateBuilder.class)
+    public RestTemplateBuilder restTemplateBuilder() {
+        return new RestTemplateBuilder();
+    }
+
+    /**
      * 配置HTTP RPC专用的RestTemplate
      */
     @Bean(name = "rpcRestTemplate")

@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 /**
  * Nacos 服务发现自动配置类
  * 
@@ -18,19 +18,28 @@ import org.springframework.core.env.Environment;
  * @since 2.0.0
  */
 @Slf4j
-@Configuration
-@EnableConfigurationProperties(NacosProperties.class)
+@AutoConfiguration
 @ConditionalOnProperty(prefix = "nebula.discovery.nacos", name = "enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(NacosProperties.class)
 public class NacosDiscoveryAutoConfiguration {
+    
+    private final NacosProperties nacosProperties;
+    
+    public NacosDiscoveryAutoConfiguration(NacosProperties nacosProperties) {
+        this.nacosProperties = nacosProperties;
+        log.info("NacosDiscoveryAutoConfiguration 初始化, 配置: serverAddr={}, namespace={}, username={}", 
+                nacosProperties.getServerAddr(), nacosProperties.getNamespace(), nacosProperties.getUsername());
+    }
     
     /**
      * 创建 NacosServiceDiscovery Bean
      */
     @Bean
     @ConditionalOnMissingBean
-    public NacosServiceDiscovery nacosServiceDiscovery(NacosProperties nacosProperties) {
-        log.info("初始化 Nacos 服务发现, serverAddr={}, namespace={}", 
-                nacosProperties.getServerAddr(), nacosProperties.getNamespace());
+    public NacosServiceDiscovery nacosServiceDiscovery() {
+        log.info("创建 NacosServiceDiscovery Bean, serverAddr={}, namespace={}, username={}, password={}", 
+                nacosProperties.getServerAddr(), nacosProperties.getNamespace(),
+                nacosProperties.getUsername(), nacosProperties.getPassword() != null ? "****" : "null");
         return new NacosServiceDiscovery(nacosProperties);
     }
     

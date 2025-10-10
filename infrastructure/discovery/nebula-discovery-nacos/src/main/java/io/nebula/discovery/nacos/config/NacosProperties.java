@@ -2,13 +2,11 @@ package io.nebula.discovery.nacos.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Nacos配置属性
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "nebula.discovery.nacos")
 public class NacosProperties {
     

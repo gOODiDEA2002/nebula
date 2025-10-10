@@ -15,7 +15,6 @@ import io.nebula.discovery.nacos.config.NacosProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Properties;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
  * Nacos服务发现实现
  */
 @Slf4j
-@Component
 public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean, DisposableBean {
     
     private final NacosProperties nacosProperties;
@@ -273,16 +271,18 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
         properties.setProperty("serverAddr", nacosProperties.getServerAddr());
         properties.setProperty("namespace", nacosProperties.getNamespace());
         
-        if (nacosProperties.getUsername() != null) {
+        // 设置认证信息(空字符串也会被设置,确保 Nacos 客户端能正确处理认证)
+        if (nacosProperties.getUsername() != null && !nacosProperties.getUsername().isEmpty()) {
             properties.setProperty("username", nacosProperties.getUsername());
+            log.info("Nacos 认证已启用: username={}", nacosProperties.getUsername());
         }
-        if (nacosProperties.getPassword() != null) {
+        if (nacosProperties.getPassword() != null && !nacosProperties.getPassword().isEmpty()) {
             properties.setProperty("password", nacosProperties.getPassword());
         }
-        if (nacosProperties.getAccessKey() != null) {
+        if (nacosProperties.getAccessKey() != null && !nacosProperties.getAccessKey().isEmpty()) {
             properties.setProperty("accessKey", nacosProperties.getAccessKey());
         }
-        if (nacosProperties.getSecretKey() != null) {
+        if (nacosProperties.getSecretKey() != null && !nacosProperties.getSecretKey().isEmpty()) {
             properties.setProperty("secretKey", nacosProperties.getSecretKey());
         }
         
