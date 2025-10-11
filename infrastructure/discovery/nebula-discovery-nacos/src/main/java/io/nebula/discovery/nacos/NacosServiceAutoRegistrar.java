@@ -35,7 +35,10 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
     
     private String serviceName;
     private String instanceId;
+    private String ip;
     private int port;
+    private String groupName;
+    private String clusterName;
     private boolean registered = false;
 
     public NacosServiceAutoRegistrar(ServiceDiscovery serviceDiscovery,
@@ -68,10 +71,11 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
         try {
             this.port = serverPort;
             this.serviceName = environment.getProperty("spring.application.name", "unknown-service");
+            this.ip = getLocalIp();
+            this.groupName = nacosProperties.getGroupName();
+            this.clusterName = nacosProperties.getClusterName();
             this.instanceId = generateInstanceId();
 
-            String ip = getLocalIp();
-            
             // 构建元数据
             Map<String, String> metadata = new HashMap<>(nacosProperties.getMetadata());
             metadata.put("startTime", String.valueOf(System.currentTimeMillis()));
@@ -87,8 +91,8 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
                     .weight(nacosProperties.getWeight())
                     .healthy(nacosProperties.isHealthy())
                     .enabled(nacosProperties.isInstanceEnabled())
-                    .clusterName(nacosProperties.getClusterName())
-                    .groupName(nacosProperties.getGroupName())
+                    .clusterName(clusterName)
+                    .groupName(groupName)
                     .protocol("http")
                     .metadata(metadata)
                     .build();
@@ -97,8 +101,8 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
             serviceDiscovery.register(instance);
             registered = true;
 
-            log.info("服务自动注册到 Nacos 成功: serviceName={}, instanceId={}, address={}:{}", 
-                    serviceName, instanceId, ip, port);
+            log.info("服务自动注册到 Nacos 成功: serviceName={}, instanceId={}, address={}:{}, groupName={}, clusterName={}", 
+                    serviceName, instanceId, ip, port, groupName, clusterName);
         } catch (Exception e) {
             log.error("服务自动注册到 Nacos 失败", e);
             throw new RuntimeException("服务自动注册失败", e);
@@ -115,10 +119,18 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
         }
 
         try {
-            serviceDiscovery.deregister(serviceName, instanceId);
-            log.info("服务自动注销成功: serviceName={}, instanceId={}", serviceName, instanceId);
-        } catch (ServiceDiscoveryException e) {
-            log.error("服务自动注销失败: serviceName={}, instanceId={}", serviceName, instanceId, e);
+            // 使用 NacosServiceDiscovery 的直接注销方法，不依赖缓存
+            if (serviceDiscovery instanceof NacosServiceDiscovery) {
+                ((NacosServiceDiscovery) serviceDiscovery).deregisterInstance(serviceName, ip, port);
+                log.info("服务自动注销成功: serviceName={}, instanceId={}, ip={}, port={}, groupName={}, clusterName={}", 
+                        serviceName, instanceId, ip, port, groupName, clusterName);
+            } else {
+                serviceDiscovery.deregister(serviceName, instanceId);
+                log.info("服务自动注销成功: serviceName={}, instanceId={}", serviceName, instanceId);
+            }
+        } catch (Exception e) {
+            log.error("服务自动注销失败: serviceName={}, instanceId={}, ip={}, port={}", 
+                    serviceName, instanceId, ip, port, e);
         }
     }
 
