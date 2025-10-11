@@ -1,0 +1,50 @@
+# Nebula Framework Auto-Configuration
+# Auto-configuration classes are registered here in dependency order
+# 按依赖关系顺序注册所有自动配置类
+
+# ========================================
+# Discovery Layer - 服务发现层（最先初始化）
+# ========================================
+io.nebula.autoconfigure.discovery.NacosDiscoveryAutoConfiguration
+
+# ========================================
+# RPC Layer - RPC层（依赖服务发现）
+# ========================================
+# HTTP/gRPC Client 必须在 RpcDiscovery 之前初始化
+io.nebula.autoconfigure.rpc.HttpRpcAutoConfiguration
+io.nebula.autoconfigure.rpc.GrpcRpcAutoConfiguration
+# RPC Discovery 集成（依赖上面的 RPC Client）
+io.nebula.autoconfigure.rpc.RpcDiscoveryAutoConfiguration
+
+# ========================================
+# Data Layer - 数据层
+# ========================================
+# 基础数据持久化配置
+io.nebula.autoconfigure.data.DataPersistenceAutoConfiguration
+# 读写分离配置（依赖基础配置）
+io.nebula.autoconfigure.data.ReadWriteDataSourceAutoConfiguration
+# 分片配置（依赖基础配置）
+io.nebula.autoconfigure.data.ShardingSphereAutoConfiguration
+# 缓存配置
+io.nebula.autoconfigure.data.CacheAutoConfiguration
+
+# ========================================
+# Messaging Layer - 消息层
+# ========================================
+io.nebula.autoconfigure.messaging.RabbitMQAutoConfiguration
+
+# ========================================
+# Search Layer - 搜索层
+# ========================================
+io.nebula.autoconfigure.search.ElasticsearchAutoConfiguration
+
+# ========================================
+# Storage Layer - 存储层
+# ========================================
+io.nebula.autoconfigure.storage.MinIOAutoConfiguration
+io.nebula.autoconfigure.storage.AliyunOSSAutoConfiguration
+
+# ========================================
+# AI Layer - AI层 (暂时跳过)
+# ========================================
+# io.nebula.autoconfigure.ai.AIAutoConfiguration

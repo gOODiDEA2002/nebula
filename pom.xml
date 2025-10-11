@@ -64,6 +64,9 @@
         <!-- Starter 模块 -->
         <module>starter/nebula-starter</module>
         
+        <!-- Auto-Configuration 模块 -->
+        <module>autoconfigure/nebula-autoconfigure</module>
+        
     </modules>
 
     <properties>

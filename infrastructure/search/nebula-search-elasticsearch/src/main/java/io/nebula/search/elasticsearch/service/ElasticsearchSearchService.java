@@ -20,7 +20,7 @@ import io.nebula.search.core.model.*;
 import io.nebula.search.core.query.AggregationQuery;
 import io.nebula.search.core.query.SearchQuery;
 import io.nebula.search.core.query.SuggestQuery;
-import io.nebula.search.elasticsearch.autoconfigure.ElasticsearchProperties;
+import io.nebula.search.elasticsearch.config.ElasticsearchProperties;
 import org.elasticsearch.client.RequestOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,15 +1,14 @@
-package io.nebula.data.persistence.autoconfigure;
+package io.nebula.autoconfigure.data;
 
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import io.nebula.data.persistence.config.DefaultMetaObjectHandler;
 import io.nebula.data.persistence.config.MyBatisPlusConfiguration;
 import io.nebula.data.persistence.datasource.DataSourceManager;
 import io.nebula.data.persistence.transaction.DefaultTransactionManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
-import com.baomidou.mybatisplus.core.config.GlobalConfig;
-import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -21,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
@@ -29,6 +29,9 @@ import java.util.concurrent.Executors;
 
 /**
  * 数据持久层自动配置类
+ * 
+ * @author Nebula Framework
+ * @since 2.0.0
  */
 @Slf4j
 @AutoConfiguration(before = org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class)
@@ -37,11 +40,12 @@ import java.util.concurrent.Executors;
 @EnableConfigurationProperties
 @Import({
     MyBatisPlusConfiguration.class,
-    DataSourceManager.class
+    DataSourceManager.class,
+    ReadWriteDataSourceAutoConfiguration.class,
+    ShardingSphereAutoConfiguration.class
 })
 @MapperScan(basePackages = {
-    "io.nebula.**.mapper",
-    "**.mapper"
+    "io.nebula.**.mapper"
 }, markerInterface = io.nebula.data.persistence.mapper.BaseMapper.class)
 public class DataPersistenceAutoConfiguration {
     
@@ -147,3 +151,4 @@ public class DataPersistenceAutoConfiguration {
         return new DefaultMetaObjectHandler();
     }
 }
+

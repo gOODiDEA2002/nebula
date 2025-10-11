@@ -303,3 +303,4 @@ public class CacheProperties {
         JSON, JDK, KRYO
     }
 }
+

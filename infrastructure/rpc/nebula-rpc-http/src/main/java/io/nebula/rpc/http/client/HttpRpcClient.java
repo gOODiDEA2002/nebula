@@ -9,9 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 /**
@@ -26,6 +30,9 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     private final Executor executor;
     private final ObjectMapper objectMapper;
     
+    // 方法缓存：避免重复反射查找
+    private final ConcurrentHashMap<MethodCacheKey, Method> methodCache = new ConcurrentHashMap<>();
+    
     public HttpRpcClient(RestTemplate restTemplate, String baseUrl, Executor executor, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.baseUrl = baseUrl;
@@ -35,20 +42,112 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     
     @Override
     public <T> T call(Class<T> serviceClass, String methodName, Object... args) {
+        String serviceName = serviceClass.getName();
+        
         try {
-            RpcRequest request = buildRequest(serviceClass.getName(), methodName, args);
+            RpcRequest request = buildRequest(serviceName, methodName, args);
             RpcResponse response = sendRequest(request);
             
             if (response.isSuccess()) {
+                Object result = response.getResult();
+                
+                // 类型转换(解决 Jackson 反序列化导致的类型不匹配)
+                // 通过反射获取方法的返回类型
+                Class<?> returnType = getMethodReturnType(serviceClass, methodName, args);
+                if (result != null && returnType != null && !returnType.isInstance(result)) {
+                    try {
+                        // 尝试使用 ObjectMapper 进行类型转换
+                        result = objectMapper.convertValue(result, returnType);
+                        log.debug("RPC响应类型转换成功: from={} to={}, method={}.{}()", 
+                                result.getClass().getSimpleName(), 
+                                returnType.getSimpleName(),
+                                serviceClass.getSimpleName(),
+                                methodName);
+                    } catch (IllegalArgumentException e) {
+                        // 类型转换失败，提供详细的错误信息
+                        String errorMsg = String.format(
+                            "RPC响应类型转换失败: " +
+                            "服务=%s, 方法=%s, " +
+                            "期望类型=%s, 实际类型=%s, " +
+                            "错误=%s",
+                            serviceName,
+                            methodName,
+                            returnType.getName(),
+                            result.getClass().getName(),
+                            e.getMessage()
+                        );
+                        log.error(errorMsg, e);
+                        throw new RuntimeException(errorMsg, e);
+                    }
+                }
+                
                 @SuppressWarnings("unchecked")
-                T result = (T) response.getResult();
-                return result;
+                T typedResult = (T) result;
+                return typedResult;
             } else {
-                throw new RuntimeException("RPC调用失败: " + response.getMessage());
+                String errorMsg = String.format(
+                    "RPC调用失败: 服务=%s, 方法=%s, 错误=%s",
+                    serviceName, methodName, response.getMessage()
+                );
+                log.error(errorMsg);
+                throw new RuntimeException(errorMsg);
             }
+        } catch (RuntimeException e) {
+            // 直接抛出 RuntimeException（包括类型转换异常）
+            throw e;
         } catch (Exception e) {
-            log.error("RPC调用异常: serviceName={}, methodName={}", serviceClass.getName(), methodName, e);
-            throw new RuntimeException("RPC调用异常", e);
+            String errorMsg = String.format(
+                "RPC调用异常: 服务=%s, 方法=%s, 异常类型=%s, 错误=%s",
+                serviceName, methodName, e.getClass().getSimpleName(), e.getMessage()
+            );
+            log.error(errorMsg, e);
+            throw new RuntimeException(errorMsg, e);
+        }
+    }
+    
+    /**
+     * 获取方法的返回类型（带缓存）
+     * 
+     * @param serviceClass 服务接口类
+     * @param methodName 方法名
+     * @param args 参数
+     * @return 返回类型，如果找不到则返回 null
+     */
+    private Class<?> getMethodReturnType(Class<?> serviceClass, String methodName, Object[] args) {
+        // 获取参数类型
+        Class<?>[] parameterTypes = getParameterTypes(args);
+        
+        // 创建缓存 key
+        MethodCacheKey cacheKey = new MethodCacheKey(serviceClass, methodName, parameterTypes);
+        
+        // 尝试从缓存获取
+        Method cachedMethod = methodCache.get(cacheKey);
+        if (cachedMethod != null) {
+            return cachedMethod.getReturnType();
+        }
+        
+        // 缓存未命中，执行反射查找
+        try {
+            Method method = serviceClass.getMethod(methodName, parameterTypes);
+            // 放入缓存
+            methodCache.put(cacheKey, method);
+            return method.getReturnType();
+        } catch (NoSuchMethodException e) {
+            log.warn("无法找到方法: serviceClass={}, methodName={}, 将尝试遍历所有方法", 
+                    serviceClass.getName(), methodName);
+            
+            // 如果精确匹配失败，尝试通过方法名匹配
+            for (Method method : serviceClass.getMethods()) {
+                if (method.getName().equals(methodName)) {
+                    // 放入缓存（使用实际的参数类型）
+                    methodCache.put(cacheKey, method);
+                    return method.getReturnType();
+                }
+            }
+            
+            log.error("无法找到方法的返回类型: serviceClass={}, methodName={}", 
+                    serviceClass.getName(), methodName);
+            return null;
         }
     }
     
@@ -175,6 +274,40 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
         } catch (Exception e) {
             log.error("发送RPC请求失败: requestId={}", request.getRequestId(), e);
             return RpcResponse.exception(request.getRequestId(), e);
+        }
+    }
+    
+    /**
+     * 方法缓存 Key
+     * 用于缓存反射查找的方法
+     */
+    private static class MethodCacheKey {
+        private final Class<?> serviceClass;
+        private final String methodName;
+        private final Class<?>[] parameterTypes;
+        private final int hashCode;
+        
+        public MethodCacheKey(Class<?> serviceClass, String methodName, Class<?>[] parameterTypes) {
+            this.serviceClass = serviceClass;
+            this.methodName = methodName;
+            this.parameterTypes = parameterTypes;
+            // 预计算 hashCode 以提高性能
+            this.hashCode = Objects.hash(serviceClass, methodName, Arrays.hashCode(parameterTypes));
+        }
+        
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MethodCacheKey that = (MethodCacheKey) o;
+            return Objects.equals(serviceClass, that.serviceClass) &&
+                   Objects.equals(methodName, that.methodName) &&
+                   Arrays.equals(parameterTypes, that.parameterTypes);
+        }
+        
+        @Override
+        public int hashCode() {
+            return hashCode;
         }
     }
 }

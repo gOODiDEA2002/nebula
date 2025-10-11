@@ -10,6 +10,7 @@ Nebula 是基于 Spring Boot 3.x 和 Java 21 的现代化企业级Java后端框�
 ```
 nebula/
 ├── core/                    # 核心组件
+│   └── nebula-foundation/   # 基础组件
 ├── infrastructure/          # 基础设施层
 │   ├── data/                # 数据访问
 │   ├── messaging/           # 消息传递
@@ -22,14 +23,119 @@ nebula/
 ├── application/             # 应用层
 │   ├── nebula-web/          # Web应用框架
 │   └── nebula-task/         # 任务调度框架
+├── autoconfigure/           # 自动配置
+│   └── nebula-autoconfigure/ # 统一自动配置模块
 ├── starter/                 # 启动器
-│   └── nebula-starter/      # 自动配置启动器
-│   └── nebula-example/          # 示例应用
+│   └── nebula-starter/      # 便捷启动器（依赖 autoconfigure）
+└── nebula-example/          # 示例应用
 ```
+
+## 🔧 自动配置架构
+
+### 统一自动配置模块
+
+所有基础设施模块的自动配置类都集中管理在 `nebula-autoconfigure` 模块中，带来以下优势：
+
+#### 核心优势
+
+1. **集中式配置管理**
+   - 所有自动配置类集中在一个模块中
+   - 更清晰的依赖关系和初始化顺序
+   - 避免了模块间的循环依赖问题
+
+2. **更好的开发体验**
+   - 应用只需引入 `nebula-autoconfigure` 依赖
+   - 零配置启动，按需自动加载功能模块
+   - 明确的配置顺序和依赖关系
+
+3. **架构解耦**
+   - 基础模块专注于核心功能实现
+   - 配置逻辑分离到独立模块
+   - 易于扩展和维护
+
+#### 自动配置初始化顺序
+
+```mermaid
+flowchart TD
+    A[NacosDiscoveryAutoConfiguration<br/>服务发现] --> B[HttpRpcAutoConfiguration<br/>HTTP RPC]
+    A --> C[GrpcRpcAutoConfiguration<br/>gRPC]
+    B --> D[RpcDiscoveryAutoConfiguration<br/>RPC+Discovery集成]
+    C --> D
+    D --> E[应用层服务]
+    E --> F[DataPersistenceAutoConfiguration<br/>数据持久化]
+    E --> G[CacheAutoConfiguration<br/>缓存]
+    E --> H[RabbitMQAutoConfiguration<br/>消息队列]
+    E --> I[ElasticsearchAutoConfiguration<br/>搜索引擎]
+    E --> J[StorageAutoConfiguration<br/>对象存储]
+    E --> K[AIAutoConfiguration<br/>AI服务]
+```
+
+#### 快速开始
+
+**1. 添加自动配置依赖**
+
+```xml
+<!-- 统一自动配置模块 -->
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-autoconfigure</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+
+<!-- 按需添加功能模块 -->
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-discovery-nacos</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-rpc-http</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-data-persistence</artifactId>
+</dependency>
+<!-- 其他模块... -->
+```
+
+**2. 配置应用**
+
+```yaml
+spring:
+  application:
+    name: my-nebula-app
+
+nebula:
+  # 服务发现配置
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: localhost:8848
+      namespace: dev
+  
+  # RPC 配置
+  rpc:
+    http:
+      enabled: true
+    discovery:
+      enabled: true
+  
+  # 数据访问配置
+  data:
+    persistence:
+      enabled: true
+    cache:
+      enabled: true
+```
+
+**3. 启动应用**
+
+所有配置的功能模块将自动初始化并可用，无需手动配置。
+
 
 ## 📦 核心模块详解
 
-### 1. 数据访问层 (Data Access Layer)
+<!-- ### 1. 数据访问层 (Data Access Layer)
 
 #### nebula-data-access
 **核心抽象层，提供统一的数据访问接口**
@@ -50,7 +156,7 @@ QueryBuilder query = DefaultQueryBuilder.create()
     .like("name", "张%")
     .gt("createTime", lastWeek)
     .build();
-```
+``` -->
 
 #### nebula-data-persistence (MyBatis-Plus集成)
 **关系型数据库持久化支持**
@@ -81,7 +187,7 @@ nebula:
                 algorithm-expression: user_${id % 4}
 ```
 
-#### nebula-data-mongodb (NoSQL支持)
+<!-- #### nebula-data-mongodb (NoSQL支持)
 **MongoDB集成支持**
 ```java
 @Service
@@ -98,7 +204,7 @@ public class DocumentService {
         return mongoRepository.findByCategory(category);
     }
 }
-```
+``` -->
 
 #### nebula-data-cache (缓存支持)
 **多级缓存管理**
@@ -394,16 +500,56 @@ nebula:
 
 ## 🚀 快速开始
 
-### 1. 添加依赖
+Nebula 提供两种使用方式，根据需求选择：
+
+### 方式一：使用 nebula-starter（推荐）
+
+适合需要完整功能、快速开始的应用。
+
+#### 1. 添加依赖
 ```xml
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
-### 2. 应用配置
+### 方式二：使用 nebula-autoconfigure
+
+适合需要精确控制依赖的应用。
+
+#### 1. 添加依赖
+```xml
+<!-- 统一自动配置 -->
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-autoconfigure</artifactId>
+    <version>2.0.1-SNAPSHOT</version>
+</dependency>
+
+<!-- 按需添加功能模块 -->
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-discovery-nacos</artifactId>
+    <version>2.0.1-SNAPSHOT</version>
+</dependency>
+
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-rpc-http</artifactId>
+    <version>2.0.1-SNAPSHOT</version>
+</dependency>
+
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-data-persistence</artifactId>
+    <version>2.0.1-SNAPSHOT</version>
+</dependency>
+<!-- 其他模块... -->
+```
+
+### 2. 应用配置（两种方式通用）
 ```yaml
 spring:
   application:
@@ -432,13 +578,17 @@ nebula:
 ### 3. 启动类
 ```java
 @SpringBootApplication
-@EnableNebula
 public class MyNebulaApplication {
     public static void main(String[] args) {
         SpringApplication.run(MyNebulaApplication.class, args);
     }
 }
 ```
+
+**说明**：
+- v2.0.1+ 不再需要 `@EnableNebula` 注解
+- 所有功能通过自动配置自动启用
+- 使用配置文件中的 `enabled` 属性控制功能开关
 
 ## 🔧 开发指南
 

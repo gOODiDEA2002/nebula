@@ -39,19 +39,39 @@ public class RpcClientFactoryBean implements FactoryBean<Object>,
         // 从容器中获取RpcClient实例
         // 优先使用 ServiceDiscoveryRpcClient, 如果不存在则使用 HttpRpcClient
         try {
-            if (applicationContext.containsBean("serviceDiscoveryRpcClient")) {
+            // 优先尝试获取 ServiceDiscoveryRpcClient
+            try {
                 this.rpcClient = (io.nebula.rpc.core.client.RpcClient) 
                         applicationContext.getBean("serviceDiscoveryRpcClient");
                 log.debug("使用 ServiceDiscoveryRpcClient 创建 RPC 客户端代理");
-            } else if (applicationContext.containsBean("httpRpcClient")) {
+                return;
+            } catch (BeansException e) {
+                log.debug("ServiceDiscoveryRpcClient 不可用: {}", e.getMessage());
+            }
+            
+            // 其次尝试获取 HttpRpcClient
+            try {
                 this.rpcClient = (io.nebula.rpc.core.client.RpcClient) 
                         applicationContext.getBean("httpRpcClient");
                 log.debug("使用 HttpRpcClient 创建 RPC 客户端代理");
-            } else {
-                this.rpcClient = applicationContext.getBean(io.nebula.rpc.core.client.RpcClient.class);
+                return;
+            } catch (BeansException e) {
+                log.debug("HttpRpcClient 不可用: {}", e.getMessage());
             }
-        } catch (BeansException e) {
-            log.warn("未找到RpcClient实例，将使用默认实现", e);
+            
+            // 最后尝试按类型获取任意 RpcClient
+            try {
+                this.rpcClient = applicationContext.getBean(io.nebula.rpc.core.client.RpcClient.class);
+                log.debug("使用默认 RpcClient 创建 RPC 客户端代理: {}", 
+                        this.rpcClient.getClass().getSimpleName());
+                return;
+            } catch (BeansException e) {
+                log.debug("未找到任何 RpcClient Bean: {}", e.getMessage());
+            }
+            
+            log.warn("未找到任何可用的 RpcClient 实例，RPC 调用将失败");
+        } catch (Exception e) {
+            log.error("初始化 RpcClient 时发生未预期的异常", e);
         }
     }
     

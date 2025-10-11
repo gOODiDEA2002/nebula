@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-autoconfigure</artifactId>
+    <name>Nebula AutoConfiguration</name>
+    <description>Centralized auto-configuration for all Nebula modules</description>
+
+    <properties>
+        <spring-ai.version>1.1.0-M3</spring-ai.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring AI BOM -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Spring Boot Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Spring Boot AutoConfigure -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- Discovery Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Discovery Nacos -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-nacos</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- RPC Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- RPC HTTP -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- RPC gRPC -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-grpc</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Data Persistence -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-persistence</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Data Cache -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Messaging Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Messaging RabbitMQ -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-rabbitmq</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Search Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-search-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Search Elasticsearch -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-search-elasticsearch</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Storage Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Storage MinIO -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-minio</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Storage Aliyun OSS -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-aliyun-oss</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- AI Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- AI Spring - 暂时跳过 -->
+        <!--
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-openai</artifactId>
+            <version>${spring-ai.version}</version>
+            <optional>true</optional>
+        </dependency>
+        -->
+
+        <!-- Web -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <!-- Spring Milestones Repository -->
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

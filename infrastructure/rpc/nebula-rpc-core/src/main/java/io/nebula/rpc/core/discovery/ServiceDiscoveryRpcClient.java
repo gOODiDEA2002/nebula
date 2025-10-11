@@ -7,6 +7,7 @@ import io.nebula.discovery.core.LoadBalancerFactory;
 import io.nebula.discovery.core.LoadBalanceStrategy;
 import io.nebula.discovery.core.ServiceDiscoveryException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -23,14 +24,17 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     private final ServiceDiscovery serviceDiscovery;
     private final LoadBalancer loadBalancer;
     private final io.nebula.rpc.core.client.RpcClient delegateClient;
+    private final Environment environment;
     private final ConcurrentHashMap<String, List<ServiceInstance>> serviceCache = new ConcurrentHashMap<>();
     
     public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery, 
                                    LoadBalancer loadBalancer, 
-                                   io.nebula.rpc.core.client.RpcClient delegateClient) {
+                                   io.nebula.rpc.core.client.RpcClient delegateClient,
+                                   Environment environment) {
         this.serviceDiscovery = serviceDiscovery;
         this.loadBalancer = loadBalancer;
         this.delegateClient = delegateClient;
+        this.environment = environment;
         
         log.info("ServiceDiscoveryRpcClient 初始化完成，负载均衡策略: {}", 
                 loadBalancer.getClass().getSimpleName());
@@ -38,13 +42,15 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     
     public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery, 
                                    LoadBalanceStrategy strategy, 
-                                   io.nebula.rpc.core.client.RpcClient delegateClient) {
-        this(serviceDiscovery, LoadBalancerFactory.getLoadBalancer(strategy), delegateClient);
+                                   io.nebula.rpc.core.client.RpcClient delegateClient,
+                                   Environment environment) {
+        this(serviceDiscovery, LoadBalancerFactory.getLoadBalancer(strategy), delegateClient, environment);
     }
     
     public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery, 
-                                   io.nebula.rpc.core.client.RpcClient delegateClient) {
-        this(serviceDiscovery, LoadBalancerFactory.getDefaultLoadBalancer(), delegateClient);
+                                   io.nebula.rpc.core.client.RpcClient delegateClient,
+                                   Environment environment) {
+        this(serviceDiscovery, LoadBalancerFactory.getDefaultLoadBalancer(), delegateClient, environment);
     }
     
     @Override
@@ -260,15 +266,36 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
         if (annotation != null) {
             // 优先使用 value 属性(应用名,用于服务发现)
             if (StringUtils.hasText(annotation.value())) {
-                return annotation.value();
+                // 解析 Spring 占位符 (如 ${property:defaultValue})
+                String serviceName = resolvePlaceholders(annotation.value());
+                return serviceName;
             }
             // 其次使用 name 属性(兼容旧版本)
             if (StringUtils.hasText(annotation.name())) {
-                return annotation.name();
+                String serviceName = resolvePlaceholders(annotation.name());
+                return serviceName;
             }
         }
         
         // 默认使用接口全限定名
         return serviceClass.getName();
+    }
+    
+    /**
+     * 解析配置占位符
+     * 
+     * @param value 可能包含占位符的值
+     * @return 解析后的值
+     */
+    private String resolvePlaceholders(String value) {
+        if (environment != null && StringUtils.hasText(value)) {
+            try {
+                return environment.resolvePlaceholders(value);
+            } catch (Exception e) {
+                log.warn("解析占位符失败，使用原始值: value={}, error={}", value, e.getMessage());
+                return value;
+            }
+        }
+        return value;
     }
 }
