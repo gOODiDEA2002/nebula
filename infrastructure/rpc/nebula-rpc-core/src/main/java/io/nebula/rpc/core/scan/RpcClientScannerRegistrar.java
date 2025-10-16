@@ -56,16 +56,35 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
             return;
         }
         
+        // 获取默认服务名
+        String defaultService = getDefaultService(attrs);
+        
         // 获取要扫描的包路径
         Set<String> basePackages = getBasePackages(metadata, attrs);
         
-        log.info("开始扫描RPC客户端，扫描包: {}", basePackages);
+        log.info("开始扫描RPC客户端，扫描包: {}, 默认服务: {}", basePackages, 
+                StringUtils.hasText(defaultService) ? defaultService : "未指定");
         
         // 扫描并注册RPC客户端
-        registerRpcClients(basePackages, registry);
+        registerRpcClients(basePackages, registry, defaultService);
         
         // 注册指定的客户端
-        registerSpecifiedClients(attrs, registry);
+        registerSpecifiedClients(attrs, registry, defaultService);
+    }
+    
+    /**
+     * 获取默认服务名
+     * 从 @EnableRpcClients 的 value 属性获取
+     */
+    private String getDefaultService(Map<String, Object> attrs) {
+        String[] value = (String[]) attrs.get("value");
+        if (value != null && value.length > 0) {
+            // 如果value只有一个元素，且格式像服务名（不包含.号），则作为默认服务名
+            if (value.length == 1 && !value[0].contains(".")) {
+                return value[0];
+            }
+        }
+        return "";
     }
     
     /**
@@ -74,10 +93,13 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
     private Set<String> getBasePackages(AnnotationMetadata metadata, Map<String, Object> attrs) {
         Set<String> basePackages = new HashSet<>();
         
-        // 添加 value 属性指定的包
+        // 添加 value 属性指定的包（排除用作默认服务名的情况）
         String[] value = (String[]) attrs.get("value");
         if (value != null) {
-            basePackages.addAll(Arrays.asList(value));
+            // 如果value看起来是服务名（单个元素且不包含.），则不作为包路径
+            if (!(value.length == 1 && !value[0].contains("."))) {
+                basePackages.addAll(Arrays.asList(value));
+            }
         }
         
         // 添加 basePackages 属性指定的包
@@ -105,7 +127,7 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
     /**
      * 扫描并注册RPC客户端
      */
-    private void registerRpcClients(Set<String> basePackages, BeanDefinitionRegistry registry) {
+    private void registerRpcClients(Set<String> basePackages, BeanDefinitionRegistry registry, String defaultService) {
         ClassPathScanningCandidateComponentProvider scanner = 
                 new ClassPathScanningCandidateComponentProvider(false, environment) {
             @Override
@@ -127,7 +149,7 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
             
             for (BeanDefinition candidate : candidates) {
                 if (candidate instanceof AnnotatedBeanDefinition) {
-                    registerRpcClient((AnnotatedBeanDefinition) candidate, registry);
+                    registerRpcClient((AnnotatedBeanDefinition) candidate, registry, defaultService);
                 }
             }
         }
@@ -136,7 +158,7 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
     /**
      * 注册指定的RPC客户端
      */
-    private void registerSpecifiedClients(Map<String, Object> attrs, BeanDefinitionRegistry registry) {
+    private void registerSpecifiedClients(Map<String, Object> attrs, BeanDefinitionRegistry registry, String defaultService) {
         Class<?>[] clients = (Class<?>[]) attrs.get("clients");
         
         if (clients == null || clients.length == 0) {
@@ -160,6 +182,11 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
                     .genericBeanDefinition(RpcClientFactoryBean.class);
             builder.addPropertyValue("type", clientClass);
             
+            // 设置默认服务名
+            if (StringUtils.hasText(defaultService)) {
+                builder.addPropertyValue("name", defaultService);
+            }
+            
             String beanName = generateBeanName(clientClass);
             registry.registerBeanDefinition(beanName, builder.getBeanDefinition());
             
@@ -170,7 +197,7 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
     /**
      * 注册单个RPC客户端
      */
-    private void registerRpcClient(AnnotatedBeanDefinition definition, BeanDefinitionRegistry registry) {
+    private void registerRpcClient(AnnotatedBeanDefinition definition, BeanDefinitionRegistry registry, String defaultService) {
         String className = definition.getMetadata().getClassName();
         
         try {
@@ -181,10 +208,16 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
                     .genericBeanDefinition(RpcClientFactoryBean.class);
             builder.addPropertyValue("type", clientClass);
             
+            // 设置默认服务名
+            if (StringUtils.hasText(defaultService)) {
+                builder.addPropertyValue("name", defaultService);
+            }
+            
             String beanName = generateBeanName(clientClass);
             registry.registerBeanDefinition(beanName, builder.getBeanDefinition());
             
-            log.info("注册RPC客户端: {} -> {}", className, beanName);
+            log.info("注册RPC客户端: {} -> {} (默认服务: {})", className, beanName, 
+                    StringUtils.hasText(defaultService) ? defaultService : "未指定");
             
         } catch (ClassNotFoundException e) {
             log.error("无法加载RPC客户端类: {}", className, e);

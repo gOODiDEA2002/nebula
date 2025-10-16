@@ -19,8 +19,9 @@ public @interface RpcService {
     
     /**
      * 实现的RPC服务接口类
+     * 如果为 void.class（默认值），则自动查找标注了 @RpcClient 的接口
      */
-    Class<?> value();
+    Class<?> value() default void.class;
     
     /**
      * 服务名称,默认使用接口的全限定名

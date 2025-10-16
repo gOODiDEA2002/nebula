@@ -57,8 +57,14 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     
     @Override
     public <T> T call(Class<T> serviceClass, String methodName, Object... args) {
-        // 从 @RpcClient 注解获取服务名
-        String serviceName = getServiceName(serviceClass);
+        // 优先从 ThreadLocal 获取服务名（由 RpcClientFactoryBean 设置）
+        String serviceName = io.nebula.rpc.core.context.RpcContextHolder.getServiceName();
+        
+        // 如果 ThreadLocal 中没有，则从 @RpcClient 注解获取
+        if (!org.springframework.util.StringUtils.hasText(serviceName)) {
+            serviceName = getServiceName(serviceClass);
+        }
+        
         ServiceInstance instance = selectServiceInstance(serviceName);
         
         if (instance == null) {

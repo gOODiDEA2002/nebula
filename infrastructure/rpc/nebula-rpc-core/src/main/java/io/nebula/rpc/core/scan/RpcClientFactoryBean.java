@@ -2,6 +2,7 @@ package io.nebula.rpc.core.scan;
 
 import io.nebula.rpc.core.annotation.RpcCall;
 import io.nebula.rpc.core.annotation.RpcClient;
+import io.nebula.rpc.core.context.RpcContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
@@ -28,6 +29,7 @@ import java.lang.reflect.Proxy;
 public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationContextAware {
     
     private Class<?> type;
+    private String name;  // 外部注入的服务名
     private ApplicationContext applicationContext;
     
     /**
@@ -124,6 +126,10 @@ public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationCon
         this.type = type;
     }
     
+    public void setName(String name) {
+        this.name = name;
+    }
+    
     /**
      * 创建RPC客户端代理
      * 始终创建动态代理，延迟到实际调用时才查找RpcClient实例
@@ -182,20 +188,35 @@ public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationCon
             
             // 执行RPC调用
             log.debug("执行RPC调用: service={}, method={}", serviceName, method.getName());
-            return client.call(interfaceClass, method.getName(), args);
+            
+            // 设置服务名到 ThreadLocal，供 ServiceDiscoveryRpcClient 使用
+            try {
+                if (StringUtils.hasText(serviceName)) {
+                    RpcContextHolder.setServiceName(serviceName);
+                }
+                return client.call(interfaceClass, method.getName(), args);
+            } finally {
+                // 清理 ThreadLocal
+                RpcContextHolder.clear();
+            }
         }
         
         /**
          * 获取服务名称
          */
         private String getServiceName() {
+            // 优先使用外部注入的服务名
+            if (StringUtils.hasText(RpcClientFactoryBean.this.name)) {
+                return RpcClientFactoryBean.this.name;
+            }
+            // 其次使用注解中的服务名
             if (StringUtils.hasText(clientAnnotation.name())) {
                 return clientAnnotation.name();
             }
             if (StringUtils.hasText(clientAnnotation.value())) {
                 return clientAnnotation.value();
             }
-            // 使用接口全限定名作为服务名
+            // 最后使用接口全限定名作为服务名
             return interfaceClass.getName();
         }
     }

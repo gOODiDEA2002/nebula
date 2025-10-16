@@ -2,6 +2,7 @@ package io.nebula.rpc.grpc.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.stub.StreamObserver;
+import io.nebula.rpc.core.annotation.RpcClient;
 import io.nebula.rpc.core.annotation.RpcService;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
 import io.nebula.rpc.grpc.proto.RpcRequest;
@@ -13,6 +14,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,14 +54,61 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
         Map<String, Object> rpcServices = applicationContext.getBeansWithAnnotation(RpcService.class);
         for (Map.Entry<String, Object> entry : rpcServices.entrySet()) {
             Object serviceBean = entry.getValue();
-            Class<?>[] interfaces = serviceBean.getClass().getInterfaces();
+            Class<?> beanClass = serviceBean.getClass();
+            RpcService rpcService = beanClass.getAnnotation(RpcService.class);
             
-            for (Class<?> interfaceClass : interfaces) {
-                String serviceName = interfaceClass.getName();
-                serviceRegistry.put(serviceName, serviceBean);
-                log.info("注册 gRPC RPC 服务: {}", serviceName);
+            // 获取RPC接口类（自动推导或手动指定）
+            Class<?> serviceInterface = findServiceInterface(beanClass, rpcService);
+            
+            // 使用接口全限定名作为服务名
+            String serviceName = serviceInterface.getName();
+            serviceRegistry.put(serviceName, serviceBean);
+            log.info("注册 gRPC RPC 服务: {} -> {}", serviceName, beanClass.getSimpleName());
+        }
+    }
+    
+    /**
+     * 查找服务接口
+     * 如果 @RpcService 没有指定接口，自动查找标注了 @RpcClient 的接口
+     * 
+     * @param beanClass 服务实现类
+     * @param rpcService RpcService注解
+     * @return 服务接口类
+     */
+    private Class<?> findServiceInterface(Class<?> beanClass, RpcService rpcService) {
+        // 1. 如果手动指定了接口，直接使用
+        Class<?> specifiedInterface = rpcService.value();
+        if (specifiedInterface != null && specifiedInterface != void.class) {
+            return specifiedInterface;
+        }
+        
+        // 2. 自动查找标注了 @RpcClient 的接口
+        Class<?>[] interfaces = beanClass.getInterfaces();
+        List<Class<?>> rpcInterfaces = new ArrayList<>();
+        
+        for (Class<?> iface : interfaces) {
+            if (iface.isAnnotationPresent(RpcClient.class)) {
+                rpcInterfaces.add(iface);
             }
         }
+        
+        // 3. 验证结果
+        if (rpcInterfaces.isEmpty()) {
+            throw new IllegalStateException(String.format(
+                "类 %s 没有实现任何标注了 @RpcClient 的接口，请在 @RpcService 中手动指定接口类",
+                beanClass.getName()));
+        }
+        
+        if (rpcInterfaces.size() > 1) {
+            throw new IllegalStateException(String.format(
+                "类 %s 实现了多个 @RpcClient 接口 %s，请在 @RpcService 中手动指定接口类",
+                beanClass.getName(), rpcInterfaces));
+        }
+        
+        log.info("自动推导 gRPC RPC 服务接口: {} -> {}", 
+            beanClass.getSimpleName(), rpcInterfaces.get(0).getSimpleName());
+        
+        return rpcInterfaces.get(0);
     }
 
     @Override

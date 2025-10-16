@@ -16,7 +16,6 @@ import java.lang.reflect.Proxy;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
 /**
  * gRPC RPC 客户端
  * 支持服务发现集成，实现 ConfigurableRpcClient 接口以支持动态地址变更
@@ -52,8 +51,7 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
 
         ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder
                 .forTarget(target)
-                .maxInboundMessageSize(clientConfig.getMaxInboundMessageSize())
-                .proxyDetector(io.grpc.ProxyDetector.NO_PROXY);  // ✅ 禁用代理检测
+                .maxInboundMessageSize(clientConfig.getMaxInboundMessageSize());
 
         // 配置协商类型
         if ("plaintext".equals(clientConfig.getNegotiationType())) {
