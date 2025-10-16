@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.nebula.rpc.core.client.RpcClient;
+import io.nebula.rpc.core.discovery.ServiceDiscoveryRpcClient;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
 import io.nebula.rpc.grpc.proto.RpcRequest;
@@ -18,12 +19,13 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * gRPC RPC 客户端
+ * 支持服务发现集成，实现 ConfigurableRpcClient 接口以支持动态地址变更
  *
  * @author Nebula Framework
  * @since 2.0.0
  */
 @Slf4j
-public class GrpcRpcClient implements RpcClient {
+public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcClient {
 
     private final ObjectMapper objectMapper;
     private final GrpcRpcProperties.ClientConfig clientConfig;
@@ -50,7 +52,8 @@ public class GrpcRpcClient implements RpcClient {
 
         ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder
                 .forTarget(target)
-                .maxInboundMessageSize(clientConfig.getMaxInboundMessageSize());
+                .maxInboundMessageSize(clientConfig.getMaxInboundMessageSize())
+                .proxyDetector(io.grpc.ProxyDetector.NO_PROXY);  // ✅ 禁用代理检测
 
         // 配置协商类型
         if ("plaintext".equals(clientConfig.getNegotiationType())) {
@@ -75,6 +78,13 @@ public class GrpcRpcClient implements RpcClient {
                 requestId, serviceClass.getName(), methodName);
 
         try {
+            // 通过反射找到方法，获取实际返回类型
+            Method method = findMethod(serviceClass, methodName, args);
+            if (method == null) {
+                throw new NoSuchMethodException(
+                        String.format("方法未找到: %s.%s", serviceClass.getName(), methodName));
+            }
+            
             // 构建请求
             RpcRequest.Builder requestBuilder = RpcRequest.newBuilder()
                     .setRequestId(requestId)
@@ -111,7 +121,12 @@ public class GrpcRpcClient implements RpcClient {
                 return null;
             }
 
-            return objectMapper.readValue(resultJson, serviceClass);
+            // 使用方法的实际返回类型进行反序列化（支持泛型）
+            @SuppressWarnings("unchecked")
+            T result = (T) objectMapper.readValue(resultJson, 
+                    objectMapper.constructType(method.getGenericReturnType()));
+            
+            return result;
 
         } catch (Exception e) {
             log.error("gRPC RPC 调用异常: requestId={}, service={}, method={}", 
@@ -242,6 +257,24 @@ public class GrpcRpcClient implements RpcClient {
             initChannel();
         }
     }
+    
+    /**
+     * 设置目标地址（实现 ConfigurableRpcClient 接口）
+     * 用于服务发现集成，支持动态地址变更
+     * 
+     * @param address gRPC 地址（如：192.168.2.200:9081）
+     *                ServiceDiscoveryRpcClient 已经处理好了端口映射
+     */
+    @Override
+    public void setTargetAddress(String address) {
+        // ✅ 直接使用传入的地址（已经由 ServiceDiscoveryRpcClient 处理好了）
+        String newTarget = address
+                .replace("http://", "")
+                .replace("https://", "");
+        
+        log.debug("设置 gRPC 目标地址: {}", newTarget);
+        setTarget(newTarget);
+    }
 
     @Override
     public void close() {
@@ -254,6 +287,70 @@ public class GrpcRpcClient implements RpcClient {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+    
+    /**
+     * 查找方法（根据方法名和参数类型）
+     */
+    private Method findMethod(Class<?> serviceClass, String methodName, Object[] args) {
+        // 获取参数类型
+        Class<?>[] parameterTypes = new Class<?>[args == null ? 0 : args.length];
+        if (args != null) {
+            for (int i = 0; i < args.length; i++) {
+                parameterTypes[i] = args[i] != null ? args[i].getClass() : Object.class;
+            }
+        }
+        
+        // 尝试精确匹配
+        try {
+            return serviceClass.getMethod(methodName, parameterTypes);
+        } catch (NoSuchMethodException e) {
+            // 尝试模糊匹配（处理包装类型 vs 基本类型）
+            for (Method method : serviceClass.getMethods()) {
+                if (method.getName().equals(methodName) && 
+                    method.getParameterCount() == parameterTypes.length) {
+                    
+                    // 检查参数类型是否兼容
+                    Class<?>[] methodParams = method.getParameterTypes();
+                    boolean compatible = true;
+                    for (int i = 0; i < parameterTypes.length; i++) {
+                        if (!isCompatible(parameterTypes[i], methodParams[i])) {
+                            compatible = false;
+                            break;
+                        }
+                    }
+                    
+                    if (compatible) {
+                        return method;
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 检查类型是否兼容（处理包装类型和基本类型）
+     */
+    private boolean isCompatible(Class<?> argType, Class<?> paramType) {
+        if (paramType.isAssignableFrom(argType)) {
+            return true;
+        }
+        
+        // 处理基本类型和包装类型
+        if (paramType.isPrimitive()) {
+            if (paramType == int.class && argType == Integer.class) return true;
+            if (paramType == long.class && argType == Long.class) return true;
+            if (paramType == double.class && argType == Double.class) return true;
+            if (paramType == float.class && argType == Float.class) return true;
+            if (paramType == boolean.class && argType == Boolean.class) return true;
+            if (paramType == byte.class && argType == Byte.class) return true;
+            if (paramType == short.class && argType == Short.class) return true;
+            if (paramType == char.class && argType == Character.class) return true;
+        }
+        
+        return false;
     }
 }
 

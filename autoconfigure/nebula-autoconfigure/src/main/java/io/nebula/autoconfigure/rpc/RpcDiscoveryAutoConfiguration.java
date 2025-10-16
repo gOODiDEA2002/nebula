@@ -53,22 +53,25 @@ public class RpcDiscoveryAutoConfiguration {
     
     /**
      * 服务发现 RPC 客户端配置
+     * 自动注入 @Primary 标记的 RpcClient Bean
+     * - 如果 gRPC 启用（nebula.rpc.grpc.enabled=true），则使用 GrpcRpcClient
+     * - 否则使用 HttpRpcClient
      */
     @Bean(name = "serviceDiscoveryRpcClient")
     @ConditionalOnMissingBean(name = "serviceDiscoveryRpcClient")
     public ServiceDiscoveryRpcClient serviceDiscoveryRpcClient(
             ServiceDiscovery serviceDiscovery,
             LoadBalancer loadBalancer,
-            @Qualifier("httpRpcClient") 
-            RpcClient delegateRpcClient,
+            RpcClient delegateRpcClient,  // 移除 @Qualifier，让 @Primary 生效
             Environment environment) {
         
         ServiceDiscoveryRpcClient client = new ServiceDiscoveryRpcClient(
                 serviceDiscovery, loadBalancer, delegateRpcClient, environment);
         
-        log.info("配置服务发现 RPC 客户端: serviceDiscovery={}, loadBalancer={}", 
+        log.info("配置服务发现 RPC 客户端: serviceDiscovery={}, loadBalancer={}, delegateClient={}", 
                 serviceDiscovery.getClass().getSimpleName(),
-                loadBalancer.getClass().getSimpleName());
+                loadBalancer.getClass().getSimpleName(),
+                delegateRpcClient.getClass().getSimpleName());  // 新增：记录委托客户端类型
         
         return client;
     }

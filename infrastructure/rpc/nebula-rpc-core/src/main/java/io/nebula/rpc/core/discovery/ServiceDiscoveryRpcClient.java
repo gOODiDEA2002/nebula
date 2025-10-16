@@ -13,7 +13,9 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 /**
  * 集成服务发现的 RPC 客户端
  * 自动从服务发现中获取服务实例，并进行负载均衡
@@ -175,15 +177,78 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
      * @param instance 服务实例
      */
     private void setTargetAddress(io.nebula.rpc.core.client.RpcClient client, ServiceInstance instance) {
-        // 这是一个抽象方法，具体实现需要根据RpcClient的类型来决定
-        // 对于HttpRpcClient，可能需要设置baseUrl
-        // 对于其他类型的客户端，可能需要设置不同的连接参数
+        // ✅ GrpcRpcClient 从元数据获取 gRPC 端口
+        try {
+            Class<?> grpcClientClass = Class.forName("io.nebula.rpc.grpc.client.GrpcRpcClient");
+            if (grpcClientClass.isInstance(client)) {
+                String grpcAddress = buildGrpcAddress(instance);
+                log.debug("gRPC 目标地址: {}", grpcAddress);
+                if (client instanceof ConfigurableRpcClient) {
+                    ((ConfigurableRpcClient) client).setTargetAddress(grpcAddress);
+                }
+                return;
+            }
+        } catch (ClassNotFoundException e) {
+            // gRPC 模块未引入，忽略
+        }
         
+        // 对于其他类型的客户端，使用HTTP地址
         if (client instanceof ConfigurableRpcClient) {
             ((ConfigurableRpcClient) client).setTargetAddress(instance.getAddress());
         }
+    }
+    
+    /**
+     * 构建 gRPC 地址（从元数据获取端口）
+     * 
+     * @param instance 服务实例
+     * @return gRPC 地址（如：192.168.2.200:9081）
+     */
+    private String buildGrpcAddress(ServiceInstance instance) {
+        String host = extractHost(instance.getAddress());
         
-        // TODO: 这里可以扩展支持更多类型的RpcClient
+        // ✅ 优先从元数据获取 gRPC 端口
+        Map<String, String> metadata = instance.getMetadata();
+        if (metadata != null && metadata.containsKey("grpc.port")) {
+            String grpcPort = metadata.get("grpc.port");
+            log.debug("从元数据获取 gRPC 端口: host={}, grpc.port={}", host, grpcPort);
+            return host + ":" + grpcPort;
+        }
+        
+        // ✅ 兜底：使用 HTTP 端口 + 1000
+        int httpPort = extractPort(instance.getAddress());
+        int grpcPort = httpPort + 1000;
+        log.debug("使用默认规则计算 gRPC 端口: host={}, httpPort={}, grpcPort={}", 
+                host, httpPort, grpcPort);
+        return host + ":" + grpcPort;
+    }
+    
+    /**
+     * 提取主机地址
+     */
+    private String extractHost(String address) {
+        // http://192.168.2.200:8081 → 192.168.2.200
+        String host = address.replace("http://", "").replace("https://", "");
+        if (host.contains(":")) {
+            return host.substring(0, host.indexOf(":"));
+        }
+        return host;
+    }
+    
+    /**
+     * 提取端口号
+     */
+    private int extractPort(String address) {
+        // http://192.168.2.200:8081 → 8081
+        String host = address.replace("http://", "").replace("https://", "");
+        if (host.contains(":")) {
+            try {
+                return Integer.parseInt(host.substring(host.indexOf(":") + 1));
+            } catch (NumberFormatException e) {
+                log.warn("无法解析端口号: {}", address);
+            }
+        }
+        return 8080; // 默认端口
     }
     
     /**
@@ -267,16 +332,17 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
             // 优先使用 value 属性(应用名,用于服务发现)
             if (StringUtils.hasText(annotation.value())) {
                 // 解析 Spring 占位符 (如 ${property:defaultValue})
-                String serviceName = resolvePlaceholders(annotation.value());
-                return serviceName;
+                String originalValue = annotation.value();
+                String resolvedValue = resolvePlaceholders(originalValue);
+                return resolvedValue;
             }
             // 其次使用 name 属性(兼容旧版本)
             if (StringUtils.hasText(annotation.name())) {
-                String serviceName = resolvePlaceholders(annotation.name());
-                return serviceName;
+                String originalName = annotation.name();
+                String resolvedName = resolvePlaceholders(originalName);
+                return resolvedName;
             }
-        }
-        
+        }     
         // 默认使用接口全限定名
         return serviceClass.getName();
     }
