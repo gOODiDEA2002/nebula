@@ -45,6 +45,6 @@ io.nebula.autoconfigure.storage.MinIOAutoConfiguration
 io.nebula.autoconfigure.storage.AliyunOSSAutoConfiguration
 
 # ========================================
-# AI Layer - AI层 (暂时跳过)
+# AI Layer - AI层
 # ========================================
-# io.nebula.autoconfigure.ai.AIAutoConfiguration
+io.nebula.autoconfigure.ai.AIAutoConfiguration

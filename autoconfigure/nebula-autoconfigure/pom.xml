@@ -16,7 +16,7 @@
     <description>Centralized auto-configuration for all Nebula modules</description>
 
     <properties>
-        <spring-ai.version>1.1.0-M3</spring-ai.version>
+        <spring-ai.version>1.0.3</spring-ai.version>
     </properties>
 
     <dependencyManagement>
@@ -150,21 +150,27 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- AI Spring - 暂时跳过 -->
-        <!--
+        <!-- AI Spring -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-ai-spring</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai</artifactId>
-            <version>${spring-ai.version}</version>
             <optional>true</optional>
         </dependency>
-        -->
+        
+        <!-- Spring AI OpenAI Starter (使用BOM管理版本，无需指定version) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Spring AI Chroma Vector Store Starter -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-chroma</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <!-- Web -->
         <dependency>
