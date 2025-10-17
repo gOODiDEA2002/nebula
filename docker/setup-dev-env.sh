@@ -1,8 +1,8 @@
 #!/bin/bash
 # 创建所有必要的目录
-ROOT_DIR=/Users/andy/DevOps/SourceCode/nebula-projects/nebula-middleware
+ROOT_DIR=/Users/andy/DevOps/SourceCode/nebula-projects/nebula-middleware2
 #mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,mongodb,nacos}
-mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,nacos}
+mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,nacos,mongodb,chroma}
 mkdir -p $ROOT_DIR/mysql/data
 mkdir -p $ROOT_DIR/mysql/conf
 # mkdir -p $ROOT_DIR/mongodb/backup
@@ -21,6 +21,40 @@ MYSQL_VERSION=8.3.0
 XXL_JOB_VERSION=2.4.1
 MONGO_VERSION=8.0
 NACOS_VERSION=v2.5.1
+CHROMA_VERSION=latest
+
+# 设置各个服务的端口号
+REDIS_PORT=6379
+RABBITMQ_PORT=5672
+RABBITMQ_PORT_MANAGEMENT=15672
+MINIO_PORT=9000
+MINIO_PORT_MANAGEMENT=9001
+ELASTICSEARCH_PORT=9200
+MYSQL_PORT=3306
+XXL_JOB_PORT=9001
+MONGO_PORT=27017
+NACOS_PORT=8848
+NACOS_PORT_JMX=9848
+CHROMA_PORT=9002
+
+# 设置各个服务的账户名和密码
+REDIS_USERNAME=redis
+REDIS_PASSWORD=redis123
+RABBITMQ_USERNAME=guest
+RABBITMQ_PASSWORD=guest
+MINIO_USERNAME=minioadmin
+MINIO_PASSWORD=minioadmin
+MYSQL_ROOT_USERNAME=root
+MYSQL_ROOT_PASSWORD=root
+MYSQL_INIT_DATABASE=nebula
+MYSQL_INIT_USERNAME=nebula
+MYSQL_INIT_PASSWORD=nebula123
+XXL_JOB_DATABASE_USERNAME=root
+XXL_JOB_DATABASE_PASSWORD=root
+MONGO_USERNAME=admin
+MONGO_PASSWORD=admin123
+NACOS_USERNAME=root
+NACOS_PASSWORD=root
 
 # 创建 MySQL 初始化脚本（为 XXL-Job 和 Nacos 创建数据库）
 sudo tee $ROOT_DIR/mysql/init/init-databases.sql > /dev/null <<'EOF'
@@ -42,7 +76,7 @@ services:
     image: redis:$REDIS_VERSION
     container_name: nebula-redis
     ports:
-      - "6379:6379"
+      - "$REDIS_PORT:6379"
     volumes:
       - $ROOT_DIR/redis:/data
     command: redis-server --appendonly yes
@@ -51,17 +85,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    environment:
+      - REDIS_PASSWORD=$REDIS_PASSWORD
 
   # RabbitMQ消息队列
   rabbitmq:
     image: rabbitmq:$RABBITMQ_VERSION
     container_name: nebula-rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "$RABBITMQ_PORT:5672"
+      - "$RABBITMQ_PORT_MANAGEMENT:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_USER=$RABBITMQ_USERNAME
+      - RABBITMQ_DEFAULT_PASS=$RABBITMQ_PASSWORD
     volumes:
       - $ROOT_DIR/rabbitmq:/var/lib/rabbitmq
     healthcheck:
@@ -75,11 +111,11 @@ services:
     image: minio/minio:$MINIO_VERSION
     container_name: nebula-minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "$MINIO_PORT:9000"
+      - "$MINIO_PORT_MANAGEMENT:9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=$MINIO_USERNAME
+      - MINIO_ROOT_PASSWORD=$MINIO_PASSWORD
     command: server /data --console-address ":9001"  # 修正：使用容器内路径
     volumes:
       - $ROOT_DIR/minio:/data
@@ -103,12 +139,12 @@ services:
         soft: -1
         hard: -1
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - "$ELASTICSEARCH_PORT:9200"
+      - "$ELASTICSEARCH_PORT_TRANSPORT:9300"
     volumes:
       - $ROOT_DIR/elasticsearch:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      test: ["CMD", "curl", "-f", "http://localhost:$ELASTICSEARCH_PORT"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -118,12 +154,12 @@ services:
     image: mysql:$MYSQL_VERSION
     container_name: nebula-mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=nebula
-      - MYSQL_USER=nebula
-      - MYSQL_PASSWORD=nebula123
+      - MYSQL_ROOT_PASSWORD=$MYSQL_PASSWORD
+      - MYSQL_DATABASE=$MYSQL_INIT_DATABASE
+      - MYSQL_USER=$MYSQL_INIT_USERNAME
+      - MYSQL_PASSWORD=$MYSQL_INIT_PASSWORD
     ports:
-      - "3306:3306"
+      - "$MYSQL_PORT:3306"
     volumes:
       - $ROOT_DIR/mysql:/var/lib/mysql
       - $ROOT_DIR/mysql/conf:/etc/mysql/conf.d
@@ -143,18 +179,18 @@ services:
     image: xuxueli/xxl-job-admin:$XXL_JOB_VERSION
     container_name: nebula-xxl-job
     ports:
-      - "8080:8080"
+      - "$XXL_JOB_PORT:8080"
     volumes:
       - $ROOT_DIR/xxl-job:/data/applogs
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/xxl_job?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATASOURCE_USERNAME=$XXL_JOB_DATABASE_USERNAME
+      - SPRING_DATASOURCE_PASSWORD=$XXL_JOB_DATABASE_PASSWORD
     depends_on:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/xxl-job-admin/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:$XXL_JOB_PORT/xxl-job-admin/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -164,10 +200,10 @@ services:
   #   image: mongo:$MONGO_VERSION
   #   container_name: nebula-mongodb
   #   ports:
-  #     - "27017:27017"
+  #     - "$MONGO_PORT:27017"
   #   environment:
-  #     - MONGO_INITDB_ROOT_USERNAME=admin
-  #     - MONGO_INITDB_ROOT_PASSWORD=admin123
+  #     - MONGO_INITDB_ROOT_USERNAME=$MONGO_USERNAME
+  #     - MONGO_INITDB_ROOT_PASSWORD=$MONGO_PASSWORD
   #   volumes:
   #     - $ROOT_DIR/mongodb:/data/db
   #     - $ROOT_DIR/mongodb/backup:/data/backup
@@ -185,17 +221,16 @@ services:
     image: nacos/nacos-server:$NACOS_VERSION
     container_name: nebula-nacos
     ports:
-      - "8848:8848"
-      - "9848:9848"
-      - "9849:9849"
+      - "$NACOS_PORT:8848"
+      - "$NACOS_PORT_JMX:9848"
     environment:
       - MODE=standalone
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_DB_NAME=nacos
-      - MYSQL_SERVICE_PORT=3306
-      - MYSQL_SERVICE_USER=root
-      - MYSQL_SERVICE_PASSWORD=root
+      - MYSQL_SERVICE_PORT=$MYSQL_PORT
+      - MYSQL_SERVICE_USER=$MYSQL_ROOT_USERNAME
+      - MYSQL_SERVICE_PASSWORD=$MYSQL_ROOT_PASSWORD
       - NACOS_AUTH_ENABLE=true
       - NACOS_AUTH_IDENTITY_KEY=secretKey
       - NACOS_AUTH_IDENTITY_VALUE=secretKey
@@ -207,10 +242,21 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      test: ["CMD", "curl", "-f", "http://localhost:$NACOS_PORT/nacos/"]
       interval: 30s
       timeout: 10s
       retries: 5
+  # Chrome
+  chroma:
+    image: chromadb/chroma:$CHROMA_VERSION
+    container_name: nebula-chroma
+    volumes:
+      - $ROOT_DIR/chroma:/data
+    environment:
+      - CHROMA_PERSIST_DIRECTORY=/data
+    ports:
+      - "$CHROMA_PORT:8000"
+    restart: unless-stopped
 EOF
 
 echo "切换到目录 $ROOT_DIR 并运行："
