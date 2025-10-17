@@ -8,6 +8,9 @@ mkdir -p $ROOT_DIR/mysql/conf
 # mkdir -p $ROOT_DIR/mongodb/backup
 mkdir -p $ROOT_DIR/nacos/logs
 mkdir -p $ROOT_DIR/mysql/init 
+# 拷贝数据库初始化脚本
+cp sql/xxl-job.sql $ROOT_DIR/mysql/init/xxl-job.sql
+cp sql/nacos.sql $ROOT_DIR/mysql/init/nacos.sql 
 
 # 设置目录权限
 sudo chmod -R 755 $ROOT_DIR/
