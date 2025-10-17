@@ -2,10 +2,15 @@ package io.nebula.autoconfigure.ai;
 
 import io.nebula.ai.core.chat.ChatService;
 import io.nebula.ai.core.embedding.EmbeddingService;
+import io.nebula.ai.core.mcp.McpServerService;
+import io.nebula.ai.core.mcp.McpClientService;
 import io.nebula.ai.core.vectorstore.VectorStoreService;
 import io.nebula.ai.spring.chat.SpringAIChatService;
 import io.nebula.ai.spring.config.AIProperties;
+import io.nebula.ai.spring.config.McpProperties;
 import io.nebula.ai.spring.embedding.SpringAIEmbeddingService;
+import io.nebula.ai.spring.mcp.SpringAIMcpServerService;
+import io.nebula.ai.spring.mcp.SpringAIMcpClientService;
 import io.nebula.ai.spring.vectorstore.SpringAIVectorStoreService;
 
 import org.slf4j.Logger;
@@ -71,6 +76,28 @@ public class AIAutoConfiguration {
                                                 EmbeddingService embeddingService) {
         log.info("配置 Nebula VectorStoreService");
         return new SpringAIVectorStoreService(vectorStore, embeddingService);
+    }
+
+    /**
+     * 配置MCP服务器服务
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "nebula.ai.mcp.server", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean(McpServerService.class)
+    public McpServerService mcpServerService(AIProperties aiProperties) {
+        log.info("配置 Nebula McpServerService");
+        return new SpringAIMcpServerService(aiProperties.getMcp().getServer());
+    }
+
+    /**
+     * 配置MCP客户端服务
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "nebula.ai.mcp.client", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean(McpClientService.class)
+    public McpClientService mcpClientService(AIProperties aiProperties) {
+        log.info("配置 Nebula McpClientService");
+        return new SpringAIMcpClientService(aiProperties.getMcp().getClient());
     }
 }
 

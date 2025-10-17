@@ -34,6 +34,11 @@ public class AIProperties {
      */
     private VectorStoreProperties vectorStore = new VectorStoreProperties();
 
+    /**
+     * MCP配置
+     */
+    private McpProperties mcp = new McpProperties();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -64,6 +69,14 @@ public class AIProperties {
 
     public void setVectorStore(VectorStoreProperties vectorStore) {
         this.vectorStore = vectorStore;
+    }
+
+    public McpProperties getMcp() {
+        return mcp;
+    }
+
+    public void setMcp(McpProperties mcp) {
+        this.mcp = mcp;
     }
 
     /**
