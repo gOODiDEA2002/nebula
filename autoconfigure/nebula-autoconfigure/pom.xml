@@ -169,7 +169,6 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-vector-store-chroma</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <!-- Web -->

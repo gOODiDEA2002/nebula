@@ -38,6 +38,11 @@ public class AIProperties {
      * MCP配置
      */
     private McpProperties mcp = new McpProperties();
+    
+    /**
+     * OpenAI配置
+     */
+    private OpenAIProperties openai = new OpenAIProperties();
 
     public boolean isEnabled() {
         return enabled;
@@ -77,6 +82,14 @@ public class AIProperties {
 
     public void setMcp(McpProperties mcp) {
         this.mcp = mcp;
+    }
+    
+    public OpenAIProperties getOpenai() {
+        return openai;
+    }
+    
+    public void setOpenai(OpenAIProperties openai) {
+        this.openai = openai;
     }
 
     /**
@@ -154,6 +167,11 @@ public class AIProperties {
          * 提供商配置
          */
         private Map<String, ProviderProperties> providers = new HashMap<>();
+        
+        /**
+         * Chroma 向量存储配置
+         */
+        private ChromaProperties chroma = new ChromaProperties();
 
         public String getDefaultProvider() {
             return defaultProvider;
@@ -169,6 +187,91 @@ public class AIProperties {
 
         public void setProviders(Map<String, ProviderProperties> providers) {
             this.providers = providers;
+        }
+        
+        public ChromaProperties getChroma() {
+            return chroma;
+        }
+        
+        public void setChroma(ChromaProperties chroma) {
+            this.chroma = chroma;
+        }
+    }
+    
+    /**
+     * Chroma 向量存储特定配置
+     */
+    public static class ChromaProperties {
+        /**
+         * Chroma 服务器主机
+         */
+        private String host = "localhost";
+        
+        /**
+         * Chroma 服务器端口
+         */
+        private int port = 8000;
+        
+        /**
+         * 集合名称
+         */
+        private String collectionName = "nebula-collection";
+        
+        /**
+         * 是否自动初始化 Schema
+         */
+        private boolean initializeSchema = true;
+        
+        /**
+         * API 密钥（可选）
+         */
+        private String apiKey;
+        
+        public String getHost() {
+            return host;
+        }
+        
+        public void setHost(String host) {
+            this.host = host;
+        }
+        
+        public int getPort() {
+            return port;
+        }
+        
+        public void setPort(int port) {
+            this.port = port;
+        }
+        
+        public String getCollectionName() {
+            return collectionName;
+        }
+        
+        public void setCollectionName(String collectionName) {
+            this.collectionName = collectionName;
+        }
+        
+        public boolean isInitializeSchema() {
+            return initializeSchema;
+        }
+        
+        public void setInitializeSchema(boolean initializeSchema) {
+            this.initializeSchema = initializeSchema;
+        }
+        
+        public String getApiKey() {
+            return apiKey;
+        }
+        
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+        
+        /**
+         * 获取完整的 Chroma URL
+         */
+        public String getUrl() {
+            return String.format("http://%s:%d", host, port);
         }
     }
 
@@ -239,6 +342,187 @@ public class AIProperties {
 
         public void setOptions(Map<String, Object> options) {
             this.options = options;
+        }
+    }
+    
+    /**
+     * OpenAI 特定配置
+     */
+    public static class OpenAIProperties {
+        /**
+         * API 密钥
+         */
+        private String apiKey;
+        
+        /**
+         * 基础 URL
+         */
+        private String baseUrl = "https://api.openai.com";
+        
+        /**
+         * 聊天配置
+         */
+        private OpenAIChatProperties chat = new OpenAIChatProperties();
+        
+        /**
+         * 嵌入配置
+         */
+        private OpenAIEmbeddingProperties embedding = new OpenAIEmbeddingProperties();
+        
+        public String getApiKey() {
+            return apiKey;
+        }
+        
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+        
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+        
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+        
+        public OpenAIChatProperties getChat() {
+            return chat;
+        }
+        
+        public void setChat(OpenAIChatProperties chat) {
+            this.chat = chat;
+        }
+        
+        public OpenAIEmbeddingProperties getEmbedding() {
+            return embedding;
+        }
+        
+        public void setEmbedding(OpenAIEmbeddingProperties embedding) {
+            this.embedding = embedding;
+        }
+    }
+    
+    /**
+     * OpenAI 聊天配置
+     */
+    public static class OpenAIChatProperties {
+        /**
+         * 是否启用
+         */
+        private boolean enabled = true;
+        
+        /**
+         * 聊天选项
+         */
+        private OpenAIChatOptions options = new OpenAIChatOptions();
+        
+        public boolean isEnabled() {
+            return enabled;
+        }
+        
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+        
+        public OpenAIChatOptions getOptions() {
+            return options;
+        }
+        
+        public void setOptions(OpenAIChatOptions options) {
+            this.options = options;
+        }
+    }
+    
+    /**
+     * OpenAI 聊天选项
+     */
+    public static class OpenAIChatOptions {
+        /**
+         * 模型名称
+         */
+        private String model = "gpt-3.5-turbo";
+        
+        /**
+         * 温度参数
+         */
+        private Double temperature = 0.7;
+        
+        /**
+         * 最大令牌数
+         */
+        private Integer maxTokens = 1000;
+        
+        public String getModel() {
+            return model;
+        }
+        
+        public void setModel(String model) {
+            this.model = model;
+        }
+        
+        public Double getTemperature() {
+            return temperature;
+        }
+        
+        public void setTemperature(Double temperature) {
+            this.temperature = temperature;
+        }
+        
+        public Integer getMaxTokens() {
+            return maxTokens;
+        }
+        
+        public void setMaxTokens(Integer maxTokens) {
+            this.maxTokens = maxTokens;
+        }
+    }
+    
+    /**
+     * OpenAI 嵌入配置
+     */
+    public static class OpenAIEmbeddingProperties {
+        /**
+         * 是否启用
+         */
+        private boolean enabled = true;
+        
+        /**
+         * 嵌入选项
+         */
+        private OpenAIEmbeddingOptions options = new OpenAIEmbeddingOptions();
+        
+        public boolean isEnabled() {
+            return enabled;
+        }
+        
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+        
+        public OpenAIEmbeddingOptions getOptions() {
+            return options;
+        }
+        
+        public void setOptions(OpenAIEmbeddingOptions options) {
+            this.options = options;
+        }
+    }
+    
+    /**
+     * OpenAI 嵌入选项
+     */
+    public static class OpenAIEmbeddingOptions {
+        /**
+         * 模型名称
+         */
+        private String model = "text-embedding-ada-002";
+        
+        public String getModel() {
+            return model;
+        }
+        
+        public void setModel(String model) {
+            this.model = model;
         }
     }
 }

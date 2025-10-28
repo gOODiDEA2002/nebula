@@ -1,0 +1,4 @@
+# Spring Boot Auto-Configuration Import Filters
+org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
+io.nebula.autoconfigure.ai.SpringAIAutoConfigurationFilter
+
