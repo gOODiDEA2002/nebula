@@ -2,7 +2,7 @@
 
 ## 背景
 
-当前 Nebula RPC 框架需要大量手动配置，增加了开发者的负担。本文档设计了四项优化方案，旨在简化使用方式，提供更好的开发体验。
+当前 Nebula RPC 框架需要大量手动配置，增加了开发者的负担本文档设计了四项优化方案，旨在简化使用方式，提供更好的开发体验
 
 ## 优化需求
 
@@ -30,9 +30,9 @@ public interface AuthRpcClient {
 ```
 
 **现状分析：**
-- ✅ `contextId` 已支持默认值（见 `RpcClientScannerRegistrar.generateBeanName()`）
-- ✅ 当 `contextId` 为空时，自动使用接口简单类名首字母小写
-- ⚠️ `value` (目标服务名) 当前默认使用接口全限定名，不够灵活
+-  `contextId` 已支持默认值（见 `RpcClientScannerRegistrar.generateBeanName()`）
+-  当 `contextId` 为空时，自动使用接口简单类名首字母小写
+- ️ `value` (目标服务名) 当前默认使用接口全限定名，不够灵活
 
 **解决方案：**
 1. 保持现有的 `contextId` 自动推导逻辑（已实现）
@@ -74,15 +74,15 @@ public class NebulaExampleOrderServiceApplication {
 **架构设计：**
 ```
 nebula-example-user-api/
-├── src/main/java/io/nebula/example/api/
-│   ├── rpc/
-│   │   ├── AuthRpcClient.java
-│   │   └── UserRpcClient.java
-│   └── config/
-│       └── UserApiAutoConfiguration.java  (新增)
-└── src/main/resources/
-    └── META-INF/spring/
-        └── org.springframework.boot.autoconfigure.AutoConfiguration.imports  (新增)
+ src/main/java/io/nebula/example/api/
+    rpc/
+       AuthRpcClient.java
+       UserRpcClient.java
+    config/
+        UserApiAutoConfiguration.java  (新增)
+ src/main/resources/
+     META-INF/spring/
+         org.springframework.boot.autoconfigure.AutoConfiguration.imports  (新增)
 ```
 
 ### 优化3: @RpcService 自动推导接口
@@ -170,9 +170,9 @@ private final AuthRpcClient authRpcClient;
 ```
 
 **现状分析：**
-- ✅ 通过优化1，Bean 名称已经是接口简单类名首字母小写
-- ✅ `generateBeanName()` 方法已经实现了这个逻辑
-- ✅ 只要 Bean 名称与字段名匹配，Lombok 的 `@RequiredArgsConstructor` 就可以正常注入
+-  通过优化1，Bean 名称已经是接口简单类名首字母小写
+-  `generateBeanName()` 方法已经实现了这个逻辑
+-  只要 Bean 名称与字段名匹配，Lombok 的 `@RequiredArgsConstructor` 就可以正常注入
 
 **验证：**
 - `AuthRpcClient` -> Bean 名称: `authRpcClient`
@@ -180,7 +180,7 @@ private final AuthRpcClient authRpcClient;
 - 字段名与 Bean 名称一致，可以直接注入
 
 **结论：**
-此优化无需额外工作，通过优化2（自动配置）自然实现。
+此优化无需额外工作，通过优化2（自动配置）自然实现
 
 ## 实现方案对比
 
@@ -277,7 +277,7 @@ private final AuthRpcClient authRpcClient;
 
 1. **单元测试：**
    - 测试 `@RpcService` 自动推导逻辑
-   - 测试边界情况（无接口、多接口）
+   - 测试边界情况（无接口多接口）
 
 2. **集成测试：**
    - 测试自动配置的 Bean 注册

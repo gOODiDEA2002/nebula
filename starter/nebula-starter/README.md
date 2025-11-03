@@ -1,10 +1,10 @@
 # Nebula Starter
 
-## 📋 模块简介
+##  模块简介
 
-`nebula-starter` 是 Nebula 框架的便捷启动器模块，提供"一站式"依赖管理，简化应用的依赖配置。
+`nebula-starter` 是 Nebula 框架的便捷启动器模块，提供"一站式"依赖管理，简化应用的依赖配置
 
-## ✨ 核心价值
+##  核心价值
 
 ### 简化依赖管理
 - **一键引入**：应用只需引入 `nebula-starter` 一个依赖即可获得所有 Nebula 功能
@@ -16,7 +16,7 @@
 - **依赖传递**：合理利用 Maven 依赖传递机制，简化应用配置
 - **版本统一**：确保所有模块版本一致，避免版本冲突
 
-## 🏗️ 架构说明
+## ️ 架构说明
 
 ### 与 nebula-autoconfigure 的关系
 
@@ -43,15 +43,15 @@ flowchart TD
 
 | 模块 | 职责 | 包含内容 |
 |------|------|----------|
-| **nebula-autoconfigure** | 统一自动配置管理 | 所有自动配置类、条件注解、初始化顺序 |
-| **nebula-starter** | 便捷依赖管理 | 依赖声明、版本管理（不包含配置代码） |
-| **功能模块** | 核心功能实现 | 业务逻辑、Properties 类、Service 类 |
+| **nebula-autoconfigure** | 统一自动配置管理 | 所有自动配置类条件注解初始化顺序 |
+| **nebula-starter** | 便捷依赖管理 | 依赖声明版本管理（不包含配置代码） |
+| **功能模块** | 核心功能实现 | 业务逻辑Properties 类Service 类 |
 
-## 🚀 快速开始
+##  快速开始
 
 ### 方式一：使用 nebula-starter（推荐）
 
-适合需要完整功能的应用。
+适合需要完整功能的应用
 
 **1. 添加依赖**
 
@@ -88,7 +88,7 @@ nebula:
 
 ### 方式二：使用 nebula-autoconfigure
 
-适合需要精确控制依赖的应用。
+适合需要精确控制依赖的应用
 
 **1. 添加依赖**
 
@@ -116,7 +116,7 @@ nebula:
 
 **2. 配置与方式一相同**
 
-## 📦 包含的模块
+##  包含的模块
 
 nebula-starter 依赖以下模块（所有功能模块均为 optional）：
 
@@ -160,7 +160,7 @@ nebula-starter 依赖以下模块（所有功能模块均为 optional）：
 - `nebula-web` - Web 应用支持
 - `nebula-task` - 任务调度支持
 
-## 🔄 迁移指南
+##  迁移指南
 
 ### 从 2.0.0 迁移到 2.0.1+
 
@@ -188,11 +188,11 @@ nebula-starter 依赖以下模块（所有功能模块均为 optional）：
 
 3. **配置文件**：无需改动，所有配置项保持兼容
 
-## 💡 使用建议
+##  使用建议
 
 ### 何时使用 nebula-starter？
 
-✅ **推荐使用的场景：**
+ **推荐使用的场景：**
 - 新建项目，希望快速开始
 - 需要使用多个 Nebula 功能模块
 - 不想手动管理各个模块的依赖关系
@@ -200,13 +200,13 @@ nebula-starter 依赖以下模块（所有功能模块均为 optional）：
 
 ### 何时使用 nebula-autoconfigure？
 
-✅ **推荐使用的场景：**
+ **推荐使用的场景：**
 - 只需要部分 Nebula 功能
 - 需要精确控制依赖的版本和范围
 - 应用对依赖大小有严格要求
 - 需要自定义模块组合
 
-## ❓ 常见问题
+##  常见问题
 
 ### Q1: nebula-starter 和 nebula-autoconfigure 有什么区别？
 
@@ -218,28 +218,28 @@ nebula-starter 依赖以下模块（所有功能模块均为 optional）：
 
 ### Q2: 使用 nebula-starter 会不会引入不需要的依赖？
 
-**A**: 不会。所有功能模块都标记为 `optional`，只有在你的配置中启用（`enabled: true`）且 classpath 中存在相关依赖时才会激活。
+**A**: 不会所有功能模块都标记为 `optional`，只有在你的配置中启用（`enabled: true`）且 classpath 中存在相关依赖时才会激活
 
 ### Q3: 可以混合使用 nebula-starter 和直接依赖功能模块吗？
 
-**A**: 可以，但不推荐。建议选择一种方式：
+**A**: 可以，但不推荐建议选择一种方式：
 - 要么全部使用 `nebula-starter`
 - 要么使用 `nebula-autoconfigure` + 按需引入功能模块
 
 ### Q4: nebula-starter 是否包含 Spring Boot Starter？
 
-**A**: 是的，nebula-starter 已经依赖了必要的 Spring Boot Starter，你不需要额外添加。
+**A**: 是的，nebula-starter 已经依赖了必要的 Spring Boot Starter，你不需要额外添加
 
-## 🔗 相关文档
+##  相关文档
 
 - [Nebula AutoConfiguration 模块说明](../../autoconfigure/nebula-autoconfigure/README.md)
 - [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
 - [迁移计划文档](../../autoconfigure/nebula-autoconfigure/MIGRATION_PLAN.md)
 - [实施状态文档](../../autoconfigure/nebula-autoconfigure/IMPLEMENTATION_STATUS.md)
 
-## 📄 许可证
+##  许可证
 
-本项目基于 Apache 2.0 许可证开源。
+本项目基于 Apache 2.0 许可证开源
 
 ---
 

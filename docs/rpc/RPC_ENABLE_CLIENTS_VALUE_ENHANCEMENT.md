@@ -1,17 +1,17 @@
 # @EnableRpcClients 增强 - value 作为默认服务名
 
-## 🎉 完成目标
+##  完成目标
 
-实现 `@EnableRpcClients("service-name")` 的简洁语法，完美支持零配置的 RPC 客户端。
+实现 `@EnableRpcClients("service-name")` 的简洁语法，完美支持零配置的 RPC 客户端
 
-## ⚠️ 重要说明
+## ️ 重要说明
 
 本文档描述了 Nebula RPC 框架的重大增强，包括：
 1. `@EnableRpcClients` 注解支持默认服务名
 2. 使用 ThreadLocal 在调用链中传递服务名
 3. 完全向后兼容的设计
 
-## 📝 设计方案
+##  设计方案
 
 ### 核心思路
 扩展 `@EnableRpcClients` 注解的 `value` 属性语义：
@@ -33,7 +33,7 @@ flowchart TD
     H --> I[服务发现]
 ```
 
-## 🔧 修改内容
+##  修改内容
 
 ### 1. 增强 `@EnableRpcClients` 注解
 
@@ -83,8 +83,8 @@ private String getDefaultService(Map<String, Object> attrs) {
 - 单个元素：`value.length == 1`
 - 不包含点号：`!value[0].contains(".")`
 - 示例：
-  - `"nebula-example-user-service"` → 默认服务名 ✅
-  - `"com.example.api.rpc"` → 包路径 ✅
+  - `"nebula-example-user-service"`  默认服务名 
+  - `"com.example.api.rpc"`  包路径 
 
 #### 2.2 修改方法：`getBasePackages()`
 
@@ -120,7 +120,7 @@ private void registerRpcClient(AnnotatedBeanDefinition definition, BeanDefinitio
         .genericBeanDefinition(RpcClientFactoryBean.class);
     builder.addPropertyValue("type", clientClass);
     
-    // ⭐ 设置默认服务名
+    //  设置默认服务名
     if (StringUtils.hasText(defaultService)) {
         builder.addPropertyValue("name", defaultService);
     }
@@ -138,7 +138,7 @@ private void registerRpcClient(AnnotatedBeanDefinition definition, BeanDefinitio
 **文件**：`nebula-example-user-api/src/main/java/io/nebula/example/api/UserApiAutoConfiguration.java`
 
 **优化前**：106 行
-**优化后**：3 行 ✨
+**优化后**：3 行 
 
 ```java
 @AutoConfiguration
@@ -149,7 +149,7 @@ public class UserApiAutoConfiguration {
 
 **完美！**
 
-## ✅ 最终效果
+##  最终效果
 
 ### 1. 配置类极简
 
@@ -200,25 +200,25 @@ public class OrderRpcClientImpl {
 }
 ```
 
-## 📊 优化对比
+##  优化对比
 
 ### 代码量对比
 
 | 文件 | 优化前 | 优化后 | 变化 |
 |------|--------|--------|------|
-| `UserApiAutoConfiguration` | 106 行 | 3 行 | **-97%** 🎉 |
-| `@EnableRpcClients` 注解 | 无此功能 | 支持 `value` 服务名 | **新增** ✨ |
+| `UserApiAutoConfiguration` | 106 行 | 3 行 | **-97%**  |
+| `@EnableRpcClients` 注解 | 无此功能 | 支持 `value` 服务名 | **新增**  |
 | `RpcClientScannerRegistrar` | 211 行 | 231 行 | +20 行（框架增强） |
 
 ### 功能对比
 
 | 功能 | 优化前 | 优化后 |
 |------|--------|--------|
-| **配置类代码量** | 106 行 ❌ | **3 行** ✅ |
-| **@RpcClient 参数** | 无需（之前已优化） | 无需 ✅ |
-| **服务名配置** | 硬编码在配置类 | **注解参数** ✅ |
-| **清晰度** | 配置逻辑复杂 | **一目了然** ✅ |
-| **可复用性** | 每个 API 模块都要写 | **统一模式** ✅ |
+| **配置类代码量** | 106 行  | **3 行**  |
+| **@RpcClient 参数** | 无需（之前已优化） | 无需  |
+| **服务名配置** | 硬编码在配置类 | **注解参数**  |
+| **清晰度** | 配置逻辑复杂 | **一目了然**  |
+| **可复用性** | 每个 API 模块都要写 | **统一模式**  |
 
 ### 使用场景对比
 
@@ -231,9 +231,9 @@ public class UserApiAutoConfiguration {
 }
 ```
 
-- ✅ 代码最简洁
-- ✅ 自动扫描当前包及子包
-- ✅ 自动设置所有客户端的服务名
+-  代码最简洁
+-  自动扫描当前包及子包
+-  自动设置所有客户端的服务名
 
 #### 场景 2：完整方式（服务名 + 包路径）
 
@@ -247,9 +247,9 @@ public class UserApiAutoConfiguration {
 }
 ```
 
-- ✅ 明确指定扫描包
-- ✅ 明确指定服务名
-- ✅ 更精确的控制
+-  明确指定扫描包
+-  明确指定服务名
+-  更精确的控制
 
 #### 场景 3：向后兼容（仅包路径）
 
@@ -260,10 +260,10 @@ public class UserApiAutoConfiguration {
 }
 ```
 
-- ✅ 保持旧代码兼容
-- ⚠️ 需要在 `@RpcClient` 注解中指定服务名
+-  保持旧代码兼容
+- ️ 需要在 `@RpcClient` 注解中指定服务名
 
-## 🎯 技术亮点
+##  技术亮点
 
 ### 1. 智能判断机制
 
@@ -277,11 +277,11 @@ if (value.length == 1 && !value[0].contains(".")) {
 
 **判断规则**：
 - 服务名特征：单个值，不含点号
-  - `"nebula-example-user-service"` ✅
-  - `"my-service"` ✅
+  - `"nebula-example-user-service"` 
+  - `"my-service"` 
 - 包路径特征：含点号或多个值
-  - `"com.example.api"` ✅
-  - `["pkg1", "pkg2"]` ✅
+  - `"com.example.api"` 
+  - `["pkg1", "pkg2"]` 
 
 ### 2. 优先级机制
 
@@ -310,15 +310,15 @@ return interfaceClass.getName();
 
 | 旧代码 | 新框架支持 | 说明 |
 |--------|-----------|------|
-| `@EnableRpcClients(basePackages = "...")` | ✅ 完全兼容 | value 作为包路径 |
-| `@EnableRpcClients(value = "...")` | ✅ 完全兼容 | value 作为包路径或服务名 |
-| `@RpcClient("service-name")` | ✅ 完全兼容 | 注解级别的服务名 |
+| `@EnableRpcClients(basePackages = "...")` |  完全兼容 | value 作为包路径 |
+| `@EnableRpcClients(value = "...")` |  完全兼容 | value 作为包路径或服务名 |
+| `@RpcClient("service-name")` |  完全兼容 | 注解级别的服务名 |
 
-## 📚 使用指南
+##  使用指南
 
 ### 推荐模式
 
-#### 1. 单服务 API 模块（推荐）⭐
+#### 1. 单服务 API 模块（推荐）
 
 ```java
 @AutoConfiguration
@@ -382,15 +382,15 @@ public class UserApiAutoConfiguration {
 2. 添加 `@EnableRpcClients("service-name")` 注解
 3. 验证功能正常
 
-## 🎉 总结
+##  总结
 
 ### 优化成果
 
-1. ✅ **配置类极简**：从 106 行减少到 3 行（**-97%**）
-2. ✅ **语法简洁**：`@EnableRpcClients("service-name")`
-3. ✅ **功能完整**：支持默认服务名 + 自动扫描
-4. ✅ **向后兼容**：不影响现有代码
-5. ✅ **框架增强**：可复用到所有 API 模块
+1.  **配置类极简**：从 106 行减少到 3 行（**-97%**）
+2.  **语法简洁**：`@EnableRpcClients("service-name")`
+3.  **功能完整**：支持默认服务名 + 自动扫描
+4.  **向后兼容**：不影响现有代码
+5.  **框架增强**：可复用到所有 API 模块
 
 ### 技术价值
 
@@ -406,19 +406,19 @@ public class UserApiAutoConfiguration {
 - 未来新建的所有 API 模块
 - 为 Nebula 框架建立标准模式
 
-**这是一次完美的框架级优化！** 🎉
+**这是一次完美的框架级优化！** 
 
 ---
 
-## 🔧 ThreadLocal 服务名传递机制
+##  ThreadLocal 服务名传递机制
 
 ### 问题背景
 
-在实现过程中发现，`ServiceDiscoveryRpcClient` 直接从 `@RpcClient` 注解读取服务名，无法获取 `RpcClientFactoryBean` 中注入的 `name` 属性。
+在实现过程中发现，`ServiceDiscoveryRpcClient` 直接从 `@RpcClient` 注解读取服务名，无法获取 `RpcClientFactoryBean` 中注入的 `name` 属性
 
 ### 解决方案
 
-创建 `RpcContextHolder` 使用 ThreadLocal 在调用链中传递服务名。
+创建 `RpcContextHolder` 使用 ThreadLocal 在调用链中传递服务名
 
 #### 1. 新建 `RpcContextHolder` 类
 
@@ -542,11 +542,11 @@ sequenceDiagram
 
 | 方面 | ThreadLocal 方案 | 其他方案 |
 |------|------------------|----------|
-| **线程安全** | ✅ 天然线程隔离 | 需要同步控制 |
-| **性能** | ✅ 极快（本地变量） | 可能需要锁 |
-| **侵入性** | ✅ 低（不改接口） | 需要修改接口签名 |
-| **向后兼容** | ✅ 完全兼容 | 可能破坏兼容性 |
-| **内存管理** | ⚠️ 需要手动清理 | 自动管理 |
+| **线程安全** |  天然线程隔离 | 需要同步控制 |
+| **性能** |  极快（本地变量） | 可能需要锁 |
+| **侵入性** |  低（不改接口） | 需要修改接口签名 |
+| **向后兼容** |  完全兼容 | 可能破坏兼容性 |
+| **内存管理** | ️ 需要手动清理 | 自动管理 |
 
 ### 最佳实践
 
@@ -557,14 +557,14 @@ try {
     RpcContextHolder.setServiceName(serviceName);
     return someOperation();
 } finally {
-    RpcContextHolder.clear();  // ⭐ 必须在 finally 中清理
+    RpcContextHolder.clear();  //  必须在 finally 中清理
 }
 ```
 
 #### 2. 错误的清理模式
 
 ```java
-// ❌ 错误：异常时不会清理
+//  错误：异常时不会清理
 RpcContextHolder.setServiceName(serviceName);
 T result = someOperation();
 RpcContextHolder.clear();
@@ -575,13 +575,13 @@ return result;
 
 #### 问题 1：线程池复用导致的上下文污染
 
-**场景**：线程池中的线程被复用，可能残留旧的上下文。
+**场景**：线程池中的线程被复用，可能残留旧的上下文
 
-**解决**：在 `finally` 中必须调用 `clear()`，确保清理。
+**解决**：在 `finally` 中必须调用 `clear()`，确保清理
 
 #### 问题 2：异步调用场景
 
-**场景**：异步调用时，子线程无法获取父线程的 ThreadLocal。
+**场景**：异步调用时，子线程无法获取父线程的 ThreadLocal
 
 **解决**：
 ```java
@@ -602,15 +602,15 @@ CompletableFuture.runAsync(() -> {
 ### 总结
 
 ThreadLocal 方案完美解决了服务名传递问题：
-- ✅ 不改变接口签名
-- ✅ 线程安全
-- ✅ 高性能
-- ✅ 向后兼容
-- ⚠️ 需要注意内存泄漏风险（已通过 finally 清理解决）
+-  不改变接口签名
+-  线程安全
+-  高性能
+-  向后兼容
+- ️ 需要注意内存泄漏风险（已通过 finally 清理解决）
 
 ---
 
-## 📚 相关文档
+##  相关文档
 
 - [RPC 优化汇总](RPC_ALL_OPTIMIZATIONS_COMPLETED.md)
 - [RPC 优化设计](RPC_OPTIMIZATION_DESIGN.md)
@@ -618,5 +618,5 @@ ThreadLocal 方案完美解决了服务名传递问题：
 
 ---
 
-**这是一次完美的框架级优化！** 🎉
+**这是一次完美的框架级优化！** 
 

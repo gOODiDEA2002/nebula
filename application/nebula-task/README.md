@@ -1,16 +1,16 @@
 # Nebula Task - 任务调度模块
 
-Nebula Task 是一个基于 XXL-JOB 的统一任务调度框架，提供了简洁的 API 和强大的定时任务功能。
+Nebula Task 是一个基于 XXL-JOB 的统一任务调度框架，提供了简洁的 API 和强大的定时任务功能
 
 ## 特性
 
-- 🚀 **统一架构**: 提供统一的任务调度和执行框架
-- 🔧 **基于 XXL-JOB**: 采用成熟的分布式任务调度方案
-- 📦 **开箱即用**: 提供 Spring Boot Starter，零配置快速启动
-- 📊 **监控友好**: 集成指标监控，实时了解任务执行状态
-- 🛡️ **异常处理**: 完善的异常处理和重试机制
-- ⏰ **定时任务接口**: 提供标准的定时任务接口，简化定时任务开发
-- 🔧 **统一配置**: 采用 `nebula.task` 配置前缀，避免与原生 XXL-JOB 配置冲突
+-  **统一架构**: 提供统一的任务调度和执行框架
+-  **基于 XXL-JOB**: 采用成熟的分布式任务调度方案
+-  **开箱即用**: 提供 Spring Boot Starter，零配置快速启动
+-  **监控友好**: 集成指标监控，实时了解任务执行状态
+- ️ **异常处理**: 完善的异常处理和重试机制
+-  **定时任务接口**: 提供标准的定时任务接口，简化定时任务开发
+-  **统一配置**: 采用 `nebula.task` 配置前缀，避免与原生 XXL-JOB 配置冲突
 
 ## 快速开始
 
@@ -103,7 +103,7 @@ public class DataCleanupTask implements EveryHourExecute {
 
 ### TaskExecutor - 任务执行器
 
-任务执行器是任务的具体实现，负责执行业务逻辑。
+任务执行器是任务的具体实现，负责执行业务逻辑
 
 ```java
 public interface TaskExecutor {
@@ -113,26 +113,26 @@ public interface TaskExecutor {
 }
 ```
 
-### 🕐 定时任务接口
+###  定时任务接口
 
-框架提供了标准的定时任务接口，开发者只需实现对应的接口即可，具体的调度配置在XXL-JOB管理后台进行。
+框架提供了标准的定时任务接口，开发者只需实现对应的接口即可，具体的调度配置在XXL-JOB管理后台进行
 
 #### 可用的接口
 
 | 接口 | 执行频率 | JobHandler | Cron 表达式 | 使用场景 |
 |------|----------|------------|-------------|----------|
-| `EveryMinuteExecute` | 每分钟 | `everyMinuteExecuteJobHandler` | `0 * * * * ?` | 高频监控、实时数据处理 |
-| `EveryFiveMinuteExecute` | 每5分钟 | `everyFiveMinuteExecuteJobHandler` | `0 */5 * * * ?` | 健康检查、状态同步 |
-| `EveryHourExecute` | 每小时 | `everyHourExecuteJobHandler` | `0 0 * * * ?` | 数据清理、统计报表 |
-| `EveryDayExecute` | 每天 | `everyDayExecuteJobHandler` | `0 0 1 * * ?` | 备份任务、日报生成 |
+| `EveryMinuteExecute` | 每分钟 | `everyMinuteExecuteJobHandler` | `0 * * * * ?` | 高频监控实时数据处理 |
+| `EveryFiveMinuteExecute` | 每5分钟 | `everyFiveMinuteExecuteJobHandler` | `0 */5 * * * ?` | 健康检查状态同步 |
+| `EveryHourExecute` | 每小时 | `everyHourExecuteJobHandler` | `0 0 * * * ?` | 数据清理统计报表 |
+| `EveryDayExecute` | 每天 | `everyDayExecuteJobHandler` | `0 0 1 * * ?` | 备份任务日报生成 |
 
 #### 优势
 
-- ✅ **简化开发**: 只需关注业务逻辑，调度配置在管理后台完成
-- ✅ **类型安全**: 编译时确定任务类型的正确性
-- ✅ **统一管理**: 所有定时任务使用统一的接口模式
-- ✅ **自动注册**: 框架自动发现并注册定时任务实现
-- ✅ **灵活配置**: 通过XXL-JOB管理后台灵活配置调度策略
+-  **简化开发**: 只需关注业务逻辑，调度配置在管理后台完成
+-  **类型安全**: 编译时确定任务类型的正确性
+-  **统一管理**: 所有定时任务使用统一的接口模式
+-  **自动注册**: 框架自动发现并注册定时任务实现
+-  **灵活配置**: 通过XXL-JOB管理后台灵活配置调度策略
 
 #### 使用步骤
 
@@ -256,22 +256,22 @@ public class TaskController {
 - 任务成功/失败率
 - 当前运行任务数
 
-## 🔧 配置说明
+##  配置说明
 
 ### 重要变更：配置前缀统一
 
-**从 v2.0.0 开始**，所有配置都统一使用 `nebula.task` 前缀，不再使用 `xxl.job` 前缀。这样做的好处：
+**从 v2.0.0 开始**，所有配置都统一使用 `nebula.task` 前缀，不再使用 `xxl.job` 前缀这样做的好处：
 
-- ✅ 避免与原生 XXL-JOB 配置冲突
-- ✅ 保持 Nebula 框架配置的一致性
-- ✅ 更清晰的配置层次结构
+-  避免与原生 XXL-JOB 配置冲突
+-  保持 Nebula 框架配置的一致性
+-  更清晰的配置层次结构
 
 ### 配置迁移
 
 如果您之前使用的是 `xxl.job` 配置，请按照以下方式迁移：
 
 ```yaml
-# ❌ 旧配置方式（已废弃）
+#  旧配置方式（已废弃）
 xxl:
   job:
     admin:
@@ -281,7 +281,7 @@ xxl:
       port: 9999
     accessToken: token
 
-# ✅ 新配置方式（推荐）
+#  新配置方式（推荐）
 nebula:
   task:
     xxl-job:

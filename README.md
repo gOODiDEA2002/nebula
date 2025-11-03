@@ -4,13 +4,13 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.12-green.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java 21 构建，提供企业级应用开发的完整解决方案。
+Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java 21 构建，提供企业级应用开发的完整解决方案
 
-## ✨ 特性
+##  特性
 
 - **现代化技术栈**: Java 21 + Spring Boot 3.x + Maven
 - **模块化架构**: 基于 DDD 原则的清晰模块划分
-- **安全组件**: 加密工具、JWT 支持
+- **安全组件**: 加密工具JWT 支持
 - **数据访问**: 统一的数据访问抽象层，支持多种存储后端
 - **持久化层**: MyBatis-Plus集成，支持读写分离和分库分表
 - **文档数据库**: MongoDB完整支持，包含地理查询和聚合
@@ -20,48 +20,48 @@ Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java
 - **任务调度**: 灵活的任务调度系统
 - **配置管理**: 类型安全的配置属性
 
-## 🏛️ 架构设计
+## ️ 架构设计
 
 ```
 Nebula Framework
-├── 核心层 (Core Layer)
-│   └── nebula-foundation       # 基础工具和异常处理
-├── 基础设施层 (Infrastructure Layer)
-│   ├── 数据访问 (Data Access)
-│   │   ├── nebula-data-access      # 数据访问抽象层
-│   │   ├── nebula-data-persistence # MyBatis-Plus 集成
-│   │   ├── nebula-data-mongodb     # MongoDB 支持
-│   │   └── nebula-data-cache       # 多级缓存
-│   ├── 消息传递 (Messaging)
-│   │   ├── nebula-messaging-core   # 消息传递核心
-│   │   └── nebula-messaging-rabbitmq  # RabbitMQ 实现
-│   ├── RPC 通信 (RPC)
-│   │   ├── nebula-rpc-core         # RPC 抽象
-│   │   └── nebula-rpc-http         # HTTP RPC 实现
-│   ├── 服务发现 (Discovery)
-│   │   ├── nebula-discovery-core   # 服务发现核心
-│   │   └── nebula-discovery-nacos  # Nacos 实现
-│   ├── 存储服务 (Storage)
-│   │   ├── nebula-storage-core     # 存储抽象
-│   │   ├── nebula-storage-minio    # MinIO 实现
-│   │   └── nebula-storage-aliyun-oss # 阿里云OSS实现
-│   ├── 搜索服务 (Search)
-│   │   ├── nebula-search-core      # 搜索抽象
-│   │   └── nebula-search-elasticsearch # Elasticsearch实现
-│   └── AI 服务 (AI)
-│       ├── nebula-ai-core          # AI 核心
-│       └── nebula-ai-spring        # Spring AI 集成
-├── 应用层 (Application Layer)
-│   ├── nebula-web                 # Web 框架
-│   └── nebula-task                # 任务调度
-├── 集成层 (Integration Layer)
-│   └── nebula-integration-payment # 支付集成
-└── Starter 模块 (Starter Modules)
-    ├── nebula-starter             # Spring Boot Starter
-    └── nebula-example             # 使用示例
+ 核心层 (Core Layer)
+    nebula-foundation       # 基础工具和异常处理
+ 基础设施层 (Infrastructure Layer)
+    数据访问 (Data Access)
+       nebula-data-access      # 数据访问抽象层
+       nebula-data-persistence # MyBatis-Plus 集成
+       nebula-data-mongodb     # MongoDB 支持
+       nebula-data-cache       # 多级缓存
+    消息传递 (Messaging)
+       nebula-messaging-core   # 消息传递核心
+       nebula-messaging-rabbitmq  # RabbitMQ 实现
+    RPC 通信 (RPC)
+       nebula-rpc-core         # RPC 抽象
+       nebula-rpc-http         # HTTP RPC 实现
+    服务发现 (Discovery)
+       nebula-discovery-core   # 服务发现核心
+       nebula-discovery-nacos  # Nacos 实现
+    存储服务 (Storage)
+       nebula-storage-core     # 存储抽象
+       nebula-storage-minio    # MinIO 实现
+       nebula-storage-aliyun-oss # 阿里云OSS实现
+    搜索服务 (Search)
+       nebula-search-core      # 搜索抽象
+       nebula-search-elasticsearch # Elasticsearch实现
+    AI 服务 (AI)
+        nebula-ai-core          # AI 核心
+        nebula-ai-spring        # Spring AI 集成
+ 应用层 (Application Layer)
+    nebula-web                 # Web 框架
+    nebula-task                # 任务调度
+ 集成层 (Integration Layer)
+    nebula-integration-payment # 支付集成
+ Starter 模块 (Starter Modules)
+     nebula-starter             # Spring Boot Starter
+     nebula-example             # 使用示例
 ```
 
-## 🚀 快速开始
+##  快速开始
 
 ### 1. 环境要求
 
@@ -133,7 +133,7 @@ nebula:
       password: ""
 ```
 
-## 📖 模块说明
+##  模块说明
 
 ### 核心模块
 
@@ -230,7 +230,7 @@ Web 框架支持：
 - 支付结果回调处理
 - 交易状态管理
 
-## 🛠️ 开发指南
+## ️ 开发指南
 
 ### 构建项目
 
@@ -324,16 +324,16 @@ curl http://localhost:8080/performance/metrics
 mvn test
 ```
 
-## 📊 监控
+##  监控
 
 框架内置了完整的监控体系：
 
-1. **性能监控**: 自动收集HTTP请求性能指标，包括响应时间、成功率、失败率等
-2. **系统监控**: 实时监控CPU、内存、线程等系统资源使用情况
+1. **性能监控**: 自动收集HTTP请求性能指标，包括响应时间成功率失败率等
+2. **系统监控**: 实时监控CPU内存线程等系统资源使用情况
 3. **健康检查**: 集成 Spring Boot Actuator 健康端点
 4. **性能端点**: 提供 `/performance/metrics`, `/performance/system`, `/performance/status` 等监控接口
 
-## 🔧 配置
+##  配置
 
 ### 基础配置
 
@@ -417,15 +417,15 @@ nebula:
       port: ${RABBITMQ_PORT:5672}
 ```
 
-## 🤝 贡献
+##  贡献
 
-我们欢迎所有形式的贡献！请查看 [贡献指南](CONTRIBUTING.md) 了解详情。
+我们欢迎所有形式的贡献！请查看 [贡献指南](CONTRIBUTING.md) 了解详情
 
-## 📄 许可证
+##  许可证
 
-本项目采用 Apache License 2.0 许可证。详情请查看 [LICENSE](LICENSE) 文件。
+本项目采用 Apache License 2.0 许可证详情请查看 [LICENSE](LICENSE) 文件
 
-## 🔗 相关链接
+##  相关链接
 
 - [Spring Boot 文档](https://spring.io/projects/spring-boot)
 - [Java 21 文档](https://openjdk.java.net/projects/jdk/21/)

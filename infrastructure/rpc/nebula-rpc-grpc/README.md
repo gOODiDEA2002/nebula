@@ -1,17 +1,17 @@
 # Nebula RPC gRPC
 
-基于 gRPC 的高性能 RPC 实现模块。
+基于 gRPC 的高性能 RPC 实现模块
 
 ## 功能特性
 
-- ✅ 基于 Protocol Buffers 序列化
-- ✅ HTTP/2 传输协议
-- ✅ 通用 RPC 调用接口
-- ✅ Spring Boot 自动配置
-- ✅ 与 `@RpcService` 注解无缝集成
-- ✅ 支持连接复用和流式传输
-- ✅ 高性能(QPS > 10000)
-- ✅ 低延迟(< 5ms)
+-  基于 Protocol Buffers 序列化
+-  HTTP/2 传输协议
+-  通用 RPC 调用接口
+-  Spring Boot 自动配置
+-  与 `@RpcService` 注解无缝集成
+-  支持连接复用和流式传输
+-  高性能(QPS > 10000)
+-  低延迟(< 5ms)
 
 ## 快速开始
 

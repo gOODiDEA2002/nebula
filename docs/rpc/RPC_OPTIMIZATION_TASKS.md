@@ -2,11 +2,11 @@
 
 ## 任务概述
 
-本文档列出了 Nebula RPC 框架优化的详细任务清单，包括具体的实施步骤、文件修改和验证方法。
+本文档列出了 Nebula RPC 框架优化的详细任务清单，包括具体的实施步骤文件修改和验证方法
 
 ## 任务分解
 
-### ✅ 优化1: @RpcClient contextId 自动推导
+###  优化1: @RpcClient contextId 自动推导
 
 **状态：已完成**
 
@@ -14,11 +14,11 @@
 - 如果 contextId 为空，使用接口简单类名首字母小写
 - 例如：`AuthRpcClient` -> `authRpcClient`
 
-**无需额外工作。**
+**无需额外工作**
 
 ---
 
-### 🔨 优化2: 创建自动配置类
+###  优化2: 创建自动配置类
 
 **目标：** 在 `nebula-example-user-api` 模块中添加自动配置，无需 `@EnableRpcClients`
 
@@ -152,7 +152,7 @@ io.nebula.example.api.config.UserApiAutoConfiguration
 
 ---
 
-### 🔨 优化3: @RpcService 自动推导接口
+###  优化3: @RpcService 自动推导接口
 
 **目标：** `@RpcService` 注解无需指定接口类
 
@@ -293,7 +293,7 @@ public class OrderRpcClientImpl implements OrderRpcClient {
 
 ---
 
-### ✅ 优化4: 自动注入无需 @Qualifier
+###  优化4: 自动注入无需 @Qualifier
 
 **状态：通过优化1和2自然实现**
 
@@ -416,8 +416,8 @@ private final AuthRpcClient authRpcClient;
 
 ## 当前状态
 
-- ✅ 优化1: 已完成（框架已支持）
-- 🔨 优化2: 待实施
-- 🔨 优化3: 待实施
-- ✅ 优化4: 通过优化1和2自然实现
+-  优化1: 已完成（框架已支持）
+-  优化2: 待实施
+-  优化3: 待实施
+-  优化4: 通过优化1和2自然实现
 

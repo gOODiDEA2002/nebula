@@ -2,35 +2,35 @@
 
 ## 概述
 
-Nebula 是基于 Spring Boot 3.x 和 Java 21 的现代化企业级Java后端框架，采用分层DDD架构设计，提供完整的基础设施支持和开箱即用的企业级功能。
+Nebula 是基于 Spring Boot 3.x 和 Java 21 的现代化企业级Java后端框架，采用分层DDD架构设计，提供完整的基础设施支持和开箱即用的企业级功能
 
-## 🏗️ 架构概览
+## ️ 架构概览
 
 ### 模块分层结构
 ```
 nebula/
-├── core/                    # 核心组件
-│   └── nebula-foundation/   # 基础组件
-├── infrastructure/          # 基础设施层
-│   ├── data/                # 数据访问
-│   ├── messaging/           # 消息传递
-│   ├── rpc/                 # 远程调用
-│   ├── discovery/           # 服务发现
-│   ├── storage/             # 对象存储
-│   ├── search/              # 搜索引擎
-│   ├── integration/         # 第三方集成
-│   └── ai/                  # 人工智能
-├── application/             # 应用层
-│   ├── nebula-web/          # Web应用框架
-│   └── nebula-task/         # 任务调度框架
-├── autoconfigure/           # 自动配置
-│   └── nebula-autoconfigure/ # 统一自动配置模块
-├── starter/                 # 启动器
-│   └── nebula-starter/      # 便捷启动器（依赖 autoconfigure）
-└── nebula-example/          # 示例应用
+ core/                    # 核心组件
+    nebula-foundation/   # 基础组件
+ infrastructure/          # 基础设施层
+    data/                # 数据访问
+    messaging/           # 消息传递
+    rpc/                 # 远程调用
+    discovery/           # 服务发现
+    storage/             # 对象存储
+    search/              # 搜索引擎
+    integration/         # 第三方集成
+    ai/                  # 人工智能
+ application/             # 应用层
+    nebula-web/          # Web应用框架
+    nebula-task/         # 任务调度框架
+ autoconfigure/           # 自动配置
+    nebula-autoconfigure/ # 统一自动配置模块
+ starter/                 # 启动器
+    nebula-starter/      # 便捷启动器（依赖 autoconfigure）
+ nebula-example/          # 示例应用
 ```
 
-## 🔧 自动配置架构
+##  自动配置架构
 
 ### 统一自动配置模块
 
@@ -130,10 +130,10 @@ nebula:
 
 **3. 启动应用**
 
-所有配置的功能模块将自动初始化并可用，无需手动配置。
+所有配置的功能模块将自动初始化并可用，无需手动配置
 
 
-## 📦 核心模块详解
+##  核心模块详解
 
 <!-- ### 1. 数据访问层 (Data Access Layer)
 
@@ -498,13 +498,13 @@ nebula:
           collection-name: nebula-docs
 ```
 
-## 🚀 快速开始
+##  快速开始
 
 Nebula 提供两种使用方式，根据需求选择：
 
 ### 方式一：使用 nebula-starter（推荐）
 
-适合需要完整功能、快速开始的应用。
+适合需要完整功能快速开始的应用
 
 #### 1. 添加依赖
 ```xml
@@ -517,7 +517,7 @@ Nebula 提供两种使用方式，根据需求选择：
 
 ### 方式二：使用 nebula-autoconfigure
 
-适合需要精确控制依赖的应用。
+适合需要精确控制依赖的应用
 
 #### 1. 添加依赖
 ```xml
@@ -590,7 +590,7 @@ public class MyNebulaApplication {
 - 所有功能通过自动配置自动启用
 - 使用配置文件中的 `enabled` 属性控制功能开关
 
-## 🔧 开发指南
+##  开发指南
 
 ### 自定义Repository
 ```java
@@ -647,7 +647,7 @@ public class ProductController {
 }
 ```
 
-## 🐳 部署指南
+##  部署指南
 
 ### Docker Compose 示例
 ```yaml
@@ -727,7 +727,7 @@ volumes:
   chroma_data:
 ```
 
-## 🧪 测试指南
+##  测试指南
 
 ### 单元测试
 ```java
@@ -785,7 +785,7 @@ class ProductIntegrationTest {
 }
 ```
 
-## 📊 监控与运维
+##  监控与运维
 
 ### 应用指标
 ```yaml
@@ -834,7 +834,7 @@ public class CustomHealthIndicator implements HealthIndicator {
 }
 ```
 
-## 🎯 最佳实践
+##  最佳实践
 
 ### 1. 配置管理
 - 使用环境变量管理敏感配置
@@ -895,17 +895,17 @@ public class UserService {
 }
 ```
 
-## 🔗 相关链接
+##  相关链接
 
 - **GitHub 仓库**: [nebula-framework](https://github.com/your-org/nebula-framework)
 - **官方文档**: [https://nebula.docs.your-domain.com](https://nebula.docs.your-domain.com)
 - **API文档**: [https://nebula.api.your-domain.com](https://nebula.api.your-domain.com)
 - **问题反馈**: [GitHub Issues](https://github.com/your-org/nebula-framework/issues)
 
-## 📄 许可证
+##  许可证
 
-Nebula 框架基于 MIT 许可证开源。详见 [LICENSE](../LICENSE) 文件。
+Nebula 框架基于 MIT 许可证开源详见 [LICENSE](../LICENSE) 文件
 
 ---
 
-**Nebula框架 - 现代化的企业级Java后端框架** 🚀
+**Nebula框架 - 现代化的企业级Java后端框架** 

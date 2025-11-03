@@ -1,7 +1,6 @@
 #!/bin/bash
 # 创建所有必要的目录
-ROOT_DIR=/Users/andy/DevOps/SourceCode/nebula-projects/nebula-middleware2
-#mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,mongodb,nacos}
+ROOT_DIR=/Users/andy/DevOps/SourceCode/nebula-projects/nebula-data
 mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,nacos,mongodb,chroma}
 mkdir -p $ROOT_DIR/mysql/data
 mkdir -p $ROOT_DIR/mysql/conf
@@ -31,7 +30,7 @@ REDIS_PORT=6379
 RABBITMQ_PORT=5672
 RABBITMQ_PORT_MANAGEMENT=15672
 MINIO_PORT=9000
-MINIO_PORT_MANAGEMENT=9001
+MINIO_PORT_MANAGEMENT=9090
 ELASTICSEARCH_PORT=9200
 MYSQL_PORT=3306
 XXL_JOB_PORT=9001
@@ -70,6 +69,9 @@ CREATE DATABASE IF NOT EXISTS `nacos` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8
 -- 显示创建的数据库
 SHOW DATABASES;
 EOF
+
+# 拷贝scripts目录
+cp -r scripts $ROOT_DIR/scripts
 
 # 创建 docker-compose.yml 文件
 cat <<EOF > $ROOT_DIR/docker-compose.yml
@@ -157,14 +159,14 @@ services:
     image: mysql:$MYSQL_VERSION
     container_name: nebula-mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=$MYSQL_PASSWORD
+      - MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
       - MYSQL_DATABASE=$MYSQL_INIT_DATABASE
       - MYSQL_USER=$MYSQL_INIT_USERNAME
       - MYSQL_PASSWORD=$MYSQL_INIT_PASSWORD
     ports:
       - "$MYSQL_PORT:3306"
     volumes:
-      - $ROOT_DIR/mysql:/var/lib/mysql
+      - $ROOT_DIR/mysql/data:/var/lib/mysql
       - $ROOT_DIR/mysql/conf:/etc/mysql/conf.d
       - $ROOT_DIR/mysql/init:/docker-entrypoint-initdb.d
     command: 
@@ -179,7 +181,8 @@ services:
 
   # XXL-Job任务调度
   xxl-job:
-    image: xuxueli/xxl-job-admin:$XXL_JOB_VERSION
+    # image: xuxueli/xxl-job-admin:$XXL_JOB_VERSION
+    # image: wangpenghua/xxl-job-admin:2.4.1
     container_name: nebula-xxl-job
     ports:
       - "$XXL_JOB_PORT:8080"

@@ -1,24 +1,24 @@
 # Nebula AI Spring 模块
 
-## 📋 模块简介
+##  模块简介
 
-`nebula-ai-spring` 是 Nebula 框架的 AI 功能模块，基于 Spring AI 实现，提供了统一的 AI 能力抽象和强大的 AI 应用开发支持。该模块集成了聊天、嵌入、向量存储等企业级 AI 特性。
+`nebula-ai-spring` 是 Nebula 框架的 AI 功能模块，基于 Spring AI 实现，提供了统一的 AI 能力抽象和强大的 AI 应用开发支持该模块集成了聊天嵌入向量存储等企业级 AI 特性
 
-## ✨ 功能特性
+##  功能特性
 
-### 🎯 核心功能
-- **智能聊天**: 基于大语言模型的对话能力，支持同步、异步和流式响应
+###  核心功能
+- **智能聊天**: 基于大语言模型的对话能力，支持同步异步和流式响应
 - **文本嵌入**: 文本向量化服务，支持批量处理和相似度计算
 - **向量存储**: 文档向量化存储和语义搜索，支持 RAG（检索增强生成）
-- **多模型支持**: 支持 OpenAI、Anthropic 等多种 AI 服务提供商
+- **多模型支持**: 支持 OpenAIAnthropic 等多种 AI 服务提供商
 
-### 🚀 增强特性
+###  增强特性
 - **自动配置**: Spring Boot 自动配置，零配置启动
 - **类型安全**: 完整的泛型支持和类型安全
 - **异步支持**: 支持异步和流式处理
 - **统一抽象**: 基于 Nebula AI Core 的统一接口，易于切换不同实现
 
-## 🚀 快速开始
+##  快速开始
 
 ### 添加依赖
 
@@ -78,7 +78,7 @@ spring:
           key-token: ${CHROMA_API_KEY:}
 ```
 
-## 📚 核心功能使用
+##  核心功能使用
 
 ### 1. 智能聊天功能
 
@@ -109,7 +109,7 @@ public String multiRoundChat() {
     List<ChatMessage> messages = List.of(
         ChatMessage.system("你是一个友好的助手"),
         ChatMessage.user("你好，我想了解一下Java"),
-        ChatMessage.assistant("你好！我很乐意帮你了解Java。Java是什么方面的内容你想了解呢？"),
+        ChatMessage.assistant("你好！我很乐意帮你了解JavaJava是什么方面的内容你想了解呢？"),
         ChatMessage.user("Java的集合框架")
     );
     
@@ -275,7 +275,7 @@ public class RAGService {
         
         // 3. 构建提示消息
         List<ChatMessage> messages = List.of(
-            ChatMessage.system("你是一个专业的助手，根据以下上下文回答用户问题。\n\n上下文:\n" + context),
+            ChatMessage.system("你是一个专业的助手，根据以下上下文回答用户问题\n\n上下文:\n" + context),
             ChatMessage.user(question)
         );
         
@@ -301,7 +301,7 @@ public class RAGService {
 }
 ```
 
-## 🔧 高级特性
+##  高级特性
 
 ### 自定义聊天配置
 
@@ -355,7 +355,7 @@ public SearchResult advancedSearch(String query) {
 }
 ```
 
-## 📊 配置选项说明
+##  配置选项说明
 
 ### Nebula AI 配置
 
@@ -395,7 +395,7 @@ nebula:
           collection-name: nebula-documents
 ```
 
-## 🛠️ 自定义扩展
+## ️ 自定义扩展
 
 ### 自定义聊天服务
 
@@ -408,7 +408,7 @@ public class CustomChatService implements ChatService {
     
     @Override
     public ChatResponse chat(String message) {
-        // 添加自定义逻辑（如日志、监控、限流等）
+        // 添加自定义逻辑（如日志监控限流等）
         log.info("接收聊天请求: {}", message);
         
         // 调用原始服务
@@ -440,7 +440,7 @@ public class VectorStoreConfig {
 }
 ```
 
-## 🔍 故障排查
+##  故障排查
 
 ### 常见问题
 
@@ -465,7 +465,7 @@ logging:
     org.springframework.ai: DEBUG
 ```
 
-## 🔄 支持的 AI 提供商
+##  支持的 AI 提供商
 
 ### OpenAI
 ```xml
@@ -491,18 +491,18 @@ logging:
 </dependency>
 ```
 
-## 📖 更多功能
+##  更多功能
 
 - [智能聊天功能演示](../../../nebula-example/docs/nebula-ai-test.md#智能聊天)
 - [文本嵌入功能演示](../../../nebula-example/docs/nebula-ai-test.md#文本嵌入)
 - [文档问答功能演示](../../../nebula-example/docs/nebula-ai-test.md#文档问答)
 - [完整示例项目](../../../nebula-example)
 
-## 🤝 贡献指南
+##  贡献指南
 
-欢迎提交 Issue 和 Pull Request 来帮助改进这个模块。
+欢迎提交 Issue 和 Pull Request 来帮助改进这个模块
 
-## 📄 许可证
+##  许可证
 
-本项目基于 Apache 2.0 许可证开源。
+本项目基于 Apache 2.0 许可证开源
 

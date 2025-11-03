@@ -1,8 +1,8 @@
 # Nebula RPC Core
 
-Nebula RPC 框架的核心模块，提供零配置、声明式的远程过程调用能力。
+Nebula RPC 框架的核心模块，提供零配置声明式的远程过程调用能力
 
-## 🎯 核心特性
+##  核心特性
 
 ### 零配置 RPC（Nebula 2.0 重大创新）
 
@@ -29,17 +29,17 @@ public class OrderServiceImpl {
 
 ### 主要优势
 
-- ✅ **极致简化**：从18个注解减少到3个（减少83%）
-- ✅ **零配置**：无需指定服务名、Bean名称
-- ✅ **自动推导**：服务名、Bean名称、接口类全自动
-- ✅ **类型安全**：编译时类型检查
-- ✅ **向后兼容**：完全兼容旧版本代码
+-  **极致简化**：从18个注解减少到3个（减少83%）
+-  **零配置**：无需指定服务名Bean名称
+-  **自动推导**：服务名Bean名称接口类全自动
+-  **类型安全**：编译时类型检查
+-  **向后兼容**：完全兼容旧版本代码
 
-## 📦 核心组件
+##  核心组件
 
 ### 1. `@RpcClient` - RPC 客户端注解
 
-标记 RPC 客户端接口，无需任何参数。
+标记 RPC 客户端接口，无需任何参数
 
 ```java
 @RpcClient
@@ -51,13 +51,13 @@ public interface UserRpcClient {
 ```
 
 **特性**：
-- 零配置：无需指定 `value`、`contextId`
-- 自动推导 Bean 名称：`UserRpcClient` → `userRpcClient`
+- 零配置：无需指定 `value``contextId`
+- 自动推导 Bean 名称：`UserRpcClient`  `userRpcClient`
 - 支持所有 Java 接口特性
 
 ### 2. `@RpcService` - RPC 服务注解
 
-标记 RPC 服务实现，自动注册到 HTTP/gRPC 服务器。
+标记 RPC 服务实现，自动注册到 HTTP/gRPC 服务器
 
 ```java
 @RpcService  // 无需指定接口类
@@ -74,11 +74,11 @@ public class UserRpcClientImpl implements UserRpcClient {
 **特性**：
 - 自动推导实现的接口（必须标注 `@RpcClient`）
 - 自动注册到 HTTP 和 gRPC 服务器
-- 支持多协议（HTTP、gRPC）
+- 支持多协议（HTTPgRPC）
 
 ### 3. `@EnableRpcClients` - 启用 RPC 客户端扫描
 
-在 API 模块的自动配置类上使用，启用 RPC 客户端自动发现。
+在 API 模块的自动配置类上使用，启用 RPC 客户端自动发现
 
 ```java
 @AutoConfiguration
@@ -97,7 +97,7 @@ public class UserApiAutoConfiguration {
 3. 注入默认服务名（用于服务发现）
 4. 注册为 Spring Bean（Bean名称为接口简单名首字母小写）
 
-## 🏗️ 核心架构
+## ️ 核心架构
 
 ### 整体架构
 
@@ -210,7 +210,7 @@ public class RpcClientFactoryBean implements FactoryBean<Object> {
 }
 ```
 
-## 🔄 完整的调用链路
+##  完整的调用链路
 
 ### 客户端调用流程
 
@@ -224,10 +224,10 @@ public class RpcClientFactoryBean implements FactoryBean<Object> {
    - 生成动态代理对象
 
 3. **运行时**：
-   - 调用接口方法 → 动态代理拦截
-   - 获取服务名 → 设置到 ThreadLocal
-   - 执行 RPC 调用 → 服务发现 → 负载均衡
-   - 清理 ThreadLocal → 返回结果
+   - 调用接口方法  动态代理拦截
+   - 获取服务名  设置到 ThreadLocal
+   - 执行 RPC 调用  服务发现  负载均衡
+   - 清理 ThreadLocal  返回结果
 
 ### 服务端注册流程
 
@@ -242,9 +242,9 @@ public class RpcClientFactoryBean implements FactoryBean<Object> {
 3. **运行时**：
    - HTTP/gRPC 服务器接收请求
    - 根据服务名和方法名查找服务实现
-   - 反射调用方法 → 返回结果
+   - 反射调用方法  返回结果
 
-## 📋 使用示例
+##  使用示例
 
 ### 完整示例：Order Service 调用 User Service
 
@@ -339,7 +339,7 @@ package io.nebula.example.order.service.rpc;
 @RequiredArgsConstructor
 public class OrderRpcClientImpl implements OrderRpcClient {
     
-    // ✅ 无需 @Qualifier，直接注入
+    //  无需 @Qualifier，直接注入
     private final UserRpcClient userRpcClient;
     private final AuthRpcClient authRpcClient;
     
@@ -357,7 +357,7 @@ public class OrderRpcClientImpl implements OrderRpcClient {
 }
 ```
 
-## 🎓 设计原理
+##  设计原理
 
 ### 1. 约定优于配置
 
@@ -378,8 +378,8 @@ public class OrderRpcClientImpl implements OrderRpcClient {
 
 ```java
 // 接口简单名首字母小写
-UserRpcClient → userRpcClient
-AuthRpcClient → authRpcClient
+UserRpcClient  userRpcClient
+AuthRpcClient  authRpcClient
 ```
 
 #### 服务接口推导
@@ -397,7 +397,7 @@ public class UserRpcClientImpl implements UserRpcClient {
 ```java
 // 从 @EnableRpcClients 的 value 获取
 @EnableRpcClients("nebula-example-user-service")
-// → 所有客户端默认使用此服务名
+//  所有客户端默认使用此服务名
 ```
 
 ### 3. Spring Boot 自动配置集成
@@ -406,17 +406,17 @@ public class UserRpcClientImpl implements UserRpcClient {
 
 ```
 API 模块
-└── src/main/resources/META-INF/spring/
-    └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
-        └── io.nebula.example.api.UserApiAutoConfiguration
+ src/main/resources/META-INF/spring/
+     org.springframework.boot.autoconfigure.AutoConfiguration.imports
+         io.nebula.example.api.UserApiAutoConfiguration
 ```
 
 **效果**：
-- 依赖 API 模块 → 自动扫描 RPC 客户端
+- 依赖 API 模块  自动扫描 RPC 客户端
 - 无需在主应用类添加 `@EnableRpcClients`
 - 完全零配置
 
-## 🔧 高级特性
+##  高级特性
 
 ### 1. 服务名覆盖
 
@@ -458,7 +458,7 @@ private final UserRpcClient userRpcClient;
 </dependency>
 ```
 
-每个 API 模块都有自己的自动配置类，互不干扰。
+每个 API 模块都有自己的自动配置类，互不干扰
 
 ### 4. 异步调用场景
 
@@ -477,14 +477,14 @@ CompletableFuture.runAsync(() -> {
 });
 ```
 
-## ⚠️ 注意事项
+## ️ 注意事项
 
 ### 1. 内存泄漏风险
 
 ThreadLocal 必须正确清理，否则可能导致内存泄漏：
 
 ```java
-// ✅ 正确：使用 finally 清理
+//  正确：使用 finally 清理
 try {
     RpcContextHolder.setServiceName(serviceName);
     return rpcCall();
@@ -492,7 +492,7 @@ try {
     RpcContextHolder.clear();
 }
 
-// ❌ 错误：异常时不会清理
+//  错误：异常时不会清理
 RpcContextHolder.setServiceName(serviceName);
 return rpcCall();
 RpcContextHolder.clear();
@@ -500,7 +500,7 @@ RpcContextHolder.clear();
 
 ### 2. 线程池场景
 
-线程池复用线程时，ThreadLocal 可能残留旧值。框架已在 `finally` 块中自动清理，无需担心。
+线程池复用线程时，ThreadLocal 可能残留旧值框架已在 `finally` 块中自动清理，无需担心
 
 ### 3. 接口约定
 
@@ -509,12 +509,12 @@ RPC 服务接口必须遵循约定：
 - DTO 必须可序列化（支持 JSON）
 - 方法签名在客户端和服务端必须一致
 
-## 📊 向后兼容性
+##  向后兼容性
 
 完全兼容旧版本代码：
 
 ```java
-// ✅ 旧版本代码仍然有效
+//  旧版本代码仍然有效
 @RpcClient(value = "user-service", contextId = "userRpcClient")
 public interface UserRpcClient {
     @RpcCall(value = "/rpc/users", method = "POST")
@@ -533,24 +533,24 @@ public class UserRpcClientImpl implements UserRpcClient {
 private final UserRpcClient userRpcClient;
 ```
 
-新旧代码可以共存，逐步迁移。
+新旧代码可以共存，逐步迁移
 
-## 📚 相关文档
+##  相关文档
 
 - [HTTP RPC 实现](../nebula-rpc-http/)
 - [gRPC RPC 实现](../nebula-rpc-grpc/)
 - [RPC 优化汇总](../../../docs/rpc/RPC_ALL_OPTIMIZATIONS_COMPLETED.md)
 - [EnableRpcClients 增强](../../../docs/rpc/RPC_ENABLE_CLIENTS_VALUE_ENHANCEMENT.md)
 
-## 🎉 总结
+##  总结
 
 Nebula RPC Core 2.0 实现了：
 
-1. ✅ **零配置**：3 行代码完成 API 配置
-2. ✅ **自动推导**：服务名、Bean 名称、接口类全自动
-3. ✅ **类型安全**：编译时类型检查
-4. ✅ **高性能**：ThreadLocal 传递，零性能损耗
-5. ✅ **向后兼容**：完全兼容旧版本代码
+1.  **零配置**：3 行代码完成 API 配置
+2.  **自动推导**：服务名Bean 名称接口类全自动
+3.  **类型安全**：编译时类型检查
+4.  **高性能**：ThreadLocal 传递，零性能损耗
+5.  **向后兼容**：完全兼容旧版本代码
 
-**这是一次完美的框架设计！** 🎉
+**这是一次完美的框架设计！** 
 

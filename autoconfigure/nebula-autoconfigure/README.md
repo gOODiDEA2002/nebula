@@ -1,10 +1,10 @@
 # Nebula AutoConfiguration 模块
 
-## 📋 模块简介
+##  模块简介
 
-`nebula-autoconfigure` 是 Nebula 框架的统一自动配置模块，负责管理所有基础设施模块的 Spring Boot 自动配置。通过集中管理自动配置类，实现了更清晰的依赖关系、更可控的初始化顺序，以及更易于维护的架构。
+`nebula-autoconfigure` 是 Nebula 框架的统一自动配置模块，负责管理所有基础设施模块的 Spring Boot 自动配置通过集中管理自动配置类，实现了更清晰的依赖关系更可控的初始化顺序，以及更易于维护的架构
 
-## ✨ 核心价值
+##  核心价值
 
 ### 统一配置管理
 - **集中式配置**：所有自动配置类集中在一个模块中，便于统一管理和维护
@@ -21,42 +21,42 @@
 - **版本一致性**：统一管理所有自动配置，确保版本兼容性
 - **易于扩展**：新增功能模块时，只需在此模块添加对应的自动配置类
 
-## 🏗️ 模块结构
+## ️ 模块结构
 
 ```
 nebula-autoconfigure/
-├── pom.xml                                  # 模块依赖定义
-├── README.md                                # 本文档
-├── MIGRATION_PLAN.md                        # 迁移计划文档
-├── IMPLEMENTATION_STATUS.md                 # 实施状态文档
-└── src/main/
-    ├── java/io/nebula/autoconfigure/
-    │   ├── discovery/                       # 服务发现自动配置
-    │   │   └── NacosDiscoveryAutoConfiguration.java
-    │   ├── rpc/                             # RPC 自动配置
-    │   │   ├── RpcDiscoveryAutoConfiguration.java
-    │   │   ├── RpcDiscoveryProperties.java
-    │   │   ├── HttpRpcAutoConfiguration.java
-    │   │   └── GrpcRpcAutoConfiguration.java
-    │   ├── data/                            # 数据访问自动配置
-    │   │   ├── DataPersistenceAutoConfiguration.java
-    │   │   ├── ReadWriteDataSourceAutoConfiguration.java
-    │   │   ├── ShardingSphereAutoConfiguration.java
-    │   │   └── CacheAutoConfiguration.java
-    │   ├── messaging/                       # 消息传递自动配置
-    │   │   └── RabbitMQAutoConfiguration.java
-    │   ├── search/                          # 搜索服务自动配置
-    │   │   └── ElasticsearchAutoConfiguration.java
-    │   ├── storage/                         # 存储服务自动配置
-    │   │   ├── MinIOAutoConfiguration.java
-    │   │   └── AliyunOSSAutoConfiguration.java
-    │   └── ai/                              # AI 服务自动配置
-    │       └── AIAutoConfiguration.java
-    └── resources/META-INF/spring/
-        └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
+ pom.xml                                  # 模块依赖定义
+ README.md                                # 本文档
+ MIGRATION_PLAN.md                        # 迁移计划文档
+ IMPLEMENTATION_STATUS.md                 # 实施状态文档
+ src/main/
+     java/io/nebula/autoconfigure/
+        discovery/                       # 服务发现自动配置
+           NacosDiscoveryAutoConfiguration.java
+        rpc/                             # RPC 自动配置
+           RpcDiscoveryAutoConfiguration.java
+           RpcDiscoveryProperties.java
+           HttpRpcAutoConfiguration.java
+           GrpcRpcAutoConfiguration.java
+        data/                            # 数据访问自动配置
+           DataPersistenceAutoConfiguration.java
+           ReadWriteDataSourceAutoConfiguration.java
+           ShardingSphereAutoConfiguration.java
+           CacheAutoConfiguration.java
+        messaging/                       # 消息传递自动配置
+           RabbitMQAutoConfiguration.java
+        search/                          # 搜索服务自动配置
+           ElasticsearchAutoConfiguration.java
+        storage/                         # 存储服务自动配置
+           MinIOAutoConfiguration.java
+           AliyunOSSAutoConfiguration.java
+        ai/                              # AI 服务自动配置
+            AIAutoConfiguration.java
+     resources/META-INF/spring/
+         org.springframework.boot.autoconfigure.AutoConfiguration.imports
 ```
 
-## 🚀 快速开始
+##  快速开始
 
 ### 1. 添加依赖
 
@@ -128,9 +128,9 @@ nebula:
 
 ### 4. 启动应用
 
-启动应用后，所有配置的功能模块将自动初始化并可用。
+启动应用后，所有配置的功能模块将自动初始化并可用
 
-## 📊 初始化顺序
+##  初始化顺序
 
 自动配置类按以下顺序初始化，确保依赖关系正确：
 
@@ -171,9 +171,9 @@ flowchart TD
 - **ElasticsearchAutoConfiguration** - 搜索服务
 - **MinIOAutoConfiguration** - MinIO 对象存储
 - **AliyunOSSAutoConfiguration** - 阿里云 OSS
-- **AIAutoConfiguration** - AI 服务（聊天、嵌入、向量存储）
+- **AIAutoConfiguration** - AI 服务（聊天嵌入向量存储）
 
-## 🔧 配置详解
+##  配置详解
 
 ### 1. Discovery 配置
 
@@ -321,7 +321,7 @@ nebula:
           collection-name: nebula-docs
 ```
 
-## 🔄 迁移指南
+##  迁移指南
 
 ### 从早期版本迁移
 
@@ -372,7 +372,7 @@ nebula:
 
 #### 3. 验证配置
 
-确保 `application.yml` 中的配置项仍然有效。大部分配置项保持不变，但建议查阅各模块的 README 确认。
+确保 `application.yml` 中的配置项仍然有效大部分配置项保持不变，但建议查阅各模块的 README 确认
 
 #### 4. 测试应用
 
@@ -382,7 +382,7 @@ nebula:
 - 验证数据访问功能
 - 确认其他集成服务工作正常
 
-## ❓ 常见问题
+##  常见问题
 
 ### Q1: 为什么需要统一的自动配置模块？
 
@@ -451,7 +451,7 @@ public class CustomRpcConfig {
 - 只配置需要启用的功能（通过 `enabled` 属性）
 - 未添加的模块不会被初始化
 
-## 📝 最佳实践
+##  最佳实践
 
 ### 1. 按需引入功能模块
 
@@ -508,7 +508,7 @@ logging:
     io.nebula.rpc: DEBUG              # 调试时启用
 ```
 
-## 🔗 相关文档
+##  相关文档
 
 - [迁移计划文档](MIGRATION_PLAN.md)
 - [实施状态文档](IMPLEMENTATION_STATUS.md)
@@ -522,13 +522,13 @@ logging:
   - [Messaging RabbitMQ](../../infrastructure/messaging/nebula-messaging-rabbitmq/README.md)
   - [Search Elasticsearch](../../infrastructure/search/nebula-search-elasticsearch/README.md)
 
-## 🤝 贡献指南
+##  贡献指南
 
-欢迎提交 Issue 和 Pull Request 来帮助改进这个模块。
+欢迎提交 Issue 和 Pull Request 来帮助改进这个模块
 
-## 📄 许可证
+##  许可证
 
-本项目基于 Apache 2.0 许可证开源。
+本项目基于 Apache 2.0 许可证开源
 
 ---
 

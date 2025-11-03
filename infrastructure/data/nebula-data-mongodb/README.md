@@ -2,16 +2,16 @@
 
 ## 概述
 
-`nebula-data-mongodb`是Nebula框架的MongoDB数据访问模块，提供对MongoDB数据库的统一访问接口，支持文档存储、地理位置查询、聚合查询等MongoDB特有功能。
+`nebula-data-mongodb`是Nebula框架的MongoDB数据访问模块，提供对MongoDB数据库的统一访问接口，支持文档存储地理位置查询聚合查询等MongoDB特有功能
 
 ## 核心特性
 
-- 🍃 **MongoDB集成**：原生支持MongoDB文档数据库
-- 🔍 **高级查询**：支持复杂的文档查询和聚合操作
-- 📍 **地理查询**：内置地理位置查询支持
-- 📄 **文档映射**：自动Java对象与MongoDB文档的映射
-- 🚀 **高性能**：基于Spring Data MongoDB的高性能实现
-- 🔧 **灵活配置**：支持多种连接配置和优化选项
+-  **MongoDB集成**：原生支持MongoDB文档数据库
+-  **高级查询**：支持复杂的文档查询和聚合操作
+-  **地理查询**：内置地理位置查询支持
+-  **文档映射**：自动Java对象与MongoDB文档的映射
+-  **高性能**：基于Spring Data MongoDB的高性能实现
+-  **灵活配置**：支持多种连接配置和优化选项
 
 ## 快速开始
 
@@ -1054,7 +1054,7 @@ public class MongoHealthIndicator implements HealthIndicator {
 ### 1. 文档设计原则
 
 ```java
-// ✅ 好的文档设计
+//  好的文档设计
 @Document(collection = "users")
 public class User {
     @Id
@@ -1073,7 +1073,7 @@ public class User {
     private Map<String, Object> metadata;  // 灵活的键值对
 }
 
-// ❌ 避免过度嵌套
+//  避免过度嵌套
 @Document
 public class BadOrderDesign {
     private Customer customer;  // 应该使用引用
@@ -1088,14 +1088,14 @@ public class BadOrderDesign {
 @Service
 public class QueryOptimizationExamples {
     
-    // ✅ 使用投影减少数据传输
+    //  使用投影减少数据传输
     public List<UserBasicInfo> getUserBasicInfo() {
         Query query = new Query();
         query.fields().include("username", "email", "createTime");
         return mongoTemplate.find(query, UserBasicInfo.class, "users");
     }
     
-    // ✅ 使用合适的索引
+    //  使用合适的索引
     public List<User> findActiveUsersByDepartment(String department) {
         // 确保有复合索引：{department: 1, status: 1, createTime: -1}
         Query query = Query.query(
@@ -1106,7 +1106,7 @@ public class QueryOptimizationExamples {
         return mongoTemplate.find(query, User.class);
     }
     
-    // ✅ 避免大量数据的skip操作
+    //  避免大量数据的skip操作
     public List<User> paginateUsersEfficiently(String lastUserId, int limit) {
         Query query = new Query();
         
@@ -1121,7 +1121,7 @@ public class QueryOptimizationExamples {
         return mongoTemplate.find(query, User.class);
     }
     
-    // ❌ 避免没有索引的正则表达式查询
+    //  避免没有索引的正则表达式查询
     public void badRegexQuery(String pattern) {
         Query query = Query.query(
             Criteria.where("description").regex(".*" + pattern + ".*")  // 前缀通配符性能差
@@ -1137,7 +1137,7 @@ public class QueryOptimizationExamples {
 @Service
 public class TransactionBestPractices {
     
-    // ✅ 适合使用事务的场景
+    //  适合使用事务的场景
     @Transactional
     public void transferBetweenAccounts(String fromId, String toId, BigDecimal amount) {
         // 涉及多个文档的原子操作
@@ -1151,7 +1151,7 @@ public class TransactionBestPractices {
         accountRepository.save(to);
     }
     
-    // ❌ 避免长时间运行的事务
+    //  避免长时间运行的事务
     public void avoidLongTransaction() {
         // 不要在事务中执行：
         // - 长时间的外部API调用
@@ -1160,7 +1160,7 @@ public class TransactionBestPractices {
         // - 复杂的业务逻辑计算
     }
     
-    // ✅ 使用乐观锁代替事务（当可能时）
+    //  使用乐观锁代替事务（当可能时）
     @Document
     public class OptimisticLockExample {
         @Id
@@ -1174,4 +1174,4 @@ public class TransactionBestPractices {
 }
 ```
 
-通过以上配置和使用方式，你可以充分利用Nebula MongoDB模块的强大功能，高效地管理MongoDB文档数据库。
+通过以上配置和使用方式，你可以充分利用Nebula MongoDB模块的强大功能，高效地管理MongoDB文档数据库

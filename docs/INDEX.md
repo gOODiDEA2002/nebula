@@ -1,17 +1,17 @@
 # Nebula Framework - 文档索引
 
-## 📖 核心文档
+##  核心文档
 
 - [README.md](../README.md) - 框架概述和快速开始
 - [Nebula框架使用指南.md](Nebula框架使用指南.md) - 完整使用指南
 - [Spring Boot自动配置文件详解.md](../Spring%20Boot自动配置文件详解.md) - 自动配置机制说明
 - [CLAUDE.md](../CLAUDE.md) - AI辅助开发记录
 
-## 📚 专题文档
+##  专题文档
 
 ### RPC 远程过程调用
-- [RPC 优化文档汇总](rpc/RPC_ALL_OPTIMIZATIONS_COMPLETED.md) - ⭐ 所有RPC优化的总览
-- [EnableRpcClients 增强](rpc/RPC_ENABLE_CLIENTS_VALUE_ENHANCEMENT.md) - ⭐ 最新：零配置RPC客户端
+- [RPC 优化文档汇总](rpc/RPC_ALL_OPTIMIZATIONS_COMPLETED.md) -  所有RPC优化的总览
+- [EnableRpcClients 增强](rpc/RPC_ENABLE_CLIENTS_VALUE_ENHANCEMENT.md) -  最新：零配置RPC客户端
 - [RPC 优化设计](rpc/RPC_OPTIMIZATION_DESIGN.md) - 优化方案设计
 - [RPC 优化总结](rpc/RPC_OPTIMIZATION_SUMMARY.md) - 优化成果总结
 - [RPC 第5项优化](rpc/RPC_OPTIMIZATION_5_DESIGN.md) - @RpcCall简化设计
@@ -23,7 +23,7 @@
 - [Nacos配置修复](../autoconfigure/nebula-autoconfigure/Nacos配置属性绑定问题修复说明.md)
 - [启动顺序分析](../autoconfigure/nebula-autoconfigure/启动顺序分析报告.md)
 
-## 🏗️ 模块文档
+## ️ 模块文档
 
 ### 基础设施层（Infrastructure）
 
@@ -69,7 +69,7 @@
 ### 集成层（Integration）
 - [Payment Integration](../integration/nebula-integration-payment/)
 
-## 🎯 关键特性文档
+##  关键特性文档
 
 ### 零配置 RPC（最新）
 Nebula 2.0 的重大创新，实现了极致简化的 RPC 使用体验：
@@ -97,7 +97,7 @@ public class OrderServiceImpl {
 
 详见：[EnableRpcClients 增强文档](rpc/RPC_ENABLE_CLIENTS_VALUE_ENHANCEMENT.md)
 
-## 📋 文档分类
+##  文档分类
 
 ### 按主题分类
 - **RPC**: `docs/rpc/`
@@ -105,16 +105,16 @@ public class OrderServiceImpl {
 - **使用指南**: `docs/`
 
 ### 按优先级分类
-- ⭐ **核心必读**: README、使用指南、RPC优化汇总
-- 📖 **深入学习**: 各模块专题文档
-- 🔧 **参考资料**: 自动配置详解、优化设计文档
+-  **核心必读**: README使用指南RPC优化汇总
+-  **深入学习**: 各模块专题文档
+-  **参考资料**: 自动配置详解优化设计文档
 
-## 🔗 外部资源
+##  外部资源
 
 - [示例项目](../example/) - 完整的示例应用
 - [Starter 模板](../starter/) - 快速开始模板
 
-## 💡 文档贡献指南
+##  文档贡献指南
 
 欢迎贡献文档！请遵循以下原则：
 1. 文档应该简洁明了，重点突出

@@ -13,16 +13,16 @@ io.nebula.discovery.core.ServiceDiscoveryException: 注册服务实例失败: us
 
 1. **Environment 可以读取配置**：
    ```
-   [Environment读取] username: nacos, password: ****  ✓
+   [Environment读取] username: nacos, password: ****  
    ```
 
 2. **NacosProperties Bean 中属性为 null**：
    ```
-   [NacosProperties] - username: null  ✗
-   [NacosProperties] - password: null  ✗
+   [NacosProperties] - username: null  
+   [NacosProperties] - password: null  
    ```
 
-这说明 Spring Boot 的 `@ConfigurationProperties` 自动绑定机制在 `@AutoConfiguration` 中存在时序问题，导致 Bean 方法执行时属性尚未绑定。
+这说明 Spring Boot 的 `@ConfigurationProperties` 自动绑定机制在 `@AutoConfiguration` 中存在时序问题，导致 Bean 方法执行时属性尚未绑定
 
 ## 技术分析
 
@@ -232,11 +232,11 @@ io.nebula.discovery.core.ServiceDiscoveryException: 注册服务实例失败: us
 
 3. **其他可能遇到相同问题的场景**：
    - 任何在 `@AutoConfiguration` 中使用 `@EnableConfigurationProperties` 的地方
-   - 特别是需要较早初始化的 Bean（如服务发现、安全认证等）
+   - 特别是需要较早初始化的 Bean（如服务发现安全认证等）
 
 ## 影响范围
 
-本次修复仅影响 `NacosDiscoveryAutoConfiguration`，对其他模块无影响。
+本次修复仅影响 `NacosDiscoveryAutoConfiguration`，对其他模块无影响
 
 ## 相关 Issue
 

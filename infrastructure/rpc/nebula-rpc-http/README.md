@@ -1,27 +1,27 @@
 # Nebula RPC HTTP 模块
 
-## 📋 模块简介
+##  模块简介
 
-`nebula-rpc-http` 是 Nebula 框架的 HTTP RPC 实现模块，提供了基于 HTTP 协议的远程过程调用能力。该模块支持编程式和声明式两种调用方式，集成了服务发现、负载均衡等企业级特性。
+`nebula-rpc-http` 是 Nebula 框架的 HTTP RPC 实现模块，提供了基于 HTTP 协议的远程过程调用能力该模块支持编程式和声明式两种调用方式，集成了服务发现负载均衡等企业级特性
 
-## ✨ 功能特性
+##  功能特性
 
-### 🎯 核心功能
+###  核心功能
 - **HTTP RPC 客户端**: 基于 RestTemplate 的高性能 RPC 客户端
 - **HTTP RPC 服务器**: 基于 Spring MVC 的 RPC 服务端
 - **声明式调用**: 通过 `@RpcClient` 和 `@RpcCall` 注解简化 RPC 调用
 - **编程式调用**: 灵活的编程式 API，支持同步和异步调用
 - **服务发现集成**: 与 Nebula 服务发现模块无缝集成
-- **负载均衡**: 支持多种负载均衡策略（轮询、随机等）
+- **负载均衡**: 支持多种负载均衡策略（轮询随机等）
 
-### 🚀 增强特性
+###  增强特性
 - **自动配置**: Spring Boot 自动配置，零配置启动
 - **超时控制**: 支持连接超时和读取超时配置
 - **异步调用**: 内置异步调用支持，提高系统吞吐量
 - **异常处理**: 统一的异常处理机制
 - **连接池管理**: 高效的 HTTP 连接池管理
 
-## 🚀 快速开始
+##  快速开始
 
 ### 添加依赖
 
@@ -57,7 +57,7 @@ nebula:
         retry-count: 3
 ```
 
-## 📚 使用方式
+##  使用方式
 
 ### 方式一：声明式调用（推荐）
 
@@ -151,7 +151,7 @@ public class UserService {
 }
 ```
 
-## 🔧 高级特性
+##  高级特性
 
 ### 服务发现集成
 
@@ -293,7 +293,7 @@ public class RpcConfiguration {
 }
 ```
 
-## 📊 服务端实现
+##  服务端实现
 
 ### 使用 @RpcService 注解（推荐）
 
@@ -383,7 +383,7 @@ public class UserController {
 }
 ```
 
-## 🔍 故障排查
+##  故障排查
 
 ### 常见问题
 
@@ -411,7 +411,7 @@ logging:
     org.springframework.web.client: DEBUG
 ```
 
-## 📈 性能优化
+##  性能优化
 
 ### 连接池优化
 
@@ -448,7 +448,7 @@ nebula:
         compression-enabled: true
 ```
 
-## 🔄 与其他模块集成
+##  与其他模块集成
 
 ### 与服务发现集成
 
@@ -465,9 +465,9 @@ nebula:
 
 ### 与链路追踪集成
 
-RPC 调用会自动传播链路追踪信息，无需额外配置。
+RPC 调用会自动传播链路追踪信息，无需额外配置
 
-## 📝 DTO 设计规范
+##  DTO 设计规范
 
 为了保证 RPC 接口的清晰性和可维护性，建议遵循以下 DTO 设计规范：
 
@@ -531,26 +531,26 @@ public class CreateUserDto {
 
 ### 命名规范
 
-- DTO 类名：`{操作名}Dto`，如 `CreateUserDto`、`GetUserDto`
+- DTO 类名：`{操作名}Dto`，如 `CreateUserDto``GetUserDto`
 - Request 类：`Dto.Request`
 - Response 类：`Dto.Response`
 
 ### 完整示例
 
-更多 DTO 示例请参考 [nebula-example-api](../../../nebula-example-api) 模块。
+更多 DTO 示例请参考 [nebula-example-api](../../../nebula-example-api) 模块
 
-## 📖 更多示例
+##  更多示例
 
 详细的使用示例请参考：
 - [基础 RPC 调用示例](../../../nebula-example/docs/nebula-rpc-test.md)
 - [RPC API 定义示例](../../../nebula-example-api/README.md)
 - [完整示例项目](../../../nebula-example)
 
-## 🤝 贡献指南
+##  贡献指南
 
-欢迎提交 Issue 和 Pull Request 来帮助改进这个模块。
+欢迎提交 Issue 和 Pull Request 来帮助改进这个模块
 
-## 📄 许可证
+##  许可证
 
-本项目基于 Apache 2.0 许可证开源。
+本项目基于 Apache 2.0 许可证开源
 

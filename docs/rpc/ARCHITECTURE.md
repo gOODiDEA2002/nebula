@@ -7,49 +7,49 @@
 ## 架构设计
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  nebula-example-api (API 定义模块)                                 │
-│  ├── UserRpcService (接口)                                        │
-│  │   └── @RpcClient 注解                                          │
-│  ├── CreateUserDto (DTO)                                          │
-│  │   ├── Request                                                  │
-│  │   └── Response                                                 │
-│  └── GetUserDto, UpdateUserDto, DeleteUserDto... (其他 DTOs)      │
-└──────────────────────────────────────────────────────────────────┘
-                              │
-                              │ (依赖)
-                              ↓
-┌──────────────────────────────────────────────────────────────────┐
-│  nebula-example (服务实现模块)                                     │
-│                                                                   │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  UserRpcServiceImpl (唯一实现)                              │  │
-│  │  └── @RpcService 注解                                        │  │
-│  │  └── implements UserRpcService                              │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                   │                     │                         │
-│                   │                     │                         │
-│          ┌────────┘                     └────────┐                │
-│          ↓                                       ↓                │
-│  ┌──────────────────┐              ┌──────────────────┐          │
-│  │  HTTP RPC 服务器  │              │  gRPC 服务器      │          │
-│  │  端口: 8000       │              │  端口: 9090       │          │
-│  │  协议: HTTP/1.1   │              │  协议: HTTP/2     │          │
-│  │  格式: JSON       │              │  格式: Protobuf   │          │
-│  └──────────────────┘              └──────────────────┘          │
-└──────────────────────────────────────────────────────────────────┘
-                   │                                │
-                   │ (客户端调用)                    │
-                   ↓                                ↓
-          ┌──────────────────┐          ┌──────────────────┐
-          │  HttpRpcClient    │          │  GrpcRpcClient    │
-          │  (HTTP + JSON)    │          │  (gRPC + Protobuf)│
-          └──────────────────┘          └──────────────────┘
+
+  nebula-example-api (API 定义模块)                                 
+   UserRpcService (接口)                                        
+      @RpcClient 注解                                          
+   CreateUserDto (DTO)                                          
+      Request                                                  
+      Response                                                 
+   GetUserDto, UpdateUserDto, DeleteUserDto... (其他 DTOs)      
+
+                              
+                               (依赖)
+                              
+
+  nebula-example (服务实现模块)                                     
+                                                                   
+    
+    UserRpcServiceImpl (唯一实现)                                
+     @RpcService 注解                                          
+     implements UserRpcService                                
+    
+                                                                 
+                                                                 
+                                               
+                                                                 
+                          
+    HTTP RPC 服务器                  gRPC 服务器                
+    端口: 8000                       端口: 9090                 
+    协议: HTTP/1.1                   协议: HTTP/2               
+    格式: JSON                       格式: Protobuf             
+                          
+
+                                                   
+                    (客户端调用)                    
+                                                   
+                    
+            HttpRpcClient                GrpcRpcClient    
+            (HTTP + JSON)                (gRPC + Protobuf)
+                    
 ```
 
 ## 关键点
 
-### 1. ✅ 只定义一次
+### 1.  只定义一次
 
 ```java
 // nebula-example-api/src/main/java/io/nebula/example/api/rpc/UserRpcService.java
@@ -81,7 +81,7 @@ public class CreateUserDto {
 
 **不需要额外的 `.proto` 文件,不需要重复定义 DTOs!**
 
-### 2. ✅ 只实现一次
+### 2.  只实现一次
 
 ```java
 // nebula-example/src/main/java/.../UserRpcServiceImpl.java
@@ -100,31 +100,31 @@ public class UserRpcServiceImpl implements UserRpcService {
 }
 ```
 
-### 3. ✅ 自动协议转换
+### 3.  自动协议转换
 
 #### HTTP RPC 流程
 ```
 JSON 请求 
-  → Jackson 反序列化 
-  → Java 对象 (CreateUserDto.Request)
-  → UserRpcServiceImpl.createUser()
-  → Java 对象 (CreateUserDto.Response)
-  → Jackson 序列化 
-  → JSON 响应
+   Jackson 反序列化 
+   Java 对象 (CreateUserDto.Request)
+   UserRpcServiceImpl.createUser()
+   Java 对象 (CreateUserDto.Response)
+   Jackson 序列化 
+   JSON 响应
 ```
 
 #### gRPC 流程
 ```
 Protobuf bytes 请求 
-  → ObjectMapper 反序列化 
-  → Java 对象 (CreateUserDto.Request)
-  → UserRpcServiceImpl.createUser() (同一个方法!)
-  → Java 对象 (CreateUserDto.Response)
-  → ObjectMapper 序列化 
-  → Protobuf bytes 响应
+   ObjectMapper 反序列化 
+   Java 对象 (CreateUserDto.Request)
+   UserRpcServiceImpl.createUser() (同一个方法!)
+   Java 对象 (CreateUserDto.Response)
+   ObjectMapper 序列化 
+   Protobuf bytes 响应
 ```
 
-### 4. ✅ 通用 Protobuf 定义
+### 4.  通用 Protobuf 定义
 
 我们使用一个**通用的** `rpc_common.proto`,而不是为每个服务定义单独的 `.proto` 文件:
 
@@ -227,7 +227,7 @@ public class UserRpcServiceImpl implements UserRpcService {
     // 实现所有方法
 }
 
-// 3. 自动注册到 HTTP 和 gRPC 服务器 ✅
+// 3. 自动注册到 HTTP 和 gRPC 服务器 
 ```
 
 ### 服务消费方 (nebula-example-client 或其他服务)
@@ -260,7 +260,7 @@ public class MyController {
 
 ## 对比传统 gRPC
 
-### 传统 gRPC 方式 ❌
+### 传统 gRPC 方式 
 
 ```
 1. 编写 user_service.proto
@@ -274,7 +274,7 @@ public class MyController {
 - 切换协议需要重写代码
 ```
 
-### Nebula RPC 方式 ✅
+### Nebula RPC 方式 
 
 ```
 1. 定义 UserRpcService 接口 (Java)
@@ -292,8 +292,8 @@ public class MyController {
 
 | 协议 | 性能 | 适用场景 |
 |------|------|----------|
-| **HTTP RPC** | 中等 (JSON 序列化较慢) | 调试、跨语言、浏览器直接调用 |
-| **gRPC** | 高 (Protobuf 更快,HTTP/2 多路复用) | 微服务内部通信、高性能要求 |
+| **HTTP RPC** | 中等 (JSON 序列化较慢) | 调试跨语言浏览器直接调用 |
+| **gRPC** | 高 (Protobuf 更快,HTTP/2 多路复用) | 微服务内部通信高性能要求 |
 
 **建议**: 
 - 开发/测试环境: 使用 HTTP RPC (易于调试)
@@ -314,18 +314,18 @@ public class MyController {
 5. **客户端选择**: 通过配置或 `@Primary` 注解选择协议
 
 ### 不需要:
-- ❌ 编写 `.proto` 文件
-- ❌ 运行 `protoc` 生成代码
-- ❌ 定义两份实体
-- ❌ 实现两次服务
+-  编写 `.proto` 文件
+-  运行 `protoc` 生成代码
+-  定义两份实体
+-  实现两次服务
 
 ### 只需要:
-- ✅ Java 接口 + 注解
-- ✅ Java DTOs
-- ✅ 一次实现
+-  Java 接口 + 注解
+-  Java DTOs
+-  一次实现
 
 ---
 
-**这就是 Nebula RPC 框架的核心理念: 协议无关,专注业务逻辑。**
+**这就是 Nebula RPC 框架的核心理念: 协议无关,专注业务逻辑**
 
 

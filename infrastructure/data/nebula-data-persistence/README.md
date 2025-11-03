@@ -1,26 +1,26 @@
 # Nebula Data Persistence 模块
 
-## 📋 模块简介
+##  模块简介
 
-`nebula-data-persistence` 是 Nebula 框架的数据持久层模块，提供了统一的数据访问抽象和强大的数据库操作能力。该模块基于 MyBatis-Plus 构建，集成了读写分离、分库分表等企业级特性。
+`nebula-data-persistence` 是 Nebula 框架的数据持久层模块，提供了统一的数据访问抽象和强大的数据库操作能力该模块基于 MyBatis-Plus 构建，集成了读写分离分库分表等企业级特性
 
-## ✨ 功能特性
+##  功能特性
 
-### 🎯 核心功能
+###  核心功能
 - **基础数据访问**: 基于 MyBatis-Plus 的增强型 CRUD 操作
 - **读写分离**: 支持主从数据库的读写分离，提高系统性能
 - **分库分表**: 基于 ShardingSphere 的分片功能，支持水平扩展
 - **事务管理**: 统一的事务管理接口，支持编程式和声明式事务
 - **连接池管理**: 集成 HikariCP 高性能连接池
 
-### 🚀 增强特性
+###  增强特性
 - **自动配置**: Spring Boot 自动配置，零配置启动
 - **类型安全**: 完整的泛型支持和类型安全
-- **元数据处理**: 自动填充创建时间、更新时间等字段
+- **元数据处理**: 自动填充创建时间更新时间等字段
 - **分页查询**: 内置分页插件，简化分页操作
 - **性能监控**: 提供数据源健康检查和统计信息
 
-## 🚀 快速开始
+##  快速开始
 
 ### 添加依赖
 
@@ -70,7 +70,7 @@ mybatis-plus:
       logic-not-delete-value: 0
 ```
 
-## 📚 基础数据访问功能
+##  基础数据访问功能
 
 ### 1. 实体类定义
 
@@ -188,7 +188,7 @@ public class ProductController {
 }
 ```
 
-## 🔧 高级特性
+##  高级特性
 
 ### 元数据自动填充
 
@@ -263,7 +263,7 @@ public class OrderService {
 }
 ```
 
-## 📊 性能监控
+##  性能监控
 
 ### 数据源健康检查
 
@@ -286,7 +286,7 @@ public class DataSourceController {
 }
 ```
 
-## 🛠️ 自定义配置
+## ️ 自定义配置
 
 ### 自定义元数据处理器
 
@@ -336,7 +336,7 @@ public class MyBatisPlusConfig {
 }
 ```
 
-## 🔍 故障排查
+##  故障排查
 
 ### 常见问题
 
@@ -365,14 +365,14 @@ logging:
     org.springframework.jdbc: DEBUG
 ```
 
-## 🔄 读写分离功能
+##  读写分离功能
 
 ### 特性概述
 
 Nebula 数据持久层集成了高性能的读写分离方案，通过 AOP 切面和动态数据源实现，支持：
 
 - **主从数据库读写分离**：写操作路由到主库，读操作路由到从库
-- **多从库负载均衡**：支持轮询、随机等多种负载均衡策略
+- **多从库负载均衡**：支持轮询随机等多种负载均衡策略
 - **事务内读写一致性**：确保事务内读写操作的数据一致性
 - **动态数据源切换**：支持运行时动态配置数据源路由规则
 
@@ -480,15 +480,15 @@ public class ReportService {
 
 ---
 
-## 🗂️ 分片功能 (ShardingSphere)
+## ️ 分片功能 (ShardingSphere)
 
 ### 特性概述
 
 Nebula 数据持久层深度集成 Apache ShardingSphere，提供企业级分库分表解决方案：
 
 - **水平分片**：支持分库分表，轻松应对大数据量场景
-- **多种分片策略**：精确分片、范围分片、复合分片等
-- **分布式主键**：内置雪花算法、UUID 等全局唯一主键生成
+- **多种分片策略**：精确分片范围分片复合分片等
+- **分布式主键**：内置雪花算法UUID 等全局唯一主键生成
 - **跨分片查询**：自动处理跨分片的聚合查询和排序
 - **读写分离集成**：可与读写分离功能组合使用
 
@@ -545,7 +545,7 @@ nebula:
 **重要说明**：
 - 配置中的 `algorithm-expression` 会自动创建对应的 INLINE 算法
 - 不需要手动配置 `algorithms` 节点，框架会根据表配置自动生成
-- 支持的主键生成算法：`snowflake`（雪花算法）、`uuid`（UUID）
+- 支持的主键生成算法：`snowflake`（雪花算法）`uuid`（UUID）
 
 ### 实体类定义
 
@@ -643,17 +643,17 @@ public class ShardingDemoServiceImpl implements ShardingDemoService {
 
 ---
 
-## 🔄 三种场景并存配置
+##  三种场景并存配置
 
 ### 场景说明
 
 在实际业务中，常常需要在同一个应用中同时使用三种数据访问方式：
 
-1. **普通数据访问** - 用于用户表、字典表等小数据量表
-2. **读写分离访问** - 用于产品表、文章表等读多写少的表
-3. **分片访问** - 用于订单表、日志表等大数据量表
+1. **普通数据访问** - 用于用户表字典表等小数据量表
+2. **读写分离访问** - 用于产品表文章表等读多写少的表
+3. **分片访问** - 用于订单表日志表等大数据量表
 
-Nebula 数据持久层支持这三种场景在同一应用中并存，通过数据源优先级策略自动管理。
+Nebula 数据持久层支持这三种场景在同一应用中并存，通过数据源优先级策略自动管理
 
 ### 数据源优先级
 
@@ -661,7 +661,7 @@ Nebula 数据持久层支持这三种场景在同一应用中并存，通过数�
 分片数据源 > 读写分离数据源 > 普通数据源
 ```
 
-当配置了分片功能时，分片数据源会成为主数据源（`@Primary`），其他数据源通过不同方式访问。
+当配置了分片功能时，分片数据源会成为主数据源（`@Primary`），其他数据源通过不同方式访问
 
 ### 配置示例
 
@@ -806,7 +806,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order>
 
 ---
 
-## 📖 更多功能
+##  更多功能
 
 - [基础数据访问测试指南](../../../nebula-example/docs/nebula-data-access-test.md)
 - [读写分离功能测试指南](../../../nebula-example/docs/nebula-readwrite-splitting-test.md)  
@@ -815,9 +815,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order>
 
 ---
 
-## 📋 DTO 规范说明
+##  DTO 规范说明
 
-### 🎯 项目 DTO 规范
+###  项目 DTO 规范
 
 Nebula 数据持久层严格遵循 DTO 规范，每个功能模块都有专用的 DTO 文件：
 
@@ -838,7 +838,7 @@ Nebula 数据持久层严格遵循 DTO 规范，每个功能模块都有专用�
 - `GetShardingOrderDto` - 获取订单详情（分片演示）接口DTO
 - `GetShardingOrdersDto` - 获取订单列表（分片演示）接口DTO
 
-### 📐 DTO 结构规范
+###  DTO 结构规范
 
 ```java
 /**
@@ -876,7 +876,7 @@ public class [FunctionName]Dto {
 }
 ```
 
-### 🔧 Service 和 Controller 规范
+###  Service 和 Controller 规范
 
 #### Service 层规范
 ```java
@@ -910,7 +910,7 @@ public class XxxController {
 }
 ```
 
-### ✅ 规范优势
+###  规范优势
 
 1. **类型安全**: 每个接口都有专用的 DTO，避免参数混用
 2. **代码清晰**: 接口职责明确，易于维护和扩展
@@ -918,10 +918,10 @@ public class XxxController {
 4. **文档友好**: 便于生成 API 文档和接口测试
 5. **功能隔离**: 不同功能模块的 DTO 互不干扰，避免意外修改影响其他功能
 
-## 🤝 贡献指南
+##  贡献指南
 
-欢迎提交 Issue 和 Pull Request 来帮助改进这个模块。
+欢迎提交 Issue 和 Pull Request 来帮助改进这个模块
 
-## 📄 许可证
+##  许可证
 
-本项目基于 Apache 2.0 许可证开源。
+本项目基于 Apache 2.0 许可证开源

@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档规划了 Nebula RPC 模块的未来扩展方向，包括新协议支持、性能增强、功能扩展等。
+本文档规划了 Nebula RPC 模块的未来扩展方向，包括新协议支持性能增强功能扩展等
 
 ## 模块定位说明
 
@@ -32,7 +32,7 @@ Nebula RPC 框架包含多个传输层实现,各有不同的定位和应用场�
 1. **nebula-rpc-websocket** (规划中)
    - 面向 Web 客户端(JavaScript/TypeScript)的 WebSocket 接口
    - 支持双向实时通信
-   - 主要用于浏览器推送、实时聊天等场景
+   - 主要用于浏览器推送实时聊天等场景
 
 ## 当前架构
 
@@ -85,19 +85,19 @@ graph TB
 
 **示例1: 普通Web应用**
 ```
-前端 → REST API → nebula-rpc-http → 其他微服务
+前端  REST API  nebula-rpc-http  其他微服务
 ```
 
 **示例2: 实时应用**
 ```
-前端 → WebSocket(nebula-rpc-websocket) → 服务器
-服务器 → nebula-rpc-http → 其他微服务
+前端  WebSocket(nebula-rpc-websocket)  服务器
+服务器  nebula-rpc-http  其他微服务
 ```
 
 **示例3: 高性能微服务**
 ```
-前端 → REST API → 网关服务
-网关服务 → nebula-rpc-netty → 后端微服务集群
+前端  REST API  网关服务
+网关服务  nebula-rpc-netty  后端微服务集群
 ```
 
 ## 扩展方向
@@ -105,9 +105,9 @@ graph TB
 ### 1. WebSocket 支持
 
 #### 目标
-提供面向 Web 客户端(JavaScript/TypeScript)的 WebSocket RPC 接口，支持浏览器与服务端的双向通信和实时消息推送。
+提供面向 Web 客户端(JavaScript/TypeScript)的 WebSocket RPC 接口，支持浏览器与服务端的双向通信和实时消息推送
 
-**定位**: 前后端通信协议，主要面向浏览器客户端，而非服务端到服务端的 RPC 通信。
+**定位**: 前后端通信协议，主要面向浏览器客户端，而非服务端到服务端的 RPC 通信
 
 #### 应用场景
 - 实时聊天系统(Web端)
@@ -131,8 +131,8 @@ graph TB
 ```
 
 **与服务端 RPC 的区别**:
-- WebSocket RPC: 浏览器 ↔ 服务器(前后端通信)
-- HTTP/Netty/gRPC RPC: 服务器 ↔ 服务器(微服务间通信)
+- WebSocket RPC: 浏览器  服务器(前后端通信)
+- HTTP/Netty/gRPC RPC: 服务器  服务器(微服务间通信)
 
 #### 核心特性
 - 双向通信支持
@@ -195,9 +195,9 @@ nebula:
 ### 2. Netty RPC 传输层
 
 #### 目标
-基于 Netty 构建高性能 RPC 传输层实现，作为 HTTP 模块的平行替换选项，支持自定义协议和零拷贝传输。
+基于 Netty 构建高性能 RPC 传输层实现，作为 HTTP 模块的平行替换选项，支持自定义协议和零拷贝传输
 
-**定位**: 服务端到服务端的高性能 RPC 通信，可完全替代 `nebula-rpc-http` 模块，共享相同的 RPC Core 接口和注解。
+**定位**: 服务端到服务端的高性能 RPC 通信，可完全替代 `nebula-rpc-http` 模块，共享相同的 RPC Core 接口和注解
 
 #### 应用场景
 - 高并发微服务调用(QPS > 10000)
@@ -241,7 +241,7 @@ graph TB
 </dependency>
 ```
 
-**注意**: 两个模块不能同时使用,需根据性能需求选择其一。
+**注意**: 两个模块不能同时使用,需根据性能需求选择其一
 
 #### 核心特性
 - 基于 Netty 的高性能网络 I/O
@@ -349,7 +349,7 @@ Data: 序列化后的数据
 ### 3. gRPC 集成
 
 #### 目标
-集成 gRPC 协议，支持跨语言、高性能的 RPC 调用。
+集成 gRPC 协议，支持跨语言高性能的 RPC 调用
 
 #### 应用场景
 - 微服务间通信
@@ -526,9 +526,9 @@ nebula:
 ## 实施路线图
 
 ### 第一阶段（Q1 2025）
-- ✅ HTTP RPC 基础实现
-- ✅ 声明式注解支持
-- ✅ 服务发现集成
+-  HTTP RPC 基础实现
+-  声明式注解支持
+-  服务发现集成
 - [ ] 性能优化和压测
 
 ### 第二阶段（Q2 2025）

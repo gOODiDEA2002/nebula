@@ -2,47 +2,47 @@
 
 ## 概述
 
-Nebula Web 是一个基于 Spring Boot 的现代化 Web 框架，提供了认证、限流、缓存、性能监控、健康检查等企业级功能。
+Nebula Web 是一个基于 Spring Boot 的现代化 Web 框架，提供了认证限流缓存性能监控健康检查等企业级功能
 
 ## 核心功能
 
-### 🔐 认证系统 (Authentication)
+###  认证系统 (Authentication)
 - 基于 JWT 的认证机制
 - 支持自定义认证服务
 - 可配置忽略路径
 - 自动设置认证上下文
 
-### 🚦 限流 (Rate Limiting)
+###  限流 (Rate Limiting)
 - 基于滑动窗口算法
-- 支持多种限流策略（IP、用户、API）
+- 支持多种限流策略（IP用户API）
 - 内存或分布式限流器
 - 可配置限流规则
 
-### 💾 响应缓存 (Response Caching)
+###  响应缓存 (Response Caching)
 - GET 请求响应缓存
 - 支持多种缓存策略
 - 自动缓存键生成
 - TTL 过期管理
 
-### 📊 性能监控 (Performance Monitoring)
+###  性能监控 (Performance Monitoring)
 - 请求响应时间统计
 - 慢请求检测
 - 系统资源监控
 - JVM 指标收集
 
-### 🏥 健康检查 (Health Checks)
+###  健康检查 (Health Checks)
 - 应用健康状态检查
-- 内存、磁盘空间检查
+- 内存磁盘空间检查
 - 自定义健康检查器
 - Kubernetes 探针支持
 
-### 🎭 数据脱敏 (Data Masking)
+###  数据脱敏 (Data Masking)
 - 敏感数据自动脱敏
 - 多种脱敏策略
 - 注解驱动
 - JSON 序列化集成
 
-### 📝 请求日志 (Request Logging)
+###  请求日志 (Request Logging)
 - 详细的请求响应日志
 - 敏感信息脱敏
 - 可配置日志级别
@@ -561,4 +561,4 @@ public class RedisResponseCache implements ResponseCache {
 
 ---
 
-更多详细信息，请参考源码和测试用例。
+更多详细信息，请参考源码和测试用例
