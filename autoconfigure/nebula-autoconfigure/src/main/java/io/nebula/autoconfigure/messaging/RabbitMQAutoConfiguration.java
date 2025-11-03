@@ -10,6 +10,7 @@ import io.nebula.messaging.rabbitmq.producer.RabbitMQMessageProducer;
 import io.nebula.messaging.rabbitmq.consumer.RabbitMQMessageConsumer;
 import io.nebula.messaging.rabbitmq.exchange.RabbitMQExchangeManager;
 import io.nebula.messaging.rabbitmq.manager.RabbitMQMessageManager;
+import io.nebula.messaging.rabbitmq.delay.DelayMessageProducer;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -83,8 +84,18 @@ public class RabbitMQAutoConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    public RabbitMQMessageProducer rabbitMQMessageProducer(Connection connection, MessageSerializer messageSerializer) {
-        return new RabbitMQMessageProducer(connection, messageSerializer);
+    @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq.delay-message", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public DelayMessageProducer delayMessageProducer(Connection connection, MessageSerializer messageSerializer) {
+        return new DelayMessageProducer(connection, messageSerializer);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public RabbitMQMessageProducer rabbitMQMessageProducer(
+            Connection connection, 
+            MessageSerializer messageSerializer,
+            @Lazy DelayMessageProducer delayMessageProducer) {
+        return new RabbitMQMessageProducer(connection, messageSerializer, delayMessageProducer);
     }
     
     @Bean
