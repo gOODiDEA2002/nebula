@@ -73,6 +73,11 @@ public class RabbitMQProperties {
      */
     private Exchange exchange = new Exchange();
     
+    /**
+     * 延时消息配置
+     */
+    private DelayMessage delayMessage = new DelayMessage();
+    
     // Getter and Setter methods
     
     public boolean isEnabled() {
@@ -177,6 +182,14 @@ public class RabbitMQProperties {
     
     public void setExchange(Exchange exchange) {
         this.exchange = exchange;
+    }
+    
+    public DelayMessage getDelayMessage() {
+        return delayMessage;
+    }
+    
+    public void setDelayMessage(DelayMessage delayMessage) {
+        this.delayMessage = delayMessage;
     }
     
     /**
@@ -321,6 +334,128 @@ public class RabbitMQProperties {
         
         public void setAutoDelete(boolean autoDelete) {
             this.autoDelete = autoDelete;
+        }
+    }
+    
+    /**
+     * 延时消息配置
+     */
+    public static class DelayMessage {
+        /**
+         * 是否启用延时消息功能
+         */
+        private boolean enabled = true;
+        
+        /**
+         * 默认最大重试次数
+         */
+        private int defaultMaxRetries = 3;
+        
+        /**
+         * 默认重试间隔(毫秒)
+         */
+        private long defaultRetryInterval = 1000;
+        
+        /**
+         * 延时队列最大TTL(毫秒), 默认7天
+         */
+        private long maxDelayMillis = 7 * 24 * 60 * 60 * 1000L;
+        
+        /**
+         * 延时队列最小TTL(毫秒), 默认1秒
+         */
+        private long minDelayMillis = 1000;
+        
+        /**
+         * 是否自动创建延时交换机和队列
+         */
+        private boolean autoCreateResources = true;
+        
+        /**
+         * 是否启用死信队列
+         */
+        private boolean enableDeadLetterQueue = true;
+        
+        /**
+         * 死信交换机名称
+         */
+        private String deadLetterExchange = "nebula.dlx.exchange";
+        
+        /**
+         * 死信队列名称
+         */
+        private String deadLetterQueue = "nebula.dlx.queue";
+        
+        public boolean isEnabled() {
+            return enabled;
+        }
+        
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+        
+        public int getDefaultMaxRetries() {
+            return defaultMaxRetries;
+        }
+        
+        public void setDefaultMaxRetries(int defaultMaxRetries) {
+            this.defaultMaxRetries = defaultMaxRetries;
+        }
+        
+        public long getDefaultRetryInterval() {
+            return defaultRetryInterval;
+        }
+        
+        public void setDefaultRetryInterval(long defaultRetryInterval) {
+            this.defaultRetryInterval = defaultRetryInterval;
+        }
+        
+        public long getMaxDelayMillis() {
+            return maxDelayMillis;
+        }
+        
+        public void setMaxDelayMillis(long maxDelayMillis) {
+            this.maxDelayMillis = maxDelayMillis;
+        }
+        
+        public long getMinDelayMillis() {
+            return minDelayMillis;
+        }
+        
+        public void setMinDelayMillis(long minDelayMillis) {
+            this.minDelayMillis = minDelayMillis;
+        }
+        
+        public boolean isAutoCreateResources() {
+            return autoCreateResources;
+        }
+        
+        public void setAutoCreateResources(boolean autoCreateResources) {
+            this.autoCreateResources = autoCreateResources;
+        }
+        
+        public boolean isEnableDeadLetterQueue() {
+            return enableDeadLetterQueue;
+        }
+        
+        public void setEnableDeadLetterQueue(boolean enableDeadLetterQueue) {
+            this.enableDeadLetterQueue = enableDeadLetterQueue;
+        }
+        
+        public String getDeadLetterExchange() {
+            return deadLetterExchange;
+        }
+        
+        public void setDeadLetterExchange(String deadLetterExchange) {
+            this.deadLetterExchange = deadLetterExchange;
+        }
+        
+        public String getDeadLetterQueue() {
+            return deadLetterQueue;
+        }
+        
+        public void setDeadLetterQueue(String deadLetterQueue) {
+            this.deadLetterQueue = deadLetterQueue;
         }
     }
 }

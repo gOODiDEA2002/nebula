@@ -4,6 +4,9 @@ import io.nebula.messaging.core.producer.MessageProducer;
 import io.nebula.messaging.core.message.Message;
 import io.nebula.messaging.core.serializer.MessageSerializer;
 import io.nebula.messaging.core.exception.MessageSendException;
+import io.nebula.messaging.rabbitmq.delay.DelayMessage;
+import io.nebula.messaging.rabbitmq.delay.DelayMessageProducer;
+import io.nebula.messaging.rabbitmq.delay.DelayMessageResult;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.AMQP;
@@ -30,12 +33,15 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
 
     private final Connection connection;
     private final MessageSerializer messageSerializer;
+    private final DelayMessageProducer delayMessageProducer;
     private Duration timeout = Duration.ofSeconds(30);
     private volatile boolean started = false;
 
-    public RabbitMQMessageProducer(Connection connection, MessageSerializer messageSerializer) {
+    public RabbitMQMessageProducer(Connection connection, MessageSerializer messageSerializer, 
+                                   DelayMessageProducer delayMessageProducer) {
         this.connection = connection;
         this.messageSerializer = messageSerializer;
+        this.delayMessageProducer = delayMessageProducer;
     }
 
     @Override
@@ -114,16 +120,40 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
 
     @Override
     public SendResult sendDelayMessage(String topic, T payload, Duration delay) {
-        // RabbitMQ 的延迟消息需要使用插件或通过TTL+DLX实现
-        // 这里提供基础实现，生产环境中应该使用专门的延迟队列
-        logger.warn("Delay message not fully implemented for RabbitMQ, sending immediately");
-        return send(topic, payload);
+        if (delayMessageProducer == null) {
+            logger.warn("DelayMessageProducer not available, sending immediately");
+            return send(topic, payload);
+        }
+        
+        DelayMessageResult result = delayMessageProducer.send(topic, payload, delay);
+        return convertDelayResult(result);
     }
 
     @Override
     public SendResult sendDelayMessage(String topic, String queue, T payload, Duration delay) {
-        logger.warn("Delay message not fully implemented for RabbitMQ, sending immediately");
-        return send(topic, queue, payload);
+        if (delayMessageProducer == null) {
+            logger.warn("DelayMessageProducer not available, sending immediately");
+            return send(topic, queue, payload);
+        }
+        
+        DelayMessageResult result = delayMessageProducer.send(topic, queue, payload, delay);
+        return convertDelayResult(result);
+    }
+    
+    /**
+     * 转换延时消息结果为标准发送结果
+     */
+    private SendResult convertDelayResult(DelayMessageResult delayResult) {
+        return new RabbitMQSendResult(
+                delayResult.isSuccess(),
+                delayResult.getMessageId(),
+                null, // topic
+                null, // queue
+                delayResult.getTimestamp(),
+                delayResult.getElapsedTime(),
+                delayResult.getErrorMessage(),
+                delayResult.getException()
+        );
     }
 
     @Override
