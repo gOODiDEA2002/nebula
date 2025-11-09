@@ -259,6 +259,8 @@ services:
     volumes:
       - $ROOT_DIR/chroma:/data
     environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_PORT=8000
       - CHROMA_PERSIST_DIRECTORY=/data
     ports:
       - "$CHROMA_PORT:8000"
