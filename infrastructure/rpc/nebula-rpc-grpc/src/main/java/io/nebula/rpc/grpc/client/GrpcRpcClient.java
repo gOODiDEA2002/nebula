@@ -151,15 +151,9 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                     }
 
                     // 执行 gRPC RPC 调用
-                    Class<?> returnType = method.getReturnType();
-                    Object result = callInternal(serviceClass, method, methodArgs);
-                    
-                    if (result == null) {
-                        return null;
-                    }
-
-                    // 转换结果类型
-                    return objectMapper.convertValue(result, returnType);
+                    // callInternal 已经使用 method.getGenericReturnType() 进行了正确的反序列化
+                    // 直接返回结果，不需要再次转换（避免泛型信息丢失）
+                    return callInternal(serviceClass, method, methodArgs);
                 }
         );
     }
@@ -209,7 +203,9 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
             return null;
         }
 
-        return objectMapper.readValue(resultJson, method.getReturnType());
+        // 使用泛型返回类型以支持 List<T>、Map<K,V> 等泛型类型
+        return objectMapper.readValue(resultJson, 
+                objectMapper.constructType(method.getGenericReturnType()));
     }
 
     /**

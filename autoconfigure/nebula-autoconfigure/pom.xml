@@ -45,112 +45,127 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
 
-        <!-- Discovery Core -->
+        <!-- Discovery Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-core</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Discovery Nacos -->
+        <!-- Discovery Nacos (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- RPC Core -->
+        <!-- RPC Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-rpc-core</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- RPC HTTP -->
+        <!-- RPC HTTP (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-rpc-http</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- RPC gRPC -->
+        <!-- RPC gRPC (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-rpc-grpc</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Data Persistence -->
+        <!-- Data Persistence (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-data-persistence</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Data Cache -->
+        <!-- Data Cache (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Messaging Core -->
+        <!-- Messaging Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-messaging-core</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Messaging RabbitMQ -->
+        <!-- Messaging RabbitMQ (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-messaging-rabbitmq</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Search Core -->
+        <!-- Search Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-search-core</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Search Elasticsearch -->
+        <!-- Search Elasticsearch (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-search-elasticsearch</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Storage Core -->
+        <!-- Storage Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-storage-core</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Storage MinIO -->
+        <!-- Storage MinIO (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-storage-minio</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Storage Aliyun OSS -->
+        <!-- Storage Aliyun OSS (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-storage-aliyun-oss</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
-        <!-- AI Core -->
+        <!-- AI Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-ai-core</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
         
-        <!-- AI Spring -->
+        <!-- AI Spring (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-ai-spring</artifactId>
@@ -158,24 +173,34 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- Spring AI OpenAI Starter (使用BOM管理版本，无需指定version) -->
+        <!-- Spring AI OpenAI Starter (可选，使用BOM管理版本) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
             <optional>true</optional>
         </dependency>
         
-        <!-- Spring AI Chroma Vector Store Starter -->
+        <!-- Spring AI Chroma Vector Store Starter (可选) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-vector-store-chroma</artifactId>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Web -->
+        <!-- Web (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-web</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Lock Redis (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-lock-redis</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- Lombok -->

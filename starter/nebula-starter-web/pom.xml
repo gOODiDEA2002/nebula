@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-starter-web</artifactId>
+    <name>Nebula Starter Web</name>
+    <description>Starter for web applications (REST API, admin dashboards)</description>
+
+    <dependencies>
+        <!-- 继承Minimal Starter -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-starter-minimal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Web Module -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Cache Module -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Data Persistence Module (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-persistence</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Security Module (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-security</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

@@ -338,3 +338,8 @@ nebula:
 
 - [Nacos 官方文档](https://nacos.io/zh-cn/docs/what-is-nacos.html)
 - [Spring Cloud Alibaba Nacos Discovery](https://github.com/alibaba/spring-cloud-alibaba/wiki/Nacos-discovery)
+
+## 🧪 测试
+
+本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
+

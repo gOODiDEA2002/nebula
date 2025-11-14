@@ -39,9 +39,9 @@ public class DelayMessageContext {
     private long expectedTime;
     
     /**
-     * 实际处理时间戳
+     * 实际处理时间戳（延迟初始化）
      */
-    private long actualTime;
+    private Long actualTime;
     
     /**
      * 最大重试次数
@@ -59,13 +59,29 @@ public class DelayMessageContext {
     private long timestamp;
     
     /**
+     * 获取实际处理时间（延迟初始化）
+     */
+    public long getActualTime() {
+        if (actualTime == null) {
+            actualTime = System.currentTimeMillis();
+        }
+        return actualTime;
+    }
+    
+    /**
+     * 设置实际处理时间
+     */
+    public void setActualTime(long actualTime) {
+        this.actualTime = actualTime;
+    }
+    
+    /**
      * 计算延时误差（毫秒）
      * 
      * @return 延时误差，正数表示延迟，负数表示提前
      */
     public long getDelayError() {
-        this.actualTime = System.currentTimeMillis();
-        return this.actualTime - this.expectedTime;
+        return getActualTime() - this.expectedTime;
     }
     
     /**
@@ -80,8 +96,7 @@ public class DelayMessageContext {
      * 从消息创建到实际处理的时间
      */
     public long getTotalDelay() {
-        this.actualTime = System.currentTimeMillis();
-        return this.actualTime - this.timestamp;
+        return getActualTime() - this.timestamp;
     }
 }
 

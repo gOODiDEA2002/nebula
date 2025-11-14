@@ -53,6 +53,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
@@ -154,6 +155,15 @@ public class WebAutoConfiguration {
                 }
                 
                 // 限流拦截器将由单独的配置方法处理
+            }
+            
+            @Override
+            public void addResourceHandlers(ResourceHandlerRegistry registry) {
+                // 配置 favicon.ico 资源处理，避免不必要的错误日志
+                registry.addResourceHandler("/favicon.ico")
+                        .addResourceLocations("classpath:/static/", "classpath:/public/")
+                        .setCachePeriod(0)
+                        .resourceChain(false);
             }
         };
     }

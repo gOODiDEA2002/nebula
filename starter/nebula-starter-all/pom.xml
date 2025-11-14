@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-starter-all</artifactId>
+    <name>Nebula Starter All</name>
+    <description>Nebula all-in-one starter for monolithic applications (包含所有功能模块)</description>
+
+    <dependencies>
+        <!-- ========== 基础层 ========== -->
+        <!-- Foundation (必需) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-foundation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- ========== Web 层 ========== -->
+        <!-- Web Framework -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ========== 数据层 ========== -->
+        <!-- Data Persistence -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-persistence</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Data Cache -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- ========== 服务发现 ========== -->
+        <!-- Discovery Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Discovery Nacos (可选实现) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-nacos</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ========== RPC ========== -->
+        <!-- RPC Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- RPC HTTP -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- RPC gRPC (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-grpc</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ========== 消息队列 ========== -->
+        <!-- Messaging Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Messaging RabbitMQ (可选实现) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-rabbitmq</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Kafka 实现暂未提供 -->
+
+        <!-- ========== 搜索 ========== -->
+        <!-- Search Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-search-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Search Elasticsearch (可选实现) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-search-elasticsearch</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ========== 存储 ========== -->
+        <!-- Storage Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Storage Minio (可选实现) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-storage-minio</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ========== 任务调度 ========== -->
+        <!-- Task Module -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-task</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- ========== AI 模块 ========== -->
+        <!-- AI Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- AI Spring Integration -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Spring AI Starters 已经通过 nebula-ai-spring 间接包含，无需重复声明 -->
+
+        <!-- ========== 分布式锁 ========== -->
+        <!-- Lock Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-lock-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Lock Redis (可选实现) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-lock-redis</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ========== 安全 ========== -->
+        <!-- Security -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- ========== 自动配置 ========== -->
+        <!-- Auto Configuration -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-autoconfigure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+</project>

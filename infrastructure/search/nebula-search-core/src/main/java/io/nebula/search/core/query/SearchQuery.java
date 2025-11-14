@@ -1,10 +1,14 @@
 package io.nebula.search.core.query;
 
+import io.nebula.search.core.query.builder.QueryBuilder;
+
 import java.util.List;
 import java.util.Map;
 
 /**
  * 搜索查询
+ * 
+ * @author nebula
  */
 public class SearchQuery {
     
@@ -14,14 +18,14 @@ public class SearchQuery {
     private String[] indices;
     
     /**
-     * 查询条件
+     * 查询条件（强类型）
      */
-    private Map<String, Object> query;
+    private QueryBuilder queryBuilder;
     
     /**
-     * 过滤条件
+     * 过滤条件（强类型）
      */
-    private Map<String, Object> filter;
+    private QueryBuilder filterBuilder;
     
     /**
      * 排序
@@ -44,8 +48,9 @@ public class SearchQuery {
     private Map<String, Object> highlight;
     
     /**
-     * 聚合
+     * 聚合（已废弃，请使用 AggregationQuery）
      */
+    @Deprecated
     private Map<String, Object> aggregations;
     
     /**
@@ -122,13 +127,13 @@ public class SearchQuery {
             return this;
         }
         
-        public Builder query(Map<String, Object> queryMap) {
-            query.query = queryMap;
+        public Builder query(QueryBuilder queryBuilder) {
+            query.queryBuilder = queryBuilder;
             return this;
         }
         
-        public Builder filter(Map<String, Object> filter) {
-            query.filter = filter;
+        public Builder filter(QueryBuilder filterBuilder) {
+            query.filterBuilder = filterBuilder;
             return this;
         }
         
@@ -217,20 +222,20 @@ public class SearchQuery {
         this.indices = indices;
     }
     
-    public Map<String, Object> getQuery() {
-        return query;
+    public QueryBuilder getQueryBuilder() {
+        return queryBuilder;
     }
     
-    public void setQuery(Map<String, Object> query) {
-        this.query = query;
+    public void setQueryBuilder(QueryBuilder queryBuilder) {
+        this.queryBuilder = queryBuilder;
     }
     
-    public Map<String, Object> getFilter() {
-        return filter;
+    public QueryBuilder getFilterBuilder() {
+        return filterBuilder;
     }
     
-    public void setFilter(Map<String, Object> filter) {
-        this.filter = filter;
+    public void setFilterBuilder(QueryBuilder filterBuilder) {
+        this.filterBuilder = filterBuilder;
     }
     
     public List<Map<String, Object>> getSort() {

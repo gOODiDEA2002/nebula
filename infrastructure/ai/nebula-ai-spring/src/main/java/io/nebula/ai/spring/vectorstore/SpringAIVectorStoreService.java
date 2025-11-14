@@ -6,9 +6,11 @@ import io.nebula.ai.core.model.Document;
 import io.nebula.ai.core.model.SearchRequest;
 import io.nebula.ai.core.model.SearchResult;
 import io.nebula.ai.core.vectorstore.VectorStoreService;
+import io.nebula.ai.spring.config.VectorStoreProperties;
 
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,22 +24,36 @@ import java.util.stream.Collectors;
 
 /**
  * 基于Spring AI的向量存储服务实现
+ * 
+ * 包含批处理和重试机制，提供开箱即用的可靠性保证
+ * 
+ * @author Nebula Framework
+ * @since 2.0.0
  */
 @Service
+@ConditionalOnMissingBean(name = "vectorStoreService")
 public class SpringAIVectorStoreService implements VectorStoreService {
 
     private static final Logger log = LoggerFactory.getLogger(SpringAIVectorStoreService.class);
 
     private final VectorStore vectorStore;
     private final EmbeddingService embeddingService;
+    private final VectorStoreProperties properties;
     private final String collectionName;
 
     @Autowired
-    public SpringAIVectorStoreService(VectorStore vectorStore, 
-                                     EmbeddingService embeddingService) {
+    public SpringAIVectorStoreService(
+            VectorStore vectorStore, 
+            EmbeddingService embeddingService,
+            VectorStoreProperties properties) {
         this.vectorStore = vectorStore;
         this.embeddingService = embeddingService;
+        this.properties = properties;
         this.collectionName = "nebula-documents"; // 默认集合名称
+        
+        log.info("初始化 SpringAIVectorStoreService - 批处理: {}, 批大小: {}, 重试: {}, 最大重试: {}",
+                properties.isBatchingEnabled(), properties.getBatchSize(),
+                properties.isRetryEnabled(), properties.getMaxRetryAttempts());
     }
 
     @Override
@@ -76,13 +92,97 @@ public class SpringAIVectorStoreService implements VectorStoreService {
                     .map(this::convertToSpringDocument)
                     .collect(Collectors.toList());
 
-            vectorStore.add(springDocuments);
-            return documents.size();
+            // 检查是否启用批处理
+            if (!properties.isBatchingEnabled() || documents.size() <= properties.getBatchSize()) {
+                // 不启用批处理或文档数量小于批大小，直接添加
+                addWithRetry(springDocuments);
+                return documents.size();
+            }
 
+            // 分批处理
+            int totalProcessed = 0;
+            int batchSize = properties.getBatchSize();
+            
+            for (int i = 0; i < springDocuments.size(); i += batchSize) {
+                int endIndex = Math.min(i + batchSize, springDocuments.size());
+                List<org.springframework.ai.document.Document> batch = springDocuments.subList(i, endIndex);
+                
+                log.debug("处理批次 {}/{}: {} 个文档", 
+                        (i / batchSize) + 1, 
+                        (springDocuments.size() + batchSize - 1) / batchSize,
+                        batch.size());
+                
+                // 带重试的添加操作
+                addWithRetry(batch);
+                totalProcessed += batch.size();
+                
+                // 批次间延迟
+                if (endIndex < springDocuments.size() && properties.getBatchDelayMs() > 0) {
+                    Thread.sleep(properties.getBatchDelayMs());
+                }
+            }
+            
+            log.info("成功批量添加 {} 个文档到向量存储", totalProcessed);
+            return totalProcessed;
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("批量添加文档被中断: {}", e.getMessage(), e);
+            throw new VectorStoreException("批量添加文档被中断: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("批量添加文档失败: {}", e.getMessage(), e);
             throw new VectorStoreException("批量添加文档失败: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 带重试的添加文档（框架级可靠性保证）
+     * 
+     * @param documents Spring AI 文档列表
+     * @throws VectorStoreException 所有重试失败后抛出
+     */
+    private void addWithRetry(List<org.springframework.ai.document.Document> documents) throws VectorStoreException {
+        if (!properties.isRetryEnabled()) {
+            // 不启用重试，直接添加
+            vectorStore.add(documents);
+            return;
+        }
+        
+        Exception lastException = null;
+        int maxAttempts = properties.getMaxRetryAttempts();
+        
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                vectorStore.add(documents);
+                
+                if (attempt > 1) {
+                    log.info("✅ 重试成功 (第 {} 次尝试)", attempt);
+                }
+                return; // 成功，直接返回
+                
+            } catch (Exception e) {
+                lastException = e;
+                
+                if (attempt < maxAttempts) {
+                    // 指数退避策略
+                    long delayMs = properties.getRetryDelayMs() * (long) Math.pow(2, attempt - 1);
+                    log.warn("⚠️ 添加文档失败 (尝试 {}/{}): {}，{}ms 后重试...", 
+                            attempt, maxAttempts, e.getMessage(), delayMs);
+                    
+                    try {
+                        Thread.sleep(delayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new VectorStoreException("重试被中断", ie);
+                    }
+                } else {
+                    log.error("❌ 所有重试均失败 ({} 次尝试)", maxAttempts);
+                }
+            }
+        }
+        
+        // 所有重试都失败，抛出最后一个异常
+        throw new VectorStoreException("批量添加文档失败（已重试 " + maxAttempts + " 次）: " + lastException.getMessage(), lastException);
     }
 
     @Override
@@ -350,8 +450,9 @@ public class SpringAIVectorStoreService implements VectorStoreService {
      * 将Nebula Document转换为Spring AI Document
      */
     private org.springframework.ai.document.Document convertToSpringDocument(Document document) {
+        // 创建可变的 HashMap 以便添加额外的元数据
         Map<String, Object> metadata = document.getMetadata() != null ? 
-                Map.copyOf(document.getMetadata()) : Map.of();
+                new java.util.HashMap<>(document.getMetadata()) : new java.util.HashMap<>();
         
         // 将文档ID添加到元数据中，以便后续查询
         metadata.put("nebula_id", document.getId());

@@ -10,7 +10,7 @@ Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java
 
 - **现代化技术栈**: Java 21 + Spring Boot 3.x + Maven
 - **模块化架构**: 基于 DDD 原则的清晰模块划分
-- **安全组件**: 加密工具JWT 支持
+- **安全组件**: JWT 认证与 RBAC 支持
 - **数据访问**: 统一的数据访问抽象层，支持多种存储后端
 - **持久化层**: MyBatis-Plus集成，支持读写分离和分库分表
 - **文档数据库**: MongoDB完整支持，包含地理查询和聚合
@@ -24,20 +24,21 @@ Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java
 
 ```
 Nebula Framework
- 核心层 (Core Layer)
-    nebula-foundation       # 基础工具和异常处理
- 基础设施层 (Infrastructure Layer)
-    数据访问 (Data Access)
-       nebula-data-access      # 数据访问抽象层
-       nebula-data-persistence # MyBatis-Plus 集成
-       nebula-data-mongodb     # MongoDB 支持
-       nebula-data-cache       # 多级缓存
+核心层 (Core Layer)
+   nebula-foundation       # 基础工具和异常处理
+   nebula-security         # 安全配置与JWT/RBAC
+基础设施层 (Infrastructure Layer)
+   数据访问 (Data Access)
+      nebula-data-persistence # MyBatis-Plus 集成
+      nebula-data-mongodb     # MongoDB 支持
+      nebula-data-cache       # 多级缓存
     消息传递 (Messaging)
        nebula-messaging-core   # 消息传递核心
        nebula-messaging-rabbitmq  # RabbitMQ 实现
-    RPC 通信 (RPC)
+   RPC 通信 (RPC)
        nebula-rpc-core         # RPC 抽象
        nebula-rpc-http         # HTTP RPC 实现
+       nebula-rpc-grpc         # gRPC RPC 实现
     服务发现 (Discovery)
        nebula-discovery-core   # 服务发现核心
        nebula-discovery-nacos  # Nacos 实现
@@ -51,14 +52,24 @@ Nebula Framework
     AI 服务 (AI)
         nebula-ai-core          # AI 核心
         nebula-ai-spring        # Spring AI 集成
- 应用层 (Application Layer)
+    分布式锁 (Lock)
+        nebula-lock-core        # 锁抽象
+        nebula-lock-redis       # Redis 分布式锁实现
+应用层 (Application Layer)
     nebula-web                 # Web 框架
     nebula-task                # 任务调度
- 集成层 (Integration Layer)
+自动配置层 (Auto-Configuration)
+    nebula-autoconfigure       # 统一自动配置模块
+集成层 (Integration Layer)
     nebula-integration-payment # 支付集成
- Starter 模块 (Starter Modules)
-     nebula-starter             # Spring Boot Starter
-     nebula-example             # 使用示例
+    nebula-integration-notification # 通知集成
+Starter 模块 (Starter Modules)
+     nebula-starter-minimal     # 最小化 Starter（仅核心功能）
+     nebula-starter-web         # Web 应用 Starter
+     nebula-starter-service     # 微服务 Starter
+     nebula-starter-ai          # AI 应用 Starter
+     nebula-starter-all         # 完整 Starter（单体应用）
+     nebula-starter-api         # API 契约模块 Starter
 ```
 
 ##  快速开始
@@ -69,14 +80,78 @@ Nebula Framework
 - Maven 3.6+ 
 - Spring Boot 3.x
 
-### 2. 添加依赖
+### 2. 选择合适的 Starter
 
-在您的 `pom.xml` 中添加 Nebula Starter:
+Nebula 提供多种 Starter 以满足不同场景需求：
+
+#### 🚀 nebula-starter-minimal（最小化）
+**适用场景**: 工具类、库项目、需要精细控制依赖的项目
+**包含模块**: `nebula-foundation`（基础工具）
 
 ```xml
 <dependency>
     <groupId>io.nebula</groupId>
-    <artifactId>nebula-starter</artifactId>
+    <artifactId>nebula-starter-minimal</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+#### 🌐 nebula-starter-web（Web应用）
+**适用场景**: 传统 Web 应用、API 服务、管理后台
+**包含模块**: Foundation + Web + Security + Data(Cache/Persistence) + RPC
+
+```xml
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-starter-web</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+#### ☁️ nebula-starter-service（微服务）
+**适用场景**: 微服务架构、分布式系统、云原生应用
+**包含模块**: Foundation + Web + Discovery + RPC + Data + Messaging + Lock
+
+```xml
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-starter-service</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+#### 🤖 nebula-starter-ai（AI应用）
+**适用场景**: AI/ML 应用、RAG 应用、智能对话系统
+**包含模块**: Foundation + Web + AI(Spring AI) + Cache
+
+```xml
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-starter-ai</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+#### 📦 nebula-starter-all（单体应用）
+**适用场景**: 单体应用、原型开发、快速启动
+**包含模块**: 几乎所有 Nebula 模块
+
+```xml
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-starter-all</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+#### 📋 nebula-starter-api（API契约）
+**适用场景**: API 定义模块、共享接口、RPC 契约
+**包含模块**: RPC Core + Spring Web (provided) + Validation + Lombok (provided)
+
+```xml
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-starter-api</artifactId>
     <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
@@ -112,7 +187,6 @@ public class YourController extends BaseController {
     }
     
     @GetMapping("/hello")
-    @Monitored(name = "hello.api", description = "Hello API")
     public Result<String> hello() {
         return success("Hello, Nebula!");
     }
@@ -124,13 +198,24 @@ public class YourController extends BaseController {
 ```yaml
 # application.yml
 nebula:
-  metrics:
-    enabled: true
-  datasources:
-    primary:
-      url: jdbc:h2:mem:testdb
-      username: sa
-      password: ""
+  web:
+    performance:
+      enabled: true
+  security:
+    jwt:
+      secret: your-secret-key
+      expiration: 86400
+  data:
+    persistence:
+      enabled: true
+      primary: primary
+      sources:
+        primary:
+          type: h2
+          driver-class-name: org.h2.Driver
+          url: jdbc:h2:mem:testdb
+          username: sa
+          password: ""
 ```
 
 ##  模块说明
@@ -144,14 +229,13 @@ nebula:
 - 基础配置支持
 - 通用工具函数
 
-### 数据访问模块
+#### nebula-security
+安全认证与授权支持：
+- JWT 身份认证
+- RBAC 角色/权限控制
+- 注解驱动的权限校验
 
-#### nebula-data-access
-统一数据访问抽象层：
-- 通用Repository接口和实现
-- 链式QueryBuilder查询构建器
-- 统一事务管理接口
-- 完善的异常处理体系
+### 数据访问模块
 
 #### nebula-data-persistence
 关系型数据库完整解决方案：
@@ -203,6 +287,7 @@ Web 框架支持：
 #### RPC 通信 (RPC)
 - **nebula-rpc-core**: RPC 调用抽象和协议定义
 - **nebula-rpc-http**: 基于 HTTP 的 RPC 实现
+- **nebula-rpc-grpc**: 基于 gRPC 的 RPC 实现
 
 #### 服务发现 (Discovery)
 - **nebula-discovery-core**: 服务发现核心抽象和负载均衡
@@ -230,6 +315,13 @@ Web 框架支持：
 - 支付结果回调处理
 - 交易状态管理
 
+#### nebula-integration-notification
+通知集成模块：
+- 统一通知接口抽象
+- 短信/邮件通知支持
+- 模板化消息发送
+- 发送状态跟踪
+
 ## ️ 开发指南
 
 ### 构建项目
@@ -252,63 +344,44 @@ javac -cp "$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp.java
 java -cp ".:$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp
 ```
 
-### 运行完整示例应用
+### 运行应用
 
 ```bash
-# 1. 首先确保所有模块已安装到本地Maven仓库
+# 1. 首先确保所有模块已安装到本地 Maven 仓库
 mvn install -DskipTests
 
-# 2. 运行示例应用（使用简化配置）
-cd nebula-example
-mvn spring-boot:run -Dspring-boot.run.profiles=simple
+# 2. 在你的业务应用或仓库 example 项目中运行
+mvn spring-boot:run
 ```
 
 ### 验证应用接口
 
 应用启动成功后，可以访问以下接口：
 ```bash
-# 系统信息
-curl http://localhost:8080/api/info
-
 # 健康检查
-curl http://localhost:8080/api/health
+curl http://localhost:8080/health
 
 # Hello接口
 curl http://localhost:8080/api/hello
 
-# 用户管理
-curl http://localhost:8080/api/users
-
-# 测试接口
-curl http://localhost:8080/api/test/success
-
 # 性能监控（需要启用性能监控配置）
 curl http://localhost:8080/performance/status
 curl http://localhost:8080/performance/metrics
+curl http://localhost:8080/performance/system
 ```
 
 ### 配置说明
 
-#### 简化配置（推荐用于快速开始）
-使用 `application-simple.yml` 配置：
-- **数据库**: H2 内存数据库（无需安装）
-- **缓存**: 内存缓存（无需Redis）
-- **端口**: 8080
+#### 环境化配置（推荐）
+使用标准的 Spring Boot 环境配置文件：
+- `application.yml`: 通用配置
+- `application-dev.yml`: 开发环境
+- `application-test.yml`: 测试环境
+- `application-prod.yml`: 生产环境
 
-#### 完整配置
-使用 `application.yml` 配置：
-- **数据库**: MySQL（需要单独安装和配置）
-- **缓存**: Redis（需要单独安装和配置）
-- **消息队列**: RabbitMQ（可选）
-- **服务发现**: Nacos（可选）
-- **对象存储**: MinIO/阿里云OSS（可选）
-- **搜索引擎**: Elasticsearch（可选）
-- **AI服务**: Spring AI集成（可选）
-
-#### 其他配置选项
-- `application-minimal.yml`: 最小化配置，仅包含基础功能
-- `application-docker.yml`: Docker容器化部署配置
-- `application-xxljob-optimized.yml`: XXL-Job任务调度优化配置
+示例默认配置与自动配置入口参考：
+`autoconfigure/nebula-autoconfigure/src/main/resources/application.yml`
+`autoconfigure/nebula-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
 
 ### 故障排除
 
@@ -316,7 +389,9 @@ curl http://localhost:8080/performance/metrics
 1. Java 版本是否为 21+
 2. Maven 依赖是否正确安装：`mvn install -DskipTests`
 3. 端口 8080 是否被占用：`netstat -an | grep :8080`
-4. 使用简化配置启动：`-Dspring-boot.run.profiles=simple`
+4. 对照自动配置入口与默认配置排查：
+   `autoconfigure/nebula-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+   `autoconfigure/nebula-autoconfigure/src/main/resources/application.yml`
 
 ### 运行测试
 
@@ -330,8 +405,8 @@ mvn test
 
 1. **性能监控**: 自动收集HTTP请求性能指标，包括响应时间成功率失败率等
 2. **系统监控**: 实时监控CPU内存线程等系统资源使用情况
-3. **健康检查**: 集成 Spring Boot Actuator 健康端点
-4. **性能端点**: 提供 `/performance/metrics`, `/performance/system`, `/performance/status` 等监控接口
+3. **健康检查**: 提供 `/health`, `/health/status`, `/health/ping`, `/health/liveness`, `/health/readiness` 等端点
+4. **性能端点**: 提供 `/performance/metrics`, `/performance/system`, `/performance/status`, `/performance/reset` 等接口
 
 ##  配置
 
@@ -339,16 +414,19 @@ mvn test
 
 ```yaml
 nebula:
-  # 启用监控
-  metrics:
-    enabled: true
+  web:
+    performance:
+      enabled: true
   
-  # 数据源配置
-  datasources:
-    primary:
-      url: ${DB_URL:jdbc:h2:mem:nebula}
-      username: ${DB_USERNAME:sa}
-      password: ${DB_PASSWORD:}
+  # 数据源配置（持久化）
+  data:
+    persistence:
+      enabled: true
+      sources:
+        primary:
+          url: ${DB_URL:jdbc:h2:mem:nebula}
+          username: ${DB_USERNAME:sa}
+          password: ${DB_PASSWORD:}
 ```
 
 ### 高级配置

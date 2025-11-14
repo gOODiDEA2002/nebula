@@ -716,3 +716,8 @@ public class PriorityMessageService {
 
 本项目基于 Apache 2.0 许可证开源
 
+
+## 🧪 测试
+
+本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
+

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-starter-ai</artifactId>
+    <name>Nebula Starter AI</name>
+    <description>Starter for AI applications (RAG, LLM integration, vector search)</description>
+
+    <dependencies>
+        <!-- 继承Minimal Starter -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-starter-minimal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- AI Core Module -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Spring AI Integration -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- LangChain4j Integration (TODO: 未来版本添加) -->
+        <!-- <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-ai-langchain4j</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency> -->
+        
+        <!-- Cache Module (AI应用常需要缓存embedding结果) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Web Support (可选，如果需要提供REST API) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Actuator for monitoring (可选) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

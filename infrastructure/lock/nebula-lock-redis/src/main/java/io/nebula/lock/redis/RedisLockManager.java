@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,12 +13,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * Redis锁管理器
  * 
  * 负责创建和管理Redis锁实例
+ * 
+ * 注：通过 RedisLockAutoConfiguration 自动配置，不使用 @Component
  *
  * @author Nebula Framework
  * @since 2.0.0
  */
 @Slf4j
-@Component
 public class RedisLockManager implements LockManager {
     
     private final RedissonClient redissonClient;

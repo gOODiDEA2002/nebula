@@ -1,0 +1,65 @@
+package io.nebula.storage.minio;
+
+import io.minio.MinioClient;
+import io.nebula.storage.minio.config.MinIOProperties;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * MinIOStorageService单元测试
+ */
+@ExtendWith(MockitoExtension.class)
+class MinIOStorageServiceTest {
+    
+    @Mock
+    private MinioClient minioClient;
+    
+    @Mock
+    private MinIOProperties properties;
+    
+    private MinIOStorageService storageService;
+    
+    @BeforeEach
+    void setUp() {
+        when(properties.getBucketName()).thenReturn("test-bucket");
+        storageService = new MinIOStorageService(minioClient, properties);
+    }
+    
+    @Test
+    void testUpload() throws Exception {
+        String objectName = "test-file.txt";
+        InputStream inputStream = new ByteArrayInputStream("test content".getBytes());
+        long size = 12L;
+        String contentType = "text/plain";
+        
+        String url = storageService.upload(objectName, inputStream, size, contentType);
+        
+        assertThat(url).isNotNull();
+        verify(minioClient).putObject(any());
+    }
+    
+    @Test
+    void testDelete() throws Exception {
+        String objectName = "test-file.txt";
+        
+        storageService.delete(objectName);
+        
+        verify(minioClient).removeObject(any());
+    }
+    
+    @Test
+    void testBucketName() {
+        assertThat(properties.getBucketName()).isEqualTo("test-bucket");
+    }
+}
+

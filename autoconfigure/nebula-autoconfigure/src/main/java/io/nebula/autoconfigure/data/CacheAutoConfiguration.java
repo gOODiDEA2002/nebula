@@ -1,5 +1,7 @@
 package io.nebula.autoconfigure.data;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.nebula.data.cache.config.CacheProperties;
 import io.nebula.data.cache.manager.CacheManager;
 import io.nebula.data.cache.manager.MultiLevelCacheConfig;
@@ -103,7 +105,7 @@ public class CacheAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "redis")
     @ConditionalOnMissingBean(name = "redisTemplate")
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
-        log.info("Configuring RedisTemplate");
+        log.info("Configuring RedisTemplate with JSR310 support");
         
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory);
@@ -112,9 +114,14 @@ public class CacheAutoConfiguration {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         
-        // 设置value序列化器
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        // 创建支持 Java 8 日期时间类型的 ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        
+        // 设置value序列化器（支持 LocalDateTime 等 Java 8 时间类型）
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        template.setValueSerializer(jsonSerializer);
+        template.setHashValueSerializer(jsonSerializer);
         
         template.afterPropertiesSet();
         return template;

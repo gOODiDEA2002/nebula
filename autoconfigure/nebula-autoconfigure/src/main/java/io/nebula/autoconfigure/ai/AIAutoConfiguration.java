@@ -48,7 +48,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @AutoConfiguration
 @ConditionalOnClass({ChatClient.class, ChatModel.class})
 @ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(AIProperties.class)
+@EnableConfigurationProperties({AIProperties.class, io.nebula.ai.spring.config.VectorStoreProperties.class})
 public class AIAutoConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AIAutoConfiguration.class);
@@ -204,10 +204,13 @@ public class AIAutoConfiguration {
     @Bean
     @ConditionalOnClass(VectorStore.class)
     @ConditionalOnMissingBean(VectorStoreService.class)
-    public VectorStoreService vectorStoreService(VectorStore vectorStore, 
-                                                EmbeddingService embeddingService) {
-        log.info("配置 Nebula VectorStoreService");
-        return new SpringAIVectorStoreService(vectorStore, embeddingService);
+    public VectorStoreService vectorStoreService(
+            VectorStore vectorStore, 
+            EmbeddingService embeddingService,
+            io.nebula.ai.spring.config.VectorStoreProperties properties) {
+        log.info("配置 Nebula VectorStoreService - 批处理: {}, 重试: {}", 
+                properties.isBatchingEnabled(), properties.isRetryEnabled());
+        return new SpringAIVectorStoreService(vectorStore, embeddingService, properties);
     }
 
     /**

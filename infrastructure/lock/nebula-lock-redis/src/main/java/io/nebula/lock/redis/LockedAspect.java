@@ -13,7 +13,6 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -24,13 +23,14 @@ import java.util.concurrent.TimeUnit;
  * 
  * 在方法执行前自动获取锁,执行后自动释放锁
  * 支持SpEL表达式动态生成锁key
+ * 
+ * 注：通过 RedisLockAutoConfiguration 自动配置，不使用 @Component
  *
  * @author Nebula Framework
  * @since 2.0.0
  */
 @Slf4j
 @Aspect
-@Component
 @RequiredArgsConstructor
 public class LockedAspect {
     

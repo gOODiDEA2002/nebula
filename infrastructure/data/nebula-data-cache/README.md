@@ -1370,3 +1370,8 @@ class CacheIntegrationTest {
 ```
 
 通过以上配置和使用方式，你可以充分利用Nebula Cache模块提供的强大缓存功能，提高应用性能并确保数据一致性
+
+## 🧪 测试
+
+本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
+

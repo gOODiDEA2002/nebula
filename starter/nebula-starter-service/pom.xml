@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-starter-service</artifactId>
+    <name>Nebula Starter Service</name>
+    <description>Starter for microservices (RPC, service discovery, messaging)</description>
+
+    <dependencies>
+        <!-- 继承Web Starter -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-starter-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- RPC Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-grpc</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Service Discovery Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-nacos</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Messaging Modules -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-rabbitmq</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Distributed Lock -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-lock-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-lock-redis</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Task Scheduling (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-task</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

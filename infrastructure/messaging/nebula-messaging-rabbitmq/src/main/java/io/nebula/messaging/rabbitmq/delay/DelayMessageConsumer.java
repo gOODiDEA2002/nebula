@@ -1,6 +1,7 @@
 package io.nebula.messaging.rabbitmq.delay;
 
 import com.rabbitmq.client.*;
+import com.rabbitmq.client.LongString;
 import io.nebula.messaging.core.serializer.MessageSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,11 +30,23 @@ public class DelayMessageConsumer {
     
     private final Connection connection;
     private final MessageSerializer messageSerializer;
+    private final RabbitDelayMessageProperties properties;
     private final Map<String, String> consumerTags = new ConcurrentHashMap<>();
     
     public DelayMessageConsumer(Connection connection, MessageSerializer messageSerializer) {
+        this(connection, messageSerializer, null);
+    }
+    
+    public DelayMessageConsumer(Connection connection, MessageSerializer messageSerializer, 
+                               RabbitDelayMessageProperties properties) {
         this.connection = connection;
         this.messageSerializer = messageSerializer;
+        this.properties = properties != null ? properties : createDefaultProperties();
+    }
+    
+    private RabbitDelayMessageProperties createDefaultProperties() {
+        RabbitDelayMessageProperties defaultProps = new RabbitDelayMessageProperties();
+        return defaultProps;
     }
     
     /**
@@ -115,7 +128,7 @@ public class DelayMessageConsumer {
             int currentRetry = headers != null && headers.containsKey("x-delay-current-retry") 
                     ? (int) headers.get("x-delay-current-retry") : 0;
             int maxRetries = headers != null && headers.containsKey("x-delay-max-retries") 
-                    ? (int) headers.get("x-delay-max-retries") : 3;
+                    ? (int) headers.get("x-delay-max-retries") : properties.getDefaultMaxRetries();
             
             if (currentRetry < maxRetries) {
                 // 重新发送到延时队列进行重试
@@ -138,9 +151,9 @@ public class DelayMessageConsumer {
         Map<String, Object> headers = new HashMap<>(delivery.getProperties().getHeaders());
         headers.put("x-delay-current-retry", retryCount);
         
-        // 获取重试间隔（默认1秒）
+        // 获取重试间隔（使用配置的默认值）
         long retryInterval = headers.containsKey("x-delay-retry-interval") 
-                ? (long) headers.get("x-delay-retry-interval") : 1000;
+                ? (long) headers.get("x-delay-retry-interval") : properties.getDefaultRetryInterval().toMillis();
         
         // 创建新的属性，增加重试次数
         AMQP.BasicProperties newProperties = new AMQP.BasicProperties.Builder()
@@ -151,8 +164,8 @@ public class DelayMessageConsumer {
                 .build();
         
         // 重新发送到延时队列
-        String originalTopic = (String) headers.get("x-delay-original-topic");
-        String originalQueue = (String) headers.get("x-delay-original-queue");
+        String originalTopic = getStringFromHeader(headers, "x-delay-original-topic");
+        String originalQueue = getStringFromHeader(headers, "x-delay-original-queue");
         
         log.info("Retrying delay message: messageId={}, retry={}/{}, delay={}ms",
                 delivery.getProperties().getMessageId(), retryCount, 
@@ -167,10 +180,23 @@ public class DelayMessageConsumer {
      * 发送到死信队列
      */
     private void sendToDeadLetterQueue(Channel channel, Delivery delivery, Exception exception) throws IOException {
+        // 如果禁用了死信队列，直接拒绝消息
+        if (!properties.isEnableDeadLetterQueue()) {
+            log.warn("Dead letter queue is disabled, rejecting message: messageId={}", 
+                delivery.getProperties().getMessageId());
+            return;
+        }
+        
+        // 使用配置的死信队列名称
+        String dlxExchange = properties.getDeadLetterQueue().getExchange();
+        String dlxQueue = properties.getDeadLetterQueue().getQueue();
+        boolean durable = properties.getDeadLetterQueue().isDurable();
+        boolean autoDelete = properties.getDeadLetterQueue().isAutoDelete();
+        
         // 确保死信交换机和队列存在
-        channel.exchangeDeclare(DEAD_LETTER_EXCHANGE, "direct", true, false, null);
-        channel.queueDeclare(DEAD_LETTER_QUEUE, true, false, false, null);
-        channel.queueBind(DEAD_LETTER_QUEUE, DEAD_LETTER_EXCHANGE, DEAD_LETTER_QUEUE);
+        channel.exchangeDeclare(dlxExchange, "direct", durable, autoDelete, null);
+        channel.queueDeclare(dlxQueue, durable, false, autoDelete, null);
+        channel.queueBind(dlxQueue, dlxExchange, dlxQueue);
         
         // 添加异常信息到headers
         Map<String, Object> headers = new HashMap<>(delivery.getProperties().getHeaders());
@@ -180,17 +206,17 @@ public class DelayMessageConsumer {
         headers.put("x-original-exchange", delivery.getEnvelope().getExchange());
         headers.put("x-original-routing-key", delivery.getEnvelope().getRoutingKey());
         
-        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+        AMQP.BasicProperties messageProperties = new AMQP.BasicProperties.Builder()
                 .messageId(delivery.getProperties().getMessageId())
                 .timestamp(new java.util.Date())
                 .deliveryMode(2)
                 .headers(headers)
                 .build();
         
-        channel.basicPublish(DEAD_LETTER_EXCHANGE, DEAD_LETTER_QUEUE, properties, delivery.getBody());
+        channel.basicPublish(dlxExchange, dlxQueue, messageProperties, delivery.getBody());
         
-        log.error("Sent message to dead letter queue: messageId={}, reason={}",
-                delivery.getProperties().getMessageId(), exception.getMessage());
+        log.error("Sent message to dead letter queue: messageId={}, queue={}, reason={}",
+                delivery.getProperties().getMessageId(), dlxQueue, exception.getMessage());
     }
     
     /**
@@ -202,8 +228,8 @@ public class DelayMessageConsumer {
         context.setTimestamp(properties.getTimestamp() != null ? properties.getTimestamp().getTime() : 0);
         
         if (headers != null) {
-            context.setOriginalTopic((String) headers.get("x-delay-original-topic"));
-            context.setOriginalQueue((String) headers.get("x-delay-original-queue"));
+            context.setOriginalTopic(getStringFromHeader(headers, "x-delay-original-topic"));
+            context.setOriginalQueue(getStringFromHeader(headers, "x-delay-original-queue"));
             context.setDelayMillis(headers.containsKey("x-delay-millis") 
                     ? ((Number) headers.get("x-delay-millis")).longValue() : 0);
             context.setExpectedTime(headers.containsKey("x-delay-expected-time") 
@@ -234,6 +260,29 @@ public class DelayMessageConsumer {
      */
     public boolean isAvailable() {
         return connection != null && connection.isOpen();
+    }
+    
+    /**
+     * 从 header 中安全地获取字符串值
+     * RabbitMQ headers 中的字符串可能是 LongString 类型
+     */
+    private String getStringFromHeader(Map<String, Object> headers, String key) {
+        if (headers == null || !headers.containsKey(key)) {
+            return null;
+        }
+        
+        Object value = headers.get(key);
+        if (value == null) {
+            return null;
+        }
+        
+        if (value instanceof String) {
+            return (String) value;
+        } else if (value instanceof LongString) {
+            return value.toString();
+        } else {
+            return value.toString();
+        }
     }
     
     /**

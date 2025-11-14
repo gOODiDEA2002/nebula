@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Result;
 import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
@@ -21,6 +22,9 @@ import io.nebula.search.core.query.AggregationQuery;
 import io.nebula.search.core.query.SearchQuery;
 import io.nebula.search.core.query.SuggestQuery;
 import io.nebula.search.elasticsearch.config.ElasticsearchProperties;
+import io.nebula.search.elasticsearch.converter.AggregationConverter;
+import io.nebula.search.elasticsearch.converter.QueryConverter;
+import io.nebula.search.elasticsearch.converter.SuggesterConverter;
 import org.elasticsearch.client.RequestOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -384,11 +388,35 @@ public class ElasticsearchSearchService implements SearchService {
         try {
             String actualIndexName = getActualIndexName(query.getIndices()[0]);
             
-            // 这里需要根据实际的聚合查询构建逻辑
-            // 由于AggregationQuery结构复杂，暂时返回空结果
+            // 构建聚合
+            Map<String, Aggregation> aggregations = new HashMap<>();
+            for (io.nebula.search.core.aggregation.Aggregation agg : query.getAggregations()) {
+                Aggregation esAgg = AggregationConverter.convert(agg);
+                if (esAgg != null) {
+                    aggregations.put(agg.getName(), esAgg);
+                }
+            }
+            
+            // 构建查询条件（用于过滤聚合数据）
+            Query filterQuery = query.getQueryBuilder() != null ? 
+                QueryConverter.convert(query.getQueryBuilder()) : 
+                QueryBuilders.matchAll().build()._toQuery();
+            
+            // 执行聚合查询
+            SearchResponse<Void> response = client.search(s -> s
+                .index(actualIndexName)
+                .query(filterQuery)
+                .aggregations(aggregations)
+                .size(0), // 不返回文档，只返回聚合结果
+                Void.class
+            );
+            
+            // 解析聚合结果
+            Map<String, Object> aggResults = AggregationConverter.parseAggregationResults(response.aggregations());
+            
             AggregationResult result = new AggregationResult();
             result.setSuccess(true);
-            result.setAggregations(new HashMap<>());
+            result.setAggregations(aggResults);
             return result;
             
         } catch (Exception e) {
@@ -396,6 +424,7 @@ public class ElasticsearchSearchService implements SearchService {
             AggregationResult result = new AggregationResult();
             result.setSuccess(false);
             result.setErrorMessage(e.getMessage());
+            result.setAggregations(new HashMap<>());
             return result;
         }
     }
@@ -405,11 +434,31 @@ public class ElasticsearchSearchService implements SearchService {
         try {
             String actualIndexName = getActualIndexName(query.getIndices()[0]);
             
-            // 这里需要根据实际的建议查询构建逻辑
-            // 由于SuggestQuery结构复杂，暂时返回空结果
+            // 转换建议器
+            co.elastic.clients.elasticsearch.core.search.Suggester suggester = SuggesterConverter.convert(query.getSuggesters());
+            
+            if (suggester == null) {
+                logger.warn("No valid suggester found in query");
+                SuggestResult result = new SuggestResult();
+                result.setSuccess(true);
+                result.setSuggestions(Collections.emptyMap());
+                return result;
+            }
+            
+            // 执行建议查询
+            SearchResponse<Void> response = client.search(s -> s
+                .index(actualIndexName)
+                .suggest(suggester)
+                .size(0), // 不返回文档，只返回建议结果
+                Void.class
+            );
+            
+            // 解析建议结果
+            Map<String, List<String>> suggestions = SuggesterConverter.parseSuggestionResults(response.suggest());
+            
             SuggestResult result = new SuggestResult();
             result.setSuccess(true);
-            result.setSuggestions(Collections.emptyMap());
+            result.setSuggestions(suggestions);
             return result;
             
         } catch (Exception e) {
@@ -417,6 +466,7 @@ public class ElasticsearchSearchService implements SearchService {
             SuggestResult result = new SuggestResult();
             result.setSuccess(false);
             result.setErrorMessage(e.getMessage());
+            result.setSuggestions(Collections.emptyMap());
             return result;
         }
     }
@@ -547,19 +597,8 @@ public class ElasticsearchSearchService implements SearchService {
     }
 
     private Query buildSearchQuery(SearchQuery query) {
-        if (query.getQuery() != null && !query.getQuery().isEmpty()) {
-            // Extract query string from the query map
-            // Assuming the map contains a "query" key with the search string
-            Object queryString = query.getQuery().get("query");
-            if (queryString != null) {
-                return QueryBuilders.multiMatch().query(queryString.toString()).fields("*").build()._toQuery();
-            } else {
-                // If no "query" key found, try to use the first value as query string
-                if (!query.getQuery().values().isEmpty()) {
-                    Object firstValue = query.getQuery().values().iterator().next();
-                    return QueryBuilders.multiMatch().query(firstValue.toString()).fields("*").build()._toQuery();
-                }
-            }
+        if (query.getQueryBuilder() != null) {
+            return QueryConverter.convert(query.getQueryBuilder());
         }
         return QueryBuilders.matchAll().build()._toQuery();
     }

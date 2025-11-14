@@ -931,3 +931,8 @@ Apache License 2.0
 
 **Nebula Foundation** - 构建高质量应用的基石
 
+
+## 🧪 测试
+
+本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
+

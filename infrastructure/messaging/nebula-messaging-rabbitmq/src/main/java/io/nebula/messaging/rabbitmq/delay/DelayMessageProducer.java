@@ -41,11 +41,23 @@ public class DelayMessageProducer {
     
     private final Connection connection;
     private final MessageSerializer messageSerializer;
+    private final RabbitDelayMessageProperties properties;
     private final Map<String, Boolean> declaredExchanges = new ConcurrentHashMap<>();
     
     public DelayMessageProducer(Connection connection, MessageSerializer messageSerializer) {
+        this(connection, messageSerializer, null);
+    }
+    
+    public DelayMessageProducer(Connection connection, MessageSerializer messageSerializer,
+                               RabbitDelayMessageProperties properties) {
         this.connection = connection;
         this.messageSerializer = messageSerializer;
+        this.properties = properties != null ? properties : createDefaultProperties();
+    }
+    
+    private RabbitDelayMessageProperties createDefaultProperties() {
+        RabbitDelayMessageProperties defaultProps = new RabbitDelayMessageProperties();
+        return defaultProps;
     }
     
     /**
@@ -62,6 +74,19 @@ public class DelayMessageProducer {
         
         if (message.getDelay() == null || message.getDelay().isNegative() || message.getDelay().isZero()) {
             throw new IllegalArgumentException("Delay duration must be positive");
+        }
+        
+        // 验证延时时间范围
+        long delayMillis = message.getDelay().toMillis();
+        if (delayMillis < properties.getMinDelayMillis()) {
+            throw new IllegalArgumentException(
+                String.format("Delay duration %dms is less than minimum %dms", 
+                    delayMillis, properties.getMinDelayMillis()));
+        }
+        if (delayMillis > properties.getMaxDelayMillis()) {
+            throw new IllegalArgumentException(
+                String.format("Delay duration %dms exceeds maximum %dms", 
+                    delayMillis, properties.getMaxDelayMillis()));
         }
         
         if (message.getMessageId() == null) {

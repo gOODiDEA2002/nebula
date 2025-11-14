@@ -29,6 +29,11 @@ io.nebula.autoconfigure.data.ShardingSphereAutoConfiguration
 io.nebula.autoconfigure.data.CacheAutoConfiguration
 
 # ========================================
+# Lock Layer - 分布式锁层
+# ========================================
+io.nebula.lock.redis.RedisLockAutoConfiguration
+
+# ========================================
 # Messaging Layer - 消息层
 # ========================================
 io.nebula.autoconfigure.messaging.RabbitMQAutoConfiguration

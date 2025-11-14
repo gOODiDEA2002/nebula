@@ -562,3 +562,8 @@ public class RedisResponseCache implements ResponseCache {
 ---
 
 更多详细信息，请参考源码和测试用例
+
+## 🧪 测试
+
+本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
+

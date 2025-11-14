@@ -6,11 +6,14 @@ import io.nebula.messaging.core.router.MessageRouter;
 import io.nebula.messaging.core.router.DefaultMessageRouter;
 import io.nebula.messaging.core.annotation.MessageHandlerProcessor;
 import io.nebula.messaging.rabbitmq.config.RabbitMQProperties;
+import io.nebula.messaging.rabbitmq.delay.RabbitDelayMessageProperties;
 import io.nebula.messaging.rabbitmq.producer.RabbitMQMessageProducer;
 import io.nebula.messaging.rabbitmq.consumer.RabbitMQMessageConsumer;
 import io.nebula.messaging.rabbitmq.exchange.RabbitMQExchangeManager;
 import io.nebula.messaging.rabbitmq.manager.RabbitMQMessageManager;
 import io.nebula.messaging.rabbitmq.delay.DelayMessageProducer;
+import io.nebula.messaging.rabbitmq.delay.DelayMessageConsumer;
+import io.nebula.messaging.rabbitmq.delay.DelayMessageListenerProcessor;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -28,7 +31,7 @@ import org.springframework.context.annotation.Primary;
 @Configuration
 @ConditionalOnClass({ConnectionFactory.class, Connection.class})
 @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = false)
-@EnableConfigurationProperties(RabbitMQProperties.class)
+@EnableConfigurationProperties({RabbitMQProperties.class, RabbitDelayMessageProperties.class})
 public class RabbitMQAutoConfiguration {
     
     private final RabbitMQProperties properties;
@@ -85,8 +88,19 @@ public class RabbitMQAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq.delay-message", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public DelayMessageProducer delayMessageProducer(Connection connection, MessageSerializer messageSerializer) {
-        return new DelayMessageProducer(connection, messageSerializer);
+    public DelayMessageProducer delayMessageProducer(Connection connection, 
+                                                    MessageSerializer messageSerializer,
+                                                    RabbitDelayMessageProperties delayProperties) {
+        return new DelayMessageProducer(connection, messageSerializer, delayProperties);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq.delay-message", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public DelayMessageConsumer delayMessageConsumer(Connection connection, 
+                                                    MessageSerializer messageSerializer,
+                                                    RabbitDelayMessageProperties delayProperties) {
+        return new DelayMessageConsumer(connection, messageSerializer, delayProperties);
     }
     
     @Bean
@@ -120,5 +134,12 @@ public class RabbitMQAutoConfiguration {
     @ConditionalOnMissingBean
     public static MessageHandlerProcessor messageHandlerProcessor(@Lazy RabbitMQMessageManager messageManager) {
         return new MessageHandlerProcessor(messageManager);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq.delay-message", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public static DelayMessageListenerProcessor delayMessageListenerProcessor() {
+        return new DelayMessageListenerProcessor();
     }
 }
