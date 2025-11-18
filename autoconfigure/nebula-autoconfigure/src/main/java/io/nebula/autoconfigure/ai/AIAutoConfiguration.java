@@ -28,8 +28,7 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.ollama.OllamaEmbeddingModel;
 import org.springframework.ai.ollama.api.OllamaApi;
-import org.springframework.ai.ollama.api.OllamaOptions;
-import org.springframework.ai.ollama.management.ModelManagementOptions;
+import org.springframework.ai.ollama.api.OllamaEmbeddingOptions;
 import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.retry.RetryUtils;
 import io.micrometer.observation.ObservationRegistry;
@@ -190,21 +189,22 @@ public class AIAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.ai.ollama.embedding", name = "enabled", havingValue = "true", matchIfMissing = true)
     public EmbeddingModel nebulaOllamaEmbeddingModel(
             OllamaApi nebulaOllamaApi, 
-            AIProperties aiProperties,
-            ObservationRegistry observationRegistry) {
+            AIProperties aiProperties) {
         AIProperties.OllamaProperties ollamaConfig = aiProperties.getOllama();
         AIProperties.OllamaEmbeddingOptions embeddingOptions = ollamaConfig.getEmbedding().getOptions();
         
         log.info("配置 Ollama EmbeddingModel, Model: {}", embeddingOptions.getModel());
         
-        OllamaOptions options = OllamaOptions.builder()
+        // Spring AI 1.1.0 使用 OllamaEmbeddingOptions
+        OllamaEmbeddingOptions options = OllamaEmbeddingOptions.builder()
                 .model(embeddingOptions.getModel())
                 .build();
         
-        // Spring AI 1.0.3版本的OllamaEmbeddingModel需要4个参数
-        ModelManagementOptions modelManagementOptions = ModelManagementOptions.defaults();
-        
-        return new OllamaEmbeddingModel(nebulaOllamaApi, options, observationRegistry, modelManagementOptions);
+        // Spring AI 1.1.0 使用 Builder 模式
+        return OllamaEmbeddingModel.builder()
+                .ollamaApi(nebulaOllamaApi)
+                .defaultOptions(options)
+                .build();
     }
 
     

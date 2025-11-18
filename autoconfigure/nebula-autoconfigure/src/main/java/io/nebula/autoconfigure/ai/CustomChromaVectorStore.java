@@ -138,7 +138,8 @@ public class CustomChromaVectorStore implements VectorStore {
             }
 
             ChromaApi.DeleteEmbeddingsRequest request = new ChromaApi.DeleteEmbeddingsRequest(idList);
-            chromaApi.deleteEmbeddings(DEFAULT_TENANT, DEFAULT_DATABASE, collectionName, request);
+            // 使用collectionId而不是collectionName，保持与add/search方法一致
+            chromaApi.deleteEmbeddings(DEFAULT_TENANT, DEFAULT_DATABASE, collectionId, request);
 
         } catch (Exception e) {
             log.error("删除文档失败", e);
@@ -171,7 +172,7 @@ public class CustomChromaVectorStore implements VectorStore {
             ChromaApi.QueryResponse response = chromaApi.queryCollection(
                     DEFAULT_TENANT,
                     DEFAULT_DATABASE,
-                    collectionName,
+                    collectionId,  // 使用collectionId而不是collectionName，Chroma API要求UUID格式
                     queryRequest
             );
 

@@ -33,15 +33,23 @@
 <!-- Spring AI OpenAI Starter（根据需要选择） -->
 <dependency>
     <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+    <artifactId>spring-ai-starter-model-openai</artifactId>
 </dependency>
 
 <!-- Spring AI Chroma Vector Store（可选，用于向量存储） -->
 <dependency>
     <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-chroma-store-spring-boot-starter</artifactId>
+    <artifactId>spring-ai-starter-vector-store-chroma</artifactId>
+</dependency>
+
+<!-- Spring AI MCP Server（可选，用于构建 MCP 服务器） -->
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
 </dependency>
 ```
+
+> **注意**：从版本 2.0.1 开始，nebula-ai-spring 使用 Spring AI 1.1.0，支持标准的 MCP (Model Context Protocol) Server。
 
 ### 基础配置
 
@@ -506,6 +514,109 @@ logging:
 
 本项目基于 Apache 2.0 许可证开源
 
+
+## 🔌 MCP Server 支持
+
+从 Spring AI 1.1.0 开始，nebula-ai-spring 支持构建标准的 MCP (Model Context Protocol) 服务器。
+
+### 快速开始
+
+#### 1. 添加依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+</dependency>
+```
+
+#### 2. 配置 MCP Server
+
+```yaml
+spring:
+  ai:
+    mcp:
+      server:
+        protocol: STREAMABLE
+        name: my-mcp-server
+        version: 1.0.0
+        type: SYNC
+        instructions: "AI 服务器描述"
+        capabilities:
+          tool: true
+          resource: true
+        streamable-http:
+          mcp-endpoint: /mcp
+```
+
+#### 3. 定义 MCP 工具
+
+```java
+@Service
+public class MyMcpTools {
+    
+    @McpTool(
+        name = "search_docs",
+        description = "搜索文档"
+    )
+    public String searchDocs(
+            @McpToolParam(description = "搜索关键词", required = true) 
+            String query) {
+        // 实现搜索逻辑
+        return "搜索结果...";
+    }
+}
+```
+
+#### 4. 定义 MCP 资源（可选）
+
+```java
+@Configuration
+public class McpResourcesConfig {
+    
+    @Bean
+    public List<McpServerFeatures.SyncResourceSpecification> myResources() {
+        var resource = new McpSchema.Resource(
+            "app://config",
+            "应用配置",
+            "应用配置信息",
+            "application/json"
+        );
+        
+        var spec = new McpServerFeatures.SyncResourceSpecification(
+            resource,
+            (exchange, request) -> {
+                // 返回资源内容
+                return new McpSchema.ReadResourceResult(
+                    List.of(new McpSchema.TextResourceContents(
+                        request.uri(), 
+                        "application/json", 
+                        "{...}"
+                    ))
+                );
+            }
+        );
+        
+        return List.of(spec);
+    }
+}
+```
+
+### MCP 功能特性
+
+- **标准协议**: 符合 MCP Streamable HTTP 协议规范
+- **工具注册**: 使用 `@McpTool` 注解轻松定义工具
+- **资源管理**: 支持动态资源和变更通知
+- **上下文支持**: 可通过 `McpSyncRequestContext` 访问请求上下文
+- **进度报告**: 支持长时间运行任务的进度通知
+- **日志集成**: 支持向客户端发送日志消息
+
+### 更多信息
+
+- [Spring AI MCP 文档](https://docs.spring.io/spring-ai/reference/api/mcp/mcp-streamable-http-server-boot-starter-docs.html)
+- [MCP 协议规范](https://modelcontextprotocol.io/)
+
+---
 
 ## 🧪 测试
 

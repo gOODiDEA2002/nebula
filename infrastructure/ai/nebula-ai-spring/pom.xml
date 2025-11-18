@@ -15,6 +15,23 @@
     <name>Nebula AI Spring Implementation</name>
     <description>Nebula framework AI implementation using Spring AI</description>
 
+    <properties>
+        <spring-ai.version>1.1.0</spring-ai.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring AI BOM -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Nebula AI Core -->
         <dependency>
@@ -27,7 +44,6 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
-            <version>1.0.3</version>
             <optional>true</optional>
         </dependency>
 
@@ -35,7 +51,13 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-vector-store-chroma</artifactId>
-            <version>1.0.3</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring AI MCP Server (可选，用于构建 MCP 服务器) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
             <optional>true</optional>
         </dependency>
 
