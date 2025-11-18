@@ -46,6 +46,10 @@ public class SpringAIVectorStoreService implements VectorStoreService {
             VectorStore vectorStore, 
             EmbeddingService embeddingService,
             VectorStoreProperties properties) {
+        System.err.println("==========【CONSTRUCTOR】SpringAIVectorStoreService构造函数被调用==========");
+        System.err.println("  - vectorStore类型: " + vectorStore.getClass().getName());
+        System.err.println("  - embeddingService类型: " + embeddingService.getClass().getName());
+        
         this.vectorStore = vectorStore;
         this.embeddingService = embeddingService;
         this.properties = properties;
@@ -54,6 +58,8 @@ public class SpringAIVectorStoreService implements VectorStoreService {
         log.info("初始化 SpringAIVectorStoreService - 批处理: {}, 批大小: {}, 重试: {}, 最大重试: {}",
                 properties.isBatchingEnabled(), properties.getBatchSize(),
                 properties.isRetryEnabled(), properties.getMaxRetryAttempts());
+        
+        System.err.println("==========【CONSTRUCTOR】SpringAIVectorStoreService初始化完成==========");
     }
 
     @Override
@@ -142,41 +148,97 @@ public class SpringAIVectorStoreService implements VectorStoreService {
      * @throws VectorStoreException 所有重试失败后抛出
      */
     private void addWithRetry(List<org.springframework.ai.document.Document> documents) throws VectorStoreException {
+        System.err.println("==========【METHOD ENTRY】addWithRetry被调用，documents.size=" + documents.size());
+        
         if (!properties.isRetryEnabled()) {
             // 不启用重试，直接添加
+            log.debug("重试未启用，直接添加 {} 个文档", documents.size());
+            System.err.println("【NO RETRY PATH】直接调用vectorStore.add");
             vectorStore.add(documents);
+            System.err.println("【NO RETRY PATH】vectorStore.add调用完成");
             return;
         }
         
+        System.err.println("【RETRY PATH】进入重试逻辑");
         Exception lastException = null;
         int maxAttempts = properties.getMaxRetryAttempts();
+        long overallStartTime = System.currentTimeMillis();
         
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            long attemptStartTime = System.currentTimeMillis();
             try {
-                vectorStore.add(documents);
+                log.debug("尝试添加文档 (第 {}/{} 次)", attempt, maxAttempts);
+                log.debug("- 文档数量: {}", documents.size());
+                if (!documents.isEmpty()) {
+                    log.debug("- 第一个文档ID: {}", documents.get(0).getId());
+                    log.debug("- 文本长度: {} 字符", documents.get(0).getText().length());
+                }
                 
+                // 使用System.err.println强制输出，绕过日志系统
+                System.err.println("======== 【System.err】准备调用 vectorStore.add() ========");
+                System.err.println("Document数量: " + documents.size());
+                if (!documents.isEmpty()) {
+                    org.springframework.ai.document.Document doc = documents.get(0);
+                    String text = doc.getText();
+                    System.err.println("第一个Document详情:");
+                    System.err.println("  - ID: " + doc.getId());
+                    System.err.println("  - getText() length: " + text.length());
+                    System.err.println("  - getText() 前200字符: '" + text.substring(0, Math.min(200, text.length())) + "'");
+                    System.err.println("  - Metadata: " + doc.getMetadata());
+                }
+                
+                // 调用向量存储添加文档
+                System.err.println("======== 【System.err】正在调用 vectorStore.add() ========");
+                vectorStore.add(documents);
+                System.err.println("======== 【System.err】vectorStore.add() 调用完成 ========");
+                
+                log.debug("======== 【关键调试】vectorStore.add() 调用完成 ========");
+                
+                long attemptElapsedTime = System.currentTimeMillis() - attemptStartTime;
                 if (attempt > 1) {
+                    long overallElapsedTime = System.currentTimeMillis() - overallStartTime;
                     log.info("✅ 重试成功 (第 {} 次尝试)", attempt);
+                    log.info("- 本次尝试耗时: {} ms", attemptElapsedTime);
+                    log.info("- 总耗时（含重试）: {} ms", overallElapsedTime);
+                } else {
+                    log.debug("首次尝试成功，耗时: {} ms", attemptElapsedTime);
                 }
                 return; // 成功，直接返回
                 
             } catch (Exception e) {
                 lastException = e;
+                long attemptElapsedTime = System.currentTimeMillis() - attemptStartTime;
+                
+                // 记录详细的错误信息
+                log.error("⚠️ 添加文档失败 (尝试 {}/{})", attempt, maxAttempts);
+                log.error("- 错误类型: {}", e.getClass().getName());
+                log.error("- 错误信息: {}", e.getMessage());
+                log.error("- 文档数量: {}", documents.size());
+                log.error("- 本次尝试耗时: {} ms", attemptElapsedTime);
+                
+                // 记录根本原因
+                Throwable rootCause = getRootCause(e);
+                if (rootCause != e) {
+                    log.error("- 根本原因: {} - {}", rootCause.getClass().getName(), rootCause.getMessage());
+                }
                 
                 if (attempt < maxAttempts) {
                     // 指数退避策略
                     long delayMs = properties.getRetryDelayMs() * (long) Math.pow(2, attempt - 1);
-                    log.warn("⚠️ 添加文档失败 (尝试 {}/{}): {}，{}ms 后重试...", 
-                            attempt, maxAttempts, e.getMessage(), delayMs);
+                    log.warn("{}ms 后进行第 {} 次重试...", delayMs, attempt + 1);
                     
                     try {
                         Thread.sleep(delayMs);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
+                        log.error("重试被中断", ie);
                         throw new VectorStoreException("重试被中断", ie);
                     }
                 } else {
+                    long overallElapsedTime = System.currentTimeMillis() - overallStartTime;
                     log.error("❌ 所有重试均失败 ({} 次尝试)", maxAttempts);
+                    log.error("- 总耗时: {} ms", overallElapsedTime);
+                    log.error("- 完整异常堆栈:", e);
                 }
             }
         }
@@ -505,5 +567,16 @@ public class SpringAIVectorStoreService implements VectorStoreService {
         return filter.entrySet().stream()
                 .map(entry -> entry.getKey() + " == '" + entry.getValue() + "'")
                 .collect(Collectors.joining(" AND "));
+    }
+    
+    /**
+     * 获取异常的根本原因
+     */
+    private Throwable getRootCause(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause;
     }
 }

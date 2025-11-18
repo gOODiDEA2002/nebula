@@ -321,7 +321,7 @@ nebula:
     nacos:
       weight: 0.1  # 10% 流量
       metadata:
-        version: 2.0.0-SNAPSHOT
+        version: 2.0.1-SNAPSHOT
         gray: true
 
 # 稳定实例

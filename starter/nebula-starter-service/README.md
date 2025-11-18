@@ -44,7 +44,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-service</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -76,4 +76,4 @@ nebula:
 
 ---
 
-**版本**: 2.0.0-SNAPSHOT
+**版本**: 2.0.1-SNAPSHOT

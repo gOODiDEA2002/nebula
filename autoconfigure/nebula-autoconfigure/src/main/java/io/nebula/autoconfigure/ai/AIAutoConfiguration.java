@@ -26,8 +26,14 @@ import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
+import org.springframework.ai.ollama.OllamaEmbeddingModel;
+import org.springframework.ai.ollama.api.OllamaApi;
+import org.springframework.ai.ollama.api.OllamaOptions;
+import org.springframework.ai.ollama.management.ModelManagementOptions;
 import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.retry.RetryUtils;
+import io.micrometer.observation.ObservationRegistry;
+import java.time.Duration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -59,13 +65,26 @@ public class AIAutoConfiguration {
     
     /**
      * 配置 RestClient.Builder
-     * 为 ChromaApi 提供 RestClient.Builder Bean
+     * 为 ChromaApi 和 OllamaApi 提供 RestClient.Builder Bean
+     * 添加 HTTP 日志拦截器
      */
     @Bean
     @ConditionalOnMissingBean
     public RestClient.Builder builder() {
-        log.info("配置 RestClient.Builder");
-        return RestClient.builder().requestFactory(new SimpleClientHttpRequestFactory());
+        log.info("配置 RestClient.Builder (带HTTP日志拦截器)");
+        
+        // 添加 HTTP 日志拦截器
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+        
+        // 不使用 BufferingClientHttpRequestFactory，直接使用默认的 SimpleClientHttpRequestFactory
+        // BufferingClientHttpRequestFactory 可能导致与某些服务器的兼容性问题
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(120));
+        
+        return RestClient.builder()
+                .requestFactory(requestFactory)
+                .requestInterceptor(loggingInterceptor);
     }
     
     /**
@@ -121,10 +140,9 @@ public class AIAutoConfiguration {
      * 基于 Nebula 配置创建 EmbeddingModel Bean
      */
     @Bean("nebulaOpenAiEmbeddingModel")
-    @Primary
     @ConditionalOnClass(OpenAiEmbeddingModel.class)
     @ConditionalOnMissingBean(name = "nebulaOpenAiEmbeddingModel")
-    @ConditionalOnProperty(prefix = "nebula.ai.openai.embedding", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "nebula.ai.openai.embedding", name = "enabled", havingValue = "true", matchIfMissing = false)
     public EmbeddingModel nebulaOpenAiEmbeddingModel(OpenAiApi nebulaOpenAiApi, AIProperties aiProperties) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
         AIProperties.OpenAIEmbeddingOptions embeddingOptions = openAIConfig.getEmbedding().getOptions();
@@ -137,6 +155,58 @@ public class AIAutoConfiguration {
         
         return new OpenAiEmbeddingModel(nebulaOpenAiApi, MetadataMode.EMBED, options, RetryUtils.DEFAULT_RETRY_TEMPLATE);
     }
+    
+    /**
+     * 配置 OllamaApi
+     * 基于 Nebula 配置创建 OllamaApi Bean
+     */
+    @Bean("nebulaOllamaApi")
+    @ConditionalOnClass(OllamaApi.class)
+    @ConditionalOnMissingBean(name = "nebulaOllamaApi")
+    @ConditionalOnProperty(prefix = "nebula.ai.ollama", name = "base-url")
+    public OllamaApi nebulaOllamaApi(AIProperties aiProperties, RestClient.Builder restClientBuilder) {
+        AIProperties.OllamaProperties ollamaConfig = aiProperties.getOllama();
+        
+        log.info("配置 OllamaApi, Base URL: {}", ollamaConfig.getBaseUrl());
+        log.info("- 读取超时: {}", ollamaConfig.getTimeout().getRead());
+        log.info("- 连接超时: {}", ollamaConfig.getTimeout().getConnect());
+        
+        // 使用自定义的RestClient.Builder（带HTTP日志拦截器）
+        // Spring AI 1.0.3的OllamaApi.builder()支持restClientBuilder()方法
+        return OllamaApi.builder()
+                .baseUrl(ollamaConfig.getBaseUrl())
+                .restClientBuilder(restClientBuilder)
+                .build();
+    }
+    
+    /**
+     * 配置 Ollama EmbeddingModel
+     * 基于 Nebula 配置创建 EmbeddingModel Bean
+     */
+    @Bean("nebulaOllamaEmbeddingModel")
+    @Primary
+    @ConditionalOnClass(OllamaEmbeddingModel.class)
+    @ConditionalOnMissingBean(name = "nebulaOllamaEmbeddingModel")
+    @ConditionalOnProperty(prefix = "nebula.ai.ollama.embedding", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public EmbeddingModel nebulaOllamaEmbeddingModel(
+            OllamaApi nebulaOllamaApi, 
+            AIProperties aiProperties,
+            ObservationRegistry observationRegistry) {
+        AIProperties.OllamaProperties ollamaConfig = aiProperties.getOllama();
+        AIProperties.OllamaEmbeddingOptions embeddingOptions = ollamaConfig.getEmbedding().getOptions();
+        
+        log.info("配置 Ollama EmbeddingModel, Model: {}", embeddingOptions.getModel());
+        
+        OllamaOptions options = OllamaOptions.builder()
+                .model(embeddingOptions.getModel())
+                .build();
+        
+        // Spring AI 1.0.3版本的OllamaEmbeddingModel需要4个参数
+        ModelManagementOptions modelManagementOptions = ModelManagementOptions.defaults();
+        
+        return new OllamaEmbeddingModel(nebulaOllamaApi, options, observationRegistry, modelManagementOptions);
+    }
+
     
     /**
      * 配置 ChromaApi
@@ -167,13 +237,17 @@ public class AIAutoConfiguration {
     public VectorStore nebulaChromaVectorStore(ChromaApi nebulaChromaApi, EmbeddingModel embeddingModel, AIProperties aiProperties) {
         AIProperties.ChromaProperties chromaConfig = aiProperties.getVectorStore().getChroma();
         
-        log.info("配置 ChromaVectorStore, Collection: {}, InitializeSchema: {}", 
+        log.info("配置 CustomChromaVectorStore, Collection: {}, InitializeSchema: {}", 
                 chromaConfig.getCollectionName(), chromaConfig.isInitializeSchema());
+        log.info("注入的 EmbeddingModel 类型: {}", embeddingModel.getClass().getName());
         
-        return ChromaVectorStore.builder(nebulaChromaApi, embeddingModel)
-                .collectionName(chromaConfig.getCollectionName())
-                .initializeSchema(chromaConfig.isInitializeSchema())
-                .build();
+        // 使用自定义实现绕过JSON解析兼容性问题
+        return new CustomChromaVectorStore(
+                nebulaChromaApi,
+                embeddingModel,
+                chromaConfig.getCollectionName(),
+                chromaConfig.isInitializeSchema()
+        );
     }
 
     /**

@@ -39,7 +39,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-minimal</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -115,7 +115,7 @@ logging:
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-web</artifactId>  <!-- 改为web -->
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -143,6 +143,6 @@ logging:
 
 ---
 
-**版本**: 2.0.0-SNAPSHOT  
+**版本**: 2.0.1-SNAPSHOT  
 **维护**: Nebula Framework Team
 

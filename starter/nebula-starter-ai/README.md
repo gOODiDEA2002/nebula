@@ -66,7 +66,7 @@ AI应用专用Starter，集成Spring AI和LangChain4j，支持RAG、LLM、向量
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-ai</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 
 <!-- 如果需要Web API，显式声明 -->
@@ -370,7 +370,7 @@ A:
 
 ---
 
-**版本**: 2.0.0-SNAPSHOT  
+**版本**: 2.0.1-SNAPSHOT  
 **推荐场景**: AI应用、RAG系统、向量检索  
 **维护**: Nebula Framework Team
 

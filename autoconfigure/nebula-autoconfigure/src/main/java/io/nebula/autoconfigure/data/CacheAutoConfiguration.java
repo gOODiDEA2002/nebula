@@ -1,6 +1,8 @@
 package io.nebula.autoconfigure.data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.nebula.data.cache.config.CacheProperties;
 import io.nebula.data.cache.manager.CacheManager;
@@ -114,11 +116,18 @@ public class CacheAutoConfiguration {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         
-        // 创建支持 Java 8 日期时间类型的 ObjectMapper
+        // 创建支持 Java 8 日期时间类型并启用类型信息的 ObjectMapper
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.activateDefaultTyping(
+                BasicPolymorphicTypeValidator.builder()
+                        .allowIfBaseType(Object.class)
+                        .build(),
+                ObjectMapper.DefaultTyping.NON_FINAL
+        );
         
-        // 设置value序列化器（支持 LocalDateTime 等 Java 8 时间类型）
+        // 设置value序列化器（支持 LocalDateTime 等 Java 8 时间类型，保留类型信息）
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);

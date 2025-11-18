@@ -53,7 +53,7 @@ blog-api/
 
     <properties>
         <java.version>21</java.version>
-        <nebula.version>2.0.0-SNAPSHOT</nebula.version>
+        <nebula.version>2.0.1-SNAPSHOT</nebula.version>
     </properties>
 
     <dependencies>

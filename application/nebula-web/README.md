@@ -56,7 +56,7 @@ Nebula Web 是一个基于 Spring Boot 的现代化 Web 框架，提供了认证
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-web</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -553,7 +553,7 @@ public class RedisResponseCache implements ResponseCache {
 
 ## 更新日志
 
-### 2.0.0-SNAPSHOT
+### 2.0.1-SNAPSHOT
 - 全面重构，支持 Spring Boot 3
 - 新增数据脱敏功能
 - 优化性能监控

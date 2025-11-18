@@ -43,6 +43,11 @@ public class AIProperties {
      * OpenAI配置
      */
     private OpenAIProperties openai = new OpenAIProperties();
+    
+    /**
+     * Ollama配置
+     */
+    private OllamaProperties ollama = new OllamaProperties();
 
     public boolean isEnabled() {
         return enabled;
@@ -90,6 +95,14 @@ public class AIProperties {
     
     public void setOpenai(OpenAIProperties openai) {
         this.openai = openai;
+    }
+    
+    public OllamaProperties getOllama() {
+        return ollama;
+    }
+    
+    public void setOllama(OllamaProperties ollama) {
+        this.ollama = ollama;
     }
 
     /**
@@ -516,6 +529,130 @@ public class AIProperties {
          * 模型名称
          */
         private String model = "text-embedding-ada-002";
+        
+        public String getModel() {
+            return model;
+        }
+        
+        public void setModel(String model) {
+            this.model = model;
+        }
+    }
+    
+    /**
+     * Ollama 特定配置
+     */
+    public static class OllamaProperties {
+        /**
+         * 基础 URL
+         */
+        private String baseUrl = "http://localhost:11434";
+        
+        /**
+         * HTTP 超时配置
+         */
+        private TimeoutProperties timeout = new TimeoutProperties();
+        
+        /**
+         * 嵌入配置
+         */
+        private OllamaEmbeddingProperties embedding = new OllamaEmbeddingProperties();
+        
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+        
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+        
+        public TimeoutProperties getTimeout() {
+            return timeout;
+        }
+        
+        public void setTimeout(TimeoutProperties timeout) {
+            this.timeout = timeout;
+        }
+        
+        public OllamaEmbeddingProperties getEmbedding() {
+            return embedding;
+        }
+        
+        public void setEmbedding(OllamaEmbeddingProperties embedding) {
+            this.embedding = embedding;
+        }
+    }
+    
+    /**
+     * Ollama 超时配置
+     */
+    public static class TimeoutProperties {
+        /**
+         * 读取超时（秒）
+         */
+        private String read = "120s";
+        
+        /**
+         * 连接超时（秒）
+         */
+        private String connect = "10s";
+        
+        public String getRead() {
+            return read;
+        }
+        
+        public void setRead(String read) {
+            this.read = read;
+        }
+        
+        public String getConnect() {
+            return connect;
+        }
+        
+        public void setConnect(String connect) {
+            this.connect = connect;
+        }
+    }
+    
+    /**
+     * Ollama 嵌入配置
+     */
+    public static class OllamaEmbeddingProperties {
+        /**
+         * 是否启用
+         */
+        private boolean enabled = true;
+        
+        /**
+         * 嵌入选项
+         */
+        private OllamaEmbeddingOptions options = new OllamaEmbeddingOptions();
+        
+        public boolean isEnabled() {
+            return enabled;
+        }
+        
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+        
+        public OllamaEmbeddingOptions getOptions() {
+            return options;
+        }
+        
+        public void setOptions(OllamaEmbeddingOptions options) {
+            this.options = options;
+        }
+    }
+    
+    /**
+     * Ollama 嵌入选项
+     */
+    public static class OllamaEmbeddingOptions {
+        /**
+         * 模型名称
+         */
+        private String model = "nomic-embed-text";
         
         public String getModel() {
             return model;

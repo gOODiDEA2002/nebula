@@ -104,7 +104,7 @@
 <parent>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-parent</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </parent>
 
 <dependencies>
@@ -183,7 +183,7 @@
 <parent>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-parent</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </parent>
 
 <dependencies>
@@ -227,7 +227,7 @@ A: 运行 `mvn dependency:tree | grep spring-ai`
 
 ---
 
-**文档版本**: 2.0.0-SNAPSHOT  
+**文档版本**: 2.0.1-SNAPSHOT  
 **最后更新**: 2025-11-14  
 **维护者**: Nebula Team
 

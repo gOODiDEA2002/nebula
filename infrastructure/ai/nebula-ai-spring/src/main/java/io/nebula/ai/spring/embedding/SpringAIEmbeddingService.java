@@ -35,36 +35,91 @@ public class SpringAIEmbeddingService implements EmbeddingService {
 
     @Override
     public EmbeddingResponse embed(String text) {
+        long startTime = System.currentTimeMillis();
         try {
-            log.debug("对文本进行向量化: {}", text.substring(0, Math.min(text.length(), 50)) + "...");
-
+            // 记录详细的请求信息
+            log.info("开始文本向量化");
+            log.debug("- 文本长度: {} 字符", text.length());
+            log.debug("- 文本预览: {}", text.substring(0, Math.min(text.length(), 100)) + "...");
+            log.debug("- Embedding模型: {}", embeddingModel.getClass().getSimpleName());
+            
+            // 调用Spring AI进行向量化
             org.springframework.ai.embedding.EmbeddingResponse springResponse = 
                     embeddingModel.embedForResponse(List.of(text));
+
+            // 记录详细的响应信息
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            if (!springResponse.getResults().isEmpty()) {
+                float[] vector = springResponse.getResults().get(0).getOutput();
+                log.info("✅ 文本向量化成功");
+                log.debug("- 向量维度: {}", vector.length);
+                log.debug("- 向量范围: [{}, {}]", getMinValue(vector), getMaxValue(vector));
+                log.debug("- 耗时: {} ms", elapsedTime);
+                
+                // 记录元数据
+                if (springResponse.getMetadata() != null) {
+                    log.debug("- 元数据: {}", springResponse.getMetadata());
+                }
+            }
 
             return convertToNebulaResponse(springResponse);
 
         } catch (Exception e) {
-            log.error("文本向量化失败: {}", e.getMessage(), e);
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            log.error("❌ 文本向量化失败");
+            log.error("- 错误类型: {}", e.getClass().getSimpleName());
+            log.error("- 错误信息: {}", e.getMessage());
+            log.error("- 文本长度: {} 字符", text.length());
+            log.error("- 耗时: {} ms", elapsedTime);
+            log.error("- 完整堆栈:", e);
             throw new EmbeddingException("文本向量化失败: " + e.getMessage(), e);
         }
     }
 
     @Override
     public EmbeddingResponse embed(List<String> texts) {
+        long startTime = System.currentTimeMillis();
         try {
-            log.debug("批量向量化文本: {} 条", texts.size());
+            // 记录详细的请求信息
+            log.info("开始批量文本向量化: {} 条", texts.size());
+            log.debug("- 文本总长度: {} 字符", texts.stream().mapToInt(String::length).sum());
+            log.debug("- 平均长度: {} 字符", texts.stream().mapToInt(String::length).average().orElse(0));
+            log.debug("- Embedding模型: {}", embeddingModel.getClass().getSimpleName());
 
             if (texts.size() > getMaxBatchSize()) {
                 throw new EmbeddingException("批量大小超过限制: " + texts.size() + " > " + getMaxBatchSize());
             }
 
+            // 调用Spring AI进行批量向量化
             org.springframework.ai.embedding.EmbeddingResponse springResponse = 
                     embeddingModel.embedForResponse(texts);
+
+            // 记录详细的响应信息
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            log.info("✅ 批量文本向量化成功");
+            log.debug("- 返回向量数: {}", springResponse.getResults().size());
+            if (!springResponse.getResults().isEmpty()) {
+                float[] vector = springResponse.getResults().get(0).getOutput();
+                log.debug("- 向量维度: {}", vector.length);
+            }
+            log.debug("- 耗时: {} ms", elapsedTime);
+            log.debug("- 平均耗时: {} ms/条", elapsedTime / texts.size());
+            
+            // 记录元数据
+            if (springResponse.getMetadata() != null && springResponse.getMetadata().getUsage() != null) {
+                log.debug("- Token使用: {} tokens", springResponse.getMetadata().getUsage().getTotalTokens());
+            }
 
             return convertToNebulaResponse(springResponse);
 
         } catch (Exception e) {
-            log.error("批量文本向量化失败: {}", e.getMessage(), e);
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            log.error("❌ 批量文本向量化失败");
+            log.error("- 错误类型: {}", e.getClass().getSimpleName());
+            log.error("- 错误信息: {}", e.getMessage());
+            log.error("- 批量大小: {} 条", texts.size());
+            log.error("- 耗时: {} ms", elapsedTime);
+            log.error("- 完整堆栈:", e);
             throw new EmbeddingException("批量文本向量化失败: " + e.getMessage(), e);
         }
     }
@@ -212,5 +267,31 @@ public class SpringAIEmbeddingService implements EmbeddingService {
         }
         
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+    
+    /**
+     * 获取向量的最小值
+     */
+    private float getMinValue(float[] vector) {
+        float min = Float.MAX_VALUE;
+        for (float v : vector) {
+            if (v < min) {
+                min = v;
+            }
+        }
+        return min;
+    }
+    
+    /**
+     * 获取向量的最大值
+     */
+    private float getMaxValue(float[] vector) {
+        float max = Float.MIN_VALUE;
+        for (float v : vector) {
+            if (v > max) {
+                max = v;
+            }
+        }
+        return max;
     }
 }

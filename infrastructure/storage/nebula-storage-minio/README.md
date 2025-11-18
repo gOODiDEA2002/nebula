@@ -32,14 +32,14 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-storage-minio</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 
 <!-- 如果使用自动配置 -->
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-autoconfigure</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 

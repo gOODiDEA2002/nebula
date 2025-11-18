@@ -92,8 +92,17 @@ Nebula 提供多种 Starter 以满足不同场景需求：
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-minimal</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
+```
+#### 示例配置（minimal）
+```yaml
+spring:
+  application:
+    name: nebula-minimal-app
+logging:
+  level:
+    io.nebula: INFO
 ```
 
 #### 🌐 nebula-starter-web（Web应用）
@@ -104,8 +113,31 @@ Nebula 提供多种 Starter 以满足不同场景需求：
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-web</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
+```
+#### 示例配置（web）
+```yaml
+nebula:
+  web:
+    performance:
+      enabled: true
+  security:
+    jwt:
+      secret: your-secret-key
+      expiration: 86400
+  data:
+    persistence:
+      enabled: true
+  rpc:
+    http:
+      enabled: true
+      client:
+        enabled: true
+        base-url: http://localhost:8081
+      server:
+        enabled: true
+        port: 8081
 ```
 
 #### ☁️ nebula-starter-service（微服务）
@@ -116,8 +148,46 @@ Nebula 提供多种 Starter 以满足不同场景需求：
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-service</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
+```
+#### 示例配置（service）
+```yaml
+nebula:
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: 127.0.0.1:8848
+      namespace: public
+      group-name: DEFAULT_GROUP
+      auto-register: true
+  rpc:
+    http:
+      enabled: true
+      client:
+        enabled: true
+      server:
+        enabled: true
+        port: 8081
+    grpc:
+      enabled: false
+      client:
+        enabled: false
+      server:
+        enabled: false
+  messaging:
+    rabbitmq:
+      enabled: true
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+  lock:
+    enabled: true
+    enable-aspect: true
+  data:
+    cache:
+      enabled: true
 ```
 
 #### 🤖 nebula-starter-ai（AI应用）
@@ -128,8 +198,26 @@ Nebula 提供多种 Starter 以满足不同场景需求：
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-ai</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
+```
+#### 示例配置（ai）
+```yaml
+nebula:
+  ai:
+    enabled: true
+    openai:
+      api-key: sk-xxxx
+      base-url: https://api.openai.com
+      chat:
+        enabled: true
+      embedding:
+        enabled: true
+    vector-store:
+      chroma:
+        url: http://localhost:8000
+        collection-name: nebula_vectors
+        initialize-schema: true
 ```
 
 #### 📦 nebula-starter-all（单体应用）
@@ -140,8 +228,37 @@ Nebula 提供多种 Starter 以满足不同场景需求：
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-all</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
+```
+#### 示例配置（all）
+```yaml
+nebula:
+  rpc:
+    http:
+      enabled: true
+      server:
+        enabled: true
+        port: 8081
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: 127.0.0.1:8848
+  messaging:
+    rabbitmq:
+      enabled: true
+      host: localhost
+      port: 5672
+  lock:
+    enabled: true
+  data:
+    persistence:
+      enabled: true
+    cache:
+      enabled: true
+  storage:
+    minio:
+      enabled: false
 ```
 
 #### 📋 nebula-starter-api（API契约）
@@ -152,9 +269,10 @@ Nebula 提供多种 Starter 以满足不同场景需求：
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-api</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
+该 Starter 用于 API 契约定义，无需运行时配置。
 
 ### 3. 创建应用
 
@@ -337,21 +455,48 @@ mvn install -DskipTests
 ### 快速验证框架功能
 
 ```bash
-# 编译基础测试程序
-javac -cp "$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp.java
-
-# 运行基础功能测试
-java -cp ".:$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp
+# 构建并运行 Starter 示例（推荐）
+mvn -q -DskipTests -f examples/starter-minimal-example/pom.xml package
+mvn -q -DskipTests -f examples/starter-web-example/pom.xml package
+mvn -q -DskipTests -f examples/starter-service-example/pom.xml package
+mvn -q -DskipTests -f examples/starter-ai-example/pom.xml package
+mvn -q -DskipTests -f examples/starter-all-example/pom.xml package
+mvn -q -DskipTests -f examples/starter-api-example/pom.xml package
 ```
 
 ### 运行应用
 
 ```bash
-# 1. 首先确保所有模块已安装到本地 Maven 仓库
-mvn install -DskipTests
+# 1. 安装核心与 Starter 模块到本地仓库
+mvn -q -DskipTests install -pl core/nebula-foundation,starter/nebula-starter-minimal,starter/nebula-starter-web,starter/nebula-starter-service,starter/nebula-starter-ai,starter/nebula-starter-all,starter/nebula-starter-api -am
 
-# 2. 在你的业务应用或仓库 example 项目中运行
+# 2. 在你的业务应用中引入合适的 Starter 并运行
 mvn spring-boot:run
+```
+
+### 运行示例应用
+
+```bash
+# Web 示例（端口 8080）
+mvn -q -f examples/starter-web-example spring-boot:run
+curl http://localhost:8080/hello
+
+# Service 示例（端口 8082）
+mvn -q -f examples/starter-service-example spring-boot:run
+curl http://localhost:8082/hello
+
+# AI 示例（端口 8083）
+# 先在 examples/starter-ai-example/src/main/resources/application.yml 中设置：
+# nebula.ai.enabled=true 且配置 openai.api-key
+mvn -q -f examples/starter-ai-example spring-boot:run
+curl "http://localhost:8083/ai/echo?q=hello"
+
+# All 示例（端口 8084）
+mvn -q -f examples/starter-all-example spring-boot:run
+curl http://localhost:8084/hello
+
+# Minimal 示例：无 Web 端点，仅验证最小化启动
+mvn -q -f examples/starter-minimal-example spring-boot:run
 ```
 
 ### 验证应用接口

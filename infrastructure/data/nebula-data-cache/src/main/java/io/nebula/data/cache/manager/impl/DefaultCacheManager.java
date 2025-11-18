@@ -1,10 +1,15 @@
 package io.nebula.data.cache.manager.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.nebula.data.cache.manager.CacheManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -24,6 +29,9 @@ public class DefaultCacheManager implements CacheManager {
     
     private final RedisTemplate<String, Object> redisTemplate;
     private static final String CACHE_NAME = "DefaultCache";
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     
     // 统计信息
     private volatile long hitCount = 0;
@@ -70,7 +78,16 @@ public class DefaultCacheManager implements CacheManager {
                 if (type.isInstance(value)) {
                     return Optional.of((T) value);
                 } else {
-                    log.warn("缓存值类型不匹配: key={}, expected={}, actual={}", 
+                    try {
+                        if (value instanceof Map) {
+                            T converted = objectMapper.convertValue(value, type);
+                            return Optional.of(converted);
+                        }
+                    } catch (IllegalArgumentException ex) {
+                        log.warn("缓存值转换失败: key={}, expected={}, actual={}",
+                                key, type.getSimpleName(), value.getClass().getSimpleName());
+                    }
+                    log.warn("缓存值类型不匹配: key={}, expected={}, actual={}",
                             key, type.getSimpleName(), value.getClass().getSimpleName());
                     return Optional.empty();
                 }
@@ -81,7 +98,17 @@ public class DefaultCacheManager implements CacheManager {
             }
         } catch (Exception e) {
             missCount++;
-            log.error("获取缓存失败: key={}", key, e);
+            try {
+                StringRedisSerializer keySerializer = (StringRedisSerializer) redisTemplate.getKeySerializer();
+                byte[] rawKey = keySerializer.serialize(key);
+                byte[] rawValue = redisTemplate.execute((RedisCallback<byte[]>) connection -> connection.stringCommands().get(rawKey));
+                if (rawValue != null) {
+                    T converted = objectMapper.readValue(rawValue, type);
+                    return Optional.of(converted);
+                }
+            } catch (Exception ex) {
+                log.error("获取缓存失败: key={}", key, e);
+            }
             return Optional.empty();
         }
     }

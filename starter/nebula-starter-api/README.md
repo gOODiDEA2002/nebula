@@ -80,7 +80,7 @@ RPC 契约模块专用 Starter，提供 API 定义所需的标准依赖，确保
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <nebula.version>2.0.0-SNAPSHOT</nebula.version>
+        <nebula.version>2.0.1-SNAPSHOT</nebula.version>
     </properties>
 
     <dependencies>
@@ -230,7 +230,7 @@ my-service-api/
     <dependency>
         <groupId>io.nebula</groupId>
         <artifactId>nebula-rpc-core</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.1-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -258,7 +258,7 @@ my-service-api/
 **迁移后**：
 ```xml
 <properties>
-    <nebula.version>2.0.0-SNAPSHOT</nebula.version>
+    <nebula.version>2.0.1-SNAPSHOT</nebula.version>
 </properties>
 
 <dependencies>
