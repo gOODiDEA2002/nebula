@@ -136,6 +136,11 @@
         
         <!-- 监控 -->
         <micrometer.version>1.12.0</micrometer.version>
+
+        <!-- gRPC -->
+        <grpc.version>1.68.1</grpc.version>
+        <protobuf-java.version>3.25.5</protobuf-java.version>
+        <grpc-spring-boot-starter.version>3.1.0.RELEASE</grpc-spring-boot-starter.version>
         
         <!-- 插件版本 -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
@@ -302,6 +307,27 @@
                 <artifactId>junit-jupiter</artifactId>
                 <version>${testcontainers.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <!-- gRPC BOM -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- gRPC Starter -->
+            <dependency>
+                <groupId>net.devh</groupId>
+                <artifactId>grpc-spring-boot-starter</artifactId>
+                <version>${grpc-spring-boot-starter.version}</version>
+            </dependency>
+            <!-- Protobuf -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf-java.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
