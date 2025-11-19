@@ -18,14 +18,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
+import lombok.extern.slf4j.Slf4j;
 /**
  * 基于Spring AI的聊天服务实现
  */
+@Slf4j
 @Service
 public class SpringAIChatService implements ChatService {
-
-    private static final Logger log = LoggerFactory.getLogger(SpringAIChatService.class);
 
     private final ChatClient chatClient;
     private final ChatModel chatModel;
