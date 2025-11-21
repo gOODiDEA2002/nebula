@@ -4,7 +4,7 @@
 # 用于创建 Spring AI 所需的 tenant、database 和 collection
 
 # 配置
-CHROMA_HOST=${CHROMA_HOST:-"localhost"}
+CHROMA_HOST=${CHROMA_HOST:-"192.168.111.100"}
 CHROMA_PORT=${CHROMA_PORT:-"9002"}
 CHROMA_BASE_URL="http://${CHROMA_HOST}:${CHROMA_PORT}"
 

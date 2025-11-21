@@ -1,130 +1,277 @@
-# Nebula Framework - 文档索引
+# Nebula 框架文档索引
 
-##  核心文档
+> Nebula 框架完整文档导航
 
-- [README.md](../README.md) - 框架概述和快速开始
-- [Nebula框架使用指南.md](Nebula框架使用指南.md) - 完整使用指南
-- [Spring Boot自动配置文件详解.md](../Spring%20Boot自动配置文件详解.md) - 自动配置机制说明
-- [CLAUDE.md](../CLAUDE.md) - AI辅助开发记录
+## 📚 快速导航
 
-##  专题文档
+### 🚀 新手入门
 
-### RPC 远程过程调用
-- [RPC 优化文档汇总](rpc/RPC_ALL_OPTIMIZATIONS_COMPLETED.md) -  所有RPC优化的总览
-- [EnableRpcClients 增强](rpc/RPC_ENABLE_CLIENTS_VALUE_ENHANCEMENT.md) -  最新：零配置RPC客户端
-- [RPC 优化设计](rpc/RPC_OPTIMIZATION_DESIGN.md) - 优化方案设计
-- [RPC 优化总结](rpc/RPC_OPTIMIZATION_SUMMARY.md) - 优化成果总结
-- [RPC 第5项优化](rpc/RPC_OPTIMIZATION_5_DESIGN.md) - @RpcCall简化设计
-- [RPC 优化任务清单](rpc/RPC_OPTIMIZATION_TASKS.md) - 优化任务跟踪
+| 文档 | 说明 | 适合人群 |
+|------|------|---------|
+| [框架概览](framework/OVERVIEW.md) | 了解 Nebula 是什么 | 所有人 |
+| [快速开始](framework/QUICK_START.md) | 5个场景快速上手 | 开发者 |
+| [架构设计](framework/ARCHITECTURE.md) | 深入理解架构 | 架构师 |
 
-### 自动配置
-- [AutoConfiguration 详解](../autoconfigure/nebula-autoconfigure/README.md)
-- [配置属性迁移](../autoconfigure/nebula-autoconfigure/PROPERTIES_MIGRATION_SUMMARY.md)
-- [Nacos配置修复](../autoconfigure/nebula-autoconfigure/Nacos配置属性绑定问题修复说明.md)
-- [启动顺序分析](../autoconfigure/nebula-autoconfigure/启动顺序分析报告.md)
+### 📖 按角色查找
 
-## ️ 模块文档
+#### 架构师 / 技术负责人
+- [框架概览](framework/OVERVIEW.md) - 整体了解
+- [架构设计](framework/ARCHITECTURE.md) - 架构深度
+- [模块选择指南](framework/MODULE_GUIDE.md) - 如何选模块
+- [最佳实践](framework/BEST_PRACTICES.md) - 最佳实践
 
-### 基础设施层（Infrastructure）
+#### 开发者
+- [快速开始](framework/QUICK_START.md) - 快速上手
+- [模块文档](#-按模块查找) - 详细用法
+- [使用示例](../example/) - 完整示例
+- [故障排查](operations/TROUBLESHOOTING.md) - 问题解决
 
-#### RPC 模块
-- [RPC Core](../infrastructure/rpc/nebula-rpc-core/)
-- [RPC HTTP](../infrastructure/rpc/nebula-rpc-http/)
-- [RPC gRPC](../infrastructure/rpc/nebula-rpc-grpc/)
-- [RPC Roadmap](../infrastructure/rpc/ROADMAP.md)
+#### 测试工程师
+- 各模块的 TESTING.md - 测试指南
+- [测试最佳实践](framework/BEST_PRACTICES.md#测试) - 测试规范
 
-#### 服务发现
-- [Discovery Core](../infrastructure/discovery/nebula-discovery-core/)
-- [Discovery Nacos](../infrastructure/discovery/nebula-discovery-nacos/)
+#### 运维工程师
+- [部署指南](operations/DEPLOYMENT.md) - 部署方法
+- [监控指南](operations/MONITORING.md) - 监控方案
+- [性能调优](operations/PERFORMANCE_TUNING.md) - 性能优化
 
-#### 数据访问
-- [Data Persistence](../infrastructure/data/nebula-data-persistence/)
-- [Data Cache](../infrastructure/data/nebula-data-cache/)
-- [Data MongoDB](../infrastructure/data/nebula-data-mongodb/)
+## 🎯 按场景查找
 
-#### 消息队列
-- [Messaging Core](../infrastructure/messaging/nebula-messaging-core/)
-- [Messaging RabbitMQ](../infrastructure/messaging/nebula-messaging-rabbitmq/)
+### 票务系统（主要场景）
 
-#### 存储服务
-- [Storage Core](../infrastructure/storage/nebula-storage-core/)
-- [Storage MinIO](../infrastructure/storage/nebula-storage-minio/)
-- [Storage Aliyun OSS](../infrastructure/storage/nebula-storage-aliyun-oss/)
+**完整方案**：
+- [票务系统完整方案](scenarios/ticketing/TICKETING_SYSTEM.md) - 架构设计
+- [订单流程详解](scenarios/ticketing/TICKETING_ORDER_FLOW.md) - 业务流程
+- [高并发处理](scenarios/ticketing/TICKETING_HIGH_CONCURRENCY.md) - 性能方案
+- [数据模型设计](scenarios/ticketing/TICKETING_DATA_MODEL.md) - 数据设计
 
-#### 搜索服务
-- [Search Core](../infrastructure/search/nebula-search-core/)
-- [Search Elasticsearch](../infrastructure/search/nebula-search-elasticsearch/)
+**涉及模块**：
+- [分布式锁](modules/infrastructure/lock/nebula-lock-redis/) - 防超卖
+- [数据持久化](modules/infrastructure/data/nebula-data-persistence/) - 订单存储
+- [缓存](modules/infrastructure/data/nebula-data-cache/) - 性能优化
+- [消息队列](modules/infrastructure/messaging/nebula-messaging-rabbitmq/) - 异步处理
+- [支付集成](modules/integration/nebula-integration-payment/) - 支付处理
 
-#### AI集成
-- [AI Core](../infrastructure/ai/nebula-ai-core/)
-- [AI Spring](../infrastructure/ai/nebula-ai-spring/)
+### 电商系统
 
-### 应用层（Application）
-- [Web Module](../application/nebula-web/)
-- [Task Module](../application/nebula-task/)
+- [电商系统方案](scenarios/ecommerce/ECOMMERCE_SYSTEM.md) - 完整方案
+- 涉及模块：分布式锁、缓存、支付、消息队列
 
-### 核心层（Core）
-- [Foundation](../core/nebula-foundation/)
+### 社交平台
 
-### 集成层（Integration）
-- [Payment Integration](../integration/nebula-integration-payment/)
+- [社交平台方案](scenarios/social/SOCIAL_PLATFORM.md) - 完整方案
+- 涉及模块：MongoDB、Redis、消息队列、RPC
 
-##  关键特性文档
+### 内容管理系统
 
-### 零配置 RPC（最新）
-Nebula 2.0 的重大创新，实现了极致简化的 RPC 使用体验：
+- [CMS 系统方案](scenarios/cms/CMS_SYSTEM.md) - 完整方案
+- 涉及模块：Elasticsearch、MinIO、缓存
 
-```java
-// API 配置（3行）
-@AutoConfiguration
-@EnableRpcClients("nebula-example-user-service")
-public class UserApiAutoConfiguration {
-}
+## 📦 按模块查找
 
-// RPC 客户端（零配置）
-@RpcClient
-public interface UserRpcClient {
-    UserDto getUserById(Long id);
-}
+### 核心层 (Core)
 
-// 服务实现（零配置）
-@RpcService
-@RequiredArgsConstructor
-public class OrderServiceImpl {
-    private final UserRpcClient userRpcClient;  // 无需 @Qualifier
-}
-```
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-foundation | 基础工具和异常处理 | [README](modules/core/nebula-foundation/README.md) |
+| nebula-security | 安全认证和权限控制 | [README](modules/core/nebula-security/README.md) |
 
-详见：[EnableRpcClients 增强文档](rpc/RPC_ENABLE_CLIENTS_VALUE_ENHANCEMENT.md)
+### 基础设施层 (Infrastructure)
 
-##  文档分类
+#### 数据访问 (Data)
 
-### 按主题分类
-- **RPC**: `docs/rpc/`
-- **自动配置**: `autoconfigure/nebula-autoconfigure/`
-- **使用指南**: `docs/`
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-data-persistence | MySQL + MyBatis-Plus | [README](modules/infrastructure/data/nebula-data-persistence/README.md) |
+| nebula-data-mongodb | MongoDB 支持 | [README](modules/infrastructure/data/nebula-data-mongodb/README.md) |
+| nebula-data-cache | 多级缓存（Redis + Caffeine） | [README](modules/infrastructure/data/nebula-data-cache/README.md) |
 
-### 按优先级分类
--  **核心必读**: README使用指南RPC优化汇总
--  **深入学习**: 各模块专题文档
--  **参考资料**: 自动配置详解优化设计文档
+#### 消息传递 (Messaging)
 
-##  外部资源
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-messaging-core | 消息抽象层 | [README](modules/infrastructure/messaging/nebula-messaging-core/README.md) |
+| nebula-messaging-rabbitmq | RabbitMQ 实现 | [README](modules/infrastructure/messaging/nebula-messaging-rabbitmq/README.md) |
 
-- [示例项目](../example/) - 完整的示例应用
-- [Starter 模板](../starter/) - 快速开始模板
+#### RPC 通信 (RPC)
 
-##  文档贡献指南
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-rpc-core | RPC 抽象层 | [README](modules/infrastructure/rpc/nebula-rpc-core/README.md) |
+| nebula-rpc-http | HTTP RPC 实现 | [README](modules/infrastructure/rpc/nebula-rpc-http/README.md) |
+| nebula-rpc-grpc | gRPC RPC 实现 | [README](modules/infrastructure/rpc/nebula-rpc-grpc/README.md) |
 
-欢迎贡献文档！请遵循以下原则：
-1. 文档应该简洁明了，重点突出
-2. 提供完整的代码示例
-3. 包含必要的图表说明
-4. 注明版本和更新日期
+#### 服务发现 (Discovery)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-discovery-core | 服务发现抽象 | [README](modules/infrastructure/discovery/nebula-discovery-core/README.md) |
+| nebula-discovery-nacos | Nacos 实现 | [README](modules/infrastructure/discovery/nebula-discovery-nacos/README.md) |
+
+#### 对象存储 (Storage)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-storage-core | 存储抽象层 | [README](modules/infrastructure/storage/nebula-storage-core/README.md) |
+| nebula-storage-minio | MinIO 实现 | [README](modules/infrastructure/storage/nebula-storage-minio/README.md) |
+| nebula-storage-aliyun-oss | 阿里云 OSS 实现 | [README](modules/infrastructure/storage/nebula-storage-aliyun-oss/README.md) |
+
+#### 全文搜索 (Search)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-search-core | 搜索抽象层 | [README](modules/infrastructure/search/nebula-search-core/README.md) |
+| nebula-search-elasticsearch | Elasticsearch 实现 | [README](modules/infrastructure/search/nebula-search-elasticsearch/README.md) |
+
+#### AI 集成 (AI)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-ai-core | AI 抽象层 | [README](modules/infrastructure/ai/nebula-ai-core/README.md) |
+| nebula-ai-spring | Spring AI 集成 | [README](modules/infrastructure/ai/nebula-ai-spring/README.md) |
+
+#### 分布式锁 (Lock)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-lock-core | 锁抽象层 | [README](modules/infrastructure/lock/nebula-lock-core/README.md) |
+| nebula-lock-redis | Redis 分布式锁 | [README](modules/infrastructure/lock/nebula-lock-redis/README.md) |
+
+### 应用层 (Application)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-web | Web 框架支持 | [README](modules/application/nebula-web/README.md) |
+| nebula-task | 任务调度（XXL-Job） | [README](modules/application/nebula-task/README.md) |
+
+### 集成层 (Integration)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-integration-payment | 支付集成 | [README](modules/integration/nebula-integration-payment/README.md) |
+| nebula-integration-notification | 通知集成 | [README](modules/integration/nebula-integration-notification/README.md) |
+
+### Starter 模块
+
+| Starter | 包含模块 | 适用场景 | 文档 |
+|---------|---------|---------|------|
+| nebula-starter-minimal | foundation | 最小化应用 | [README](modules/starter/nebula-starter-minimal/README.md) |
+| nebula-starter-web | foundation + security + web | Web 应用 | [README](modules/starter/nebula-starter-web/README.md) |
+| nebula-starter-service | foundation + data + messaging + rpc + discovery | 微服务 | [README](modules/starter/nebula-starter-service/README.md) |
+| nebula-starter-ai | foundation + ai-spring | AI 应用 | [README](modules/starter/nebula-starter-ai/README.md) |
+| nebula-starter-all | 所有模块 | 单体应用 | [README](modules/starter/nebula-starter-all/README.md) |
+
+## 🔧 按功能查找
+
+### 数据访问
+- [MySQL 持久化](modules/infrastructure/data/nebula-data-persistence/)
+- [MongoDB 文档存储](modules/infrastructure/data/nebula-data-mongodb/)
+- [多级缓存](modules/infrastructure/data/nebula-data-cache/)
+
+### 异步处理
+- [消息队列](modules/infrastructure/messaging/nebula-messaging-rabbitmq/)
+- [定时任务](modules/application/nebula-task/)
+
+### 服务间通信
+- [HTTP RPC](modules/infrastructure/rpc/nebula-rpc-http/)
+- [gRPC](modules/infrastructure/rpc/nebula-rpc-grpc/)
+- [服务发现](modules/infrastructure/discovery/nebula-discovery-nacos/)
+
+### 并发控制
+- [分布式锁](modules/infrastructure/lock/nebula-lock-redis/)
+
+### 文件处理
+- [对象存储](modules/infrastructure/storage/nebula-storage-minio/)
+
+### 搜索功能
+- [全文搜索](modules/infrastructure/search/nebula-search-elasticsearch/)
+
+### AI 能力
+- [AI 集成](modules/infrastructure/ai/nebula-ai-spring/)
+
+### 第三方集成
+- [支付集成](modules/integration/nebula-integration-payment/)
+- [通知集成](modules/integration/nebula-integration-notification/)
+
+## 📝 配置文档
+
+### 环境配置
+- [开发环境配置](configs/CONFIG_DEVELOPMENT.md)
+- [生产环境配置](configs/CONFIG_PRODUCTION.md)
+
+### 场景配置
+- [票务系统配置](configs/CONFIG_TICKETING.md)
+- [微服务配置](configs/CONFIG_MICROSERVICE.md)
+
+## 🔗 集成指南
+
+- [微服务架构指南](integration/MICROSERVICE_GUIDE.md)
+- [单体架构指南](integration/MONOLITH_GUIDE.md)
+- [集成模式](integration/INTEGRATION_PATTERNS.md)
+- [服务通信指南](integration/SERVICE_COMMUNICATION.md)
+
+## 🛠 运维文档
+
+- [部署指南](operations/DEPLOYMENT.md)
+- [监控指南](operations/MONITORING.md)
+- [故障排查](operations/TROUBLESHOOTING.md)
+- [性能调优](operations/PERFORMANCE_TUNING.md)
+- [安全指南](operations/SECURITY_GUIDE.md)
+
+## 📚 开发文档
+
+- [开发指南](framework/DEVELOPMENT_GUIDE.md)
+- [代码规范](framework/CODE_STYLE.md)
+- [贡献指南](../CONTRIBUTING.md)
+- [常见问题](framework/FAQ.md)
+
+## 🌟 示例项目
+
+- [完整票务系统](../example/ticket-system/) - 企业级示例
+- [电商秒杀系统](../example/ecommerce/) - 高并发示例
+- [AI 推荐系统](../example/ai-recommendation/) - AI 集成示例
+
+## 📖 术语表
+
+- [术语表](GLOSSARY.md) - 常用术语和概念
+
+## 🔍 搜索提示
+
+### 如果您想了解...
+
+| 需求 | 推荐文档 |
+|------|---------|
+| Nebula 是什么 | [框架概览](framework/OVERVIEW.md) |
+| 如何快速开始 | [快速开始](framework/QUICK_START.md) |
+| 如何防止超卖 | [分布式锁](modules/infrastructure/lock/nebula-lock-redis/) + [票务方案](scenarios/ticketing/) |
+| 如何提升性能 | [缓存](modules/infrastructure/data/nebula-data-cache/) + [性能调优](operations/PERFORMANCE_TUNING.md) |
+| 如何集成支付 | [支付集成](modules/integration/nebula-integration-payment/) |
+| 如何实现搜索 | [Elasticsearch](modules/infrastructure/search/nebula-search-elasticsearch/) |
+| 如何做 AI 应用 | [AI 集成](modules/infrastructure/ai/nebula-ai-spring/) |
+| 微服务怎么做 | [微服务指南](integration/MICROSERVICE_GUIDE.md) + [快速开始场景2](framework/QUICK_START.md#场景2微服务应用) |
+| 如何部署 | [部署指南](operations/DEPLOYMENT.md) |
+| 遇到问题怎么办 | [故障排查](operations/TROUBLESHOOTING.md) + [FAQ](framework/FAQ.md) |
+
+## 📊 文档统计
+
+- **框架级文档**: 10+ 篇
+- **模块文档**: 28个模块
+- **场景文档**: 4个主要场景
+- **示例项目**: 3个完整项目
+- **配置示例**: 20+ 个
+
+## 🔄 文档更新
+
+**最后更新**: 2025-11-20  
+**版本**: v1.0
+
+## 💬 反馈
+
+如果您发现文档问题或有改进建议：
+- [提交 Issue](https://github.com/nebula/nebula/issues)
+- [发起讨论](https://github.com/nebula/nebula/discussions)
 
 ---
 
-**框架版本**: 2.0.0  
-**文档更新**: 2025-10  
-**许可**: Apache License 2.0
-
+**Nebula 开发团队**  
+让微服务开发更简单！

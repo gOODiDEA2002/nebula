@@ -220,13 +220,334 @@ open target/site/jacoco/index.html
 - ✅ Mock对象使用正确，无真实数据库依赖
 - ✅ 读写分离测试通过
 
+## 🧩 集成测试
+
+### Testcontainers集成
+
+使用Testcontainers进行真实数据库测试：
+
+```xml
+<dependency>
+    <groupId>org.testcontainers</groupId>
+    <artifactId>mysql</artifactId>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.testcontainers</groupId>
+    <artifactId>junit-jupiter</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+**配置测试基类**:
+```java
+@SpringBootTest
+@Testcontainers
+@ActiveProfiles("test")
+public abstract class DataPersistenceIntegrationTest {
+    
+    @Container
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+            .withDatabaseName("ticket_test")
+            .withUsername("test")
+            .withPassword("test");
+    
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", mysql::getJdbcUrl);
+        registry.add("spring.datasource.username", mysql::getUsername);
+        registry.add("spring.datasource.password", mysql::getPassword);
+    }
+}
+```
+
+### 票务场景集成测试示例
+
+```java
+/**
+ * 演出场次服务集成测试
+ */
+@DisplayName("Showtime Service Integration Tests")
+class ShowtimeServiceIntegrationTest extends DataPersistenceIntegrationTest {
+    
+    @Autowired
+    private ShowtimeService showtimeService;
+    
+    @Test
+    @DisplayName("Should create showtime successfully")
+    void testCreateShowtime() {
+        // Given
+        Showtime showtime = new Showtime();
+        showtime.setName("周杰伦演唱会");
+        showtime.setVenue("鸟巢体育场");
+        showtime.setShowTime(LocalDateTime.now().plusDays(30));
+        showtime.setEndTime(LocalDateTime.now().plusDays(30).plusHours(3));
+        showtime.setPrice(new BigDecimal("680.00"));
+        showtime.setTotalSeats(8000);
+        
+        // When
+        Long id = showtimeService.createShowtime(showtime);
+        
+        // Then
+        assertThat(id).isNotNull();
+        
+        Showtime saved = showtimeService.getById(id);
+        assertThat(saved).isNotNull();
+        assertThat(saved.getName()).isEqualTo("周杰伦演唱会");
+        assertThat(saved.getAvailableSeats()).isEqualTo(8000);
+        assertThat(saved.getStatus()).isEqualTo("UPCOMING");
+        assertThat(saved.getCreateTime()).isNotNull();
+        assertThat(saved.getVersion()).isEqualTo(1);
+        assertThat(saved.getDeleted()).isEqualTo(0);
+    }
+    
+    @Test
+    @DisplayName("Should update available seats with optimistic lock")
+    void testUpdateAvailableSeatsWithOptimisticLock() {
+        // Given
+        Showtime showtime = createTestShowtime();
+        Long showtimeId = showtimeService.createShowtime(showtime);
+        
+        // When
+        boolean success = showtimeService.updateAvailableSeats(showtimeId, 10);
+        
+        // Then
+        assertThat(success).isTrue();
+        
+        Showtime updated = showtimeService.getById(showtimeId);
+        assertThat(updated.getAvailableSeats()).isEqualTo(showtime.getTotalSeats() - 10);
+        assertThat(updated.getVersion()).isEqualTo(2); // 版本号递增
+    }
+    
+    @Test
+    @DisplayName("Should handle concurrent seat updates correctly")
+    void testConcurrentSeatUpdates() throws InterruptedException {
+        // Given
+        Showtime showtime = createTestShowtime();
+        showtime.setTotalSeats(100);
+        Long showtimeId = showtimeService.createShowtime(showtime);
+        
+        int threadCount = 10;
+        int seatsPerThread = 5;
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+        
+        // When: 10个线程同时尝试扣减库存
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    boolean success = showtimeService.updateAvailableSeats(showtimeId, seatsPerThread);
+                    if (success) {
+                        successCount.incrementAndGet();
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        
+        latch.await();
+        executor.shutdown();
+        
+        // Then: 只有部分线程成功（乐观锁生效）
+        Showtime updated = showtimeService.getById(showtimeId);
+        int expectedAvailableSeats = 100 - (successCount.get() * seatsPerThread);
+        assertThat(updated.getAvailableSeats()).isEqualTo(expectedAvailableSeats);
+    }
+    
+    private Showtime createTestShowtime() {
+        Showtime showtime = new Showtime();
+        showtime.setName("测试演出");
+        showtime.setVenue("测试场馆");
+        showtime.setShowTime(LocalDateTime.now().plusDays(7));
+        showtime.setEndTime(LocalDateTime.now().plusDays(7).plusHours(2));
+        showtime.setPrice(new BigDecimal("200.00"));
+        showtime.setTotalSeats(500);
+        return showtime;
+    }
+}
+
+/**
+ * 订单服务集成测试
+ */
+@DisplayName("Order Service Integration Tests")
+class OrderServiceIntegrationTest extends DataPersistenceIntegrationTest {
+    
+    @Autowired
+    private OrderService orderService;
+    
+    @Autowired
+    private ShowtimeService showtimeService;
+    
+    @Autowired
+    private IdGenerator idGenerator;
+    
+    @Test
+    @DisplayName("Should create order successfully")
+    void testCreateOrder() {
+        // Given
+        Long showtimeId = createTestShowtime();
+        Long userId = 1001L;
+        Integer quantity = 2;
+        String seats = "A10,A11";
+        
+        // When
+        String orderNo = orderService.createOrder(userId, showtimeId, quantity, seats);
+        
+        // Then
+        assertThat(orderNo).isNotNull();
+        
+        Order order = orderService.getOrderByOrderNo(orderNo);
+        assertThat(order).isNotNull();
+        assertThat(order.getUserId()).isEqualTo(userId);
+        assertThat(order.getShowtimeId()).isEqualTo(showtimeId);
+        assertThat(order.getQuantity()).isEqualTo(quantity);
+        assertThat(order.getSeats()).isEqualTo(seats);
+        assertThat(order.getStatus()).isEqualTo("PENDING");
+        assertThat(order.getExpireTime()).isAfter(LocalDateTime.now());
+    }
+    
+    @Test
+    @DisplayName("Should cancel expired orders")
+    void testCancelExpiredOrders() {
+        // Given: 创建一个已过期的订单
+        Long showtimeId = createTestShowtime();
+        String orderNo = orderService.createOrder(1001L, showtimeId, 1, "A10");
+        
+        Order order = orderService.getOrderByOrderNo(orderNo);
+        order.setExpireTime(LocalDateTime.now().minusMinutes(1)); // 设置为已过期
+        orderService.updateById(order);
+        
+        // When
+        int cancelledCount = orderService.cancelExpiredOrders();
+        
+        // Then
+        assertThat(cancelledCount).isGreaterThanOrEqualTo(1);
+        
+        Order cancelled = orderService.getOrderByOrderNo(orderNo);
+        assertThat(cancelled.getStatus()).isEqualTo("CANCELLED");
+    }
+    
+    @Test
+    @DisplayName("Should query user orders with pagination")
+    void testGetUserOrdersPage() {
+        // Given: 创建多个订单
+        Long showtimeId = createTestShowtime();
+        Long userId = 1001L;
+        for (int i = 0; i < 15; i++) {
+            orderService.createOrder(userId, showtimeId, 1, "A" + i);
+        }
+        
+        // When: 分页查询
+        Page<Order> page1 = new Page<>(1, 10);
+        page1 = orderService.lambdaQuery()
+                .eq(Order::getUserId, userId)
+                .orderByDesc(Order::getCreateTime)
+                .page(page1);
+        
+        // Then
+        assertThat(page1.getRecords()).hasSize(10);
+        assertThat(page1.getTotal()).isGreaterThanOrEqualTo(15);
+        assertThat(page1.getPages()).isGreaterThanOrEqualTo(2);
+        
+        // When: 查询第二页
+        Page<Order> page2 = new Page<>(2, 10);
+        page2 = orderService.lambdaQuery()
+                .eq(Order::getUserId, userId)
+                .orderByDesc(Order::getCreateTime)
+                .page(page2);
+        
+        // Then
+        assertThat(page2.getRecords()).hasSizeGreaterThanOrEqualTo(5);
+    }
+    
+    private Long createTestShowtime() {
+        Showtime showtime = new Showtime();
+        showtime.setName("测试演出");
+        showtime.setVenue("测试场馆");
+        showtime.setShowTime(LocalDateTime.now().plusDays(7));
+        showtime.setEndTime(LocalDateTime.now().plusDays(7).plusHours(2));
+        showtime.setPrice(new BigDecimal("200.00"));
+        showtime.setTotalSeats(500);
+        return showtimeService.createShowtime(showtime);
+    }
+}
+
+/**
+ * 事务管理集成测试
+ */
+@DisplayName("Transaction Management Integration Tests")
+class TransactionIntegrationTest extends DataPersistenceIntegrationTest {
+    
+    @Autowired
+    private OrderService orderService;
+    
+    @Autowired
+    private ShowtimeService showtimeService;
+    
+    @Test
+    @DisplayName("Should rollback transaction when exception occurs")
+    void testTransactionRollback() {
+        // Given
+        Long showtimeId = createTestShowtime();
+        Long userId = 1001L;
+        
+        // When: 在事务中抛出异常
+        assertThatThrownBy(() -> {
+            transactionalCreateOrder(showtimeId, userId);
+        }).isInstanceOf(RuntimeException.class);
+        
+        // Then: 订单不应该被创建（事务回滚）
+        List<Order> orders = orderService.lambdaQuery()
+                .eq(Order::getUserId, userId)
+                .list();
+        assertThat(orders).isEmpty();
+    }
+    
+    @Transactional(rollbackFor = Exception.class)
+    private void transactionalCreateOrder(Long showtimeId, Long userId) {
+        orderService.createOrder(userId, showtimeId, 1, "A10");
+        // 故意抛出异常触发回滚
+        throw new RuntimeException("Test rollback");
+    }
+    
+    private Long createTestShowtime() {
+        Showtime showtime = new Showtime();
+        showtime.setName("测试演出");
+        showtime.setVenue("测试场馆");
+        showtime.setShowTime(LocalDateTime.now().plusDays(7));
+        showtime.setEndTime(LocalDateTime.now().plusDays(7).plusHours(2));
+        showtime.setPrice(new BigDecimal("200.00"));
+        showtime.setTotalSeats(500);
+        return showtimeService.createShowtime(showtime);
+    }
+}
+```
+
+## 📊 票务场景测试清单
+
+### 核心业务场景测试
+
+- ✅ 创建演出场次
+- ✅ 扣减演出库存（乐观锁）
+- ✅ 并发扣减库存测试
+- ✅ 创建订单
+- ✅ 订单支付
+- ✅ 取消过期订单
+- ✅ 批量生成电子票
+- ✅ 分页查询订单
+- ✅ 事务回滚测试
+
 ## 📚 相关文档
 
 - [模块 README](./README.md)
-- [Nebula 框架使用指南](../../../docs/Nebula框架使用指南.md)
-- [测试最佳实践](../../../docs/testing/BEST_PRACTICES.md)
+- [使用示例 (EXAMPLE.md)](./EXAMPLE.md) - 包含完整票务场景代码示例
+- [配置指南 (CONFIG.md)](./CONFIG.md) - 包含票务系统配置示例
+- [发展路线图 (ROADMAP.md)](./ROADMAP.md)
 
 ---
 
-**测试文档已迁移自** `/docs/test/nebula-data-persistence-test.md`
+**最后更新**: 2025-11-20  
+**文档版本**: v2.0
 
