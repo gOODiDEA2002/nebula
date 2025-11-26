@@ -532,6 +532,38 @@ logging:
 
 #### 2. 配置 MCP Server
 
+**推荐使用 Nebula 配置前缀**（自动桥接到 Spring AI 配置）:
+
+```yaml
+nebula:
+  ai:
+    mcp:
+      server:
+        enabled: true                    # 启用 MCP Server
+        protocol: STREAMABLE             # 使用 Streamable HTTP 协议
+        name: my-mcp-server
+        version: 1.0.0
+        type: SYNC
+        instructions: "AI 服务器描述"
+        
+        tool-callback-converter: true    # 自动检测 @Tool/@McpTool 注解
+        
+        capabilities:
+          tool: true                     # 支持工具调用
+          resource: true                 # 支持资源访问
+          prompt: false
+          completion: false
+        
+        tool-change-notification: false
+        resource-change-notification: false
+        
+        streamable-http:
+          mcp-endpoint: /mcp             # MCP 协议端点
+          keep-alive-interval: 30s
+```
+
+**或使用 Spring AI 原生配置**:
+
 ```yaml
 spring:
   ai:
@@ -548,6 +580,8 @@ spring:
         streamable-http:
           mcp-endpoint: /mcp
 ```
+
+> **注意**: 两种配置方式二选一。使用 `nebula.ai.mcp` 时会自动桥接到 `spring.ai.mcp.server`。
 
 #### 3. 定义 MCP 工具
 

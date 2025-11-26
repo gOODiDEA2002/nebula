@@ -47,13 +47,13 @@ class SpringAIVectorStoreServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 设置 VectorStoreProperties 默认值
-        when(properties.isBatchingEnabled()).thenReturn(true);
-        when(properties.getBatchSize()).thenReturn(10);
-        when(properties.getBatchDelayMs()).thenReturn(100L);
-        when(properties.isRetryEnabled()).thenReturn(true);
-        when(properties.getMaxRetryAttempts()).thenReturn(3);
-        when(properties.getRetryDelayMs()).thenReturn(500L);
+        // 设置 VectorStoreProperties 默认值（使用 lenient 避免 UnnecessaryStubbingException）
+        lenient().when(properties.isBatchingEnabled()).thenReturn(true);
+        lenient().when(properties.getBatchSize()).thenReturn(10);
+        lenient().when(properties.getBatchDelayMs()).thenReturn(100L);
+        lenient().when(properties.isRetryEnabled()).thenReturn(true);
+        lenient().when(properties.getMaxRetryAttempts()).thenReturn(3);
+        lenient().when(properties.getRetryDelayMs()).thenReturn(500L);
         
         vectorStoreService = new SpringAIVectorStoreService(vectorStore, embeddingService, properties);
     }

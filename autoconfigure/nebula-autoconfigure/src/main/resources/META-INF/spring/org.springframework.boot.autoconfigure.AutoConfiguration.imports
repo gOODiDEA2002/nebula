@@ -53,3 +53,4 @@ io.nebula.autoconfigure.storage.AliyunOSSAutoConfiguration
 # AI Layer - AI层
 # ========================================
 io.nebula.autoconfigure.ai.AIAutoConfiguration
+io.nebula.autoconfigure.ai.NebulaMcpServerAutoConfiguration

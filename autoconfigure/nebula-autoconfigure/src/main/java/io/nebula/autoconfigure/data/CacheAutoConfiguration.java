@@ -68,7 +68,8 @@ public class CacheAutoConfiguration {
         }
         
         // Lettuce连接池配置
-        GenericObjectPoolConfig<?> poolConfig = new GenericObjectPoolConfig<>();
+        @SuppressWarnings("unchecked")
+        GenericObjectPoolConfig<Object> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(redisConfig.getPool().getMaxActive());
         poolConfig.setMaxIdle(redisConfig.getPool().getMaxIdle());
         poolConfig.setMinIdle(redisConfig.getPool().getMinIdle());
@@ -77,7 +78,7 @@ public class CacheAutoConfiguration {
         LettucePoolingClientConfiguration.LettucePoolingClientConfigurationBuilder builder = 
                 LettucePoolingClientConfiguration.builder()
                         .commandTimeout(redisConfig.getTimeout())
-                        .poolConfig(poolConfig);
+                        .poolConfig((GenericObjectPoolConfig) poolConfig);
         
         if (redisConfig.getPool().getConnectTimeout() != null) {
             builder.commandTimeout(redisConfig.getPool().getConnectTimeout());
