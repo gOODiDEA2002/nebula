@@ -13,6 +13,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
+import io.nebula.core.common.util.Strings;
+
 /**
  * HTTP请求/响应日志拦截器
  * 用于记录所有HTTP请求和响应的详细信息
@@ -58,7 +60,8 @@ public class HttpLoggingInterceptor implements ClientHttpRequestInterceptor {
 
         if (body != null && body.length > 0) {
             String bodyString = new String(body, StandardCharsets.UTF_8);
-            log.info("Request Body (长度: {} bytes): {}", body.length, bodyString);
+            String truncatedBodyString = Strings.truncate(bodyString, 20, "...");
+            log.info("Request Body (长度: {} bytes): {}", body.length, truncatedBodyString);
         } else {
             log.warn("Request Body 为空");
         }

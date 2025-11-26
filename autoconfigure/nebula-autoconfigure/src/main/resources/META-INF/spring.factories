@@ -2,3 +2,7 @@
 org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
 io.nebula.autoconfigure.ai.SpringAIAutoConfigurationFilter
 
+# Nebula MCP Server 环境后处理器
+# 在应用启动早期阶段将 nebula.ai.mcp 配置桥接到 spring.ai.mcp.server
+org.springframework.boot.env.EnvironmentPostProcessor=\
+io.nebula.autoconfigure.ai.NebulaMcpEnvironmentPostProcessor

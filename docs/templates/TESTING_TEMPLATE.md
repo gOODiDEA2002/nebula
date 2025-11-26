@@ -1,49 +1,45 @@
-# [模块名称] 单元测试文档
+# [模块名称] - 测试指南
 
-> **模块**: [模块artifactId]  
-> **版本**: 2.0.1-SNAPSHOT  
-> **最后更新**: YYYY-MM-DD
+> 本文档提供 [模块名称] 的完整测试策略、测试用例和测试实践。
 
-## 📋 测试概述
+## 测试概览
 
-### 测试目标
+### 测试层次
 
-本文档描述 `[模块名称]` 模块的单元测试策略、测试用例设计和执行指南。
+```
+┌─────────────────────────┐
+│     端到端测试 (E2E)     │  验证完整业务流程
+├─────────────────────────┤
+│     集成测试 (IT)        │  验证模块间集成
+├─────────────────────────┤
+│     单元测试 (UT)        │  验证单个组件
+└─────────────────────────┘
+```
 
-### 测试范围
+### 测试策略
 
-- ✅ 核心功能测试
-- ✅ 边界条件测试
-- ✅ 异常情况测试
-- ✅ 性能基准测试(如适用)
-- ✅ 集成测试(如适用)
+- **单元测试**：覆盖率目标 ≥ 80%
+- **集成测试**：覆盖核心业务流程
+- **性能测试**：验证性能指标
+- **安全测试**：验证安全机制
 
-### 测试覆盖率目标
+### 测试工具
 
-- **行覆盖率**: ≥ 80%
-- **分支覆盖率**: ≥ 70%
-- **核心业务逻辑**: ≥ 90%
+- **JUnit 5**：测试框架
+- **Mockito**：Mock框架
+- **AssertJ**：断言库
+- **Spring Boot Test**：Spring集成测试
+- **Testcontainers**：容器测试
+- **JMH**：性能基准测试
 
-## 🏗️ 测试环境准备
+## 测试环境准备
 
-### 必需依赖
+### 依赖配置
+
+在 `pom.xml` 中添加测试依赖：
 
 ```xml
 <dependencies>
-    <!-- JUnit 5 -->
-    <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <scope>test</scope>
-    </dependency>
-    
-    <!-- Mockito -->
-    <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <scope>test</scope>
-    </dependency>
-    
     <!-- Spring Boot Test -->
     <dependency>
         <groupId>org.springframework.boot</groupId>
@@ -51,267 +47,932 @@
         <scope>test</scope>
     </dependency>
     
-    <!-- 其他测试依赖 -->
+    <!-- Nebula 模块 -->
+    <dependency>
+        <groupId>io.nebula</groupId>
+        <artifactId>[artifact-id]</artifactId>
+        <scope>test</scope>
+    </dependency>
+    
+    <!-- Testcontainers（可选）-->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
 </dependencies>
 ```
 
 ### 测试配置
 
+**src/test/resources/application-test.yml**：
+
 ```yaml
-# src/test/resources/application-test.yml
 spring:
   profiles:
     active: test
 
 nebula:
-  [模块配置前缀]:
+  [module]:
     enabled: true
-    # 测试环境配置
+    property1: test-value
+    property2: 100
+    
+# 测试数据库配置
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    
+# 日志配置
+logging:
+  level:
+    io.nebula.[module]: DEBUG
 ```
 
-### 外部服务 Mock
+### 测试基类
 
-如果模块依赖外部服务,使用以下方式 Mock:
+创建测试基类简化测试配置：
 
-**选项1: TestContainers** (推荐用于数据库、消息队列等)
 ```java
-@Testcontainers
-class IntegrationTest {
-    @Container
-    static GenericContainer<?> container = new GenericContainer<>("service:tag")
-        .withExposedPorts(PORT);
+package com.example.test;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+/**
+ * 测试基类
+ */
+@SpringBootTest
+@ActiveProfiles("test")
+@ExtendWith(SpringExtension.class)
+public abstract class BaseTest {
+    
+    // 通用测试设置
 }
 ```
 
-**选项2: WireMock** (推荐用于 HTTP 服务)
+---
+
+## 单元测试
+
+### 测试用例1：基础功能测试
+
+**测试目标**：验证模块的基础功能是否正常工作。
+
 ```java
+package io.nebula.[module];
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 基础功能测试
+ */
 @SpringBootTest
-@AutoConfigureWireMock(port = 0)
-class HttpServiceTest {
+@DisplayName("[模块名称] 基础功能测试")
+class BasicFunctionTest {
+    
+    @Autowired
+    private ModuleComponent component;
+    
+    @Test
+    @DisplayName("测试基础功能")
+    void testBasicFunction() {
+        // 准备测试数据
+        TestData data = new TestData("test");
+        
+        // 执行测试
+        Result result = component.execute(data);
+        
+        // 验证结果
+        assertThat(result).isNotNull();
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo("expected");
+    }
+    
+    @Test
+    @DisplayName("测试参数验证")
+    void testParameterValidation() {
+        // 测试空参数
+        assertThatThrownBy(() -> component.execute(null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("参数不能为空");
+    }
+    
+    @Test
+    @DisplayName("测试异常处理")
+    void testExceptionHandling() {
+        // 准备异常场景数据
+        TestData invalidData = new TestData("");
+        
+        // 验证异常处理
+        assertThatThrownBy(() -> component.execute(invalidData))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("数据无效");
+    }
+}
+```
+
+### 测试用例2：配置加载测试
+
+**测试目标**：验证配置是否正确加载。
+
+```java
+package io.nebula.[module].config;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 配置加载测试
+ */
+@SpringBootTest
+@DisplayName("配置加载测试")
+class ConfigurationTest {
+    
+    @Autowired
+    private ModuleProperties properties;
+    
+    @Test
+    @DisplayName("测试配置加载")
+    void testConfigurationLoading() {
+        assertThat(properties).isNotNull();
+        assertThat(properties.isEnabled()).isTrue();
+        assertThat(properties.getProperty1()).isEqualTo("test-value");
+        assertThat(properties.getProperty2()).isEqualTo(100);
+    }
+    
+    @Test
+    @DisplayName("测试默认配置")
+    void testDefaultConfiguration() {
+        assertThat(properties.getProperty2()).isEqualTo(100);
+    }
+}
+```
+
+### 测试用例3：组件依赖测试
+
+**测试目标**：验证组件依赖注入是否正常。
+
+```java
+package io.nebula.[module].component;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 组件依赖测试
+ */
+@SpringBootTest
+@DisplayName("组件依赖测试")
+class ComponentDependencyTest {
+    
+    @Autowired
+    private ApplicationContext context;
+    
+    @Test
+    @DisplayName("测试Bean是否存在")
+    void testBeanExists() {
+        assertThat(context.containsBean("moduleComponent")).isTrue();
+        assertThat(context.getBean(ModuleComponent.class)).isNotNull();
+    }
+    
+    @Test
+    @DisplayName("测试Bean单例")
+    void testBeanSingleton() {
+        ModuleComponent bean1 = context.getBean(ModuleComponent.class);
+        ModuleComponent bean2 = context.getBean(ModuleComponent.class);
+        assertThat(bean1).isSameAs(bean2);
+    }
+}
+```
+
+### 测试用例4：Mock测试
+
+**测试目标**：使用Mock隔离依赖进行单元测试。
+
+```java
+package io.nebula.[module].service;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Mock测试示例
+ */
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Mock测试")
+class MockTest {
+    
+    @Mock
+    private DependencyComponent dependency;
+    
+    @InjectMocks
+    private ServiceComponent service;
+    
+    @Test
+    @DisplayName("测试使用Mock依赖")
+    void testWithMock() {
+        // 设置Mock行为
+        when(dependency.getData()).thenReturn("mocked-data");
+        
+        // 执行测试
+        String result = service.processData();
+        
+        // 验证结果
+        assertThat(result).isEqualTo("processed-mocked-data");
+        
+        // 验证Mock调用
+        verify(dependency, times(1)).getData();
+    }
+}
+```
+
+---
+
+## 集成测试
+
+### 测试用例1：模块集成测试
+
+**测试目标**：验证模块与其他模块的集成。
+
+```java
+package io.nebula.[module].integration;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 模块集成测试
+ */
+@SpringBootTest
+@ActiveProfiles("test")
+@DisplayName("模块集成测试")
+class ModuleIntegrationTest {
+    
+    @Autowired
+    private ModuleComponent moduleComponent;
+    
+    @Autowired
+    private OtherModuleComponent otherComponent;
+    
+    @Test
+    @DisplayName("测试模块间协作")
+    void testModuleCollaboration() {
+        // 准备数据
+        TestData data = new TestData("test");
+        
+        // 使用第一个模块处理
+        Result result1 = moduleComponent.process(data);
+        assertThat(result1.isSuccess()).isTrue();
+        
+        // 使用第二个模块处理
+        Result result2 = otherComponent.process(result1.getData());
+        assertThat(result2.isSuccess()).isTrue();
+    }
+}
+```
+
+### 测试用例2：数据库集成测试
+
+**测试目标**：验证与数据库的集成。
+
+```java
+package io.nebula.[module].integration;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 数据库集成测试
+ */
+@SpringBootTest
+@AutoConfigureTestDatabase
+@Transactional
+@DisplayName("数据库集成测试")
+class DatabaseIntegrationTest {
+    
+    @Autowired
+    private ModuleRepository repository;
+    
+    @Test
+    @DisplayName("测试数据库CRUD操作")
+    void testCrudOperations() {
+        // 创建
+        TestEntity entity = new TestEntity("test");
+        repository.save(entity);
+        assertThat(entity.getId()).isNotNull();
+        
+        // 查询
+        TestEntity found = repository.findById(entity.getId()).orElse(null);
+        assertThat(found).isNotNull();
+        assertThat(found.getName()).isEqualTo("test");
+        
+        // 更新
+        found.setName("updated");
+        repository.save(found);
+        
+        TestEntity updated = repository.findById(entity.getId()).orElse(null);
+        assertThat(updated.getName()).isEqualTo("updated");
+        
+        // 删除
+        repository.deleteById(entity.getId());
+        assertThat(repository.findById(entity.getId())).isEmpty();
+    }
+}
+```
+
+### 测试用例3：缓存集成测试
+
+**测试目标**：验证缓存功能是否正常。
+
+```java
+package io.nebula.[module].integration;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 缓存集成测试
+ */
+@SpringBootTest
+@DisplayName("缓存集成测试")
+class CacheIntegrationTest {
+    
+    @Autowired
+    private CacheableService service;
+    
+    @Autowired
+    private CacheManager cacheManager;
+    
+    @Test
+    @DisplayName("测试缓存生效")
+    void testCacheWorks() {
+        // 第一次调用，应该查询数据库
+        String result1 = service.getCachedData(1L);
+        assertThat(result1).isNotNull();
+        
+        // 第二次调用，应该从缓存获取
+        String result2 = service.getCachedData(1L);
+        assertThat(result2).isEqualTo(result1);
+        
+        // 验证缓存存在
+        assertThat(cacheManager.getCache("test-cache")).isNotNull();
+        assertThat(cacheManager.getCache("test-cache").get(1L)).isNotNull();
+    }
+}
+```
+
+### 测试用例4：消息队列集成测试
+
+**测试目标**：验证消息队列功能。
+
+```java
+package io.nebula.[module].integration;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.awaitility.Awaitility.await;
+
+/**
+ * 消息队列集成测试
+ */
+@SpringBootTest
+@DisplayName("消息队列集成测试")
+class MessageQueueIntegrationTest {
+    
+    @Autowired
+    private MessageProducer producer;
+    
+    @Autowired
+    private MessageConsumerListener consumer;
+    
+    @Test
+    @DisplayName("测试消息发送和接收")
+    void testMessageSendAndReceive() {
+        // 发送消息
+        TestMessage message = new TestMessage("test");
+        producer.send("test.topic", message);
+        
+        // 等待消息被消费（最多5秒）
+        await()
+            .atMost(5, TimeUnit.SECONDS)
+            .until(() -> consumer.getReceivedMessages().size() > 0);
+        
+        // 验证消息接收
+        assertThat(consumer.getReceivedMessages()).hasSize(1);
+        assertThat(consumer.getReceivedMessages().get(0).getContent())
+            .isEqualTo("test");
+    }
+}
+```
+
+---
+
+## 性能测试
+
+### 测试用例1：吞吐量测试
+
+**测试目标**：测试模块的处理吞吐量。
+
+```java
+package io.nebula.[module].performance;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 吞吐量测试
+ */
+@SpringBootTest
+@DisplayName("吞吐量测试")
+class ThroughputTest {
+    
+    @Autowired
+    private ModuleComponent component;
+    
+    @Test
+    @DisplayName("测试并发吞吐量")
+    void testThroughput() throws InterruptedException {
+        int threadCount = 100;
+        int requestsPerThread = 100;
+        
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failureCount = new AtomicInteger(0);
+        
+        long startTime = System.currentTimeMillis();
+        
+        // 并发执行
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    for (int j = 0; j < requestsPerThread; j++) {
+                        try {
+                            component.execute(new TestData("test"));
+                            successCount.incrementAndGet();
+                        } catch (Exception e) {
+                            failureCount.incrementAndGet();
+                        }
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        
+        // 等待完成
+        latch.await(60, TimeUnit.SECONDS);
+        executor.shutdown();
+        
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        
+        // 计算吞吐量
+        int totalRequests = threadCount * requestsPerThread;
+        double throughput = (double) totalRequests / duration * 1000;
+        
+        System.out.printf("总请求数: %d%n", totalRequests);
+        System.out.printf("成功数: %d%n", successCount.get());
+        System.out.printf("失败数: %d%n", failureCount.get());
+        System.out.printf("总耗时: %d ms%n", duration);
+        System.out.printf("吞吐量: %.2f ops/s%n", throughput);
+        
+        // 验证结果
+        assertThat(successCount.get()).isGreaterThan(totalRequests * 0.95); // 95%成功率
+    }
+}
+```
+
+### 测试用例2：延迟测试
+
+**测试目标**：测试模块的响应延迟。
+
+```java
+package io.nebula.[module].performance;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * 延迟测试
+ */
+@SpringBootTest
+@DisplayName("延迟测试")
+class LatencyTest {
+    
+    @Autowired
+    private ModuleComponent component;
+    
+    @Test
+    @DisplayName("测试响应延迟")
+    void testLatency() {
+        int iterations = 1000;
+        List<Long> latencies = new ArrayList<>();
+        
+        // 预热
+        for (int i = 0; i < 100; i++) {
+            component.execute(new TestData("warmup"));
+        }
+        
+        // 测试
+        for (int i = 0; i < iterations; i++) {
+            long startTime = System.nanoTime();
+            component.execute(new TestData("test"));
+            long endTime = System.nanoTime();
+            
+            latencies.add((endTime - startTime) / 1_000_000); // 转换为毫秒
+        }
+        
+        // 统计
+        Collections.sort(latencies);
+        long avgLatency = latencies.stream().mapToLong(Long::longValue).sum() / iterations;
+        long p50Latency = latencies.get(iterations / 2);
+        long p95Latency = latencies.get((int) (iterations * 0.95));
+        long p99Latency = latencies.get((int) (iterations * 0.99));
+        long maxLatency = latencies.get(iterations - 1);
+        
+        System.out.printf("平均延迟: %d ms%n", avgLatency);
+        System.out.printf("P50延迟: %d ms%n", p50Latency);
+        System.out.printf("P95延迟: %d ms%n", p95Latency);
+        System.out.printf("P99延迟: %d ms%n", p99Latency);
+        System.out.printf("最大延迟: %d ms%n", maxLatency);
+        
+        // 验证性能指标
+        assertThat(avgLatency).isLessThan(100); // 平均延迟 < 100ms
+        assertThat(p99Latency).isLessThan(500); // P99延迟 < 500ms
+    }
+}
+```
+
+### 测试用例3：JMH基准测试
+
+**测试目标**：使用JMH进行精确的性能基准测试。
+
+```java
+package io.nebula.[module].benchmark;
+
+import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * JMH基准测试
+ */
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
+@State(Scope.Thread)
+@Fork(1)
+@Warmup(iterations = 3, time = 1)
+@Measurement(iterations = 5, time = 1)
+public class ModuleBenchmark {
+    
+    private ModuleComponent component;
+    private TestData testData;
+    
+    @Setup
+    public void setup() {
+        component = new ModuleComponent();
+        testData = new TestData("test");
+    }
+    
+    @Benchmark
+    public void benchmarkExecute() {
+        component.execute(testData);
+    }
+    
+    public static void main(String[] args) throws Exception {
+        Options opt = new OptionsBuilder()
+                .include(ModuleBenchmark.class.getSimpleName())
+                .build();
+        
+        new Runner(opt).run();
+    }
+}
+```
+
+---
+
+## 测试覆盖率
+
+### 运行覆盖率报告
+
+使用 JaCoCo 生成测试覆盖率报告：
+
+```bash
+mvn clean test jacoco:report
+```
+
+### 查看覆盖率报告
+
+报告位置：`target/site/jacoco/index.html`
+
+### 覆盖率目标
+
+| 类型 | 目标覆盖率 |
+|------|-----------|
+| 行覆盖率 | ≥ 80% |
+| 分支覆盖率 | ≥ 70% |
+| 方法覆盖率 | ≥ 80% |
+
+### 当前覆盖率
+
+**模块整体覆盖率**：XX%
+
+**各组件覆盖率**：
+
+| 组件 | 行覆盖率 | 分支覆盖率 |
+|------|---------|-----------|
+| Component1 | XX% | XX% |
+| Component2 | XX% | XX% |
+| Service1 | XX% | XX% |
+
+---
+
+## 测试最佳实践
+
+### 实践1：使用有意义的测试名称
+
+**推荐**：
+
+```java
+@Test
+@DisplayName("当用户ID为空时应该抛出IllegalArgumentException异常")
+void shouldThrowIllegalArgumentExceptionWhenUserIdIsNull() {
     // 测试代码
 }
 ```
 
-**选项3: Mockito** (推荐用于接口Mock)
-```java
-@Mock
-private ExternalService externalService;
-```
+**不推荐**：
 
-## 🧪 测试用例设计
-
-### 1. [功能模块1] 测试
-
-#### 1.1 正常场景测试
-
-**测试类**: `[ClassName]Test.java`
-
-**测试方法**: `testMethodName_Should[ExpectedBehavior]_When[StateUnderTest]()`
-
-**测试用例**:
-
-| ID | 用例名称 | 输入条件 | 预期输出 | 优先级 |
-|----|----------|----------|----------|--------|
-| TC001 | [用例描述] | [输入] | [输出] | P0 |
-| TC002 | [用例描述] | [输入] | [输出] | P0 |
-| TC003 | [用例描述] | [输入] | [输出] | P1 |
-
-**示例代码**:
 ```java
 @Test
-@DisplayName("Should [ExpectedBehavior] When [StateUnderTest]")
-void testMethodName_ShouldReturnSuccess_WhenValidInput() {
-    // Given
-    String input = "valid input";
+void test1() {
+    // 测试代码
+}
+```
+
+### 实践2：遵循AAA模式
+
+**AAA模式**：Arrange（准备）、Act（执行）、Assert（断言）
+
+```java
+@Test
+void testExample() {
+    // Arrange - 准备测试数据
+    TestData data = new TestData("test");
     
-    // When
-    Result result = service.method(input);
+    // Act - 执行测试方法
+    Result result = component.execute(data);
     
-    // Then
-    assertThat(result).isNotNull();
+    // Assert - 验证结果
     assertThat(result.isSuccess()).isTrue();
 }
 ```
 
-#### 1.2 边界条件测试
+### 实践3：每个测试只验证一个行为
 
-**测试用例**:
+**推荐**：
 
-| ID | 用例名称 | 边界条件 | 预期行为 | 优先级 |
-|----|----------|----------|----------|--------|
-| BC001 | 空值输入 | null | 抛出异常或返回错误 | P0 |
-| BC002 | 空字符串 | "" | 抛出异常或返回错误 | P0 |
-| BC003 | 超长输入 | 超过最大长度 | 抛出异常或返回错误 | P1 |
-| BC004 | 最小值 | 最小有效值 | 正常处理 | P1 |
-| BC005 | 最大值 | 最大有效值 | 正常处理 | P1 |
-
-**示例代码**:
 ```java
 @Test
-@DisplayName("Should throw exception when input is null")
-void testMethod_ShouldThrowException_WhenInputIsNull() {
-    // Given
-    String input = null;
-    
-    // When & Then
-    assertThatThrownBy(() -> service.method(input))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("input cannot be null");
+void shouldReturnSuccessWhenDataIsValid() {
+    // 只测试成功场景
+}
+
+@Test
+void shouldThrowExceptionWhenDataIsInvalid() {
+    // 只测试异常场景
 }
 ```
 
-#### 1.3 异常场景测试
+### 实践4：使用AssertJ提高可读性
 
-**测试用例**:
+**推荐**：
 
-| ID | 用例名称 | 异常条件 | 预期行为 | 优先级 |
-|----|----------|----------|----------|--------|
-| EX001 | [异常场景] | [条件] | [行为] | P0 |
-| EX002 | [异常场景] | [条件] | [行为] | P1 |
-
-**示例代码**:
 ```java
-@Test
-@DisplayName("Should handle exception gracefully when external service fails")
-void testMethod_ShouldHandleException_WhenExternalServiceFails() {
-    // Given
-    when(externalService.call()).thenThrow(new RuntimeException("Service unavailable"));
+assertThat(result)
+    .isNotNull()
+    .extracting("status", "message")
+    .containsExactly("SUCCESS", "操作成功");
+```
+
+**不推荐**：
+
+```java
+assertTrue(result != null);
+assertEquals("SUCCESS", result.getStatus());
+assertEquals("操作成功", result.getMessage());
+```
+
+### 实践5：使用Testcontainers测试真实依赖
+
+```java
+@Testcontainers
+@SpringBootTest
+class TestcontainersTest {
     
-    // When
-    Result result = service.method();
+    @Container
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0");
     
-    // Then
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.getErrorMessage()).contains("Service unavailable");
+    @Test
+    void testWithRealDatabase() {
+        // 测试代码
+    }
 }
 ```
 
-### 2. [功能模块2] 测试
+---
 
-[重复上述结构]
+## 常见测试问题
 
-## 🎯 关键测试场景
+### 问题1：测试不稳定（Flaky Test）
 
-### 场景1: [场景名称]
+**原因**：
 
-**背景**: [场景描述]
+- 依赖外部资源
+- 多线程竞争
+- 时间相关逻辑
 
-**测试目标**: [测试什么]
+**解决方案**：
 
-**前置条件**:
-1. [条件1]
-2. [条件2]
-
-**测试步骤**:
-1. [步骤1]
-2. [步骤2]
-3. [步骤3]
-
-**验收标准**:
-- ✅ [标准1]
-- ✅ [标准2]
-- ✅ [标准3]
-
-**完整示例**:
 ```java
-@Test
-@DisplayName("场景: [场景名称]")
-void testScenario_[ScenarioName]() {
-    // 1. 准备测试数据
-    // Given
+// 使用Awaitility处理异步
+await()
+    .atMost(5, TimeUnit.SECONDS)
+    .until(() -> condition());
     
-    // 2. 执行测试操作
-    // When
-    
-    // 3. 验证结果
-    // Then
+// 使用Mock隔离外部依赖
+@Mock
+private ExternalService externalService;
+```
+
+### 问题2：测试运行缓慢
+
+**原因**：
+
+- 启动整个Spring上下文
+- 访问真实数据库
+
+**解决方案**：
+
+```java
+// 使用@WebMvcTest只加载Web层
+@WebMvcTest(Controller.class)
+class ControllerTest {
+    // 测试代码
+}
+
+// 使用@DataJpaTest只加载数据层
+@DataJpaTest
+class RepositoryTest {
+    // 测试代码
 }
 ```
 
-### 场景2: [场景名称]
+### 问题3：Mock不生效
 
-[重复上述结构]
+**原因**：
 
-## 🔧 Mock 依赖配置
+- 未正确配置Mock
+- Mock对象未注入
 
-### Mock 外部服务
+**解决方案**：
 
 ```java
 @ExtendWith(MockitoExtension.class)
 class ServiceTest {
     
     @Mock
-    private ExternalService externalService;
+    private Dependency dependency;
     
     @InjectMocks
-    private YourService yourService;
-    
-    @BeforeEach
-    void setUp() {
-        // 配置 Mock 行为
-        when(externalService.method(any()))
-            .thenReturn(mockResponse);
-    }
-}
-```
-
-### Mock Spring Bean
-
-```java
-@SpringBootTest
-class IntegrationTest {
-    
-    @MockBean
-    private ExternalService externalService;
-    
-    @Autowired
-    private YourService yourService;
+    private Service service;
     
     @Test
-    void testWithMockedBean() {
-        // 配置 Mock 行为
-        when(externalService.method(any()))
-            .thenReturn(mockResponse);
-            
-        // 执行测试
+    void test() {
+        when(dependency.method()).thenReturn("mocked");
+        // 测试代码
     }
 }
 ```
 
-## 🚀 测试执行
+---
 
-### 执行所有测试
+## 持续集成
 
-```bash
-# Maven
-mvn test
+### Maven配置
 
-# 仅执行本模块测试
-mvn test -pl [模块路径]
+**pom.xml**：
 
-# 执行特定测试类
-mvn test -Dtest=[TestClassName]
-
-# 执行特定测试方法
-mvn test -Dtest=[TestClassName]#[testMethod]
+```xml
+<build>
+    <plugins>
+        <!-- Surefire Plugin -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+                <includes>
+                    <include>**/*Test.java</include>
+                    <include>**/*Tests.java</include>
+                </includes>
+            </configuration>
+        </plugin>
+        
+        <!-- JaCoCo Plugin -->
+        <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>prepare-agent</goal>
+                        <goal>report</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
 ```
 
-### 测试覆盖率报告
+### CI流程
 
-```bash
-# 生成覆盖率报告
-mvn clean test jacoco:report
-
-# 查看报告
-open target/site/jacoco/index.html
-```
-
-### CI/CD 集成
+**GitHub Actions示例**：
 
 ```yaml
-# GitHub Actions 示例
 name: Test
+
 on: [push, pull_request]
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -321,59 +982,24 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: '21'
-      - name: Run tests
-        run: mvn test -pl [模块路径]
-      - name: Upload coverage
+      - name: Test
+        run: mvn test
+      - name: Coverage Report
+        run: mvn jacoco:report
+      - name: Upload Coverage
         uses: codecov/codecov-action@v2
 ```
 
-## 📊 测试验收标准
+---
 
-### 必须满足的标准
+## 相关文档
 
-- ✅ 所有P0级别测试用例通过率 100%
-- ✅ 所有P1级别测试用例通过率 ≥ 95%
-- ✅ 代码覆盖率达到目标(行覆盖≥80%, 分支覆盖≥70%)
-- ✅ 无已知的P0/P1级别缺陷
-- ✅ 性能测试通过(如适用)
-
-### 测试报告
-
-测试完成后应生成以下报告:
-1. **单元测试报告**: target/surefire-reports/
-2. **覆盖率报告**: target/site/jacoco/
-3. **测试摘要**: 包含通过率、覆盖率、执行时间
-
-## 🐛 已知问题与限制
-
-### 当前限制
-
-1. **限制1**: [描述限制和影响范围]
-2. **限制2**: [描述限制和影响范围]
-
-### 待完善的测试
-
-- [ ] [待添加的测试场景1]
-- [ ] [待添加的测试场景2]
-- [ ] [待添加的性能测试]
-
-## 📚 参考资源
-
-- [JUnit 5 用户指南](https://junit.org/junit5/docs/current/user-guide/)
-- [Mockito 文档](https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html)
-- [Spring Boot Testing](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing)
-- [AssertJ 文档](https://assertj.github.io/doc/)
-
-## 🤝 贡献测试用例
-
-欢迎贡献更多测试用例！请遵循:
-1. 使用 Given-When-Then 模式
-2. 测试方法命名清晰
-3. 添加 `@DisplayName` 注解
-4. 补充必要的注释
-5. 确保测试独立且可重复
+- [README.md](./README.md) - 模块介绍
+- [EXAMPLE.md](./EXAMPLE.md) - 使用示例
+- [CONFIG.md](./CONFIG.md) - 配置参考
+- [ROADMAP.md](./ROADMAP.md) - 未来规划
 
 ---
 
-**测试是质量的保障** - 让我们一起构建可靠的 Nebula 框架！
+> 测试是代码质量的保障，请保持良好的测试覆盖率。
 
