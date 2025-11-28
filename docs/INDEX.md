@@ -101,6 +101,19 @@
 | nebula-rpc-http | HTTP RPC 实现 | [README](modules/infrastructure/rpc/nebula-rpc-http/README.md) |
 | nebula-rpc-grpc | gRPC RPC 实现 | [README](modules/infrastructure/rpc/nebula-rpc-grpc/README.md) |
 
+#### API 网关 (Gateway)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-gateway-core | Gateway 核心组件 | [README](modules/infrastructure/gateway/nebula-gateway-core/README.md) |
+| nebula-starter-gateway | Gateway 启动器 | [README](modules/starter/nebula-starter-gateway/README.md) |
+
+#### MCP Server
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-starter-mcp | MCP 启动器（基于 Spring AI） | [README](modules/starter/nebula-starter-mcp/README.md) |
+
 #### 服务发现 (Discovery)
 
 | 模块 | 说明 | 文档 |

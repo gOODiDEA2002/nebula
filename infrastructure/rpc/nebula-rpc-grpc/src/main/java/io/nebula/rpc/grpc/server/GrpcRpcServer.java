@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.stub.StreamObserver;
 import io.nebula.rpc.core.annotation.RpcClient;
 import io.nebula.rpc.core.annotation.RpcService;
+import io.nebula.rpc.core.context.RpcContext;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
 import io.nebula.rpc.grpc.proto.RpcRequest;
 import io.nebula.rpc.grpc.proto.RpcResponse;
@@ -126,6 +127,9 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
                 .setTimestamp(System.currentTimeMillis());
 
         try {
+            // 将请求中的 metadata 设置到 RpcContext，供业务层使用
+            RpcContext.setAll(request.getMetadataMap());
+            
             // 查找服务实例
             Object serviceInstance = serviceRegistry.get(request.getServiceName());
             if (serviceInstance == null) {
@@ -159,20 +163,31 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
                     requestId, request.getServiceName(), request.getMethodName());
 
         } catch (Exception e) {
+            // 获取根本原因（处理 InvocationTargetException 等包装异常）
+            Throwable rootCause = getRootCause(e);
             log.error("gRPC RPC 调用失败: requestId={}, service={}, method={}", 
-                    requestId, request.getServiceName(), request.getMethodName(), e);
+                    requestId, request.getServiceName(), request.getMethodName(), rootCause);
+
+            // 确保 errorMessage 不为 null（protobuf 不允许 null 值）
+            String errorMessage = rootCause.getMessage();
+            if (errorMessage == null || errorMessage.isEmpty()) {
+                errorMessage = rootCause.getClass().getName();
+            }
 
             responseBuilder
                     .setSuccess(false)
                     .setErrorCode("RPC_CALL_ERROR")
-                    .setErrorMessage(e.getMessage())
+                    .setErrorMessage(errorMessage)
                     .setStackTrace(getStackTrace(e));
+        } finally {
+            // 清除 RpcContext，防止内存泄漏
+            RpcContext.clear();
         }
 
         responseObserver.onNext(responseBuilder.build());
         responseObserver.onCompleted();
     }
-
+    
     /**
      * 解析参数类型
      */
@@ -220,8 +235,9 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
      */
     private String getStackTrace(Exception e) {
         StringBuilder sb = new StringBuilder();
-        sb.append(e.getClass().getName()).append(": ").append(e.getMessage()).append("\n");
-        for (StackTraceElement element : e.getStackTrace()) {
+        Throwable rootCause = getRootCause(e);
+        sb.append(rootCause.getClass().getName()).append(": ").append(rootCause.getMessage()).append("\n");
+        for (StackTraceElement element : rootCause.getStackTrace()) {
             sb.append("\tat ").append(element.toString()).append("\n");
             if (sb.length() > 2000) { // 限制堆栈长度
                 sb.append("\t...");
@@ -229,6 +245,17 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * 获取根本异常（解包 InvocationTargetException 等包装异常）
+     */
+    private Throwable getRootCause(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause;
     }
 }
 

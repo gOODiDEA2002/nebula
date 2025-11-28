@@ -17,6 +17,7 @@
 
     <properties>
         <spring-ai.version>1.1.0</spring-ai.version>
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
     </properties>
 
     <dependencyManagement>
@@ -26,6 +27,15 @@
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
                 <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -207,6 +217,21 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-lock-redis</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Gateway Core (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-gateway-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Cloud Gateway (可选，Gateway模块需要) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-gateway-server</artifactId>
             <optional>true</optional>
         </dependency>
 

@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Primary;
 @Slf4j
 @AutoConfiguration
 @AutoConfigureBefore(RpcDiscoveryAutoConfiguration.class)  // 关键：确保 grpcRpcClient 先创建
-@ConditionalOnClass({GrpcRpcClient.class, GrpcRpcServer.class})
+@ConditionalOnClass(name = {"io.nebula.rpc.grpc.client.GrpcRpcClient", "io.nebula.rpc.grpc.config.GrpcRpcProperties"})
 @EnableConfigurationProperties(GrpcRpcProperties.class)
 @ConditionalOnProperty(prefix = "nebula.rpc.grpc", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class GrpcRpcAutoConfiguration {

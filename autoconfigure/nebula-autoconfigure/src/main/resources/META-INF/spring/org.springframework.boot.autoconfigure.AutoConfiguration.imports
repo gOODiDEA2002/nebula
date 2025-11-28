@@ -50,6 +50,11 @@ io.nebula.autoconfigure.storage.MinIOAutoConfiguration
 io.nebula.autoconfigure.storage.AliyunOSSAutoConfiguration
 
 # ========================================
+# Gateway Layer - 网关层
+# ========================================
+io.nebula.autoconfigure.gateway.GatewayAutoConfiguration
+
+# ========================================
 # AI Layer - AI层
 # ========================================
 io.nebula.autoconfigure.ai.AIAutoConfiguration

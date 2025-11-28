@@ -2,6 +2,12 @@
 # 排除 Spring AI 的默认自动配置，使用 Nebula 的自定义配置
 
 spring:
+  # 禁用 Spring Cloud Gateway 内置的 gRPC 功能，使用 Nebula Gateway 的 gRPC 桥接
+  cloud:
+    gateway:
+      grpc:
+        enabled: false
+  
   autoconfigure:
     exclude:
       # 排除 Spring AI OpenAI 相关自动配置

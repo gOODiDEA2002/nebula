@@ -31,9 +31,10 @@ public @interface RpcCall {
     
     /**
      * HTTP方法（GET, POST, PUT, DELETE等）
-     * 默认为 POST
+     * 使用 "*" 或 "ANY" 表示接受所有HTTP方法
+     * 默认为 "*"（接受所有方法）
      */
-    String method() default "POST";
+    String method() default "*";
     
     /**
      * 请求头

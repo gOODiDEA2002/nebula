@@ -1,0 +1,6 @@
+# Nebula Starter Gateway - Spring Factories
+# EnvironmentPostProcessor 用于在启动早期排除 gRPC Server 自动配置
+
+org.springframework.boot.env.EnvironmentPostProcessor=\
+  io.nebula.autoconfigure.gateway.GatewayGrpcServerExcludeConfiguration
+

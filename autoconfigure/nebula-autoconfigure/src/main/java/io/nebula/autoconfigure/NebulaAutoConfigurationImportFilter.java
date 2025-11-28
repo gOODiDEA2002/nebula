@@ -23,6 +23,11 @@ import java.util.Set;
  */
 public class NebulaAutoConfigurationImportFilter implements AutoConfigurationImportFilter {
     
+    /** 
+     * 是否为 Gateway 项目（检测 Spring Cloud Gateway 类路径）
+     */
+    private static final boolean IS_GATEWAY_PROJECT = isGatewayProject();
+    
     /**
      * 需要排除的自动配置类列表
      */
@@ -146,6 +151,35 @@ public class NebulaAutoConfigurationImportFilter implements AutoConfigurationImp
     ));
     
     /**
+     * Gateway 项目需要额外排除的自动配置类
+     * <p>
+     * gRPC Server 自动配置仅适用于后端微服务，网关项目不需要启动 gRPC 服务器
+     * 网关仅作为 gRPC 客户端使用，将 HTTP 请求转换为 gRPC 调用
+     */
+    private static final Set<String> GATEWAY_EXCLUDED_AUTO_CONFIGURATIONS = new HashSet<>(Arrays.asList(
+        // ========================================
+        // grpc-spring-boot-starter 服务器端配置
+        // 网关不需要启动 gRPC 服务器，只需要客户端功能
+        // ========================================
+        "net.devh.boot.grpc.server.autoconfigure.GrpcServerAutoConfiguration",
+        "net.devh.boot.grpc.server.autoconfigure.GrpcServerFactoryAutoConfiguration",
+        "net.devh.boot.grpc.server.autoconfigure.GrpcServerSecurityAutoConfiguration"
+    ));
+    
+    /**
+     * 检测是否为 Gateway 项目
+     * 通过检测 Spring Cloud Gateway 核心类是否在类路径中
+     */
+    private static boolean isGatewayProject() {
+        try {
+            Class.forName("org.springframework.cloud.gateway.filter.GatewayFilter");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+    
+    /**
      * 过滤自动配置
      * 
      * @param autoConfigurationClasses 自动配置类数组
@@ -158,8 +192,17 @@ public class NebulaAutoConfigurationImportFilter implements AutoConfigurationImp
         
         for (int i = 0; i < autoConfigurationClasses.length; i++) {
             String autoConfigurationClass = autoConfigurationClasses[i];
-            // 如果在排除列表中，则标记为 false（不导入）
-            matches[i] = !EXCLUDED_AUTO_CONFIGURATIONS.contains(autoConfigurationClass);
+            // 检查通用排除列表
+            if (EXCLUDED_AUTO_CONFIGURATIONS.contains(autoConfigurationClass)) {
+                matches[i] = false;
+                continue;
+            }
+            // 如果是 Gateway 项目，额外检查 Gateway 专用排除列表
+            if (IS_GATEWAY_PROJECT && GATEWAY_EXCLUDED_AUTO_CONFIGURATIONS.contains(autoConfigurationClass)) {
+                matches[i] = false;
+                continue;
+            }
+            matches[i] = true;
         }
         
         return matches;

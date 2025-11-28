@@ -76,6 +76,12 @@ public class NacosProperties {
     private boolean autoRegister = true;
     
     /**
+     * 指定注册的 IP 地址
+     * 如果不指定，将自动检测本机 IP（根据 preferredNetworks 和 ignoredInterfaces 配置）
+     */
+    private String ip;
+    
+    /**
      * 服务权重
      */
     private double weight = 1.0;
@@ -99,12 +105,25 @@ public class NacosProperties {
      * 首选网络地址列表
      * 用于过滤本机IP地址,优先选择匹配的网段
      * 例如: ["192.168.2", "10.0"]
+     * 应用端根据实际网络环境配置
      */
     private java.util.List<String> preferredNetworks = new java.util.ArrayList<>();
     
     /**
      * 忽略的网络接口
-     * 例如: ["docker0", "veth"]
+     * 框架默认忽略常见的虚拟网卡/不需要的接口
+     * 应用端通常不需要修改此配置
      */
-    private java.util.List<String> ignoredInterfaces = new java.util.ArrayList<>();
+    private java.util.List<String> ignoredInterfaces = java.util.Arrays.asList(
+            "docker0",     // Docker 默认网桥
+            "veth",        // Docker 容器虚拟网卡
+            "feth",        // macOS 虚拟网卡
+            "utun",        // VPN 隧道
+            "awdl",        // Apple Wireless Direct Link
+            "llw",         // Low Latency WLAN
+            "bridge",      // 网桥接口
+            "vmnet",       // VMware 虚拟网卡
+            "vboxnet",     // VirtualBox 虚拟网卡
+            "virbr"        // Linux 虚拟网桥
+    );
 }

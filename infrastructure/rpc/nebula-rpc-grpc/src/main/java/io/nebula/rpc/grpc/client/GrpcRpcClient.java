@@ -6,6 +6,7 @@ import io.grpc.ManagedChannelBuilder;
 import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.core.discovery.ServiceDiscoveryRpcClient;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
+import io.nebula.rpc.core.context.RpcContext;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
 import io.nebula.rpc.grpc.proto.RpcRequest;
 import io.nebula.rpc.grpc.proto.RpcResponse;
@@ -64,8 +65,15 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
         }
 
         channel = channelBuilder.build();
-        blockingStub = GenericRpcServiceGrpc.newBlockingStub(channel)
-                .withDeadlineAfter(clientConfig.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        // 注意：不在这里设置deadline，而是在每次调用时设置，避免deadline过期问题
+        blockingStub = GenericRpcServiceGrpc.newBlockingStub(channel);
+    }
+    
+    /**
+     * 获取带有新deadline的stub（每次调用时使用）
+     */
+    private GenericRpcServiceGrpc.GenericRpcServiceBlockingStub getStubWithDeadline() {
+        return blockingStub.withDeadlineAfter(clientConfig.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -186,6 +194,9 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                 }
             }
         }
+        
+        // 添加 RpcContext 中的 metadata（如用户信息）
+        requestBuilder.putAllMetadata(RpcContext.getAll());
 
         // 执行调用
         RpcResponse response = executeWithRetry(requestBuilder.build());
@@ -218,7 +229,8 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
         Exception lastException = null;
         for (int i = 0; i <= retryCount; i++) {
             try {
-                return blockingStub.call(request);
+                // 每次调用时获取带有新deadline的stub，避免deadline过期问题
+                return getStubWithDeadline().call(request);
             } catch (Exception e) {
                 lastException = e;
                 if (i < retryCount) {

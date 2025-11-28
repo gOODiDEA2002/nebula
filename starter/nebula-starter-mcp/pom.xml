@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>2.0.1-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-starter-mcp</artifactId>
+    <name>Nebula Starter MCP</name>
+    <description>MCP (Model Context Protocol) Server 启动器，快速构建 AI 工具服务</description>
+
+    <dependencies>
+        <!-- Nebula Starter AI (包含 AI 能力：向量搜索、RAG、Embedding 等) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-starter-ai</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Nebula AutoConfigure -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-autoconfigure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Nebula Web (MCP Server 需要 Web API 支持) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Boot Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring AI MCP Server WebMVC -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Actuator (可选：监控) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+</project>

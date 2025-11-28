@@ -151,9 +151,17 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
 
     /**
      * 获取本地 IP 地址
-     * 支持首选网络和忽略接口配置
+     * 优先使用配置的 IP，否则根据首选网络和忽略接口配置自动检测
      */
     private String getLocalIp() {
+        // 如果配置了指定的 IP，直接使用
+        String configuredIp = nacosProperties.getIp();
+        if (configuredIp != null && !configuredIp.isEmpty()) {
+            log.info("使用配置的 IP 地址: {}", configuredIp);
+            return configuredIp;
+        }
+        
+        // 否则根据网络配置自动检测
         return NetworkUtils.getLocalHost(
                 nacosProperties.getPreferredNetworks(),
                 nacosProperties.getIgnoredInterfaces()

@@ -35,7 +35,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Slf4j
 @AutoConfiguration
 @AutoConfigureBefore(RpcDiscoveryAutoConfiguration.class)  // 关键：确保 httpRpcClient 先创建
-@ConditionalOnClass({RpcClient.class, RestTemplate.class})
+@ConditionalOnClass(name = {"io.nebula.rpc.http.config.HttpRpcProperties", "io.nebula.rpc.http.client.HttpRpcClient"})
 @EnableConfigurationProperties(HttpRpcProperties.class)
 @ConditionalOnProperty(prefix = "nebula.rpc.http", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class HttpRpcAutoConfiguration {

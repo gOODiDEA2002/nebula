@@ -59,13 +59,20 @@ nebula:
 @RpcClient(value = "nebula-example", contextId = "userRpcClient")
 public interface UserRpcService {
     
+    // method 默认为 "*"，Gateway 支持 GET/POST/PUT/DELETE/PATCH
+    @RpcCall("/rpc/users/{id}")
+    GetUserDto.Response getUserById(@PathVariable("id") Long id);
+    
+    // 也可以指定特定 HTTP 方法
     @RpcCall(value = "/rpc/users", method = "POST")
     CreateUserDto.Response createUser(@RequestBody CreateUserDto.Request request);
-    
-    @RpcCall(value = "/rpc/users/{id}", method = "GET")
-    GetUserDto.Response getUserById(@PathVariable("id") Long id);
 }
 ```
+
+**设计说明**：
+- `@RpcCall` 的 `method` 默认为 `"*"`，表示接受所有 HTTP 方法
+- RPC 服务只关心 "调用什么方法"，不关心 HTTP 语义
+- Gateway 负责 HTTP 语义处理和参数提取
 
 ### 4. 实现 RPC 服务
 

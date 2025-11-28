@@ -58,6 +58,9 @@
         <module>infrastructure/lock/nebula-lock-core</module>
         <module>infrastructure/lock/nebula-lock-redis</module>
 
+        <!-- Gateway -->
+        <module>infrastructure/gateway/nebula-gateway-core</module>
+
         <!-- 应用层 -->
         <module>application/nebula-web</module>
         <module>application/nebula-task</module>
@@ -71,7 +74,9 @@
         <module>starter/nebula-starter-minimal</module>
         <module>starter/nebula-starter-web</module>
         <module>starter/nebula-starter-service</module>
+        <module>starter/nebula-starter-gateway</module>
         <module>starter/nebula-starter-ai</module>
+        <module>starter/nebula-starter-mcp</module>
         <module>starter/nebula-starter-all</module>
         <module>starter/nebula-starter-api</module>
         

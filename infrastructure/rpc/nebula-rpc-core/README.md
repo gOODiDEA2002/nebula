@@ -55,7 +55,48 @@ public interface UserRpcClient {
 - 自动推导 Bean 名称：`UserRpcClient`  `userRpcClient`
 - 支持所有 Java 接口特性
 
-### 2. `@RpcService` - RPC 服务注解
+### 2. `@RpcCall` - RPC 方法注解
+
+标记 RPC 方法，定义路由路径
+
+```java
+@RpcClient
+public interface UserRpcClient {
+    
+    // method 默认为 "*"，支持所有 HTTP 方法
+    @RpcCall("/rpc/users/{id}")
+    UserVo getUserById(@PathVariable("id") Long id);
+    
+    // 也可以指定特定 HTTP 方法
+    @RpcCall(value = "/rpc/users", method = "POST")
+    CreateUserDto.Response createUser(@RequestBody CreateUserDto.Request request);
+}
+```
+
+**设计理念 - RPC 与 HTTP 解耦**：
+
+```
++------------------+     +------------------+
+|  HTTP 语义层      | --> |  RPC 语义层       |
++------------------+     +------------------+
+| GET/POST/PUT/... |     | 调用什么方法      |
+| 参数来源          |     | 传入什么参数      |
+| Content-Type     |     | 返回什么结果      |
++------------------+     +------------------+
+```
+
+- **RPC 服务** 只关心 "调用什么方法"，不关心 HTTP 动词
+- **Gateway** 负责 HTTP 语义处理和协议转换
+- `method = "*"` 表示接受所有 HTTP 方法（GET/POST/PUT/DELETE/PATCH）
+
+**参数提取策略**（由 Gateway 负责）：
+
+| HTTP 方法 | 参数来源 |
+|-----------|----------|
+| GET/DELETE | 查询参数 + 路径变量 |
+| POST/PUT/PATCH | 请求体 + 路径变量 |
+
+### 3. `@RpcService` - RPC 服务注解
 
 标记 RPC 服务实现，自动注册到 HTTP/gRPC 服务器
 
@@ -76,7 +117,7 @@ public class UserRpcClientImpl implements UserRpcClient {
 - 自动注册到 HTTP 和 gRPC 服务器
 - 支持多协议（HTTPgRPC）
 
-### 3. `@EnableRpcClients` - 启用 RPC 客户端扫描
+### 4. `@EnableRpcClients` - 启用 RPC 客户端扫描
 
 在 API 模块的自动配置类上使用，启用 RPC 客户端自动发现
 
