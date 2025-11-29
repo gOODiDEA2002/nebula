@@ -13,10 +13,11 @@ import reactor.core.publisher.Mono;
 /**
  * 限流Key解析器配置
  * <p>
- * 提供三种限流策略：
- * - ip: 基于客户端IP限流
- * - user: 基于用户ID限流（需要JWT认证）
+ * 框架层提供两种通用限流策略：
+ * - ip: 基于客户端IP限流（默认）
  * - path: 基于请求路径限流
+ * <p>
+ * 注意：如需基于用户或其他业务维度限流，请在应用层自定义 KeyResolver
  */
 @Configuration
 @ConditionalOnClass(KeyResolver.class)
@@ -28,7 +29,7 @@ public class RateLimitKeyResolverConfig {
     
     /**
      * 基于策略配置的统一限流Key解析器
-     * 根据配置的strategy自动选择IP、User或Path策略
+     * 根据配置的strategy自动选择IP或Path策略
      */
     @Bean
     @Primary
@@ -37,15 +38,6 @@ public class RateLimitKeyResolverConfig {
             String strategy = gatewayProperties.getRateLimit().getStrategy();
             
             switch (strategy) {
-                case "user":
-                    String userId = exchange.getRequest().getHeaders()
-                            .getFirst(gatewayProperties.getJwt().getUserIdHeader());
-                    if (userId != null && !userId.isEmpty()) {
-                        return Mono.just("user:" + userId);
-                    }
-                    // 未登录用户使用IP限流
-                    return Mono.just("ip:" + getClientIp(exchange));
-                    
                 case "path":
                     return Mono.just("path:" + exchange.getRequest().getPath().value());
                     
@@ -53,21 +45,6 @@ public class RateLimitKeyResolverConfig {
                 default:
                     return Mono.just("ip:" + getClientIp(exchange));
             }
-        };
-    }
-    
-    /**
-     * 用于配置中引用的userKeyResolver别名
-     */
-    @Bean(name = "userKeyResolver")
-    public KeyResolver userKeyResolver() {
-        return exchange -> {
-            String userId = exchange.getRequest().getHeaders()
-                    .getFirst(gatewayProperties.getJwt().getUserIdHeader());
-            if (userId != null && !userId.isEmpty()) {
-                return Mono.just("user:" + userId);
-            }
-            return Mono.just("ip:" + getClientIp(exchange));
         };
     }
     

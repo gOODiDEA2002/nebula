@@ -224,11 +224,11 @@ public class MyGrpcServiceRouter extends AbstractGrpcServiceRouter {
         registerRoute("POST", "/api/v1/users/login", "user", "login",
             (body, exchange) -> userRpcClient.login(parseBody(body, UserLoginDto.Request.class)));
         
+        // 注意：用户信息通过 RpcContext 传递，由业务层（UserContext）读取
+        // 框架不再硬编码 userId 逻辑
         registerRoute("GET", "/api/v1/users/info", "user", "getUserInfo",
             (body, exchange) -> {
-                Long userId = getUserIdFromHeader(exchange);
                 UserInfoDto.Request request = new UserInfoDto.Request();
-                request.setUserId(userId);
                 return userRpcClient.getUserInfo(request);
             });
         

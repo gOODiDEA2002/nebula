@@ -29,8 +29,9 @@ import java.util.regex.Pattern;
  * <p>
  * 特性：
  * - 路径映射：自动将 /api/v1/* 映射到 /rpc/*
- * - Header传递：自动将HTTP Header传递给RPC服务
- * - userId注入：自动将X-User-Id header注入到请求DTO
+ * - Header传递：自动将配置的HTTP Header传递到RpcContext
+ * - 多HTTP方法支持：支持GET/POST/PUT/DELETE/PATCH
+ * - 智能参数提取：根据HTTP方法自动从query/body提取参数
  */
 @Slf4j
 public class AutoDiscoveryGrpcServiceRouter extends AbstractGrpcServiceRouter {
@@ -282,17 +283,18 @@ public class AutoDiscoveryGrpcServiceRouter extends AbstractGrpcServiceRouter {
         if (param.isAnnotationPresent(RequestBody.class)) {
             Object dto;
             if (body == null || body.isEmpty()) {
-                try {
-                    dto = paramType.getDeclaredConstructor().newInstance();
-                } catch (Exception e) {
-                    dto = null;
+                // GET 请求时，尝试从查询参数构建 DTO
+                dto = buildDtoFromQueryParams(exchange, paramType);
+                if (dto == null) {
+                    try {
+                        dto = paramType.getDeclaredConstructor().newInstance();
+                    } catch (Exception e) {
+                        dto = null;
+                    }
                 }
             } else {
                 dto = objectMapper.readValue(body, paramType);
             }
-            
-            // 注意：不再自动注入 userId 到 DTO
-            // 后端服务应通过 CurrentUserContext.getUserId() 获取当前用户
             
             return dto;
         }

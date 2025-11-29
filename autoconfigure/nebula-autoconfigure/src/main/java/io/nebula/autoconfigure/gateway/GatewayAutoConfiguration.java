@@ -6,7 +6,6 @@ import io.nebula.gateway.config.GatewayProperties;
 import io.nebula.gateway.config.GatewayRedisAutoConfiguration;
 import io.nebula.gateway.config.GatewayRoutesAutoConfiguration;
 import io.nebula.gateway.config.RateLimitKeyResolverConfig;
-import io.nebula.gateway.filter.JwtAuthGatewayFilterFactory;
 import io.nebula.gateway.filter.LoggingGlobalFilter;
 import io.nebula.gateway.grpc.AbstractGrpcServiceRouter;
 import io.nebula.gateway.grpc.AutoDiscoveryGrpcServiceRouter;
@@ -41,16 +40,8 @@ public class GatewayAutoConfiguration {
     
     private GrpcClientAutoRegistrar grpcClientAutoRegistrar;
     
-    /**
-     * JWT认证过滤器工厂
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "nebula.gateway.jwt", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public JwtAuthGatewayFilterFactory jwtAuthGatewayFilterFactory(GatewayProperties gatewayProperties) {
-        log.info("初始化Nebula Gateway JWT认证过滤器");
-        return new JwtAuthGatewayFilterFactory(gatewayProperties);
-    }
+    // 注意：JWT 认证过滤器已移至应用层实现（如 ticket-gateway）
+    // 框架不再内置 JWT 认证，由各应用根据业务需求自行实现
     
     /**
      * 全局日志过滤器

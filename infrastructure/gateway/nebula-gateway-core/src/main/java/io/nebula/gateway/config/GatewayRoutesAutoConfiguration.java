@@ -70,11 +70,18 @@ public class GatewayRoutesAutoConfiguration {
         for (Map.Entry<String, GatewayProperties.ServiceConfig> entry : grpcConfig.getServices().entrySet()) {
             GatewayProperties.ServiceConfig serviceConfig = entry.getValue();
             if (serviceConfig.isEnabled() && !serviceConfig.getApiPackages().isEmpty()) {
-                // 根据包名推断 API 路径
                 String serviceName = entry.getKey();
-                String apiPath = inferApiPath(serviceName);
-                if (apiPath != null) {
-                    apiPaths.add(apiPath);
+                
+                // 优先使用配置的 apiPaths，否则自动推断
+                if (serviceConfig.getApiPaths() != null && !serviceConfig.getApiPaths().isEmpty()) {
+                    apiPaths.addAll(serviceConfig.getApiPaths());
+                    log.debug("服务 {} 使用配置的 API 路径: {}", serviceName, serviceConfig.getApiPaths());
+                } else {
+                    String apiPath = inferApiPath(serviceName);
+                    if (apiPath != null) {
+                        apiPaths.add(apiPath);
+                        log.debug("服务 {} 使用推断的 API 路径: {}", serviceName, apiPath);
+                    }
                 }
             }
         }
@@ -117,12 +124,8 @@ public class GatewayRoutesAutoConfiguration {
         // 过滤器
         List<FilterDefinition> filters = new ArrayList<>();
         
-        // JWT 认证过滤器
-        if (nebulaGatewayProperties.getJwt().isEnabled()) {
-            FilterDefinition jwtFilter = new FilterDefinition();
-            jwtFilter.setName("JwtAuth");
-            filters.add(jwtFilter);
-        }
+        // 注意：认证过滤器由应用层配置（如 ticket-gateway 自定义 JwtAuthFilter）
+        // 框架不再自动添加认证过滤器
         
         // gRPC 桥接过滤器
         FilterDefinition grpcFilter = new FilterDefinition();
@@ -142,31 +145,25 @@ public class GatewayRoutesAutoConfiguration {
 
     /**
      * 根据服务名推断 API 路径
+     * <p>
+     * 通用规则：从服务名的最后一部分推断资源名
+     * 示例：my-user-service -> /api/v1/services/**
+     * <p>
+     * 如需自定义路径，请在 ServiceConfig.apiPaths 中配置
      */
     private String inferApiPath(String serviceName) {
         String apiPrefix = nebulaGatewayProperties.getRoutes().getApiPathPrefix();
         
-        // ticket-user -> /api/v1/users/**
-        // ticket-cinema -> /api/v1/cinemas/**, /api/v1/movies/**, /api/v1/showtimes/**, /api/v1/seats/**
-        // ticket-order -> /api/v1/orders/**
-        // ticket-payment -> /api/v1/payments/**, /api/v1/refunds/**
-        // ticket-notification -> /api/v1/notifications/**
+        // 通用规则：使用服务名的最后一部分 + 's' 作为资源名
+        // 例如: ticket-user -> users, order-service -> services
+        String[] parts = serviceName.split("-");
+        String resourceName = parts[parts.length - 1];
         
-        if (serviceName.contains("user")) {
-            return apiPrefix + "/users/**";
-        } else if (serviceName.contains("cinema")) {
-            return apiPrefix + "/cinemas/**," + apiPrefix + "/movies/**," + apiPrefix + "/showtimes/**," + apiPrefix + "/seats/**";
-        } else if (serviceName.contains("order")) {
-            return apiPrefix + "/orders/**";
-        } else if (serviceName.contains("payment")) {
-            return apiPrefix + "/payments/**," + apiPrefix + "/refunds/**";
-        } else if (serviceName.contains("notification")) {
-            return apiPrefix + "/notifications/**";
+        // 如果最后一部分不以 's' 结尾，加上 's' (简单复数化)
+        if (!resourceName.endsWith("s")) {
+            resourceName = resourceName + "s";
         }
         
-        // 默认使用服务名的最后一部分
-        String[] parts = serviceName.split("-");
-        String resourceName = parts[parts.length - 1] + "s";
         return apiPrefix + "/" + resourceName + "/**";
     }
 

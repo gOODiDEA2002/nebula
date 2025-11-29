@@ -20,10 +20,8 @@ public class GatewayProperties {
      */
     private boolean enabled = true;
     
-    /**
-     * JWT配置
-     */
-    private JwtConfig jwt = new JwtConfig();
+    // 注意：JWT 认证已移至应用层实现，框架不再内置 JWT 配置
+    // 各应用（如 ticket-gateway）应自行定义认证配置和实现
     
     /**
      * 日志配置
@@ -49,53 +47,6 @@ public class GatewayProperties {
      * CORS配置
      */
     private CorsConfig cors = new CorsConfig();
-    
-    /**
-     * JWT配置
-     */
-    @Data
-    public static class JwtConfig {
-        /**
-         * 是否启用JWT认证
-         */
-        private boolean enabled = true;
-        
-        /**
-         * JWT密钥
-         */
-        private String secret;
-        
-        /**
-         * JWT请求头名称
-         */
-        private String header = "Authorization";
-        
-        /**
-         * JWT Token前缀
-         */
-        private String prefix = "Bearer ";
-        
-        /**
-         * 白名单路径（不需要认证）
-         */
-        private List<String> whitelist = new ArrayList<>();
-        
-        /**
-         * 用户ID请求头名称
-         */
-        private String userIdHeader = "X-User-Id";
-        
-        /**
-         * 用户名请求头名称
-         */
-        private String usernameHeader = "X-Username";
-        
-        /**
-         * 自定义Claims映射到请求头
-         * 格式: claimName:headerName
-         */
-        private List<String> claimHeaders = new ArrayList<>();
-    }
     
     /**
      * 日志配置
@@ -130,6 +81,9 @@ public class GatewayProperties {
     
     /**
      * 限流配置
+     * <p>
+     * 框架层提供 ip 和 path 两种通用策略。
+     * 如需基于用户或其他业务维度限流，请在应用层自定义 KeyResolver。
      */
     @Data
     public static class RateLimitConfig {
@@ -139,7 +93,9 @@ public class GatewayProperties {
         private boolean enabled = true;
         
         /**
-         * 限流策略: ip, user, path
+         * 限流策略: ip, path
+         * - ip: 基于客户端IP限流（默认）
+         * - path: 基于请求路径限流
          */
         private String strategy = "ip";
         
@@ -261,6 +217,9 @@ public class GatewayProperties {
     
     /**
      * Header 传递配置
+     * <p>
+     * 用于配置哪些 HTTP Headers 需要通过 RpcContext 传递到后端服务。
+     * 框架只负责传递，不关心业务含义（如 userId）。
      */
     @Data
     public static class HeaderPropagation {
@@ -271,7 +230,8 @@ public class GatewayProperties {
         
         /**
          * 需要传递的 Header 列表（支持通配符）
-         * 默认传递所有 X- 开头的 Header
+         * 默认传递所有 X- 开头的 Header 和 Authorization
+         * 示例: ["X-*", "Authorization"]
          */
         private List<String> includes = List.of("X-*", "Authorization");
         
@@ -279,17 +239,6 @@ public class GatewayProperties {
          * 需要排除的 Header 列表
          */
         private List<String> excludes = new ArrayList<>();
-        
-        /**
-         * 将 userId 注入到请求 DTO 的字段名
-         * 如果 DTO 包含此字段，自动从 X-User-Id header 注入
-         */
-        private String userIdField = "userId";
-        
-        /**
-         * userId 的 Header 名称
-         */
-        private String userIdHeader = "X-User-Id";
     }
     
     /**
@@ -332,6 +281,13 @@ public class GatewayProperties {
          * API接口包路径列表 (用于扫描@RpcClient接口)
          */
         private List<String> apiPackages = new ArrayList<>();
+        
+        /**
+         * 自定义 API 路径列表
+         * 如果不配置，将根据服务名自动推断
+         * 示例: ["/api/v1/users/**", "/api/v1/profiles/**"]
+         */
+        private List<String> apiPaths = new ArrayList<>();
         
         /**
          * 连接超时时间(毫秒)

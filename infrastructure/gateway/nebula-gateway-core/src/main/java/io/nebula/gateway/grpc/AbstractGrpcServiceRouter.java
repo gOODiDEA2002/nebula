@@ -135,25 +135,33 @@ public abstract class AbstractGrpcServiceRouter {
     }
     
     /**
-     * 从请求头获取用户ID
+     * 从请求头获取字符串值
+     *
+     * @param exchange   请求上下文
+     * @param headerName Header 名称
+     * @return Header 值，不存在则返回 null
      */
-    protected Long getUserIdFromHeader(ServerWebExchange exchange) {
-        String userId = exchange.getRequest().getHeaders().getFirst("X-User-Id");
-        if (userId != null && !userId.isEmpty()) {
-            try {
-                return Long.parseLong(userId);
-            } catch (NumberFormatException e) {
-                log.warn("无法解析用户ID: {}", userId);
-            }
-        }
-        return null;
+    protected String getHeader(ServerWebExchange exchange, String headerName) {
+        return exchange.getRequest().getHeaders().getFirst(headerName);
     }
     
     /**
-     * 从请求头获取用户名
+     * 从请求头获取 Long 值
+     *
+     * @param exchange   请求上下文
+     * @param headerName Header 名称
+     * @return Header 值解析为 Long，不存在或解析失败返回 null
      */
-    protected String getUsernameFromHeader(ServerWebExchange exchange) {
-        return exchange.getRequest().getHeaders().getFirst("X-Username");
+    protected Long getHeaderAsLong(ServerWebExchange exchange, String headerName) {
+        String value = exchange.getRequest().getHeaders().getFirst(headerName);
+        if (value != null && !value.isEmpty()) {
+            try {
+                return Long.parseLong(value);
+            } catch (NumberFormatException e) {
+                log.warn("无法解析Header {}为Long: {}", headerName, value);
+            }
+        }
+        return null;
     }
     
     /**
