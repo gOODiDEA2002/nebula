@@ -13,8 +13,8 @@
 
     <groupId>io.nebula</groupId>
     <artifactId>nebula-parent</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
-    <name>Nebula Framework ${project.version}</name>
+    <version>${revision}</version>
+    <name>Nebula Framework ${revision}</name>
     <description>Modern Java Backend Framework - Born from the stars</description>
     <packaging>pom</packaging>
 
@@ -68,6 +68,7 @@
 
         <!-- 第三方集成 -->
         <module>integration/nebula-integration-payment</module>
+        <module>integration/nebula-integration-notification</module>
         
         <!-- Starter 模块 -->
         <module>starter/nebula-starter</module>
@@ -86,8 +87,9 @@
     </modules>
 
     <properties>
-        <!-- 项目版本 -->
-        <nebula.version>${project.version}</nebula.version>
+        <!-- 项目版本 (CI-Friendly 版本管理，只需在此处修改) -->
+        <revision>2.0.1-SNAPSHOT</revision>
+        <nebula.version>${revision}</nebula.version>
         <java.version>21</java.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
@@ -405,6 +407,33 @@
                         <phase>test</phase>
                         <goals>
                             <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <!-- Flatten Maven Plugin - 处理 CI-Friendly 版本发布 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
                         </goals>
                     </execution>
                 </executions>

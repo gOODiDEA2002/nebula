@@ -41,6 +41,10 @@ prototypes/
 logs/
 
 .DS_Store
+
+### Maven CI-Friendly Version ###
+.flattened-pom.xml
+
 .repomixignore
 repomix.config.json
 repomix-output.md
