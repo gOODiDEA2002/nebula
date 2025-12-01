@@ -27,6 +27,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -146,6 +147,22 @@ public class CacheAutoConfiguration {
     @ConditionalOnMissingBean(name = "redisTemplate")
     public RedisTemplate<String, Object> multiLevelRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
         return redisTemplate(redisConnectionFactory);
+    }
+    
+    /**
+     * StringRedisTemplate 配置
+     * 用于简单的字符串操作场景（如验证码存储、计数器等）
+     */
+    @Bean("stringRedisTemplate")
+    @ConditionalOnClass(StringRedisTemplate.class)
+    @ConditionalOnProperty(prefix = "nebula.data.cache.redis", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean(StringRedisTemplate.class)
+    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        log.info("Configuring StringRedisTemplate for simple string operations");
+        StringRedisTemplate template = new StringRedisTemplate();
+        template.setConnectionFactory(redisConnectionFactory);
+        template.afterPropertiesSet();
+        return template;
     }
     
     /**

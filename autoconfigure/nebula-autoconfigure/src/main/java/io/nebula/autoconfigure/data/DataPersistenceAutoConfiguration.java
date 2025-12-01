@@ -1,13 +1,18 @@
 package io.nebula.autoconfigure.data;
 
+import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import io.nebula.data.persistence.config.DefaultMetaObjectHandler;
 import io.nebula.data.persistence.config.MyBatisPlusConfiguration;
+import io.nebula.data.persistence.config.MybatisPlusProperties;
 import io.nebula.data.persistence.datasource.DataSourceManager;
 import io.nebula.data.persistence.transaction.DefaultTransactionManager;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +22,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.util.concurrent.Executor;
@@ -37,7 +45,7 @@ import java.util.concurrent.Executors;
 @AutoConfiguration(before = org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class)
 @ConditionalOnClass(name = "com.baomidou.mybatisplus.core.mapper.BaseMapper")
 @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = false)
-@EnableConfigurationProperties
+@EnableConfigurationProperties(MybatisPlusProperties.class)
 @Import({
     MyBatisPlusConfiguration.class,
     DataSourceManager.class,
@@ -51,6 +59,9 @@ public class DataPersistenceAutoConfiguration {
     
     @Autowired(required = false)
     private DataSourceManager dataSourceManager;
+    
+    @Autowired(required = false)
+    private MybatisPlusProperties mybatisPlusProperties;
     
     /**
      * 将 DataSourceManager 的主数据源注册为 Spring 的 DataSource Bean (for MyBatis-Plus)
@@ -83,6 +94,7 @@ public class DataPersistenceAutoConfiguration {
     
     /**
      * 为 MyBatis-Plus 配置 SqlSessionFactory
+     * 从 nebula.data.persistence.mybatis-plus 读取配置
      */
     @Bean
     @Primary
@@ -97,23 +109,76 @@ public class DataPersistenceAutoConfiguration {
         MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
         
+        // 获取配置属性（使用默认值如果未配置）
+        MybatisPlusProperties props = mybatisPlusProperties != null ? mybatisPlusProperties : new MybatisPlusProperties();
+        
+        // 配置 MyBatis Configuration
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        configuration.setMapUnderscoreToCamelCase(props.isMapUnderscoreToCamelCase());
+        
+        // 设置日志实现
+        String logImplClass = props.getLogImplClass();
+        if (StringUtils.hasText(logImplClass)) {
+            try {
+                @SuppressWarnings("unchecked")
+                Class<? extends Log> logClass = (Class<? extends Log>) Class.forName(logImplClass);
+                configuration.setLogImpl(logClass);
+                log.info("设置 MyBatis 日志实现: {}", logImplClass);
+            } catch (ClassNotFoundException e) {
+                log.warn("无法加载日志实现类: {}", logImplClass);
+            }
+        }
+        factoryBean.setConfiguration(configuration);
+        
         // 设置 MyBatis-Plus 全局配置
         GlobalConfig globalConfig = new GlobalConfig();
         globalConfig.setMetaObjectHandler(metaObjectHandler);
+        
+        // 设置数据库配置
+        GlobalConfig.DbConfig dbConfig = new GlobalConfig.DbConfig();
+        MybatisPlusProperties.DbConfig propsDbConfig = props.getGlobalConfig().getDbConfig();
+        
+        // 设置主键类型
+        try {
+            IdType idType = IdType.valueOf(propsDbConfig.getIdType().toUpperCase());
+            dbConfig.setIdType(idType);
+        } catch (IllegalArgumentException e) {
+            log.warn("无效的主键类型: {}，使用默认值 AUTO", propsDbConfig.getIdType());
+            dbConfig.setIdType(IdType.AUTO);
+        }
+        
+        // 设置逻辑删除配置
+        dbConfig.setLogicDeleteField(propsDbConfig.getLogicDeleteField());
+        dbConfig.setLogicDeleteValue(String.valueOf(propsDbConfig.getLogicDeleteValue()));
+        dbConfig.setLogicNotDeleteValue(String.valueOf(propsDbConfig.getLogicNotDeleteValue()));
+        dbConfig.setTableUnderline(propsDbConfig.isTableUnderline());
+        
+        globalConfig.setDbConfig(dbConfig);
         factoryBean.setGlobalConfig(globalConfig);
         
         // 设置插件
         factoryBean.setPlugins(mybatisPlusInterceptor);
         
-        // 设置类型别名包 - 只扫描 io.nebula 包下的实体类，避免扫描第三方库导致别名冲突
-        factoryBean.setTypeAliasesPackage("io.nebula.**.entity.dos");
+        // 设置类型别名包
+        String typeAliasesPackage = props.getTypeAliasesPackage();
+        if (StringUtils.hasText(typeAliasesPackage)) {
+            factoryBean.setTypeAliasesPackage(typeAliasesPackage);
+            log.info("设置 MyBatis 类型别名包: {}", typeAliasesPackage);
+        }
         
-        // 设置 mapper XML 文件位置（如果有的话）
-        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-        try {
-            factoryBean.setMapperLocations(resolver.getResources("classpath*:/mapper/**/*.xml"));
-        } catch (Exception e) {
-            log.debug("No mapper XML files found, which is fine for annotation-based mappers");
+        // 设置 mapper XML 文件位置
+        String mapperLocations = props.getMapperLocations();
+        if (StringUtils.hasText(mapperLocations)) {
+            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+            try {
+                Resource[] resources = resolver.getResources(mapperLocations);
+                if (resources.length > 0) {
+                    factoryBean.setMapperLocations(resources);
+                    log.info("设置 MyBatis Mapper 位置: {}，找到 {} 个文件", mapperLocations, resources.length);
+                }
+            } catch (Exception e) {
+                log.debug("No mapper XML files found at {}, which is fine for annotation-based mappers", mapperLocations);
+            }
         }
         
         return factoryBean.getObject();
@@ -121,12 +186,13 @@ public class DataPersistenceAutoConfiguration {
     
     /**
      * 默认事务管理器
+     * 使用 @Qualifier 指定 applicationTaskExecutor，避免与其他 Executor bean 冲突
      */
     @Bean
     @ConditionalOnMissingBean(io.nebula.data.persistence.transaction.TransactionManager.class)
     public DefaultTransactionManager nebulaTransactionManager(
             PlatformTransactionManager platformTransactionManager,
-            Executor taskExecutor) {
+            @Qualifier("applicationTaskExecutor") Executor taskExecutor) {
         log.info("配置Nebula事务管理器");
         return new DefaultTransactionManager(platformTransactionManager, taskExecutor);
     }

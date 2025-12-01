@@ -1,6 +1,9 @@
 package io.nebula.gateway.config;
 
+import io.nebula.discovery.core.ServiceDiscovery;
+import io.nebula.discovery.core.ServiceInstance;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
@@ -23,6 +26,10 @@ import java.util.stream.Collectors;
  * 网关路由和CORS自动配置
  * <p>
  * 将 nebula.gateway 的配置转换为 Spring Cloud Gateway 配置
+ * <p>
+ * 基于微服务三原则优化：
+ * - 前端接口通过 Controller 暴露（HTTP 代理转发）
+ * - 服务间调用通过 RpcClient（不经过 Gateway）
  */
 @Slf4j
 @Configuration
@@ -32,6 +39,9 @@ public class GatewayRoutesAutoConfiguration {
 
     private final GatewayProperties nebulaGatewayProperties;
     private final org.springframework.cloud.gateway.config.GatewayProperties springGatewayProperties;
+    
+    @Autowired(required = false)
+    private ServiceDiscovery serviceDiscovery;
 
     public GatewayRoutesAutoConfiguration(GatewayProperties nebulaGatewayProperties,
                                            org.springframework.cloud.gateway.config.GatewayProperties springGatewayProperties) {
@@ -41,11 +51,8 @@ public class GatewayRoutesAutoConfiguration {
 
     @PostConstruct
     public void configureRoutes() {
-        GatewayProperties.RoutesConfig routesConfig = nebulaGatewayProperties.getRoutes();
-        
-        if (routesConfig.isAutoConfigGrpcRoutes()) {
-            configureGrpcRoutes();
-        }
+        // 配置 HTTP 代理路由
+        configureHttpProxyRoutes();
         
         // 配置自定义路由
         configureCustomRoutes();
@@ -57,114 +64,110 @@ public class GatewayRoutesAutoConfiguration {
     }
 
     /**
-     * 根据 gRPC 服务配置自动生成路由
+     * 根据 HTTP 代理服务配置自动生成路由
+     * <p>
+     * 为每个配置的服务生成路由，将请求代理到后端服务的 Controller
      */
-    private void configureGrpcRoutes() {
-        GatewayProperties.GrpcConfig grpcConfig = nebulaGatewayProperties.getGrpc();
-        if (!grpcConfig.isEnabled() || grpcConfig.getServices().isEmpty()) {
+    private void configureHttpProxyRoutes() {
+        GatewayProperties.HttpProxyConfig httpConfig = nebulaGatewayProperties.getHttp();
+        if (!httpConfig.isEnabled() || httpConfig.getServices().isEmpty()) {
+            log.info("HTTP 代理未启用或无服务配置");
             return;
         }
 
-        // 收集所有服务的 API 路径
-        List<String> apiPaths = new ArrayList<>();
-        for (Map.Entry<String, GatewayProperties.ServiceConfig> entry : grpcConfig.getServices().entrySet()) {
-            GatewayProperties.ServiceConfig serviceConfig = entry.getValue();
-            if (serviceConfig.isEnabled() && !serviceConfig.getApiPackages().isEmpty()) {
-                String serviceName = entry.getKey();
-                
-                // 优先使用配置的 apiPaths，否则自动推断
-                if (serviceConfig.getApiPaths() != null && !serviceConfig.getApiPaths().isEmpty()) {
-                    apiPaths.addAll(serviceConfig.getApiPaths());
-                    log.debug("服务 {} 使用配置的 API 路径: {}", serviceName, serviceConfig.getApiPaths());
-                } else {
-                    String apiPath = inferApiPath(serviceName);
-                    if (apiPath != null) {
-                        apiPaths.add(apiPath);
-                        log.debug("服务 {} 使用推断的 API 路径: {}", serviceName, apiPath);
-                    }
-                }
+        for (Map.Entry<String, GatewayProperties.HttpServiceConfig> entry : httpConfig.getServices().entrySet()) {
+            String serviceName = entry.getKey();
+            GatewayProperties.HttpServiceConfig serviceConfig = entry.getValue();
+            
+            if (!serviceConfig.isEnabled()) {
+                continue;
             }
-        }
-
-        if (apiPaths.isEmpty()) {
-            return;
-        }
-
-        // 创建 gRPC 路由
-        RouteDefinition grpcRoute = new RouteDefinition();
-        grpcRoute.setId("nebula-grpc-services");
-        grpcRoute.setUri(URI.create("no://op"));
-        grpcRoute.setOrder(0);
-
-        // Path 谓词 - 使用多个 Path predicate 或者使用正确的参数格式
-        // Path predicate 支持逗号分隔的多个模式
-        List<PredicateDefinition> predicates = new ArrayList<>();
-        for (String pathGroup : apiPaths) {
-            // 每个 pathGroup 可能包含多个逗号分隔的路径
-            for (String path : pathGroup.split(",")) {
-                PredicateDefinition pathPredicate = new PredicateDefinition();
-                pathPredicate.setName("Path");
-                pathPredicate.addArg("pattern", path.trim());
-                predicates.add(pathPredicate);
+            
+            // 获取 API 路径
+            List<String> apiPaths = serviceConfig.getApiPaths();
+            if (apiPaths == null || apiPaths.isEmpty()) {
+                log.warn("服务 {} 未配置 API 路径，跳过", serviceName);
+                continue;
             }
-        }
-        // 使用 OR 组合所有路径（实际上多个 predicate 默认是 OR 关系）
-        // 但 Spring Cloud Gateway 的路由匹配是 AND，所以我们需要用一个 Path predicate 包含所有路径
-        PredicateDefinition combinedPathPredicate = new PredicateDefinition();
-        combinedPathPredicate.setName("Path");
-        // 使用 _genkey_ 前缀的参数名来添加多个路径
-        int idx = 0;
-        for (String pathGroup : apiPaths) {
-            for (String path : pathGroup.split(",")) {
-                combinedPathPredicate.addArg("_genkey_" + idx++, path.trim());
+            
+            // 确定目标 URI
+            String targetUri = determineTargetUri(serviceName, serviceConfig, httpConfig.isUseDiscovery());
+            
+            // 为每组 API 路径创建路由
+            RouteDefinition route = new RouteDefinition();
+            route.setId("nebula-http-" + serviceName);
+            route.setUri(URI.create(targetUri));
+            route.setOrder(0);
+            
+            // 配置 Path 谓词
+            PredicateDefinition pathPredicate = new PredicateDefinition();
+            pathPredicate.setName("Path");
+            int idx = 0;
+            for (String apiPath : apiPaths) {
+                pathPredicate.addArg("_genkey_" + idx++, apiPath.trim());
             }
-        }
-        grpcRoute.setPredicates(List.of(combinedPathPredicate));
-
-        // 过滤器
-        List<FilterDefinition> filters = new ArrayList<>();
-        
-        // 注意：认证过滤器由应用层配置（如 ticket-gateway 自定义 JwtAuthFilter）
-        // 框架不再自动添加认证过滤器
-        
-        // gRPC 桥接过滤器
-        FilterDefinition grpcFilter = new FilterDefinition();
-        grpcFilter.setName("Grpc");
-        filters.add(grpcFilter);
-        
-        grpcRoute.setFilters(filters);
-
-        // 添加到路由列表（如果不存在同ID的路由）
-        boolean exists = springGatewayProperties.getRoutes().stream()
-                .anyMatch(r -> "nebula-grpc-services".equals(r.getId()));
-        if (!exists) {
-            springGatewayProperties.getRoutes().add(grpcRoute);
-            log.info("自动配置 gRPC 路由: paths={}", apiPaths);
+            route.setPredicates(List.of(pathPredicate));
+            
+            // 添加到路由列表
+            boolean exists = springGatewayProperties.getRoutes().stream()
+                    .anyMatch(r -> route.getId().equals(r.getId()));
+            if (!exists) {
+                springGatewayProperties.getRoutes().add(route);
+                log.info("配置 HTTP 代理路由: {} -> {}, paths={}", serviceName, targetUri, apiPaths);
+            }
         }
     }
-
+    
     /**
-     * 根据服务名推断 API 路径
+     * 确定目标 URI
      * <p>
-     * 通用规则：从服务名的最后一部分推断资源名
-     * 示例：my-user-service -> /api/v1/services/**
-     * <p>
-     * 如需自定义路径，请在 ServiceConfig.apiPaths 中配置
+     * 优先级：
+     * 1. 静态地址配置
+     * 2. 服务发现（从 Nacos 获取实例地址）
+     * 3. lb:// 前缀（需要 Spring Cloud LoadBalancer 支持）
      */
-    private String inferApiPath(String serviceName) {
-        String apiPrefix = nebulaGatewayProperties.getRoutes().getApiPathPrefix();
-        
-        // 通用规则：使用服务名的最后一部分 + 's' 作为资源名
-        // 例如: ticket-user -> users, order-service -> services
-        String[] parts = serviceName.split("-");
-        String resourceName = parts[parts.length - 1];
-        
-        // 如果最后一部分不以 's' 结尾，加上 's' (简单复数化)
-        if (!resourceName.endsWith("s")) {
-            resourceName = resourceName + "s";
+    private String determineTargetUri(String serviceName, 
+                                       GatewayProperties.HttpServiceConfig serviceConfig,
+                                       boolean useDiscovery) {
+        // 优先使用静态地址
+        if (serviceConfig.getAddress() != null && !serviceConfig.getAddress().isEmpty()) {
+            return serviceConfig.getAddress();
         }
         
-        return apiPrefix + "/" + resourceName + "/**";
+        // 使用服务发现
+        if (useDiscovery) {
+            String targetServiceName = serviceConfig.getServiceName() != null 
+                    ? serviceConfig.getServiceName() 
+                    : serviceName;
+            
+            // 尝试从 Nebula ServiceDiscovery 获取服务实例
+            if (serviceDiscovery != null) {
+                try {
+                    List<ServiceInstance> instances = serviceDiscovery.getInstances(targetServiceName);
+                    if (instances != null && !instances.isEmpty()) {
+                        // 获取第一个健康实例（实际生产中应该使用负载均衡）
+                        ServiceInstance instance = instances.stream()
+                                .filter(ServiceInstance::isHealthy)
+                                .findFirst()
+                                .orElse(instances.get(0));
+                        String uri = String.format("http://%s:%d", instance.getIp(), instance.getPort());
+                        log.info("从服务发现获取 {} 地址: {}", targetServiceName, uri);
+                        return uri;
+                    } else {
+                        log.warn("服务 {} 在服务发现中无可用实例", targetServiceName);
+                    }
+                } catch (Exception e) {
+                    log.warn("从服务发现获取 {} 地址失败: {}", targetServiceName, e.getMessage());
+                }
+            }
+            
+            // 如果 Nebula ServiceDiscovery 不可用，回退到 lb:// 前缀
+            // 这需要 Spring Cloud LoadBalancer 支持
+            return "lb://" + targetServiceName;
+        }
+        
+        log.warn("服务 {} 无法确定目标 URI", serviceName);
+        return "no://op";
     }
 
     /**
@@ -186,7 +189,10 @@ public class GatewayRoutesAutoConfiguration {
             if (!def.getPaths().isEmpty()) {
                 PredicateDefinition pathPredicate = new PredicateDefinition();
                 pathPredicate.setName("Path");
-                pathPredicate.addArg("pattern", String.join(",", def.getPaths()));
+                int idx = 0;
+                for (String path : def.getPaths()) {
+                    pathPredicate.addArg("_genkey_" + idx++, path.trim());
+                }
                 route.setPredicates(List.of(pathPredicate));
             }
 

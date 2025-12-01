@@ -13,7 +13,7 @@
 
     <artifactId>nebula-starter-gateway</artifactId>
     <name>Nebula Starter Gateway</name>
-    <description>Nebula Gateway启动器 - 快速构建API网关</description>
+    <description>Nebula Gateway启动器 - 快速构建API网关（HTTP反向代理、认证、限流）</description>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -24,7 +24,7 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Nebula AutoConfiguration (包含GatewayAutoConfiguration) -->
+        <!-- Nebula AutoConfiguration -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-autoconfigure</artifactId>
@@ -35,19 +35,6 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
-        </dependency>
-        
-        <!-- Nebula RPC gRPC (用于gRPC客户端代理) -->
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-rpc-grpc</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        
-        <!-- gRPC Netty (gRPC通信需要) -->
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty</artifactId>
         </dependency>
         
         <!-- Resilience4j (熔断限流) -->

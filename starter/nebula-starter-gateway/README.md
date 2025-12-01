@@ -4,35 +4,32 @@ API网关启动器，提供快速构建企业级API网关的能力。
 
 ## 功能特性
 
-- **JWT认证过滤器** - 统一认证，白名单配置
+- **HTTP 反向代理** - 将请求转发到后端服务的 Controller
 - **请求日志过滤器** - RequestId追踪，耗时统计，慢请求标记
-- **gRPC桥接过滤器** - HTTP到gRPC的协议转换
-- **多HTTP方法支持** - 单一路由同时支持 GET/POST/PUT/DELETE/PATCH
-- **智能参数提取** - 根据HTTP方法自动从不同来源提取参数
-- **限流支持** - IP/用户/路径多种限流策略
+- **限流支持** - IP/路径多种限流策略
 - **熔断降级** - 基于Resilience4j的熔断保护
+- **CORS 处理** - 跨域请求配置
 
 ## 设计理念
 
-### RPC 与 HTTP 方法解耦
-
-Nebula Gateway 采用 **RPC 语义与 HTTP 语义分离** 的设计：
+### 微服务三原则
 
 ```
 +------------------+     +------------------+     +------------------+
-|   HTTP Client    | --> |   API Gateway    | --> |   RPC Service    |
-|   (语义层)        |     |   (协议转换)      |     |   (方法层)        |
+|   HTTP Client    | --> |   API Gateway    | --> | Backend Service  |
+|  (Browser/App)   |     | (HTTP反向代理)    |     |  (Controller)    |
 +------------------+     +------------------+     +------------------+
-| GET /api/users/1 |     | 参数提取         |     | getUserById(1)   |
-| POST /api/users  |     | 方法路由         |     | createUser(dto)  |
-| PUT /api/users/1 |     | Header传递       |     | updateUser(dto)  |
-+------------------+     +------------------+     +------------------+
+
+1. 前端接口通过 Controller 暴露（HTTP 代理）
+2. 服务间接口通过 RpcClient 暴露（纯 RPC，无 HTTP 路径）
+3. 服务间直接调用（不经过 Gateway）
 ```
 
-**核心原则**：
-- **RPC 服务** 只关心 "调用什么方法"，不关心 HTTP 语义
-- **API Gateway** 负责 HTTP 语义处理和协议转换
-- `@RpcCall` 注解默认 `method = "*"`，表示接受所有 HTTP 方法
+Gateway 职责简化为：
+- HTTP 反向代理
+- 认证（应用层实现）
+- 限流/熔断
+- 请求日志
 
 ## 快速开始
 
@@ -54,182 +51,92 @@ server:
 spring:
   application:
     name: my-gateway
-  cloud:
-    gateway:
-      routes:
-        - id: user-service
-          uri: lb://user-service
-          predicates:
-            - Path=/api/v1/users/**
-          filters:
-            - JwtAuth
-            - Grpc
 
 nebula:
   gateway:
     enabled: true
-    jwt:
-      enabled: true
-      secret: your-jwt-secret-key-at-least-32-characters
-      whitelist:
-        - /api/v1/users/login
-        - /api/v1/users/register
-        - /api/v1/public/**
-      claim-headers:
-        - phone:X-User-Phone
-        - role:X-User-Role
+    
+    # 日志配置
     logging:
       enabled: true
       slow-request-threshold: 3000
+    
+    # 限流配置
     rate-limit:
       enabled: true
-      strategy: ip  # ip, user, path
-```
-
-### 3. 自动扫描模式（推荐）
-
-启用自动扫描模式后，Gateway 会自动发现 `@RpcClient` 接口并注册路由，无需手动编写路由器：
-
-```yaml
-nebula:
-  gateway:
-    grpc:
+      strategy: ip
+      replenish-rate: 100
+      burst-capacity: 200
+    
+    # HTTP 代理配置
+    http:
       enabled: true
-      auto-scan: true  # 启用自动扫描
+      use-discovery: true
       services:
         user-service:
-          enabled: true
-          address: "localhost:5001"
-          api-packages:
-            - "io.nebula.example.user.api"
+          api-paths:
+            - /api/v1/users/**
         order-service:
-          enabled: true
-          address: "localhost:5002"
-          api-packages:
-            - "io.nebula.example.order.api"
+          api-paths:
+            - /api/v1/orders/**
+    
+    # CORS 配置
+    cors:
+      enabled: true
+      allowed-origins:
+        - "*"
 ```
 
-**自动扫描的工作原理**：
-1. 扫描配置的 `api-packages` 下的所有 `@RpcClient` 接口
-2. 解析每个方法的 `@RpcCall` 注解
-3. 自动注册路由，支持多 HTTP 方法
-
-### 4. 多HTTP方法支持
-
-当 `@RpcCall` 的 `method` 为 `"*"` 或 `"ANY"` 时，Gateway 会为该路由注册所有常用 HTTP 方法：
+### 3. 启动类
 
 ```java
-@RpcClient
-public interface UserRpcClient {
-    
-    // method 默认为 "*"，同时支持 GET/POST/PUT/DELETE/PATCH
-    @RpcCall("/rpc/users/{id}")
-    UserVo getUserById(@PathVariable("id") Long id);
-    
-    // 也可以指定特定方法
-    @RpcCall(value = "/rpc/users", method = "POST")
-    CreateUserDto.Response createUser(@RequestBody CreateUserDto.Request request);
+@SpringBootApplication
+public class GatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(GatewayApplication.class, args);
+    }
 }
 ```
 
-**参数提取策略**：
-
-| HTTP 方法 | 参数来源 | 说明 |
-|-----------|----------|------|
-| GET | 查询参数 + 路径变量 | `?name=xxx` -> DTO 字段 |
-| DELETE | 查询参数 + 路径变量 | 同 GET |
-| POST | 请求体 | JSON Body -> DTO |
-| PUT | 请求体 | JSON Body -> DTO |
-| PATCH | 请求体 | JSON Body -> DTO |
-
-```mermaid
-flowchart LR
-    subgraph HTTP请求
-        GET["GET /api/users?name=test"]
-        POST["POST /api/users<br/>{name: test}"]
-    end
-    
-    subgraph Gateway参数提取
-        QP["查询参数提取器"]
-        BP["请求体解析器"]
-    end
-    
-    subgraph RPC调用
-        DTO["UserDto"]
-        RPC["userRpcClient.getUsers(dto)"]
-    end
-    
-    GET --> QP --> DTO --> RPC
-    POST --> BP --> DTO --> RPC
-```
-
-### 5. 手动路由器（可选）
-
-如果需要自定义路由逻辑，可以实现 `AbstractGrpcServiceRouter`：
+### 4. 自定义认证（应用层实现）
 
 ```java
 @Component
 @RequiredArgsConstructor
-public class MyGrpcServiceRouter extends AbstractGrpcServiceRouter {
+public class JwtAuthFilter implements GlobalFilter, Ordered {
     
-    private final UserRpcClient userRpcClient;
-    private final OrderRpcClient orderRpcClient;
+    private final JwtProperties jwtProperties;
     
-    public MyGrpcServiceRouter(ObjectMapper objectMapper,
-                               UserRpcClient userRpcClient,
-                               OrderRpcClient orderRpcClient) {
-        super(objectMapper);
-        this.userRpcClient = userRpcClient;
-        this.orderRpcClient = orderRpcClient;
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 1. 检查白名单
+        if (isWhitelisted(exchange.getRequest().getPath().value())) {
+            return chain.filter(exchange);
+        }
+        
+        // 2. 验证 Token
+        String token = extractToken(exchange.getRequest());
+        if (token == null) {
+            return unauthorized(exchange);
+        }
+        
+        // 3. 解析用户信息并注入请求头
+        Claims claims = validateToken(token);
+        ServerHttpRequest request = exchange.getRequest().mutate()
+                .header("X-User-Id", claims.getSubject())
+                .build();
+        
+        return chain.filter(exchange.mutate().request(request).build());
     }
     
     @Override
-    protected void registerRoutes() {
-        // 用户服务路由 - 支持多方法
-        registerRoute("*", "/api/v1/users/{id}", "user", "getUserById",
-            (body, exchange) -> {
-                Long userId = extractPathVariableLong(exchange, "id");
-                return userRpcClient.getUserById(userId);
-            });
-        
-        // 订单服务路由 - 指定单一方法
-        registerRoute("POST", "/api/v1/orders", "order", "createOrder",
-            (body, exchange) -> orderRpcClient.createOrder(parseBody(body, CreateOrderDto.Request.class)));
-    }
-}
-```
-
-### 4. 配置gRPC客户端
-
-```java
-@Configuration
-public class GrpcClientConfig {
-    
-    @Bean
-    public UserRpcClient userRpcClient(GrpcClientProxyFactory proxyFactory) {
-        return proxyFactory.createClient(UserRpcClient.class, "user-service", 9090);
-    }
-    
-    @Bean
-    public OrderRpcClient orderRpcClient(GrpcClientProxyFactory proxyFactory) {
-        return proxyFactory.createClient(OrderRpcClient.class, "order-service", 9090);
+    public int getOrder() {
+        return -100;  // 最先执行
     }
 }
 ```
 
 ## 配置说明
-
-### JWT配置
-
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `nebula.gateway.jwt.enabled` | 是否启用JWT认证 | `true` |
-| `nebula.gateway.jwt.secret` | JWT密钥（至少32字符） | - |
-| `nebula.gateway.jwt.header` | JWT请求头名称 | `Authorization` |
-| `nebula.gateway.jwt.prefix` | Token前缀 | `Bearer ` |
-| `nebula.gateway.jwt.whitelist` | 白名单路径列表 | `[]` |
-| `nebula.gateway.jwt.user-id-header` | 用户ID请求头 | `X-User-Id` |
-| `nebula.gateway.jwt.claim-headers` | Claims映射到请求头 | `[]` |
 
 ### 日志配置
 
@@ -244,41 +151,28 @@ public class GrpcClientConfig {
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
 | `nebula.gateway.rate-limit.enabled` | 是否启用限流 | `true` |
-| `nebula.gateway.rate-limit.strategy` | 限流策略 | `ip` |
+| `nebula.gateway.rate-limit.strategy` | 限流策略 (ip/path) | `ip` |
+| `nebula.gateway.rate-limit.replenish-rate` | 每秒补充令牌数 | `100` |
+| `nebula.gateway.rate-limit.burst-capacity` | 桶容量 | `200` |
 
-## 过滤器说明
+### HTTP 代理配置
 
-### JwtAuth过滤器
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `nebula.gateway.http.enabled` | 是否启用HTTP代理 | `true` |
+| `nebula.gateway.http.use-discovery` | 是否使用服务发现 | `true` |
+| `nebula.gateway.http.services.<name>.api-paths` | 服务的API路径列表 | `[]` |
+| `nebula.gateway.http.services.<name>.address` | 静态服务地址 | - |
 
-在路由配置中使用：
+### CORS 配置
 
-```yaml
-filters:
-  - JwtAuth
-```
-
-功能：
-- 验证JWT Token
-- 将用户信息注入请求头
-- 支持白名单配置
-
-### Grpc过滤器
-
-在路由配置中使用：
-
-```yaml
-filters:
-  - Grpc
-```
-
-功能：
-- HTTP请求转gRPC调用
-- 自动路由匹配
-- 统一响应格式包装
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `nebula.gateway.cors.enabled` | 是否启用CORS | `true` |
+| `nebula.gateway.cors.allowed-origins` | 允许的来源 | `["*"]` |
+| `nebula.gateway.cors.allowed-methods` | 允许的方法 | `[GET,POST,PUT,DELETE,OPTIONS]` |
 
 ## 架构图
-
-### 整体架构
 
 ```
                       +------------------+
@@ -295,15 +189,15 @@ filters:
          +-------------------+-------------------+
          |                   |                   |
     +---------+        +---------+        +---------+
-    |  JWT    |        | Logging |        |  gRPC   |
-    | Filter  |        | Filter  |        | Bridge  |
+    |  Auth   |        | Logging |        | Rate    |
+    | Filter  |        | Filter  |        | Limiter |
     +---------+        +---------+        +---------+
          |                   |                   |
          +-------------------+-------------------+
                               |
                     +------------------+
-                    | 自动路由发现      |
-                    | (AutoDiscovery)  |
+                    | HTTP 反向代理     |
+                    | (服务发现)        |
                     +------------------+
                               |
               +---------------+---------------+
@@ -311,28 +205,30 @@ filters:
          +--------+      +--------+      +--------+
          | User   |      | Order  |      | Other  |
          | Service|      | Service|      | Service|
-         | (gRPC) |      | (gRPC) |      | (gRPC) |
+         | (HTTP) |      | (HTTP) |      | (HTTP) |
          +--------+      +--------+      +--------+
 ```
 
-### 请求处理流程
+## 请求处理流程
 
 ```mermaid
 sequenceDiagram
     participant Client as HTTP Client
     participant GW as API Gateway
-    participant JWT as JWT Filter
-    participant GRPC as gRPC Bridge
+    participant Auth as Auth Filter
+    participant Log as Logging Filter
+    participant Proxy as HTTP Proxy
     participant SVC as Backend Service
     
-    Client->>GW: GET/POST /api/v1/users/1
-    GW->>JWT: 验证Token
-    JWT-->>GW: 用户信息 (X-User-Id)
-    GW->>GRPC: 路由匹配
-    Note over GRPC: 自动参数提取<br/>GET: 查询参数<br/>POST: 请求体
-    GRPC->>SVC: gRPC Call (getUserById)
-    SVC-->>GRPC: Response
-    GRPC-->>GW: Result包装
+    Client->>GW: GET /api/v1/users/1
+    GW->>Auth: 验证Token
+    Auth-->>GW: 用户信息 (X-User-Id)
+    GW->>Log: 记录请求开始
+    GW->>Proxy: 路由匹配
+    Proxy->>SVC: HTTP 转发
+    SVC-->>Proxy: Response
+    Proxy-->>GW: Response
+    GW->>Log: 记录请求结束
     GW-->>Client: JSON Response
 ```
 
@@ -342,8 +238,18 @@ sequenceDiagram
 - Spring Boot 3.5+
 - Spring Cloud 2025.0+
 
+## 依赖说明
+
+| 依赖 | 说明 | 可选 |
+|------|------|------|
+| nebula-gateway-core | 网关核心 | 必需 |
+| nebula-autoconfigure | 自动配置 | 必需 |
+| spring-cloud-starter-gateway | Gateway核心 | 必需 |
+| spring-cloud-starter-circuitbreaker-reactor-resilience4j | 熔断 | 必需 |
+| spring-boot-starter-data-redis-reactive | 限流 | 可选 |
+| nebula-discovery-nacos | 服务发现 | 可选 |
+
 ## 相关文档
 
 - [Nebula框架文档](../../docs/README.md)
 - [Spring Cloud Gateway文档](https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/)
-

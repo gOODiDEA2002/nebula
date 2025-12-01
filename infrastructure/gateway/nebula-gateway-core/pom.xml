@@ -13,7 +13,7 @@
 
     <artifactId>nebula-gateway-core</artifactId>
     <name>Nebula Gateway Core</name>
-    <description>Nebula Gateway核心模块 - 提供API网关通用能力：JWT认证、日志、gRPC桥接、限流等</description>
+    <description>Nebula Gateway核心模块 - 提供API网关通用能力：HTTP反向代理、日志、限流等</description>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -24,23 +24,7 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Nebula RPC Core (用于@RpcClient等注解) -->
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-rpc-core</artifactId>
-            <version>${project.version}</version>
-            <optional>true</optional>
-        </dependency>
-        
-        <!-- Nebula RPC gRPC (用于gRPC客户端) -->
-        <dependency>
-            <groupId>io.nebula</groupId>
-            <artifactId>nebula-rpc-grpc</artifactId>
-            <version>${project.version}</version>
-            <optional>true</optional>
-        </dependency>
-        
-        <!-- Nebula Discovery Core (用于服务发现) -->
+        <!-- Nebula Discovery Core (可选，用于服务发现) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-core</artifactId>
@@ -60,20 +44,23 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         
-        <!-- JWT -->
+        <!-- JWT (可选，用于认证) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
         
         <!-- Jackson -->
