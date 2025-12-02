@@ -47,10 +47,10 @@ nebula:
         negotiation-type: plaintext
         load-balancing-policy: round_robin
         max-inbound-message-size: 10485760  # 10MB
-        connect-timeout: 30000
-        request-timeout: 60000
-        retry-count: 3
-        retry-interval: 1000
+        connect-timeout: 30000      # 连接超时（毫秒）
+        request-timeout: 60000      # 请求超时（毫秒）
+        retry-count: 0              # 重试次数（默认不重试，因为大多数业务未实现幂等）
+        retry-interval: 1000        # 重试间隔（毫秒）
 ```
 
 ### 3. 定义 RPC 服务接口
@@ -237,7 +237,7 @@ sequenceDiagram
 | `nebula.rpc.grpc.client.max-inbound-message-size` | Integer | `10485760` | 最大入站消息大小(10MB) |
 | `nebula.rpc.grpc.client.connect-timeout` | Long | `30000` | 连接超时(毫秒) |
 | `nebula.rpc.grpc.client.request-timeout` | Long | `60000` | 请求超时(毫秒) |
-| `nebula.rpc.grpc.client.retry-count` | Integer | `3` | 重试次数 |
+| `nebula.rpc.grpc.client.retry-count` | Integer | `0` | 重试次数（默认不重试，因为大多数业务未实现幂等） |
 | `nebula.rpc.grpc.client.retry-interval` | Long | `1000` | 重试间隔(毫秒) |
 | `nebula.rpc.grpc.client.compression-enabled` | Boolean | `false` | 是否启用压缩 |
 | `nebula.rpc.grpc.client.logging-enabled` | Boolean | `true` | 是否启用日志 |
@@ -410,6 +410,28 @@ nebula:
         request-timeout: 10000  # 10秒
         connect-timeout: 5000   # 5秒
 ```
+
+### 4. 重试策略
+
+**默认不重试**，因为大多数业务系统未实现幂等。仅对以下场景启用重试：
+
+```yaml
+# 仅对幂等接口（如纯查询服务）启用重试
+nebula:
+  rpc:
+    grpc:
+      client:
+        retry-count: 2        # 重试2次
+        retry-interval: 1000  # 间隔1秒
+```
+
+**何时启用重试：**
+- 纯查询接口（GET 操作）
+- 已实现幂等的写入接口（如使用唯一键约束）
+
+**何时禁用重试（默认）：**
+- 创建订单、支付等非幂等操作
+- 发送通知、验证码等一次性操作
 
 ## 高级特性
 

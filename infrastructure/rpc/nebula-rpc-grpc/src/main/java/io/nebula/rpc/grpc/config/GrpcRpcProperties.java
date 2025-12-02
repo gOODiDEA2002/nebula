@@ -111,8 +111,10 @@ public class GrpcRpcProperties {
 
         /**
          * 重试次数
+         * 默认为0（不重试），因为大多数业务系统未实现幂等
+         * 仅对幂等接口（如查询接口）启用重试
          */
-        private int retryCount = 3;
+        private int retryCount = 0;
 
         /**
          * 重试间隔(毫秒)
