@@ -38,6 +38,13 @@
             <artifactId>spring-cloud-gateway-server</artifactId>
         </dependency>
         
+        <!-- Spring Cloud LoadBalancer (用于 lb:// URI 支持) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-loadbalancer</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
         <!-- Spring WebFlux (Gateway依赖) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

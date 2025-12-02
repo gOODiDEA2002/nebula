@@ -212,6 +212,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Security (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-security</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Lock Redis (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
@@ -232,6 +240,13 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-gateway-server</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Spring Cloud LoadBalancer (可选，Gateway LoadBalancer 需要) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-loadbalancer</artifactId>
             <optional>true</optional>
         </dependency>
 

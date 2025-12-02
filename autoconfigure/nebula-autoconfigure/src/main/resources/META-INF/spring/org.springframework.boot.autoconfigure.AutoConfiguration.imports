@@ -29,6 +29,12 @@ io.nebula.autoconfigure.data.ShardingSphereAutoConfiguration
 io.nebula.autoconfigure.data.CacheAutoConfiguration
 
 # ========================================
+# Security Layer - 安全层（JWT、RBAC）
+# 使用 @ConditionalOnClass 条件判断，当 nebula-security 模块存在时生效
+# ========================================
+io.nebula.autoconfigure.security.SecurityAutoConfiguration
+
+# ========================================
 # Lock Layer - 分布式锁层
 # ========================================
 io.nebula.lock.redis.RedisLockAutoConfiguration
@@ -53,6 +59,7 @@ io.nebula.autoconfigure.storage.AliyunOSSAutoConfiguration
 # Gateway Layer - 网关层
 # ========================================
 io.nebula.autoconfigure.gateway.GatewayAutoConfiguration
+io.nebula.autoconfigure.gateway.GatewayLoadBalancerAutoConfiguration
 
 # ========================================
 # AI Layer - AI层
