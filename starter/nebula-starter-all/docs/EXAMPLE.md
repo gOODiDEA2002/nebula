@@ -270,7 +270,7 @@ public class ProductController extends BaseController {
      * 分页查询
      */
     @GetMapping
-    public Result<PageResult<Product>> page(
+    public PageResult<Product>> page(
         @RequestParam(defaultValue = "1") Integer pageNum,
         @RequestParam(defaultValue = "10") Integer pageSize) {
         

@@ -82,11 +82,14 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
             metadata.put("version", environment.getProperty("spring.application.version", "1.0.0"));
             metadata.put("profile", String.join(",", environment.getActiveProfiles()));
             
-            // ✅ 新增：如果配置了 gRPC 端口，添加到元数据
-            String grpcPort = environment.getProperty("grpc.server.port");
-            if (grpcPort != null && !grpcPort.isEmpty()) {
-                metadata.put("grpc.port", grpcPort);
-                log.info("添加 gRPC 端口元数据: grpc.port={}", grpcPort);
+            // ✅ 新增：如果配置了 gRPC 端口且用户未手动配置，添加到元数据
+            // 统一使用 grpcPort 作为 key（与 httpPort 保持一致）
+            if (!metadata.containsKey("grpcPort")) {
+                String grpcPort = environment.getProperty("grpc.server.port");
+                if (grpcPort != null && !grpcPort.isEmpty()) {
+                    metadata.put("grpcPort", grpcPort);
+                    log.info("自动添加 gRPC 端口元数据: grpcPort={}", grpcPort);
+                }
             }
 
             // 构建服务实例

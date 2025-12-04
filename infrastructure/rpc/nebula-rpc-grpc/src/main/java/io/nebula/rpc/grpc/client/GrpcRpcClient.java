@@ -256,11 +256,39 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     /**
      * 设置目标地址
      */
-    public void setTarget(String target) {
-        if (!this.target.equals(target)) {
-            this.target = target;
-            close();
-            initChannel();
+    public synchronized void setTarget(String target) {
+        if (target == null) {
+            return;
+        }
+        // 处理 this.target 可能为 null 的情况
+        if (target.equals(this.target)) {
+            return;
+        }
+        
+        String oldTarget = this.target;
+        this.target = target;
+        
+        // 保存旧的 channel 用于后续关闭
+        ManagedChannel oldChannel = this.channel;
+        
+        // 创建新的 channel 和 stub
+        log.info("切换 gRPC 目标地址: {} -> {}", oldTarget, target);
+        this.channel = null;
+        initChannel();
+        
+        // 异步关闭旧的 channel（避免阻塞）
+        if (oldChannel != null && !oldChannel.isShutdown()) {
+            final ManagedChannel channelToClose = oldChannel;
+            Thread.ofVirtual().start(() -> {
+                try {
+                    channelToClose.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    log.warn("关闭旧 gRPC Channel 时被中断");
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    log.warn("关闭旧 gRPC Channel 失败", e);
+                }
+            });
         }
     }
     
@@ -341,6 +369,11 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
      */
     private boolean isCompatible(Class<?> argType, Class<?> paramType) {
         if (paramType.isAssignableFrom(argType)) {
+            return true;
+        }
+        
+        // 当参数为 null 时，argType 为 Object.class，此时与任何非基本类型参数兼容
+        if (argType == Object.class && !paramType.isPrimitive()) {
             return true;
         }
         

@@ -77,7 +77,7 @@ public class ShowtimeController extends BaseController {
      * 获取演出列表
      */
     @GetMapping
-    public Result<PageResult<ShowtimeVO>> list(ShowtimeQueryRequest request) {
+    public PageResult<ShowtimeVO>> list(ShowtimeQueryRequest request) {
         log.info("查询演出列表：{}", request);
         
         PageResult<ShowtimeVO> result = showtimeService.queryShowtimes(request);
@@ -459,7 +459,7 @@ public class UserController extends BaseController {
     @GetMapping("/admin/users")
     @RequiresAuth
     @RequiresRole("ADMIN")  // 需要管理员角色
-    public Result<PageResult<UserVO>> listUsers(UserQueryRequest request) {
+    public PageResult<UserVO>> listUsers(UserQueryRequest request) {
         log.info("管理员查询用户列表");
         
         PageResult<UserVO> result = userService.queryUsers(request);
@@ -865,7 +865,7 @@ public class TicketingController extends BaseController {
     @GetMapping("/orders")
     @RequiresAuth
     @ResponseCache(ttl = 30, keyPrefix = "user-orders")
-    public Result<PageResult<OrderVO>> listOrders(OrderQueryRequest request) {
+    public PageResult<OrderVO>> listOrders(OrderQueryRequest request) {
         AuthUser currentUser = AuthContext.getCurrentUser();
         
         log.info("查询订单列表：userId={}", currentUser.getUserId());

@@ -669,7 +669,7 @@ public class MovieController extends BaseController {
      * 分页查询电影
      */
     @GetMapping
-    public Result<PageResult<Movie>> page(
+    public PageResult<Movie>> page(
         @RequestParam(defaultValue = "1") Integer pageNum,
         @RequestParam(defaultValue = "10") Integer pageSize,
         @RequestParam(required = false) String keyword) {
@@ -970,7 +970,7 @@ public class MovieController extends BaseController {
     private final MovieService movieService;
     
     @GetMapping
-    public Result<PageResult<Movie>> page(
+    public PageResult<Movie>> page(
         @RequestParam(defaultValue = "1") Integer pageNum,
         @RequestParam(defaultValue = "10") Integer pageSize,
         @RequestParam(required = false) String keyword) {
@@ -1096,7 +1096,7 @@ public class UserController extends BaseController {
      * 查询订单列表
      */
     @GetMapping("/me/orders")
-    public Result<PageResult<Order>> orders(
+    public PageResult<Order>> orders(
         @RequestParam(defaultValue = "1") Integer pageNum,
         @RequestParam(defaultValue = "10") Integer pageSize) {
         

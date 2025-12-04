@@ -601,7 +601,7 @@ public class OrderController {
      */
     @GetMapping
     @RequiresPermission("order:view")
-    public Result<PageResult<OrderVO>> listOrders(
+    public PageResult<OrderVO>> listOrders(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         
@@ -676,7 +676,7 @@ public class AdminController {
         value = {"ADMIN", "SUPER_ADMIN"},
         logical = RequiresPermission.Logical.OR
     )
-    public Result<PageResult<UserVO>> listUsers(
+    public PageResult<UserVO>> listUsers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         

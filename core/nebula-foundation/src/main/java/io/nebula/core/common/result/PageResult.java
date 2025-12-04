@@ -147,6 +147,8 @@ public class PageResult<T> extends Result<List<T>> {
      */
     @Data
     @Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class PageInfo {
         /**

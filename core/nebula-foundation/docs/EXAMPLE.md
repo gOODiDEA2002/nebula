@@ -77,7 +77,7 @@ public class MovieController {
      * 查询电影列表(分页)
      */
     @GetMapping
-    public Result<PageResult<MovieVO>> listMovies(
+    public PageResult<MovieVO>> listMovies(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String keyword) {

@@ -782,7 +782,7 @@ public class UserController {
     }
     
     @GetMapping
-    public Result<PageResult<User>> listUsers(
+    public PageResult<User>> listUsers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         PageResult<User> pageResult = userService.findUsers(page, size);

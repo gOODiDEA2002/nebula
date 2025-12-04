@@ -203,18 +203,68 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
      * 查找方法
      */
     private Method findMethod(Class<?> clazz, String methodName, Class<?>[] parameterTypes) {
+        // 尝试精确匹配
         try {
             return clazz.getMethod(methodName, parameterTypes);
         } catch (NoSuchMethodException e) {
-            // 尝试在接口中查找
+            // 尝试在接口中精确匹配
             for (Class<?> interfaceClass : clazz.getInterfaces()) {
                 try {
                     return interfaceClass.getMethod(methodName, parameterTypes);
                 } catch (NoSuchMethodException ignored) {
                 }
             }
-            return null;
         }
+        
+        // 尝试模糊匹配（处理 null 参数类型为 Object.class 的情况）
+        for (Method method : clazz.getMethods()) {
+            if (method.getName().equals(methodName) && 
+                method.getParameterCount() == parameterTypes.length) {
+                
+                Class<?>[] methodParams = method.getParameterTypes();
+                boolean compatible = true;
+                for (int i = 0; i < parameterTypes.length; i++) {
+                    if (!isCompatible(parameterTypes[i], methodParams[i])) {
+                        compatible = false;
+                        break;
+                    }
+                }
+                
+                if (compatible) {
+                    return method;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 检查类型是否兼容
+     */
+    private boolean isCompatible(Class<?> argType, Class<?> paramType) {
+        if (paramType.isAssignableFrom(argType)) {
+            return true;
+        }
+        
+        // 当参数为 null 时，argType 为 Object.class，此时与任何非基本类型参数兼容
+        if (argType == Object.class && !paramType.isPrimitive()) {
+            return true;
+        }
+        
+        // 处理基本类型和包装类型
+        if (paramType.isPrimitive()) {
+            if (paramType == int.class && argType == Integer.class) return true;
+            if (paramType == long.class && argType == Long.class) return true;
+            if (paramType == double.class && argType == Double.class) return true;
+            if (paramType == float.class && argType == Float.class) return true;
+            if (paramType == boolean.class && argType == Boolean.class) return true;
+            if (paramType == byte.class && argType == Byte.class) return true;
+            if (paramType == short.class && argType == Short.class) return true;
+            if (paramType == char.class && argType == Character.class) return true;
+        }
+        
+        return false;
     }
 
     /**
