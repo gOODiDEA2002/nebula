@@ -146,8 +146,8 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
                         String.format("方法未找到: %s.%s", request.getServiceName(), request.getMethodName()));
             }
 
-            // 解析参数值
-            Object[] parameters = parseParameters(request.getParametersList(), parameterTypes);
+            // 解析参数值（使用方法的泛型参数类型以支持 List<Long> 等泛型类型）
+            Object[] parameters = parseParametersWithGenericTypes(request.getParametersList(), method.getGenericParameterTypes());
 
             // 执行方法
             Object result = method.invoke(serviceInstance, parameters);
@@ -276,6 +276,31 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
         for (int i = 0; i < parameterJsonList.size(); i++) {
             String parameterJson = parameterJsonList.get(i);
             parameters[i] = objectMapper.readValue(parameterJson, parameterTypes[i]);
+        }
+        return parameters;
+    }
+    
+    /**
+     * 使用泛型类型解析参数值
+     * <p>
+     * 相比 parseParameters，此方法支持泛型类型（如 List&lt;Long&gt;），
+     * 能正确将 JSON 数字反序列化为指定的泛型元素类型。
+     * </p>
+     * 
+     * @param parameterJsonList 参数 JSON 列表
+     * @param genericParameterTypes 方法的泛型参数类型（来自 Method.getGenericParameterTypes()）
+     * @return 解析后的参数数组
+     */
+    private Object[] parseParametersWithGenericTypes(java.util.List<String> parameterJsonList, 
+                                                     java.lang.reflect.Type[] genericParameterTypes) 
+            throws Exception {
+        Object[] parameters = new Object[parameterJsonList.size()];
+        for (int i = 0; i < parameterJsonList.size(); i++) {
+            String parameterJson = parameterJsonList.get(i);
+            // 使用 Jackson 的 TypeFactory 构建完整的类型信息，支持泛型
+            com.fasterxml.jackson.databind.JavaType javaType = 
+                    objectMapper.getTypeFactory().constructType(genericParameterTypes[i]);
+            parameters[i] = objectMapper.readValue(parameterJson, javaType);
         }
         return parameters;
     }

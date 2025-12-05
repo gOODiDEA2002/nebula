@@ -459,7 +459,41 @@ API 模块
 
 ##  高级特性
 
-### 1. 服务名覆盖
+### 1. 服务降级（Fallback）
+
+可以为 RPC 客户端配置降级实现：
+
+```java
+// 1. 定义 Fallback 类（不要加 @Component！）
+@Slf4j
+public class UserRpcClientFallback implements UserRpcClient {
+    @Override
+    public GetUserDto.Response getUserById(Long id) {
+        log.warn("[Fallback] getUserById 服务降级, id={}", id);
+        return null;
+    }
+}
+
+// 2. 在 @RpcClient 中指定 fallback
+@RpcClient(value = "user-service", fallback = UserRpcClientFallback.class)
+public interface UserRpcClient {
+    GetUserDto.Response getUserById(Long id);
+}
+```
+
+**⚠️ 重要：Fallback 类不要加 `@Component` 注解！**
+
+如果 Fallback 类加了 `@Component`：
+- Spring 会直接注入 Fallback 实例
+- 不会创建 RPC 代理
+- 所有调用都会走 Fallback，永远不会真正调用远程服务
+
+正确的行为是：
+- `@EnableRpcClients` 扫描并创建 RPC 代理 Bean
+- 代理拦截方法调用，执行远程 RPC
+- RPC 失败时，框架自动调用 Fallback
+
+### 2. 服务名覆盖
 
 如果需要为特定客户端指定不同的服务名：
 
