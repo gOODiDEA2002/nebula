@@ -12,5 +12,3 @@ deploy:
     - .java_changes
   script:
    - mvn deploy -DskipTests
-  needs:
-    - build
