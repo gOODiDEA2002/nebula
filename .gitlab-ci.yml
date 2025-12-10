@@ -10,8 +10,6 @@ deploy:
   extends:
     - .build
     - .java_changes
-  dependencies:
-   - build
   script:
    - mvn deploy -DskipTests
   needs:
