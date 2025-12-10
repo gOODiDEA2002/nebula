@@ -5,7 +5,6 @@ include:
     file: '/build/java.build.gitlab-ci.yml'
   - project: 'devops/ci-templates'
     file: '/deploy/java.deploy.gitlab-ci.yml'
-  - local: '/.gitlab-ci.changes.yml'
 
 deploy:
   extends:
