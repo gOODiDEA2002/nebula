@@ -1,0 +1,19 @@
+include:
+  - project: 'devops/ci-templates'
+    file: '/rules/changes.gitlab-ci.yml'
+  - project: 'devops/ci-templates'
+    file: '/build/java.build.gitlab-ci.yml'
+  - project: 'devops/ci-templates'
+    file: '/deploy/java.deploy.gitlab-ci.yml'
+  - local: '/.gitlab-ci.changes.yml'
+
+deploy:
+  extends:
+    - .build
+    - .java_changes
+  dependencies:
+   - build
+  script:
+   - mvn deploy -DskipTests
+  needs:
+    - build
