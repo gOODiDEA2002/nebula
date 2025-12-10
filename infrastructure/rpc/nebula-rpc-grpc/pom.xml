@@ -15,6 +15,12 @@
     <name>Nebula RPC gRPC</name>
     <description>Nebula framework gRPC-based RPC implementation</description>
 
+    <properties>
+        <!-- 默认跳过 proto 编译，使用预编译的代码 -->
+        <!-- 如需重新生成，使用: mvn compile -Pgenerate-proto -->
+        <skip.proto.compile>true</skip.proto.compile>
+    </properties>
+
     <dependencies>
         <!-- Nebula RPC Core -->
         <dependency>
@@ -99,11 +105,19 @@
         
         <plugins>
             <!-- Protobuf Maven Plugin -->
+            <!-- 
+                注意: Proto 生成的代码已预编译并提交到版本控制中
+                位置: src/main/java/io/nebula/rpc/grpc/proto/
+                原因: protoc-gen-grpc-java 1.57+ 版本需要 glibc 2.28+, 而 CentOS 7 只有 glibc 2.17
+                如需重新生成代码，请在支持新版 glibc 的系统上执行: mvn compile -Pgenerate-proto
+            -->
             <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
+                    <!-- 默认跳过 proto 编译，使用预编译的代码 -->
+                    <skip>${skip.proto.compile}</skip>
                     <protocArtifact>com.google.protobuf:protoc:${protobuf-java.version}:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
@@ -120,4 +134,14 @@
             </plugin>
         </plugins>
     </build>
+    
+    <profiles>
+        <!-- Profile 用于重新生成 proto 代码 (在支持新版 glibc 的系统上使用) -->
+        <profile>
+            <id>generate-proto</id>
+            <properties>
+                <skip.proto.compile>false</skip.proto.compile>
+            </properties>
+        </profile>
+    </profiles>
 </project>
