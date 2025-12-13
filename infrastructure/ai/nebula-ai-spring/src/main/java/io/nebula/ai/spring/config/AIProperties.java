@@ -240,6 +240,11 @@ public class AIProperties {
          */
         private String apiKey;
         
+        /**
+         * 是否使用 SSL（HTTPS）
+         */
+        private boolean ssl = false;
+        
         public String getHost() {
             return host;
         }
@@ -280,11 +285,21 @@ public class AIProperties {
             this.apiKey = apiKey;
         }
         
+        public boolean isSsl() {
+            return ssl;
+        }
+        
+        public void setSsl(boolean ssl) {
+            this.ssl = ssl;
+        }
+        
         /**
          * 获取完整的 Chroma URL
+         * 根据 ssl 配置决定使用 http 或 https 协议
          */
         public String getUrl() {
-            return String.format("http://%s:%d", host, port);
+            String protocol = ssl ? "https" : "http";
+            return String.format("%s://%s:%d", protocol, host, port);
         }
     }
 
