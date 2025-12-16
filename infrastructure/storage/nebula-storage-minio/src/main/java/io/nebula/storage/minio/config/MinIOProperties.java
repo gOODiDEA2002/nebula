@@ -19,10 +19,17 @@ public class MinIOProperties {
     private boolean enabled = true;
     
     /**
-     * MinIO服务器端点
+     * MinIO服务器端点（用于上传/下载操作）
      */
     @NotBlank(message = "MinIO endpoint cannot be blank")
     private String endpoint = "http://localhost:9000";
+    
+    /**
+     * 公开访问域名（用于生成文件访问URL）
+     * 如果不配置，则使用endpoint作为访问地址
+     * 常见场景：MinIO通过反向代理或CDN暴露到外网
+     */
+    private String domain;
     
     /**
      * 访问密钥
@@ -110,6 +117,22 @@ public class MinIOProperties {
     
     public void setEndpoint(String endpoint) {
         this.endpoint = endpoint;
+    }
+    
+    public String getDomain() {
+        return domain;
+    }
+    
+    public void setDomain(String domain) {
+        this.domain = domain;
+    }
+    
+    /**
+     * 获取用于生成文件访问URL的基础地址
+     * 如果配置了domain则使用domain，否则使用endpoint
+     */
+    public String getAccessBaseUrl() {
+        return (domain != null && !domain.isBlank()) ? domain : endpoint;
     }
     
     public String getAccessKey() {

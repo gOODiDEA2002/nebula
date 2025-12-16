@@ -39,9 +39,40 @@ public class MinIOStorageService implements StorageService {
     
     private final MinioClient minioClient;
     
+    /**
+     * 用于生成文件访问URL的基础地址
+     */
+    private String accessBaseUrl;
+    
     @Autowired
     public MinIOStorageService(MinioClient minioClient) {
         this.minioClient = minioClient;
+    }
+    
+    /**
+     * 构造函数（带访问基础URL）
+     *
+     * @param minioClient MinIO客户端
+     * @param accessBaseUrl 用于生成文件访问URL的基础地址（domain或endpoint）
+     */
+    public MinIOStorageService(MinioClient minioClient, String accessBaseUrl) {
+        this.minioClient = minioClient;
+        this.accessBaseUrl = accessBaseUrl;
+    }
+    
+    /**
+     * 生成文件访问URL
+     *
+     * @param bucket 存储桶名称
+     * @param key 对象键
+     * @return 文件访问URL，如果未配置accessBaseUrl则返回null
+     */
+    public String generateAccessUrl(String bucket, String key) {
+        if (accessBaseUrl == null || accessBaseUrl.isBlank()) {
+            return null;
+        }
+        String baseUrl = accessBaseUrl.endsWith("/") ? accessBaseUrl.substring(0, accessBaseUrl.length() - 1) : accessBaseUrl;
+        return baseUrl + "/" + bucket + "/" + key;
     }
     
     @Override
@@ -75,7 +106,10 @@ public class MinIOStorageService implements StorageService {
             // 执行上传
             ObjectWriteResponse response = minioClient.putObject(builder.build());
             
-            log.info("文件上传成功: bucket={}, key={}, etag={}", bucket, key, response.etag());
+            // 生成访问URL
+            String accessUrl = generateAccessUrl(bucket, key);
+            
+            log.info("文件上传成功: bucket={}, key={}, etag={}, url={}", bucket, key, response.etag(), accessUrl);
             
             return StorageResult.builder()
                     .success(true)
@@ -83,6 +117,7 @@ public class MinIOStorageService implements StorageService {
                     .key(key)
                     .etag(response.etag())
                     .versionId(response.versionId())
+                    .url(accessUrl)
                     .build();
                     
         } catch (MinioException e) {

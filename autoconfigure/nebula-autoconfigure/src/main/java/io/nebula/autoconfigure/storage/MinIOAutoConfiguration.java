@@ -82,7 +82,8 @@ public class MinIOAutoConfiguration {
     @ConditionalOnMissingBean
     @Primary
     public StorageService minioStorageService(MinioClient minioClient) {
-        MinIOStorageService service = new MinIOStorageService(minioClient);
+        // 使用带accessBaseUrl的构造函数
+        MinIOStorageService service = new MinIOStorageService(minioClient, properties.getAccessBaseUrl());
         
         // 自动创建默认存储桶
         if (properties.isAutoCreateDefaultBucket()) {
@@ -97,12 +98,14 @@ public class MinIOAutoConfiguration {
             }
         }
         
+        log.info("MinIO存储服务初始化完成: accessBaseUrl={}", properties.getAccessBaseUrl());
+        
         return service;
     }
     
     @Bean
     @ConditionalOnMissingBean
     public MinIOStorageService minIOStorageService(MinioClient minioClient) {
-        return new MinIOStorageService(minioClient);
+        return new MinIOStorageService(minioClient, properties.getAccessBaseUrl());
     }
 }
