@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import io.nebula.core.common.result.Result;
 /**
  * 性能监控控制器
  * 提供性能指标查询接口
@@ -35,9 +35,9 @@ public class PerformanceController {
      * 获取应用性能指标
      */
     @GetMapping("/metrics")
-    public Map<String, Object> getMetrics() {
+    public Result<Map<String, Object>> getMetrics() {
         if (!isPerformanceEnabled()) {
-            return createUnavailableResponse("Performance monitoring is not enabled");
+            return Result.error("503", "性能监控未启用");
         }
         
         PerformanceMetrics metrics = performanceMonitor.getMetrics();
@@ -57,16 +57,16 @@ public class PerformanceController {
         result.put("pathCounts", metrics.getPathCounts());
         result.put("lastUpdateTime", metrics.getLastUpdateTime());
         
-        return result;
+        return Result.success(result);
     }
     
     /**
      * 获取系统指标
      */
     @GetMapping("/system")
-    public Map<String, Object> getSystemMetrics() {
+    public Result<Map<String, Object>> getSystemMetrics() {
         if (!isPerformanceEnabled()) {
-            return createUnavailableResponse("Performance monitoring is not enabled");
+            return Result.error("503", "性能监控未启用");
         }
         
         SystemMetrics systemMetrics = performanceMonitor.getSystemMetrics();
@@ -87,16 +87,16 @@ public class PerformanceController {
         result.put("gcCount", systemMetrics.getGcCount());
         result.put("gcTime", systemMetrics.getGcTime());
         result.put("timestamp", systemMetrics.getTimestamp());
-        return result;
+        return Result.success(result);
     }
     
     /**
      * 获取综合状态
      */
     @GetMapping("/status")
-    public Map<String, Object> getStatus() {
+    public Result<Map<String, Object>> getStatus() {
         if (!isPerformanceEnabled()) {
-            return createUnavailableResponse("Performance monitoring is not enabled");
+            return Result.error("503", "性能监控未启用");
         }
         
         PerformanceMetrics metrics = performanceMonitor.getMetrics();
@@ -122,16 +122,16 @@ public class PerformanceController {
         sysStatus.put("systemLoadAverage", systemMetrics.getSystemLoadAverage());
         result.put("system", sysStatus);
         
-        return result;
+        return Result.success(result);
     }
     
     /**
      * 重置性能指标
      */
     @PostMapping("/reset")
-    public Map<String, Object> resetMetrics() {
+    public Result<Map<String, Object>> resetMetrics() {
         if (!isPerformanceEnabled()) {
-            return createUnavailableResponse("Performance monitoring is not enabled");
+            return Result.error("503", "性能监控未启用");
         }
         
         performanceMonitor.resetMetrics();
@@ -140,7 +140,7 @@ public class PerformanceController {
         result.put("status", "success");
         result.put("message", "Performance metrics have been reset");
         result.put("timestamp", java.time.LocalDateTime.now());
-        return result;
+        return Result.success(result);
     }
     
     private String getApplicationStatus(PerformanceMetrics metrics, SystemMetrics systemMetrics) {

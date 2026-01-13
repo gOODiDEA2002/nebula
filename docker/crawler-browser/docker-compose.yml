@@ -1,0 +1,46 @@
+# Playwright 浏览器服务
+# Java 应用通过 WebSocket 连接远程浏览器
+
+services:
+  # Playwright Server - 版本必须与 Java 客户端匹配
+  crawler-browser-01:
+    image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
+    container_name: crawler-browser-01
+    ports:
+      - "9222:9222"
+    # 共享内存，避免浏览器崩溃
+    shm_size: '2gb'
+    # 安全配置
+    security_opt:
+      - seccomp:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9222/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - crawler-network
+
+  crawler-browser-02:
+    image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
+    container_name: crawler-browser-02
+    ports:
+      - "9223:9222"
+    # 共享内存，避免浏览器崩溃
+    shm_size: '2gb'
+    # 安全配置
+    security_opt:
+      - seccomp:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9222/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - crawler-network
+
+networks:
+  crawler-network:
+    name: crawler-network

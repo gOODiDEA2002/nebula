@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../../pom.xml</relativePath>
+    </parent>
+    
+    <artifactId>nebula-crawler-proxy</artifactId>
+    <name>Nebula Crawler Proxy</name>
+    <description>代理IP池管理模块</description>
+    
+    <dependencies>
+        <!-- Nebula Crawler Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-crawler-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Nebula Data Cache（Redis缓存） -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- OkHttp（用于代理检测） -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+        
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

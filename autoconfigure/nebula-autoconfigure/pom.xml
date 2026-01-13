@@ -127,6 +127,38 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Messaging Redis (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-redis</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- WebSocket Core (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-websocket-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- WebSocket Spring (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-websocket-spring</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- WebSocket Netty (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-websocket-netty</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Search Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
@@ -179,6 +211,46 @@
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-ai-spring</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Crawler Core (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-crawler-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Crawler HTTP (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-crawler-http</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Crawler Browser (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-crawler-browser</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Crawler Proxy (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-crawler-proxy</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Crawler Captcha (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-crawler-captcha</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>

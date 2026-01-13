@@ -73,6 +73,13 @@
             <optional>true</optional>
         </dependency>
         
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-redis</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
         <!-- Storage Modules -->
         <dependency>
             <groupId>io.nebula</groupId>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-crawler</artifactId>
+    <packaging>pom</packaging>
+    <name>Nebula Crawler</name>
+    <description>Nebula 爬虫模块 - 提供HTTP和浏览器爬取能力</description>
+
+    <modules>
+        <module>nebula-crawler-core</module>
+        <module>nebula-crawler-http</module>
+        <module>nebula-crawler-browser</module>
+        <module>nebula-crawler-proxy</module>
+        <module>nebula-crawler-captcha</module>
+    </modules>
+
+    <properties>
+        <!-- 爬虫相关依赖版本 -->
+        <okhttp.version>4.12.0</okhttp.version>
+        <playwright.version>1.41.0</playwright.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- OkHttp -->
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+            
+            <!-- Playwright -->
+            <dependency>
+                <groupId>com.microsoft.playwright</groupId>
+                <artifactId>playwright</artifactId>
+                <version>${playwright.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>

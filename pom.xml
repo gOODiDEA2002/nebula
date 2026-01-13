@@ -31,6 +31,12 @@
         <!-- 消息传递层 -->
         <module>infrastructure/messaging/nebula-messaging-core</module>
         <module>infrastructure/messaging/nebula-messaging-rabbitmq</module>
+        <module>infrastructure/messaging/nebula-messaging-redis</module>
+        
+        <!-- WebSocket层 -->
+        <module>infrastructure/websocket/nebula-websocket-core</module>
+        <module>infrastructure/websocket/nebula-websocket-spring</module>
+        <module>infrastructure/websocket/nebula-websocket-netty</module>
         
         <!-- RPC层 -->
         <module>infrastructure/rpc/nebula-rpc-core</module>
@@ -53,6 +59,13 @@
         <!-- AI层 -->
         <module>infrastructure/ai/nebula-ai-core</module>
         <module>infrastructure/ai/nebula-ai-spring</module>
+
+        <!-- 爬虫层 -->
+        <module>infrastructure/crawler/nebula-crawler-core</module>
+        <module>infrastructure/crawler/nebula-crawler-http</module>
+        <module>infrastructure/crawler/nebula-crawler-browser</module>
+        <module>infrastructure/crawler/nebula-crawler-proxy</module>
+        <module>infrastructure/crawler/nebula-crawler-captcha</module>
 
         <!-- Lock-->
         <module>infrastructure/lock/nebula-lock-core</module>

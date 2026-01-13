@@ -20,6 +20,12 @@ nebula/
     search/              # 搜索引擎
     integration/         # 第三方集成
     ai/                  # 人工智能
+    crawler/             # 网页爬虫
+       nebula-crawler-core/     # 核心抽象层
+       nebula-crawler-http/     # HTTP爬虫引擎
+       nebula-crawler-browser/  # 浏览器爬虫引擎
+       nebula-crawler-proxy/    # 代理池管理
+       nebula-crawler-captcha/  # 验证码处理
  application/             # 应用层
     nebula-web/          # Web应用框架
     nebula-task/         # 任务调度框架
@@ -68,6 +74,11 @@ flowchart TD
     E --> I[ElasticsearchAutoConfiguration<br/>搜索引擎]
     E --> J[StorageAutoConfiguration<br/>对象存储]
     E --> K[AIAutoConfiguration<br/>AI服务]
+    E --> L[CrawlerAutoConfiguration<br/>爬虫服务]
+    L --> L1[HttpCrawlerAutoConfiguration]
+    L --> L2[BrowserCrawlerAutoConfiguration]
+    L --> L3[ProxyCrawlerAutoConfiguration]
+    L --> L4[CaptchaCrawlerAutoConfiguration]
 ```
 
 #### 快速开始
@@ -498,6 +509,354 @@ nebula:
           collection-name: nebula-docs
 ```
 
+### 8. 网页爬虫层 (Crawler Layer)
+
+Nebula Crawler 是一套完整的网页数据采集模块组，支持 HTTP 和浏览器两种采集模式，提供代理池管理和验证码处理能力。
+
+#### 模块架构
+
+```mermaid
+graph TB
+    subgraph 爬虫模块组
+        A[nebula-crawler-core<br/>核心抽象层] --> B[nebula-crawler-http<br/>HTTP爬虫引擎]
+        A --> C[nebula-crawler-browser<br/>浏览器爬虫引擎]
+        A --> D[nebula-crawler-proxy<br/>代理池管理]
+        A --> E[nebula-crawler-captcha<br/>验证码处理]
+    end
+    
+    B --> F[OkHttp 客户端]
+    C --> G[Playwright]
+    D --> H[Redis 缓存]
+    E --> I[ddddocr/第三方API]
+```
+
+#### nebula-crawler-core (核心抽象层)
+**统一的爬虫引擎接口和请求/响应模型**
+
+```java
+// 爬虫引擎接口
+public interface CrawlerEngine {
+    String getType();                                        // 引擎类型
+    CrawlerResponse crawl(CrawlerRequest request);          // 同步爬取
+    CompletableFuture<CrawlerResponse> crawlAsync(CrawlerRequest request); // 异步爬取
+    List<CrawlerResponse> crawlBatch(List<CrawlerRequest> requests);       // 批量爬取
+    void shutdown();                                         // 关闭引擎
+    boolean isHealthy();                                     // 健康检查
+}
+```
+
+```java
+// 构建请求
+CrawlerRequest request = CrawlerRequest.get("https://example.com")
+    .header("Accept", "text/html")
+    .timeout(30000)
+    .build();
+
+// 浏览器渲染请求
+CrawlerRequest jsRequest = CrawlerRequest.renderPage("https://spa-app.com")
+    .waitSelector("#content")
+    .waitTimeout(5000)
+    .screenshot(true)
+    .build();
+```
+
+```java
+// 处理响应
+CrawlerResponse response = engine.crawl(request);
+if (response.isSuccess()) {
+    // 解析为 Jsoup Document
+    Document doc = response.asDocument();
+    String title = doc.select("title").text();
+    
+    // 或解析为 JSON
+    Map<String, Object> data = response.asMap();
+}
+```
+
+#### nebula-crawler-http (HTTP爬虫引擎)
+**基于 OkHttp 的高性能 HTTP 爬虫**
+
+```java
+@Service
+public class DataCrawlerService {
+    
+    @Autowired
+    private HttpCrawlerEngine httpEngine;
+    
+    public String fetchPage(String url) {
+        CrawlerRequest request = CrawlerRequest.get(url)
+            .header("User-Agent", "Mozilla/5.0...")
+            .retryCount(3)
+            .build();
+            
+        CrawlerResponse response = httpEngine.crawl(request);
+        
+        if (response.isSuccess()) {
+            return response.getContent();
+        } else {
+            log.error("爬取失败: {}, 错误: {}", url, response.getErrorMessage());
+            return null;
+        }
+    }
+    
+    // 批量爬取
+    public List<String> fetchPages(List<String> urls) {
+        List<CrawlerRequest> requests = urls.stream()
+            .map(CrawlerRequest::get)
+            .collect(Collectors.toList());
+            
+        return httpEngine.crawlBatch(requests).stream()
+            .filter(CrawlerResponse::isSuccess)
+            .map(CrawlerResponse::getContent)
+            .collect(Collectors.toList());
+    }
+}
+```
+
+**特性：**
+- 连接池管理（可配置最大连接数、保活时间）
+- User-Agent 轮换
+- QPS 限流
+- 自动重试
+- 代理支持
+
+#### nebula-crawler-browser (浏览器爬虫引擎)
+**基于 Playwright 的浏览器自动化引擎**
+
+```java
+@Service
+public class DynamicPageCrawler {
+    
+    @Autowired
+    private BrowserCrawlerEngine browserEngine;
+    
+    public String crawlDynamicPage(String url) {
+        CrawlerRequest request = CrawlerRequest.renderPage(url)
+            .waitSelector(".content-loaded")     // 等待元素出现
+            .waitTimeout(10000)                  // 等待超时
+            .screenshot(true)                    // 截图
+            .build();
+            
+        CrawlerResponse response = browserEngine.crawl(request);
+        
+        if (response.isSuccess()) {
+            // 获取渲染后的 HTML
+            String html = response.getContent();
+            
+            // 获取截图
+            byte[] screenshot = response.getScreenshot();
+            
+            return html;
+        }
+        return null;
+    }
+}
+```
+
+**运行模式：**
+- `LOCAL`：本地启动浏览器实例，适合开发调试
+- `REMOTE`：连接远程 Playwright Server，支持 Docker/K8s 部署
+
+**远程模式配置：**
+```yaml
+nebula:
+  crawler:
+    browser:
+      enabled: true
+      mode: REMOTE
+      remote:
+        endpoints:
+          - ws://playwright-server-01:9222
+          - ws://playwright-server-02:9222
+        load-balance-strategy: ROUND_ROBIN
+```
+
+#### nebula-crawler-proxy (代理池管理)
+**统一的代理IP管理和轮换**
+
+```java
+@Service
+public class ProxyCrawlerService {
+    
+    @Autowired
+    private HttpCrawlerEngine engine;
+    
+    @Autowired
+    private ProxyProvider proxyProvider;
+    
+    public String crawlWithProxy(String url) {
+        // 获取可用代理
+        Proxy proxy = proxyProvider.getProxy();
+        
+        CrawlerRequest request = CrawlerRequest.get(url)
+            .proxy(proxy)
+            .build();
+            
+        CrawlerResponse response = engine.crawl(request);
+        
+        // 上报代理使用结果
+        if (response.isSuccess()) {
+            proxyProvider.reportSuccess(proxy);
+        } else {
+            proxyProvider.reportFailure(proxy);
+        }
+        
+        return response.getContent();
+    }
+}
+```
+
+**代理源配置：**
+```yaml
+nebula:
+  crawler:
+    proxy:
+      enabled: true
+      min-available: 10
+      check-url: https://www.baidu.com
+      # 静态代理
+      static-proxies:
+        - http://proxy1:8080
+        - socks5://proxy2:1080
+      # API代理源
+      api-sources:
+        - name: provider1
+          url: http://api.proxy-provider.com/get
+          format: json
+```
+
+**特性：**
+- 多代理源支持（静态配置、API获取）
+- 自动健康检查和失效剔除
+- 智能轮换策略
+- Redis 持久化存储
+
+#### nebula-crawler-captcha (验证码处理)
+**多类型验证码识别和处理**
+
+```java
+@Service
+public class CaptchaCrawler {
+    
+    @Autowired
+    private CaptchaManager captchaManager;
+    
+    public String solveCaptcha(byte[] imageData, CaptchaType type) {
+        switch (type) {
+            case IMAGE:
+                // 图片验证码识别
+                return captchaManager.solveImage(imageData);
+                
+            case SLIDER:
+                // 滑块验证码 - 返回滑动距离
+                return captchaManager.solveSlider(backgroundImage, sliderImage);
+                
+            case CLICK:
+                // 点选验证码 - 返回点击坐标
+                return captchaManager.solveClick(imageData, targetText);
+                
+            default:
+                throw new UnsupportedOperationException("不支持的验证码类型");
+        }
+    }
+}
+```
+
+**支持的验证码类型：**
+- 图片验证码（本地 ddddocr 识别）
+- 滑块验证码（OpenCV 计算滑动距离）
+- 点选验证码
+- 旋转验证码
+- 第三方平台（2Captcha、Anti-Captcha）
+
+**配置示例：**
+```yaml
+nebula:
+  crawler:
+    captcha:
+      enabled: true
+      local-ocr-enabled: true
+      ddddocr-url: http://ddddocr-service:8866
+      opencv-url: http://opencv-service:8867
+      providers:
+        - name: 2captcha
+          api-key: ${CAPTCHA_API_KEY}
+          enabled: true
+          priority: 1
+```
+
+#### Maven 依赖
+
+```xml
+<!-- 完整爬虫功能 -->
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-crawler-core</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-crawler-http</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-crawler-browser</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-crawler-proxy</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.nebula</groupId>
+    <artifactId>nebula-crawler-captcha</artifactId>
+</dependency>
+```
+
+#### 完整使用示例
+
+```java
+@Service
+@Slf4j
+public class SupplierDataCrawler {
+    
+    @Autowired
+    private HttpCrawlerEngine httpEngine;
+    
+    @Autowired
+    private BrowserCrawlerEngine browserEngine;
+    
+    @Autowired
+    private ProxyProvider proxyProvider;
+    
+    @Autowired
+    private CaptchaManager captchaManager;
+    
+    /**
+     * 采集供应商数据
+     */
+    public SupplierData crawlSupplier(String companyName) {
+        // 1. 静态页面采集（使用HTTP引擎）
+        CrawlerRequest listRequest = CrawlerRequest.get("https://example.com/search")
+            .param("keyword", companyName)
+            .build();
+            
+        CrawlerResponse listResponse = httpEngine.crawl(listRequest);
+        String detailUrl = parseDetailUrl(listResponse);
+        
+        // 2. 动态页面采集（使用浏览器引擎）
+        CrawlerRequest detailRequest = CrawlerRequest.renderPage(detailUrl)
+            .waitSelector(".company-info")
+            .proxy(proxyProvider.getProxy())
+            .build();
+            
+        CrawlerResponse detailResponse = browserEngine.crawl(detailRequest);
+        
+        // 3. 解析数据
+        Document doc = detailResponse.asDocument();
+        return parseSupplierData(doc);
+    }
+}
+```
+
 ##  快速开始
 
 Nebula 提供两种使用方式，根据需求选择：
@@ -573,6 +932,17 @@ nebula:
       enabled: true
   ai:
     enabled: true
+  # 爬虫模块（可选）
+  crawler:
+    enabled: true
+    http:
+      enabled: true
+    browser:
+      enabled: true
+      mode: REMOTE
+      remote:
+        endpoints:
+          - ws://playwright-server:9222
 ```
 
 ### 3. 启动类
@@ -717,6 +1087,20 @@ services:
       - "8000:8000"
     volumes:
       - chroma_data:/chroma/chroma
+
+  # Playwright Server（浏览器爬虫）
+  playwright-server:
+    image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
+    ports:
+      - "9222:9222"
+    shm_size: '2gb'
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9222/json/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   mysql_data:

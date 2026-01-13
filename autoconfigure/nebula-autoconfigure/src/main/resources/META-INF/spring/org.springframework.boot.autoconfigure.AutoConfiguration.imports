@@ -41,8 +41,17 @@ io.nebula.lock.redis.RedisLockAutoConfiguration
 
 # ========================================
 # Messaging Layer - 消息层
+# 注意: RabbitMQ 配置在 nebula-autoconfigure 中定义
+# 注意: Redis Messaging 配置在 nebula-messaging-redis 模块中自动注册
 # ========================================
 io.nebula.autoconfigure.messaging.RabbitMQAutoConfiguration
+
+# ========================================
+# WebSocket Layer - WebSocket层
+# 注意: WebSocket 配置在各自模块中自动注册
+# - nebula-websocket-spring: Spring WebSocket 实现
+# - nebula-websocket-netty: Netty WebSocket 实现
+# ========================================
 
 # ========================================
 # Search Layer - 搜索层
@@ -66,3 +75,8 @@ io.nebula.autoconfigure.gateway.GatewayLoadBalancerAutoConfiguration
 # ========================================
 io.nebula.autoconfigure.ai.AIAutoConfiguration
 io.nebula.autoconfigure.ai.NebulaMcpServerAutoConfiguration
+
+# ========================================
+# Crawler Layer - 爬虫层
+# ========================================
+io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration

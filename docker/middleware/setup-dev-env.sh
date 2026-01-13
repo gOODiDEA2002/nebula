@@ -24,7 +24,7 @@ XXL_JOB_VERSION=2.4.1
 MONGO_VERSION=8.0
 NACOS_VERSION=v2.5.1
 CHROMA_VERSION=latest
-
+ETCD_VERSION=v3.5.26
 # 设置各个服务的端口号
 REDIS_PORT=6379
 RABBITMQ_PORT=5672
@@ -38,7 +38,8 @@ MONGO_PORT=27017
 NACOS_PORT=8848
 NACOS_PORT_JMX=9848
 CHROMA_PORT=9002
-
+ETCD_PORT=2379
+ETCD_PORT_PEER=2380
 # 设置各个服务的账户名和密码
 REDIS_USERNAME=redis
 REDIS_PASSWORD=redis123
@@ -265,6 +266,28 @@ services:
     ports:
       - "$CHROMA_PORT:8000"
     restart: unless-stopped
+
+  # Etcd分布式配置中心
+  etcd:
+    image: quay.io/coreos/etcd:$ETCD_VERSION
+    container_name: nebula-etcd
+    restart: unless-stopped
+    ports:
+      - "$ETCD_PORT:2379"
+      - "$ETCD_PORT_PEER:2380"
+    volumes:
+      - $ROOT_DIR/etcd/data:/etcd-data
+    command: >
+      etcd --name nebula-etcd
+      --data-dir=/etcd-data
+      --listen-client-urls http://0.0.0.0:2379
+      --advertise-client-urls http://0.0.0.0:2379
+      --listen-peer-urls http://0.0.0.0:2380
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 EOF
 
 echo "切换到目录 $ROOT_DIR 并运行："
