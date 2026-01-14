@@ -58,12 +58,12 @@ public class CaptchaCrawlerAutoConfiguration {
     public OcrEngine ocrEngine(CaptchaProperties properties) {
         String engineType = properties.getOcrEngine();
         if ("ddddocr".equalsIgnoreCase(engineType)) {
-            log.info("初始化ddddocr引擎，服务地址: {}", properties.getDdddocrUrl());
-            return new DdddOcrEngine(properties.getDdddocrUrl());
+            log.info("初始化ddddocr引擎，服务地址: {}", properties.getDdddocrUrls());
+            return new DdddOcrEngine(properties.getDdddocrUrls());
         }
         // 可以扩展其他OCR引擎
         log.warn("未知的OCR引擎类型: {}，使用ddddocr作为默认", engineType);
-        return new DdddOcrEngine(properties.getDdddocrUrl());
+        return new DdddOcrEngine(properties.getDdddocrUrls());
     }
 
     /**
@@ -73,8 +73,8 @@ public class CaptchaCrawlerAutoConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "nebula.crawler.captcha", name = "local-slider-enabled", havingValue = "true", matchIfMissing = true)
     public OpenCvService openCvService(CaptchaProperties properties) {
-        log.info("初始化OpenCV服务客户端，服务地址: {}", properties.getOpencvUrl());
-        return new OpenCvService(properties.getOpencvUrl());
+        log.info("初始化OpenCV服务客户端，服务地址: {}", properties.getOpencvUrls());
+        return new OpenCvService(properties.getOpencvUrls());
     }
 
     /**

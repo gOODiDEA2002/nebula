@@ -1,0 +1,61 @@
+# OpenCV 验证码识别服务
+# 提供滑块缺口检测和旋转角度识别
+
+services:
+  # OpenCV 验证码识别服务
+  captcha-opencv-01:
+    build: .
+    image: captcha-opencv:latest
+    container_name: captcha-opencv-01
+    ports:
+      - "8867:8080"
+    environment:
+      - PORT=8080
+      - DEBUG=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - crawler-network
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  captcha-opencv-02:
+    build: .
+    image: captcha-opencv:latest
+    container_name: captcha-opencv-02
+    ports:
+      - "8868:8080"
+    environment:
+      - PORT=8080
+      - DEBUG=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - crawler-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+networks:
+  crawler-network:
+    name: crawler-network
+    external: true

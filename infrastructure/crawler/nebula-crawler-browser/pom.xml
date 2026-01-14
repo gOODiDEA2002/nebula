@@ -24,6 +24,14 @@
             <version>${project.version}</version>
         </dependency>
         
+        <!-- Nebula Crawler Captcha (可选依赖，用于浏览器验证码处理) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-crawler-captcha</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        
         <!-- Playwright -->
         <dependency>
             <groupId>com.microsoft.playwright</groupId>

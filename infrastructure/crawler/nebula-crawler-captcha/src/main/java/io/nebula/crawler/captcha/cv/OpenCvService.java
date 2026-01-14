@@ -4,7 +4,11 @@ import io.nebula.crawler.captcha.exception.CaptchaException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * OpenCV Python服务客户端
@@ -16,8 +20,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class OpenCvService {
 
-    private final String serverUrl;
+    private final List<String> serverUrls;
     private final OkHttpClient httpClient;
+    private final AtomicInteger counter = new AtomicInteger(0);
 
     /**
      * 构造函数
@@ -25,12 +30,34 @@ public class OpenCvService {
      * @param serverUrl OpenCV服务地址
      */
     public OpenCvService(String serverUrl) {
-        this.serverUrl = serverUrl;
+        this(Collections.singletonList(serverUrl));
+    }
+
+    /**
+     * 构造函数
+     *
+     * @param serverUrls OpenCV服务地址列表
+     */
+    public OpenCvService(List<String> serverUrls) {
+        this.serverUrls = serverUrls.stream()
+                .map(url -> url.endsWith("/") ? url.substring(0, url.length() - 1) : url)
+                .toList();
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build();
+    }
+
+    private String getNextServerUrl() {
+        if (serverUrls.isEmpty()) {
+            throw new RuntimeException("没有可用的 OpenCV 服务地址");
+        }
+        if (serverUrls.size() == 1) {
+            return serverUrls.get(0);
+        }
+        int index = Math.abs(counter.getAndIncrement() % serverUrls.size());
+        return serverUrls.get(index);
     }
 
     /**
@@ -41,30 +68,35 @@ public class OpenCvService {
      * @return 滑块偏移量，检测失败返回null
      */
     public SliderDetectResult detectSliderGap(String backgroundBase64, String sliderBase64) {
-        try {
-            RequestBody body = new FormBody.Builder()
-                    .add("background", backgroundBase64)
-                    .add("slider", sliderBase64)
-                    .build();
+        int maxRetries = Math.max(2, serverUrls.size());
+        
+        for (int i = 0; i < maxRetries; i++) {
+            String currentUrl = getNextServerUrl();
+            try {
+                RequestBody body = new FormBody.Builder()
+                        .add("background", backgroundBase64)
+                        .add("slider", sliderBase64 != null ? sliderBase64 : "")
+                        .build();
 
-            Request request = new Request.Builder()
-                    .url(serverUrl + "/slider/detect")
-                    .post(body)
-                    .build();
+                Request request = new Request.Builder()
+                        .url(currentUrl + "/slider/detect")
+                        .post(body)
+                        .build();
 
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    log.warn("OpenCV滑块检测服务响应错误: {}", response.code());
-                    return null;
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        log.warn("OpenCV滑块检测服务响应错误: {} from {}", response.code(), currentUrl);
+                        continue;
+                    }
+
+                    String responseBody = response.body() != null ? response.body().string() : "";
+                    return parseSliderResult(responseBody);
                 }
-
-                String responseBody = response.body() != null ? response.body().string() : "";
-                return parseSliderResult(responseBody);
+            } catch (Exception e) {
+                log.warn("调用OpenCV滑块检测服务失败: {} - {}", currentUrl, e.getMessage());
             }
-        } catch (Exception e) {
-            log.warn("调用OpenCV滑块检测服务失败: {}", e.getMessage());
-            return null;
         }
+        return null;
     }
 
     /**
@@ -74,29 +106,34 @@ public class OpenCvService {
      * @return 旋转角度，检测失败返回null
      */
     public RotateDetectResult detectRotateAngle(String imageBase64) {
-        try {
-            RequestBody body = new FormBody.Builder()
-                    .add("image", imageBase64)
-                    .build();
+        int maxRetries = Math.max(2, serverUrls.size());
+        
+        for (int i = 0; i < maxRetries; i++) {
+            String currentUrl = getNextServerUrl();
+            try {
+                RequestBody body = new FormBody.Builder()
+                        .add("image", imageBase64)
+                        .build();
 
-            Request request = new Request.Builder()
-                    .url(serverUrl + "/rotate/detect")
-                    .post(body)
-                    .build();
+                Request request = new Request.Builder()
+                        .url(currentUrl + "/rotate/detect")
+                        .post(body)
+                        .build();
 
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    log.warn("OpenCV旋转检测服务响应错误: {}", response.code());
-                    return null;
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        log.warn("OpenCV旋转检测服务响应错误: {} from {}", response.code(), currentUrl);
+                        continue;
+                    }
+
+                    String responseBody = response.body() != null ? response.body().string() : "";
+                    return parseRotateResult(responseBody);
                 }
-
-                String responseBody = response.body() != null ? response.body().string() : "";
-                return parseRotateResult(responseBody);
+            } catch (Exception e) {
+                log.warn("调用OpenCV旋转检测服务失败: {} - {}", currentUrl, e.getMessage());
             }
-        } catch (Exception e) {
-            log.warn("调用OpenCV旋转检测服务失败: {}", e.getMessage());
-            return null;
         }
+        return null;
     }
 
     /**
@@ -105,19 +142,23 @@ public class OpenCvService {
      * @return true如果可用
      */
     public boolean isAvailable() {
-        try {
-            Request request = new Request.Builder()
-                    .url(serverUrl + "/ping")
-                    .get()
-                    .build();
+        for (String url : serverUrls) {
+            try {
+                Request request = new Request.Builder()
+                        .url(url + "/ping")
+                        .get()
+                        .build();
 
-            try (Response response = httpClient.newCall(request).execute()) {
-                return response.isSuccessful();
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("OpenCV服务不可用: {} - {}", url, e.getMessage());
             }
-        } catch (Exception e) {
-            log.debug("OpenCV服务不可用: {}", e.getMessage());
-            return false;
         }
+        return false;
     }
 
     /**

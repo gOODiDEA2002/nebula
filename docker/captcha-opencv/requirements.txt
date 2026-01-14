@@ -1,0 +1,15 @@
+# OpenCV 验证码识别服务依赖
+
+# Web 框架
+flask==3.0.0
+gunicorn==21.2.0
+
+# OpenCV
+opencv-python-headless==4.9.0.80
+
+# 图像处理
+numpy==1.26.3
+Pillow==10.2.0
+
+# 科学计算（用于边缘检测等）
+scipy==1.12.0

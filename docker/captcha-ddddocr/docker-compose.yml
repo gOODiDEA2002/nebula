@@ -1,0 +1,43 @@
+# Ddddocr 验证码识别服务
+# 提供字符识别
+
+services:
+  # ddddocr 验证码识别服务
+  captcha-ddddocr-01:
+    image: harbor.vocoor.com.cn/ci/captcha-ddddocr:latest
+    container_name: captcha-ddddocr-01
+    ports:
+      - "8866:8866"
+    environment:
+      - PORT=8866
+      - DEBUG=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8866/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - crawler-network
+
+  captcha-ddddocr-02:
+    image: harbor.vocoor.com.cn/ci/captcha-ddddocr:latest
+    container_name: captcha-ddddocr-02
+    ports:
+      - "8865:8866"
+    environment:
+      - PORT=8866
+      - DEBUG=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8866/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - crawler-network
+
+networks:
+  crawler-network:
+    name: crawler-network
+    external: true

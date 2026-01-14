@@ -3,6 +3,7 @@ package io.nebula.crawler.captcha.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,14 +32,26 @@ public class CaptchaProperties {
     private String ocrEngine = "ddddocr";
 
     /**
-     * ddddocr服务地址
+     * ddddocr服务地址 (deprecated, use ddddocrUrls)
      */
+    @Deprecated
     private String ddddocrUrl = "http://localhost:8866";
 
     /**
-     * OpenCV服务地址
+     * ddddocr服务地址列表 (支持负载均衡)
      */
+    private List<String> ddddocrUrls = new ArrayList<>();
+
+    /**
+     * OpenCV服务地址 (deprecated, use opencvUrls)
+     */
+    @Deprecated
     private String opencvUrl = "http://localhost:8867";
+
+    /**
+     * OpenCV服务地址列表 (支持负载均衡)
+     */
+    private List<String> opencvUrls = new ArrayList<>();
 
     /**
      * 是否启用本地滑块检测
@@ -74,6 +87,26 @@ public class CaptchaProperties {
      * 第三方平台配置
      */
     private List<ProviderConfig> providers;
+
+    /**
+     * 获取 ddddocrUrls，如果为空则返回 ddddocrUrl 包装的列表
+     */
+    public List<String> getDdddocrUrls() {
+        if (ddddocrUrls != null && !ddddocrUrls.isEmpty()) {
+            return ddddocrUrls;
+        }
+        return new ArrayList<>(List.of(ddddocrUrl));
+    }
+    
+    /**
+     * 获取 opencvUrls，如果为空则返回 opencvUrl 包装的列表
+     */
+    public List<String> getOpencvUrls() {
+        if (opencvUrls != null && !opencvUrls.isEmpty()) {
+            return opencvUrls;
+        }
+        return new ArrayList<>(List.of(opencvUrl));
+    }
 
     /**
      * 第三方平台配置

@@ -624,8 +624,10 @@ nebula:
       enabled: true
       local-ocr-enabled: true          # 启用本地OCR
       ocr-engine: ddddocr              # OCR引擎: tesseract, ddddocr
-      ddddocr-url: http://localhost:8866
-      opencv-url: http://localhost:8867
+      ddddocr-urls:                    # ddddocr服务地址列表(支持负载均衡)
+        - http://localhost:8866
+      opencv-urls:                     # OpenCV服务地址列表(支持负载均衡)
+        - http://localhost:8867
       local-slider-enabled: true       # 启用本地滑块检测
       local-rotate-enabled: true       # 启用本地旋转检测
       local-click-enabled: true        # 启用本地点击检测
