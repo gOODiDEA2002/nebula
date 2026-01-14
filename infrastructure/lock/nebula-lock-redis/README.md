@@ -35,15 +35,7 @@
 ### 2. 配置Redis和锁
 
 ```yaml
-# Redis配置
-spring:
-  redis:
-    host: localhost
-    port: 6379
-    password: 
-    database: 0
-
-# Nebula锁配置
+# Nebula锁配置（推荐方式）
 nebula:
   lock:
     enabled: true                          # 是否启用分布式锁
@@ -53,7 +45,17 @@ nebula:
     enable-watchdog: true                  # 是否启用看门狗机制
     fair: false                            # 是否启用公平锁
     
-    # Redlock配置(可选)
+    # Redis连接配置（独立于缓存配置）
+    redis:
+      host: 192.168.2.130                  # Redis服务器地址
+      port: 6379                           # Redis端口
+      password: your_password              # Redis密码
+      database: 0                          # 数据库索引
+      timeout: 6000                        # 连接超时(毫秒)
+      connection-minimum-idle-size: 5     # 最小空闲连接数
+      connection-pool-size: 20            # 连接池大小
+    
+    # Redlock配置(可选，用于多Redis实例)
     redlock:
       enabled: false
       addresses:
@@ -61,6 +63,19 @@ nebula:
         - redis://127.0.0.1:6380
         - redis://127.0.0.1:6381
       quorum: 2                            # 最小获取锁的实例数
+```
+
+**备选方式（兼容旧配置）**：如果不配置 `nebula.lock.redis`，将使用 Spring Boot 自动配置的 RedissonClient：
+
+```yaml
+# Spring Redis配置（备选方式）
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
 ```
 
 ## 使用示例

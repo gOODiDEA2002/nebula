@@ -60,9 +60,57 @@ public class RedisLockProperties {
     private boolean fair = false;
     
     /**
+     * Redis连接配置
+     * 如果配置了此项，将使用独立的 RedissonClient
+     * 如果未配置，将使用 Spring Boot 自动配置的 RedissonClient
+     */
+    private RedisConfig redis;
+    
+    /**
      * Redlock配置(用于多Redis实例)
      */
     private RedlockConfig redlock = new RedlockConfig();
+    
+    /**
+     * Redis连接配置
+     */
+    @Data
+    public static class RedisConfig {
+        /**
+         * Redis服务器主机名
+         */
+        private String host = "localhost";
+        
+        /**
+         * Redis服务器端口
+         */
+        private int port = 6379;
+        
+        /**
+         * Redis密码
+         */
+        private String password;
+        
+        /**
+         * 数据库索引
+         */
+        private int database = 0;
+        
+        /**
+         * 连接超时时间(毫秒)
+         */
+        private int timeout = 3000;
+        
+        /**
+         * 最小空闲连接数
+         */
+        private int connectionMinimumIdleSize = 5;
+        
+        /**
+         * 连接池大小
+         */
+        private int connectionPoolSize = 20;
+    }
     
     /**
      * Redlock配置
