@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-starter-task</artifactId>
+    <name>Nebula Starter Task</name>
+    <description>Starter for task scheduling applications based on XXL-JOB</description>
+
+    <dependencies>
+        <!-- 核心任务调度模块 -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-task</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- 基础 Starter (包含 foundation 和基础配置) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-starter-minimal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- RPC 支持 (用于服务间调用) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- 服务发现 (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-discovery-nacos</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

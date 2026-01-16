@@ -390,7 +390,7 @@ mvn archetype:generate \
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-service</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -413,7 +413,6 @@ nebula:
 4. **启动应用**：
 ```java
 @SpringBootApplication
-@EnableNebulaService
 public class TicketServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(TicketServiceApplication.class, args);
@@ -425,8 +424,8 @@ public class TicketServiceApplication {
 
 - [快速开始](QUICK_START.md) - 详细的快速开始指南
 - [架构设计](ARCHITECTURE.md) - 深入了解架构设计
-- [模块指南](MODULE_GUIDE.md) - 如何选择合适的模块
-- [最佳实践](BEST_PRACTICES.md) - 开发最佳实践
+- [Starter 选择指南](../STARTER_SELECTION_GUIDE.md) - 如何选择合适的模块
+- [最佳实践](../Nebula框架使用指南.md#最佳实践) - 开发最佳实践
 
 ## 社区和支持
 
@@ -447,7 +446,7 @@ public class TicketServiceApplication {
 
 ## 许可证
 
-Nebula 框架采用 Apache License 2.0 许可证。
+Nebula 框架采用 MIT 许可证。
 
 ---
 

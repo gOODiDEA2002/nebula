@@ -239,7 +239,7 @@ nebula-starter 依赖以下模块（所有功能模块均为 optional）：
 
 ##  许可证
 
-本项目基于 Apache 2.0 许可证开源
+本项目基于 MIT 许可证开源
 
 ---
 

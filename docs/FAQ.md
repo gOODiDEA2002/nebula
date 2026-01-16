@@ -763,28 +763,28 @@ public class OrderNotFoundException extends BusinessException {
 mvn clean package -DskipTests
 
 # 生成的 JAR 位于
-target/your-app-1.0.0.jar
+target/your-app-<version>.jar
 ```
 
 **运行**：
 ```bash
-java -jar target/your-app-1.0.0.jar
+java -jar target/your-app-<version>.jar
 ```
 
 **Docker 部署**：
 ```dockerfile
 FROM openjdk:21-jdk-slim
-COPY target/your-app-1.0.0.jar /app.jar
+COPY target/your-app-<version>.jar /app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app.jar"]
 ```
 
 ```bash
 # 构建镜像
-docker build -t your-app:1.0.0 .
+docker build -t your-app:<version> .
 
 # 运行容器
-docker run -d -p 8080:8080 your-app:1.0.0
+docker run -d -p 8080:8080 your-app:<version>
 ```
 
 ### Q23: 如何配置日志？

@@ -661,7 +661,7 @@ public void processBatchFiles(String bucket, String prefix) {
 
 ##  许可证
 
-本项目基于 Apache 2.0 许可证开源
+本项目基于 MIT 许可证开源
 
 
 ## 🧪 测试

@@ -790,7 +790,6 @@ public class DatabaseHealthChecker implements HealthChecker {
  * 票务系统主应用
  */
 @SpringBootApplication
-@EnableNebulaWeb
 public class TicketingApplication {
     public static void main(String[] args) {
         SpringApplication.run(TicketingApplication.class, args);

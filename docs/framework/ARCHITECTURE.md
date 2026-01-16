@@ -319,7 +319,7 @@ public interface MessageProducer {
 }
 
 // 消息消费者
-@MessageListener(topic = "order.created")
+@MessageHandler(topic = "order.created")
 public void handleOrderCreated(OrderMessage message) {
     // 处理订单创建消息
 }
@@ -333,7 +333,7 @@ Order order = orderService.create(orderDto);
 messageProducer.send("order.created", order);
 
 // 2. 异步处理订单
-@MessageListener(topic = "order.created")
+@MessageHandler(topic = "order.created")
 public void handleOrderCreated(Order order) {
     // 生成电子票
     ticketService.generateETicket(order);
@@ -766,8 +766,8 @@ orderService.saveBatch(orders); // 批量插入
 
 - [框架概览](OVERVIEW.md) - 框架整体介绍
 - [快速开始](QUICK_START.md) - 快速开始指南
-- [模块指南](MODULE_GUIDE.md) - 模块选择指南
-- [最佳实践](BEST_PRACTICES.md) - 开发最佳实践
+- [Starter 选择指南](../STARTER_SELECTION_GUIDE.md) - 模块选择指南
+- [最佳实践](../Nebula框架使用指南.md#最佳实践) - 开发最佳实践
 
 ---
 

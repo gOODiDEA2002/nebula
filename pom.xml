@@ -93,6 +93,7 @@
         <module>starter/nebula-starter-mcp</module>
         <module>starter/nebula-starter-all</module>
         <module>starter/nebula-starter-api</module>
+        <module>starter/nebula-starter-task</module>
         
         <!-- Auto-Configuration 模块 -->
         <module>autoconfigure/nebula-autoconfigure</module>

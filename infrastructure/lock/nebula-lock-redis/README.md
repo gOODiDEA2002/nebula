@@ -612,7 +612,7 @@ redis-cli GET "your:lock:key"
 
 ## 许可证
 
-本项目基于 Apache 2.0 许可证开源
+本项目基于 MIT 许可证开源
 
 
 ## 🧪 测试

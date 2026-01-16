@@ -478,7 +478,7 @@ public class OrderEventListener {
     /**
      * 监听订单创建事件
      */
-    @MessageListener(topic = "order.created")
+    @MessageHandler(topic = "order.created")
     public void handleOrderCreated(OrderCreatedEvent event) {
         log.info("收到订单创建事件: {}", event.getOrderId());
         
@@ -984,7 +984,7 @@ public class OrderEventListener {
     /**
      * 监听订单创建事件
      */
-    @MessageListener(topic = "order.created")
+    @MessageHandler(topic = "order.created")
     public void handleOrderCreated(OrderCreatedEvent event) {
         log.info("收到订单创建事件: orderId={}", event.getOrderId());
         
@@ -995,7 +995,7 @@ public class OrderEventListener {
     /**
      * 监听订单支付事件
      */
-    @MessageListener(topic = "order.paid")
+    @MessageHandler(topic = "order.paid")
     public void handleOrderPaid(OrderPaidEvent event) {
         log.info("收到订单支付事件: orderId={}", event.getOrderId());
         

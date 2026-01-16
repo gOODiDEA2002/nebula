@@ -102,12 +102,12 @@ cd demo-web
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+    <version>3.5.8</version>
     </parent>
 
     <properties>
         <java.version>21</java.version>
-        <nebula.version>1.0.0</nebula.version>
+        <nebula.version>2.0.1-SNAPSHOT</nebula.version>
     </properties>
 
     <dependencies>
@@ -851,7 +851,7 @@ public class OrderServiceImpl implements OrderService {
 package com.ticket.order.listener;
 
 import com.ticket.order.service.OrderService;
-import io.nebula.messaging.annotation.MessageListener;
+import io.nebula.messaging.core.annotation.MessageHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -866,7 +866,7 @@ public class OrderMessageListener {
     /**
      * 处理订单超时
      */
-    @MessageListener(topic = "order.timeout")
+    @MessageHandler(topic = "order.timeout")
     public void handleOrderTimeout(Long orderId) {
         log.info("处理订单超时：{}", orderId);
         
@@ -1128,9 +1128,9 @@ java -jar target/app.jar \
 ### 学习路径
 
 1. **了解架构**: [架构设计](ARCHITECTURE.md)
-2. **模块选择**: [模块指南](MODULE_GUIDE.md)
-3. **最佳实践**: [最佳实践](BEST_PRACTICES.md)
-4. **性能调优**: [性能调优](PERFORMANCE_TUNING.md)
+2. **模块选择**: [Starter 选择指南](../STARTER_SELECTION_GUIDE.md)
+3. **最佳实践**: [最佳实践](../Nebula框架使用指南.md#最佳实践)
+4. **性能调优**: [监控与运维](../Nebula框架使用指南.md#监控与运维)
 
 ### 示例项目
 

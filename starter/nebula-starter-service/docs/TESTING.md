@@ -243,7 +243,7 @@ class TestMessageListener {
     
     private boolean received = false;
     
-    @MessageListener(topic = "order.created")
+    @MessageHandler(topic = "order.created")
     public void handle(OrderCreatedEvent event) {
         received = true;
     }

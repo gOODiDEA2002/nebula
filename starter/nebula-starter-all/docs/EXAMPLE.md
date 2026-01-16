@@ -576,7 +576,7 @@ public class OrderEventListener {
     
     private final ProductService productService;
     
-    @MessageListener(topic = "order.created")
+    @MessageHandler(topic = "order.created")
     public void handleOrderCreated(OrderCreatedEvent event) {
         // 扣减库存
         productService.deductStock(
