@@ -42,6 +42,7 @@
         <module>infrastructure/rpc/nebula-rpc-core</module>
         <module>infrastructure/rpc/nebula-rpc-http</module>
         <module>infrastructure/rpc/nebula-rpc-grpc</module>
+        <module>infrastructure/rpc/nebula-rpc-async</module>
         
         <!-- 服务注册与发现层 -->
         <module>infrastructure/discovery/nebula-discovery-core</module>

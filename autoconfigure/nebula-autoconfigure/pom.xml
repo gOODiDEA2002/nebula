@@ -95,6 +95,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- RPC Async (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-async</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Data Persistence (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>

@@ -328,4 +328,212 @@ public class MyController {
 
 **这就是 Nebula RPC 框架的核心理念: 协议无关,专注业务逻辑**
 
+---
+
+## 异步RPC执行框架
+
+### 问题背景
+
+长时间运行的RPC调用（如数据抓取、批量处理）会导致：
+- **超时问题**: 默认RPC超时时间短（如30秒），长任务易超时
+- **资源占用**: 同步等待浪费客户端和网络资源
+- **无法追踪**: 超时后无法获知任务进度和结果
+
+### 解决方案：异步RPC
+
+使用 `@AsyncRpc` 注解，将耗时操作转为异步执行：
+
+```java
+@RpcClient("data-service")
+public interface DataProcessRpcClient {
+    // 同步方法（快速操作）
+    @RpcCall
+    SimpleResult quickQuery(String id);
+    
+    // 异步方法（耗时操作）
+    @AsyncRpc(timeout = 600)  // 10分钟超时
+    @RpcCall
+    AsyncRpcResult<ProcessResult> processDataAsync(Request req);
+}
+```
+
+### 执行流程
+
+```
+┌─────────┐         ┌──────────┐         ┌─────────────┐         ┌────────┐
+│ Client  │         │RPC Proxy │         │AsyncManager │         │ Nacos  │
+└────┬────┘         └────┬─────┘         └──────┬──────┘         └───┬────┘
+     │                   │                       │                    │
+     │ executeCrawlAsync │                       │                    │
+     ├──────────────────>│                       │                    │
+     │                   │ 检测@AsyncRpc         │                    │
+     │                   ├──────────────────────>│                    │
+     │                   │                       │ 保存PENDING        │
+     │                   │                       ├───────────────────>│
+     │                   │                       │                    │
+     │                   │                       │ 提交到线程池       │
+     │                   │                       ├────────┐           │
+     │                   │                       │        │           │
+     │<──executionId─────┤<──────────────────────┤        │           │
+     │                   │                       │        │           │
+     │                   │                       │    执行RPC调用     │
+     │                   │                       │<───────┘           │
+     │                   │                       │                    │
+     │                   │                       │ 更新SUCCESS        │
+     │                   │                       ├───────────────────>│
+     │                   │                       │                    │
+     │ 查询状态(executionId)                     │                    │
+     ├──────────────────>│                       │                    │
+     │                   ├──────────────────────>│                    │
+     │                   │                       │ 读取结果           │
+     │                   │                       ├───────────────────>│
+     │                   │                       │<───────────────────┤
+     │<──返回结果────────┤<──────────────────────┤                    │
+```
+
+### 核心组件
+
+#### 1. @AsyncRpc 注解
+```java
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface AsyncRpc {
+    int timeout() default 300; // 超时时间（秒）
+}
+```
+
+#### 2. AsyncRpcResult - 异步返回结果
+```java
+public class AsyncRpcResult<T> {
+    private String executionId;      // 执行ID
+    private ExecutionStatus status;  // 状态
+    
+    public static <T> AsyncRpcResult<T> pending(String executionId) { }
+    public static <T> AsyncRpcResult<T> failed(String id, String error) { }
+}
+```
+
+#### 3. AsyncRpcExecution - 执行记录
+```java
+public class AsyncRpcExecution {
+    private String executionId;
+    private String interfaceName;
+    private String methodName;
+    private ExecutionStatus status;    // PENDING/RUNNING/SUCCESS/FAILED
+    private String parameters;         // JSON格式
+    private String result;             // JSON格式
+    private String errorMessage;
+    private LocalDateTime createTime;
+    private LocalDateTime startTime;
+    private LocalDateTime finishTime;
+}
+```
+
+#### 4. AsyncRpcExecutionManager - 执行管理器
+```java
+@Component
+public class AsyncRpcExecutionManager {
+    public <T> AsyncRpcExecution submitAsync(
+        Class<?> interfaceClass,
+        Method method,
+        Object[] args,
+        Callable<T> callable
+    );
+    
+    public AsyncRpcExecution getExecution(String executionId);
+    public boolean cancelExecution(String executionId);
+}
+```
+
+### 存储方案
+
+#### 默认：Nacos存储（零配置）
+```java
+@Component
+@ConditionalOnProperty(name = "nebula.rpc.async.storage.type", 
+                       havingValue = "nacos", matchIfMissing = true)
+public class NacosAsyncExecutionStorage {
+    // Group: ASYNC_RPC_EXECUTION
+    // DataId: execution:{executionId}
+    // 复用已有Nacos连接，无需额外配置
+}
+```
+
+#### 可选：Redis存储
+```yaml
+nebula:
+  rpc:
+    async:
+      storage:
+        type: redis
+        # 使用 Hash: async:rpc:execution:{executionId}
+```
+
+#### 可选：Database存储
+```sql
+CREATE TABLE async_rpc_execution (
+    execution_id VARCHAR(64) PRIMARY KEY,
+    status VARCHAR(32) NOT NULL,
+    result TEXT,
+    ...
+);
+```
+
+### RPC Core集成
+
+`RpcClientFactoryBean` 自动检测并处理异步调用：
+
+```java
+@Override
+public Object invoke(Object proxy, Method method, Object[] args) {
+    // 检测@AsyncRpc注解
+    if (method.isAnnotationPresent(AsyncRpc.class)) {
+        return handleAsyncRpcCall(method, args);
+    }
+    return handleSyncRpcCall(method, args);
+}
+
+private Object handleAsyncRpcCall(Method method, Object[] args) {
+    // 1. 创建Callable包装同步调用
+    Callable<Object> callable = () -> handleSyncRpcCall(method, args);
+    
+    // 2. 提交到AsyncRpcExecutionManager
+    AsyncRpcExecution execution = executionManager.submitAsync(
+        interfaceClass, method, args, callable);
+    
+    // 3. 立即返回executionId
+    return AsyncRpcResult.pending(execution.getExecutionId());
+}
+```
+
+### 配置
+
+```yaml
+nebula:
+  rpc:
+    async:
+      enabled: true                    # 默认启用
+      storage:
+        type: nacos                    # nacos/redis/database
+      executor:
+        core-pool-size: 10             # 核心线程数
+        max-pool-size: 50              # 最大线程数
+        queue-capacity: 200            # 队列容量
+      cleanup:
+        enabled: true                  # 启用清理
+        retention-days: 7              # 保留天数
+```
+
+### 优势特性
+
+✅ **零配置** - 默认使用Nacos，复用已有连接  
+✅ **协议无关** - HTTP和gRPC自动支持  
+✅ **声明式** - @AsyncRpc注解，简单易用  
+✅ **优雅降级** - 异步组件不可用时自动降级同步  
+✅ **完整追踪** - 状态、参数、结果、错误全记录  
+✅ **生产就绪** - 完整的异常处理和状态管理
+
+### 使用示例
+
+参见 [Nebula框架使用指南.md](../Nebula框架使用指南.md) 中的异步RPC章节。
 

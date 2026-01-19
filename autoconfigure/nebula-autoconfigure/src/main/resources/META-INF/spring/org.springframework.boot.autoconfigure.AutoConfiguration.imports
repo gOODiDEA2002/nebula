@@ -15,6 +15,7 @@ io.nebula.autoconfigure.rpc.HttpRpcAutoConfiguration
 io.nebula.autoconfigure.rpc.GrpcRpcAutoConfiguration
 # RPC Discovery 集成（依赖上面的 RPC Client）
 io.nebula.autoconfigure.rpc.RpcDiscoveryAutoConfiguration
+io.nebula.autoconfigure.rpc.AsyncRpcAutoConfiguration
 
 # ========================================
 # Data Layer - 数据层

@@ -292,6 +292,106 @@ public interface UserRpcClient {
 }
 ```
 
+#### nebula-rpc-async
+**异步RPC执行支持（解决长时间RPC调用超时问题）**
+
+对于耗时的RPC操作（如数据抓取、批量处理），使用 `@AsyncRpc` 注解避免超时：
+
+```java
+@RpcClient("data-service")
+public interface DataProcessRpcClient {
+    // 同步方法（快速操作）
+    @RpcCall
+    SimpleResult quickQuery(String id);
+    
+    // 异步方法（耗时操作，避免超时）
+    @AsyncRpc(timeout = 600)  // 10分钟超时
+    @RpcCall
+    AsyncRpcResult<ProcessResult> processDataAsync(Request req);
+}
+```
+
+**使用场景：**
+- 长时间数据抓取（5分钟以上）
+- 批量数据处理
+- 大文件上传/下载
+- 复杂计算任务
+
+**客户端调用：**
+```java
+@Service
+public class DataService {
+    @Autowired
+    private DataProcessRpcClient rpcClient;
+    
+    @Autowired
+    private AsyncRpcExecutionManager executionManager;
+    
+    public String submitTask(Request req) {
+        // 1. 提交异步执行，立即返回
+        AsyncRpcResult<ProcessResult> result = 
+            rpcClient.processDataAsync(req);
+        
+        // 2. 返回执行ID给客户端
+        return result.getExecutionId(); // "abc123def456"
+    }
+    
+    public ProcessResult getTaskResult(String executionId) {
+        // 3. 查询执行状态
+        AsyncRpcExecution execution = 
+            executionManager.getExecution(executionId);
+        
+        if (execution == null) {
+            return null; // 不存在
+        }
+        
+        switch (execution.getStatus()) {
+            case SUCCESS:
+                // 任务完成，返回结果
+                return objectMapper.readValue(
+                    execution.getResult(), ProcessResult.class);
+            case FAILED:
+                throw new BusinessException(execution.getErrorMessage());
+            case RUNNING:
+            case PENDING:
+                return null; // 仍在执行中
+            default:
+                return null;
+        }
+    }
+}
+```
+
+**执行状态：**
+- `PENDING` - 已提交，等待执行
+- `RUNNING` - 正在执行
+- `SUCCESS` - 执行成功
+- `FAILED` - 执行失败
+- `CANCELLED` - 已取消
+- `TIMEOUT` - 超时
+
+**配置（可选，默认零配置）：**
+```yaml
+nebula:
+  rpc:
+    async:
+      enabled: true                    # 默认启用
+      storage:
+        type: nacos                    # 存储类型：nacos(默认)/redis/database
+      executor:
+        core-pool-size: 10             # 核心线程数
+        max-pool-size: 50              # 最大线程数
+```
+
+**框架优势：**
+- ✅ **零配置** - 默认使用Nacos，复用已有连接
+- ✅ **协议无关** - HTTP和gRPC自动支持
+- ✅ **声明式** - @AsyncRpc注解即可
+- ✅ **完整追踪** - 状态、参数、结果全记录
+- ✅ **优雅降级** - 异步组件不可用时自动降级同步
+
+详细架构说明请参考 [rpc/ARCHITECTURE.md](rpc/ARCHITECTURE.md) 异步RPC章节。
+
 ### 4. 对象存储层 (Storage Layer)
 
 #### nebula-storage-core, nebula-storage-minio, nebula-storage-aliyun-oss
