@@ -194,6 +194,10 @@ public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationCon
 
         /**
          * 处理异步RPC调用
+         * 
+         * 支持方法名映射：如果异步方法名以 "Async" 结尾，
+         * 会自动查找去掉 "Async" 后缀的同步方法进行调用。
+         * 这样服务端只需实现同步方法，客户端可以使用异步调用。
          */
         private Object handleAsyncRpcCall(Method method, Object[] args) throws Exception {
             log.debug("检测到@AsyncRpc注解，执行异步RPC调用: {}.{}",
@@ -204,10 +208,18 @@ public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationCon
                 Object executionManager = applicationContext.getBean(
                         "asyncRpcExecutionManager");
 
+                // 查找同步方法：如果方法名以 Async 结尾，尝试查找同步版本
+                final Method targetMethod = findSyncMethod(method);
+                
+                if (targetMethod != method) {
+                    log.debug("异步方法 {} 映射到同步方法 {}", 
+                            method.getName(), targetMethod.getName());
+                }
+
                 // 创建同步调用的Callable，包装Throwable为RuntimeException
                 Callable<Object> callable = () -> {
                     try {
-                        return handleSyncRpcCall(method, args);
+                        return handleSyncRpcCallWithMethod(targetMethod, args);
                     } catch (Throwable t) {
                         throw new RuntimeException("RPC调用失败", t);
                     }
@@ -246,6 +258,67 @@ public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationCon
                 } catch (Throwable t) {
                     throw new RuntimeException("RPC调用失败", t);
                 }
+            }
+        }
+        
+        /**
+         * 查找同步方法
+         * 
+         * 如果方法名以 "Async" 结尾，尝试查找去掉后缀的同步方法。
+         * 例如：processDataAsync -> processData
+         * 
+         * @param asyncMethod 异步方法
+         * @return 找到的同步方法，如果未找到则返回原方法
+         */
+        private Method findSyncMethod(Method asyncMethod) {
+            String methodName = asyncMethod.getName();
+            
+            // 检查方法名是否以 Async 结尾
+            if (!methodName.endsWith("Async")) {
+                return asyncMethod;
+            }
+            
+            // 获取同步方法名（去掉 Async 后缀）
+            String syncMethodName = methodName.substring(0, methodName.length() - 5);
+            
+            try {
+                // 尝试在接口中查找同步方法（参数类型相同）
+                Method syncMethod = interfaceClass.getMethod(
+                        syncMethodName, asyncMethod.getParameterTypes());
+                log.debug("找到同步方法: {} -> {}", methodName, syncMethodName);
+                return syncMethod;
+            } catch (NoSuchMethodException e) {
+                // 同步方法不存在，返回原异步方法
+                log.debug("未找到同步方法 {}，使用原方法 {}", syncMethodName, methodName);
+                return asyncMethod;
+            }
+        }
+        
+        /**
+         * 处理同步RPC调用（指定方法版本）
+         * 
+         * 与 handleSyncRpcCall 类似，但使用指定的方法而非原始方法
+         */
+        private Object handleSyncRpcCallWithMethod(Method method, Object[] args) throws Throwable {
+            // 延迟获取RpcClient实例
+            io.nebula.rpc.core.client.RpcClient client = getRpcClient();
+
+            if (client == null) {
+                throw new IllegalStateException(
+                        "未找到RpcClient实例，请确保已正确配置RPC客户端");
+            }
+
+            String serviceName = getServiceName();
+
+            log.debug("执行RPC调用: service={}, method={}", serviceName, method.getName());
+
+            try {
+                if (StringUtils.hasText(serviceName)) {
+                    RpcContextHolder.setServiceName(serviceName);
+                }
+                return client.call(interfaceClass, method.getName(), args);
+            } finally {
+                RpcContextHolder.clear();
             }
         }
 

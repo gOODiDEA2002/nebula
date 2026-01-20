@@ -295,21 +295,41 @@ public interface UserRpcClient {
 #### nebula-rpc-async
 **异步RPC执行支持（解决长时间RPC调用超时问题）**
 
-对于耗时的RPC操作（如数据抓取、批量处理），使用 `@AsyncRpc` 注解避免超时：
+对于耗时的RPC操作（如数据抓取、批量处理），使用 `@AsyncRpc` 注解避免超时。
+
+**接口定义方式（推荐）：**
 
 ```java
+// 1. 服务端接口（纯业务，同步方法）
+public interface DataProcessService {
+    ProcessResult processData(ProcessRequest request);
+}
+
+// 2. 客户端RPC接口（继承 + 异步增强）
 @RpcClient("data-service")
-public interface DataProcessRpcClient {
-    // 同步方法（快速操作）
-    @RpcCall
-    SimpleResult quickQuery(String id);
+public interface DataProcessRpcClient extends DataProcessService {
     
-    // 异步方法（耗时操作，避免超时）
+    // 继承同步方法：processData()
+    
+    // 异步方法：框架自动映射到 processData()
     @AsyncRpc(timeout = 600)  // 10分钟超时
-    @RpcCall
-    AsyncRpcResult<ProcessResult> processDataAsync(Request req);
+    AsyncRpcResult<ProcessResult> processDataAsync(ProcessRequest request);
+}
+
+// 3. 服务端实现（只需实现同步接口）
+@RpcService(DataProcessRpcClient.class)
+public class DataProcessServiceImpl implements DataProcessService {
+    @Override
+    public ProcessResult processData(ProcessRequest request) {
+        // 只需实现同步逻辑
+        return doProcess(request);
+    }
 }
 ```
+
+**方法映射规则：** 异步方法名以 `Async` 结尾时，框架自动调用去掉后缀的同步方法。
+- `processDataAsync()` -> `processData()`
+- `batchProcessAsync()` -> `batchProcess()`
 
 **使用场景：**
 - 长时间数据抓取（5分钟以上）
@@ -387,8 +407,11 @@ nebula:
 - ✅ **零配置** - 默认使用Nacos，复用已有连接
 - ✅ **协议无关** - HTTP和gRPC自动支持
 - ✅ **声明式** - @AsyncRpc注解即可
+- ✅ **方法映射** - 异步方法自动映射同步方法，服务端无需感知
 - ✅ **完整追踪** - 状态、参数、结果全记录
 - ✅ **优雅降级** - 异步组件不可用时自动降级同步
+
+**示例项目：** 完整的异步RPC示例请参考 [nebula-example/nebula-rpc-async](../nebula-example/nebula-rpc-async/)
 
 详细架构说明请参考 [rpc/ARCHITECTURE.md](rpc/ARCHITECTURE.md) 异步RPC章节。
 

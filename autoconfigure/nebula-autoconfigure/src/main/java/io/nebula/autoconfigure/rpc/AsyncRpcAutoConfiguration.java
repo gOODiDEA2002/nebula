@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
@@ -25,7 +26,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Slf4j
 @AutoConfiguration
 @EnableConfigurationProperties(AsyncRpcProperties.class)
+@ConditionalOnClass(name = "io.nebula.rpc.async.execution.AsyncRpcExecutionManager")
 @ConditionalOnProperty(prefix = "nebula.rpc.async", name = "enabled", havingValue = "true", matchIfMissing = true)
+@Import(NacosAsyncStorageAutoConfiguration.class)
 public class AsyncRpcAutoConfiguration {
 
     /**
@@ -51,26 +54,6 @@ public class AsyncRpcAutoConfiguration {
     }
 
     /**
-     * 配置Nacos存储（默认零配置）
-     */
-    @Bean
-    @ConditionalOnMissingBean(AsyncExecutionStorage.class)
-    @ConditionalOnClass(name = "com.alibaba.nacos.api.config.ConfigService")
-    @ConditionalOnBean(com.alibaba.nacos.api.config.ConfigService.class)
-    @ConditionalOnProperty(prefix = "nebula.rpc.async.storage", name = "type", havingValue = "nacos", matchIfMissing = true)
-    public AsyncExecutionStorage nacosAsyncExecutionStorage(
-            com.alibaba.nacos.api.config.ConfigService nacosConfigService,
-            ObjectMapper objectMapper,
-            org.springframework.core.env.Environment environment) {
-
-        String appName = environment.getProperty("spring.application.name", "default-app");
-        log.info("[AsyncRpc] 配置Nacos存储: appName={}", appName);
-
-        return new io.nebula.rpc.async.storage.nacos.NacosAsyncExecutionStorage(
-                nacosConfigService, objectMapper, appName);
-    }
-
-    /**
      * 配置异步RPC执行管理器
      * 只有当 AsyncExecutionStorage 可用时才创建
      */
@@ -82,7 +65,7 @@ public class AsyncRpcAutoConfiguration {
             Executor asyncRpcExecutor,
             ObjectMapper objectMapper) {
 
-        log.info("[AsyncRpc] 配置执行管理器");
+        log.info("[AsyncRpc] 配置执行管理器: storage={}", storage.getClass().getSimpleName());
         return new AsyncRpcExecutionManager(storage, asyncRpcExecutor, objectMapper);
     }
 }

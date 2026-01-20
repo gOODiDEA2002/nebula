@@ -73,17 +73,56 @@ public class AsyncRpcExecutionManager {
             // 执行RPC调用
             T result = callable.call();
             
-            // 保存结果
-            storage.updateResult(executionId, result);
-            storage.updateStatus(executionId, ExecutionStatus.SUCCESS);
+            // 保存结果并更新状态（合并操作避免覆盖问题）
+            updateResultAndStatus(executionId, result, ExecutionStatus.SUCCESS);
             
             log.info("[AsyncRpc] 执行成功: executionId={}", executionId);
             
         } catch (Exception e) {
             log.error("[AsyncRpc] 执行失败: executionId={}", executionId, e);
-            storage.updateError(executionId, e);
-            storage.updateStatus(executionId, ExecutionStatus.FAILED);
+            updateErrorAndStatus(executionId, e, ExecutionStatus.FAILED);
         }
+    }
+    
+    /**
+     * 更新结果并设置状态（合并为单次操作）
+     */
+    private void updateResultAndStatus(String executionId, Object result, ExecutionStatus status) {
+        AsyncRpcExecution execution = storage.findById(executionId);
+        if (execution != null) {
+            try {
+                execution.setResult(objectMapper.writeValueAsString(result));
+                execution.setStatus(status);
+                execution.setFinishTime(java.time.LocalDateTime.now());
+                storage.save(execution);
+            } catch (Exception e) {
+                log.error("[AsyncRpc] 更新结果和状态失败: executionId={}", executionId, e);
+                throw new RuntimeException("更新结果失败", e);
+            }
+        }
+    }
+    
+    /**
+     * 更新错误并设置状态（合并为单次操作）
+     */
+    private void updateErrorAndStatus(String executionId, Throwable error, ExecutionStatus status) {
+        AsyncRpcExecution execution = storage.findById(executionId);
+        if (execution != null) {
+            execution.setErrorMessage(error.getMessage());
+            execution.setErrorStack(getStackTrace(error));
+            execution.setStatus(status);
+            execution.setFinishTime(java.time.LocalDateTime.now());
+            storage.save(execution);
+        }
+    }
+    
+    /**
+     * 获取异常堆栈
+     */
+    private String getStackTrace(Throwable error) {
+        java.io.StringWriter sw = new java.io.StringWriter();
+        error.printStackTrace(new java.io.PrintWriter(sw));
+        return sw.toString();
     }
     
     /**
