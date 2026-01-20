@@ -41,9 +41,37 @@ public class AsyncRpcProperties {
         private String type = "nacos";
 
         /**
+         * Nacos配置（当type=nacos时生效）
+         */
+        private NacosConfig nacos = new NacosConfig();
+
+        /**
          * Redis配置
          */
         private RedisConfig redis = new RedisConfig();
+    }
+
+    @Data
+    public static class NacosConfig {
+        /**
+         * Nacos服务地址
+         */
+        private String serverAddr = "localhost:8848";
+
+        /**
+         * 命名空间
+         */
+        private String namespace = "public";
+
+        /**
+         * 用户名
+         */
+        private String username = "nacos";
+
+        /**
+         * 密码
+         */
+        private String password = "nacos";
     }
 
     @Data

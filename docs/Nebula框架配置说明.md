@@ -362,6 +362,43 @@ nebula:
       load-balance-strategy: ROUND_ROBIN  # 负载均衡策略: ROUND_ROBIN, RANDOM, WEIGHT
 ```
 
+### 异步 RPC 配置
+
+配置前缀: `nebula.rpc.async`
+
+```yaml
+nebula:
+  rpc:
+    async:
+      enabled: true                       # 是否启用异步RPC（默认true）
+      
+      # 存储配置
+      storage:
+        type: nacos                       # 存储类型: nacos(默认) / redis / database
+        redis:                            # Redis存储配置（当type=redis时生效）
+          host: localhost
+          port: 6379
+          password: ""
+          database: 0
+      
+      # 执行器配置
+      executor:
+        core-pool-size: 10                # 核心线程数
+        max-pool-size: 50                 # 最大线程数
+        queue-capacity: 200               # 队列容量
+        thread-name-prefix: async-rpc-    # 线程名前缀
+      
+      # 清理策略配置
+      cleanup:
+        enabled: true                     # 是否启用自动清理
+        retention-days: 7                 # 执行记录保留天数
+```
+
+**注意事项：**
+- 默认使用 Nacos 存储，需确保 Nacos 已配置
+- 异步方法名以 `Async` 结尾时，框架自动映射到同步方法
+- 执行结果以 JSON 格式存储
+
 ---
 
 ## 分布式锁配置
