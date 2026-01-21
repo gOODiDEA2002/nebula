@@ -14,7 +14,41 @@ public final class Strings {
     
     private static final Pattern CAMEL_CASE_PATTERN = Pattern.compile("([a-z])([A-Z])");
     private static final Pattern SNAKE_CASE_PATTERN = Pattern.compile("_([a-z])");
-    
+    public static final String EMPTY = "";
+    public static final String NULL = null;
+    public static final String SPACE = " ";
+    public static final String COMMA = ",";
+    public static final String DOT = ".";
+    public static final String COLON = ":";
+    public static final String SEMICOLON = ";";
+    public static final String EQUALS = "=";
+    public static final String PLUS = "+";
+    public static final String MINUS = "-";
+    public static final String ASTERISK = "*";
+    public static final String SLASH = "/";
+    public static final String BACKSLASH = "\\";
+    public static final String PERCENT = "%";
+    public static final String POUND = "#";
+    public static final String DOLLAR = "$";
+    public static final String AT = "@";
+    public static final String UNDERSCORE = "_";
+    public static final String TILDE = "~";
+    public static final String VERTICAL_BAR = "|";
+    public static final String CIRCUMFLEX_ACCENT = "^";
+    public static final String DOLLAR_SIGN = "$";
+    public static final String PERCENT_SIGN = "%";
+    public static final String AMPERSAND = "&";
+    public static final String APOSTROPHE = "'";
+    public static final String QUOTATION_MARK = "\"";
+    public static final String LEFT_PARENTHESIS = "(";
+    public static final String RIGHT_PARENTHESIS = ")";
+    public static final String LEFT_BRACKET = "[";
+    public static final String RIGHT_BRACKET = "]";
+    public static final String LEFT_BRACE = "{";
+    public static final String RIGHT_BRACE = "}";
+    public static final String LEFT_ANGLE_BRACKET = "<";
+    public static final String RIGHT_ANGLE_BRACKET = ">";
+
     /**
      * 私有构造函数，防止实例化
      */
@@ -90,7 +124,20 @@ public final class Strings {
      * @return 修剪后的字符串，如果为null则返回空字符串
      */
     public static String trimToEmpty(String str) {
-        return str == null ? "" : str.trim();
+        return str == null ? EMPTY : str.trim();
+    }
+
+    /**
+     * 如果字符串为null，则返回空字符串
+     * 
+     * @param str 字符串
+     * @return 字符串或空字符串
+     */
+    public static String emptyIfNull(Object str) {
+        if (str == null) {
+            return EMPTY;
+        }
+        return str.toString();
     }
     
     /**
