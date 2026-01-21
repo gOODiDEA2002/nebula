@@ -54,10 +54,20 @@
 ```java
 // nebula-example-api/src/main/java/io/nebula/example/api/rpc/UserRpcService.java
 
-@RpcClient(value = "nebula-example", name = "user-rpc-service")
+/**
+ * RPC 接口设计原则：
+ * - 参数使用具体类型
+ * - 返回值使用业务对象
+ * - 不使用 HTTP 路径注解（框架自动处理）
+ * - 错误通过 BusinessException 抛出
+ */
+@RpcClient("nebula-example")
 public interface UserRpcService {
-    @RpcCall(value = "/rpc/users", method = "POST")
-    CreateUserDto.Response createUser(@RequestBody CreateUserDto.Request request);
+    @RpcCall
+    CreateUserDto.Response createUser(CreateUserDto.Request request);
+    
+    @RpcCall
+    UserDto getUserById(Long userId);
 }
 
 // nebula-example-api/src/main/java/io/nebula/example/api/dto/CreateUserDto.java
@@ -230,32 +240,58 @@ public class UserRpcServiceImpl implements UserRpcService {
 // 3. 自动注册到 HTTP 和 gRPC 服务器 
 ```
 
-### 服务消费方 (nebula-example-client 或其他服务)
+### 服务消费方 (其他服务调用 nebula-example 服务)
+
+**方式一：API 模块自动配置（推荐）**
+
+在 API 模块中添加自动配置类，消费方只需添加依赖即可自动注册 RPC 客户端：
 
 ```java
-// 1. 依赖 nebula-example-api
+// nebula-example-api/src/main/java/.../ExampleApiAutoConfiguration.java
+
+@AutoConfiguration
+@EnableRpcClients(basePackages = "io.nebula.example.api")
+public class ExampleApiAutoConfiguration {
+}
+```
+
+配合 Spring Boot 自动配置文件：
+```
+// META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+io.nebula.example.api.ExampleApiAutoConfiguration
+```
+
+消费方使用：
+```java
+// 1. 依赖 nebula-example-api（无需其他配置）
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-example-api</artifactId>
 </dependency>
 
-// 2. 启用 RPC 客户端扫描
+// 2. 启动类无需添加任何注解
 @SpringBootApplication
-@EnableRpcClients  // 扫描 @RpcClient 注解
 public class ClientApplication { }
 
 // 3. 直接注入使用
-@RestController
-public class MyController {
+@Service
+public class MyService {
     @Autowired
     private UserRpcService userRpcService;  // 自动代理,默认使用 gRPC
     
-    @PostMapping("/create-user")
-    public CreateUserDto.Response createUser(@RequestBody CreateUserDto.Request request) {
-        // 透明调用,底层可能是 HTTP 或 gRPC
-        return userRpcService.createUser(request);
+    public UserDto getUser(Long id) {
+        return userRpcService.getUserById(id);  // 透明调用
     }
 }
+```
+
+**方式二：手动启用（适用于特定场景）**
+
+```java
+// 显式指定扫描包
+@SpringBootApplication
+@EnableRpcClients(basePackages = "io.nebula.example.api")
+public class ClientApplication { }
 ```
 
 ## 对比传统 gRPC
