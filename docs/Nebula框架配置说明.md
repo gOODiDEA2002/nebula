@@ -320,6 +320,61 @@ nebula:
 
 ## RPC配置
 
+### RPC 接口设计最佳实践
+
+**1. 接口定义（API 模块）：**
+
+```java
+/**
+ * RPC 接口设计原则：
+ * - 参数使用具体类型
+ * - 返回值使用业务对象
+ * - 不使用 HTTP 路径注解（框架自动处理）
+ * - 错误通过 BusinessException 抛出
+ */
+@RpcClient("user-service")
+public interface UserRpcClient {
+    @RpcCall
+    UserDto getUserById(Long userId);
+    
+    @RpcCall
+    UserDto createUser(CreateUserRequest request);
+}
+```
+
+**2. API 模块自动配置（推荐）：**
+
+在 API 模块中添加自动配置类，消费方只需添加依赖即可自动注册 RPC 客户端：
+
+```java
+// XxxApiAutoConfiguration.java
+@AutoConfiguration
+@EnableRpcClients(basePackages = "io.nebula.xxx.api")
+public class XxxApiAutoConfiguration {
+}
+```
+
+配合 Spring Boot 自动配置文件 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`：
+
+```
+io.nebula.xxx.api.XxxApiAutoConfiguration
+```
+
+**3. 服务实现（服务端）：**
+
+```java
+@RpcService
+@RequiredArgsConstructor
+public class UserRpcClientImpl implements UserRpcClient {
+    private final UserService userService;
+    
+    @Override
+    public UserDto getUserById(Long userId) {
+        return userService.getUserById(userId);
+    }
+}
+```
+
 ### HTTP RPC 配置
 
 配置前缀: `nebula.rpc.http`

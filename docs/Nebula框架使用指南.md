@@ -280,15 +280,56 @@ nebula:
 
 #### nebula-rpc-core & nebula-rpc-http  
 **远程调用支持**
+
+**RPC 接口定义（API 模块）：**
 ```java
+/**
+ * RPC 接口设计原则：
+ * - 参数使用具体类型
+ * - 返回值使用业务对象
+ * - 不使用 HTTP 路径注解（框架自动处理）
+ * - 错误通过 BusinessException 抛出
+ */
 @RpcClient("user-service")
 public interface UserRpcClient {
     
-    @RpcCall("/api/users/{id}")
-    User getUserById(@PathParam("id") Long id);
+    @RpcCall
+    User getUserById(Long id);
     
-    @RpcCall(value = "/api/users", method = "POST")
-    User createUser(@RequestBody CreateUserRequest request);
+    @RpcCall
+    User createUser(CreateUserRequest request);
+    
+    @RpcCall
+    List<User> listUsers();
+}
+```
+
+**API 模块自动配置（推荐）：**
+```java
+// UserApiAutoConfiguration.java
+@AutoConfiguration
+@EnableRpcClients(basePackages = "io.nebula.example.api")
+public class UserApiAutoConfiguration {
+}
+```
+
+配合 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 文件：
+```
+io.nebula.example.api.UserApiAutoConfiguration
+```
+
+**服务消费方使用：**
+```java
+// 只需添加 API 模块依赖，无需其他配置
+@Service
+public class OrderService {
+    @Autowired
+    private UserRpcClient userRpcClient;  // 自动注入
+    
+    public Order createOrder(Long userId) {
+        User user = userRpcClient.getUserById(userId);  // 透明调用
+        // ...
+    }
 }
 ```
 
