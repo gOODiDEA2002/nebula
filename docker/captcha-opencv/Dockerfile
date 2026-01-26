@@ -9,11 +9,11 @@ FROM python:3.11-slim
 
 # 设置标签
 LABEL name="captcha-opencv" \
-      version="1.0.0" \
+      version="2.1.0" \
       project="ci" \
       platform="linux/amd64,linux/arm64" \
       maintainer="andy" \
-      description="OpenCV Captcha Recognition Service"
+      description="OpenCV Captcha Recognition Service - With Deep Learning"
 
 # 设置环境变量
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -34,14 +34,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 设置工作目录
 WORKDIR /app
 
-# 复制依赖文件
-COPY requirements.txt .
+# ========== 基础依赖层 ==========
+# 核心依赖很少变化，优先安装以提高缓存命中率
+COPY requirements-base.txt .
+RUN pip install --no-cache-dir -r requirements-base.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# ========== 应用依赖层 ==========
+# 可能新增的依赖，独立一层便于快速更新
+COPY requirements-app.txt .
+RUN pip install --no-cache-dir -r requirements-app.txt -i https://pypi.tuna.tsinghua.edu.cn/simple || true
 
-# 复制应用代码
+# ========== 代码层 ==========
+# 代码最后复制，只改代码时构建最快
 COPY app.py .
+COPY detectors/ ./detectors/
+COPY utils/ ./utils/
+COPY models/ ./models/
 
 # 暴露端口
 EXPOSE 8080
