@@ -39,6 +39,13 @@
             <version>1.41.0</version>
         </dependency>
         
+        <!-- Playwright Stealth - 隐藏浏览器自动化特征 -->
+        <dependency>
+            <groupId>io.github.kihdev</groupId>
+            <artifactId>playwright-stealth-4j</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+        
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -111,6 +111,11 @@ public class BrowserCrawlerProperties {
     private RemoteConfig remote = new RemoteConfig();
     
     /**
+     * Stealth 反检测配置
+     */
+    private StealthConfig stealth = new StealthConfig();
+    
+    /**
      * 运行模式枚举
      */
     public enum Mode {
@@ -206,6 +211,54 @@ public class BrowserCrawlerProperties {
      */
     public boolean isLocalMode() {
         return mode == Mode.LOCAL;
+    }
+    
+    /**
+     * Stealth 反检测配置
+     */
+    @Data
+    public static class StealthConfig {
+        
+        /**
+         * 是否启用 Stealth 反检测
+         * 启用后会使用 playwright-stealth-4j 隐藏自动化特征
+         */
+        private boolean enabled = true;
+        
+        /**
+         * 浏览器语言列表
+         */
+        private List<String> languages = List.of("zh-CN", "zh", "en-US", "en");
+        
+        /**
+         * 硬件并发数（模拟 CPU 核心数）
+         */
+        private int hardwareConcurrency = 8;
+        
+        /**
+         * WebGL 厂商
+         */
+        private String webglVendor = "Intel Inc.";
+        
+        /**
+         * WebGL 渲染器
+         */
+        private String webglRenderer = "Intel Iris OpenGL Engine";
+        
+        /**
+         * 是否隐藏 navigator.webdriver
+         */
+        private boolean hideWebdriver = true;
+        
+        /**
+         * 是否模拟 Chrome 运行时
+         */
+        private boolean emulateChromeRuntime = true;
+        
+        /**
+         * 是否修复 iframe contentWindow 检测
+         */
+        private boolean fixIframeContentWindow = true;
     }
 }
 

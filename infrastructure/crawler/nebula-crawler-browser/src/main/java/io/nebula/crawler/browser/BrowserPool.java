@@ -4,6 +4,7 @@ import com.microsoft.playwright.*;
 import io.nebula.crawler.browser.config.BrowserCrawlerProperties;
 import io.nebula.crawler.browser.config.BrowserCrawlerProperties.LoadBalanceStrategy;
 import io.nebula.crawler.browser.config.BrowserCrawlerProperties.Mode;
+import io.nebula.crawler.browser.util.StealthHelper;
 import io.nebula.crawler.core.proxy.Proxy;
 import lombok.extern.slf4j.Slf4j;
 
@@ -313,27 +314,18 @@ public class BrowserPool {
     private BrowserContext createContext(Proxy proxy) {
         Browser browser = selectBrowser();
         
+        // 简化上下文配置，与 GongchangLoginTest（成功测试）保持一致
+        // 过多的上下文选项可能与 Stealth4j 脚本设置的值不一致，被检测为异常
         Browser.NewContextOptions options = new Browser.NewContextOptions()
             .setViewportSize(properties.getViewportWidth(), properties.getViewportHeight());
         
-        // 设置 User-Agent
+        // 设置 User-Agent（使用最新的 Chrome 版本号）
         String userAgent = properties.getUserAgent();
         if (userAgent == null || userAgent.isEmpty()) {
-            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+            // 使用与 GongchangLoginTest 一致的 Chrome 版本
+            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
         }
         options.setUserAgent(userAgent);
-        
-        // 设置语言和时区（反检测关键）
-        options.setLocale("zh-CN");
-        options.setTimezoneId("Asia/Shanghai");
-        
-        // 设置设备参数
-        options.setDeviceScaleFactor(1.0);
-        options.setHasTouch(false);
-        options.setIsMobile(false);
-        
-        // 设置颜色方案
-        options.setColorScheme(com.microsoft.playwright.options.ColorScheme.LIGHT);
         
         // 忽略 HTTPS 错误
         options.setIgnoreHTTPSErrors(true);
@@ -346,99 +338,24 @@ public class BrowserPool {
         // 创建上下文
         BrowserContext context = browser.newContext(options);
         
-        // 注入反检测脚本
-        injectStealthScripts(context);
+        // 注意：不在 Context 级别注入 Stealth 脚本
+        // Stealth4j 脚本由 BrowserCrawlerEngine.createPage() 在 Page 级别注入
+        // 双重注入可能导致脚本冲突，被反机器人检测识别（errorCode:12）
+        // 参考：GongchangLoginTest 成功的关键是只在 Page 级别注入一次
         
         return context;
     }
     
     /**
-     * 注入反检测脚本
+     * 注入反检测脚本（使用 StealthHelper）
+     * 
+     * 注意：这里注入的是内置基础脚本，作为额外保护层。
+     * 主要的反检测配置通过 Stealth4j.newStealthPage() 在页面创建时应用。
+     * 
+     * @see io.nebula.crawler.browser.BrowserCrawlerEngine#crawl
      */
     private void injectStealthScripts(BrowserContext context) {
-        try {
-            context.addInitScript("""
-                // 移除 webdriver 标记
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: () => undefined
-                });
-                
-                // 模拟真实的 plugins
-                Object.defineProperty(navigator, 'plugins', {
-                    get: () => {
-                        const plugins = [
-                            {
-                                name: 'Chrome PDF Plugin',
-                                description: 'Portable Document Format',
-                                filename: 'internal-pdf-viewer',
-                                length: 1
-                            },
-                            {
-                                name: 'Chrome PDF Viewer',
-                                description: '',
-                                filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai',
-                                length: 1
-                            },
-                            {
-                                name: 'Native Client',
-                                description: '',
-                                filename: 'internal-nacl-plugin',
-                                length: 2
-                            }
-                        ];
-                        plugins.item = (index) => plugins[index];
-                        plugins.namedItem = (name) => plugins.find(p => p.name === name);
-                        plugins.refresh = () => {};
-                        return plugins;
-                    }
-                });
-                
-                // 模拟真实的 languages
-                Object.defineProperty(navigator, 'languages', {
-                    get: () => ['zh-CN', 'zh', 'en-US', 'en']
-                });
-                
-                // 模拟真实的 platform
-                Object.defineProperty(navigator, 'platform', {
-                    get: () => 'MacIntel'
-                });
-                
-                // 模拟真实的 hardwareConcurrency
-                Object.defineProperty(navigator, 'hardwareConcurrency', {
-                    get: () => 8
-                });
-                
-                // 模拟真实的 deviceMemory
-                Object.defineProperty(navigator, 'deviceMemory', {
-                    get: () => 8
-                });
-                
-                // 隐藏自动化相关属性
-                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
-                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
-                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
-                
-                // 重写 chrome 相关对象
-                window.chrome = {
-                    runtime: {},
-                    loadTimes: function() {},
-                    csi: function() {},
-                    app: {}
-                };
-                
-                // 模拟权限 API
-                const originalQuery = window.navigator.permissions.query;
-                window.navigator.permissions.query = (parameters) => (
-                    parameters.name === 'notifications' ?
-                        Promise.resolve({ state: Notification.permission }) :
-                        originalQuery(parameters)
-                );
-                """);
-            
-            log.debug("反检测脚本注入成功");
-        } catch (Exception e) {
-            log.warn("反检测脚本注入失败: {}", e.getMessage());
-        }
+        StealthHelper.applyStealthToContext(context);
     }
     
     /**

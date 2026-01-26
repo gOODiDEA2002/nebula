@@ -40,9 +40,19 @@ public class CaptchaResult {
     private String text;
 
     /**
-     * 滑块偏移量（滑块验证码）
+     * 滑块偏移量（滑块验证码） - 缺口左边缘位置
      */
     private Integer sliderOffset;
+
+    /**
+     * 缺口中心位置（滑块验证码）
+     */
+    private Integer sliderGapCenter;
+
+    /**
+     * 缺口宽度（滑块验证码）
+     */
+    private Integer sliderGapWidth;
 
     /**
      * 点击坐标列表（点击验证码）- [x, y]

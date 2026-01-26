@@ -61,6 +61,12 @@ public class CaptchaRequest {
     private String sliderImage;
 
     /**
+     * 滑块验证码的目标显示宽度（用于坐标缩放）
+     * 当验证码图片在页面上显示的宽度与原始图片宽度不同时使用
+     */
+    private Integer targetWidth;
+
+    /**
      * 手势验证码的轨迹提示
      */
     private String gestureHint;
@@ -105,6 +111,22 @@ public class CaptchaRequest {
                 .type(CaptchaType.SLIDER)
                 .backgroundImage(backgroundImage)
                 .sliderImage(sliderImage)
+                .build();
+    }
+
+    /**
+     * 创建滑块验证码请求（支持目标宽度缩放）
+     *
+     * @param backgroundImage 背景图Base64
+     * @param sliderImage     滑块图Base64
+     * @param targetWidth     目标显示宽度（用于坐标缩放）
+     */
+    public static CaptchaRequest slider(String backgroundImage, String sliderImage, Integer targetWidth) {
+        return CaptchaRequest.builder()
+                .type(CaptchaType.SLIDER)
+                .backgroundImage(backgroundImage)
+                .sliderImage(sliderImage)
+                .targetWidth(targetWidth)
                 .build();
     }
 

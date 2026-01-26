@@ -4,7 +4,10 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Response;
 import com.microsoft.playwright.options.WaitUntilState;
+import io.github.kihdev.playwright.stealth4j.Stealth4j;
+import io.github.kihdev.playwright.stealth4j.Stealth4jConfig;
 import io.nebula.crawler.browser.config.BrowserCrawlerProperties;
+import io.nebula.crawler.browser.util.StealthHelper;
 import io.nebula.crawler.core.*;
 import io.nebula.crawler.core.proxy.Proxy;
 import io.nebula.crawler.core.proxy.ProxyProvider;
@@ -78,8 +81,8 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
             // 获取浏览器上下文
             context = browserPool.acquire(proxy);
             
-            // 创建新页面
-            page = context.newPage();
+            // 创建新页面（根据配置决定是否启用 stealth）
+            page = createPage(context);
             
             // 设置超时
             page.setDefaultTimeout(properties.getPageTimeout());
@@ -245,6 +248,75 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
      */
     public BrowserPool.PoolStats getPoolStats() {
         return browserPool.getStats();
+    }
+    
+    /**
+     * 获取浏览器上下文（公开 API，供 LoginHandler 等组件使用）
+     * 
+     * @return 浏览器上下文
+     * @throws InterruptedException 如果等待被中断
+     */
+    public BrowserContext acquireContext() throws InterruptedException {
+        return browserPool.acquire(null);
+    }
+    
+    /**
+     * 释放浏览器上下文
+     * 
+     * @param context 浏览器上下文
+     */
+    public void releaseContext(BrowserContext context) {
+        browserPool.release(context);
+    }
+    
+    /**
+     * 释放浏览器上下文（标记是否损坏）
+     * 
+     * @param context   浏览器上下文
+     * @param corrupted 是否已损坏
+     */
+    public void releaseContext(BrowserContext context, boolean corrupted) {
+        browserPool.release(context, corrupted);
+    }
+    
+    /**
+     * 创建带 Stealth 反检测的页面（公开 API）
+     * 
+     * @param context 浏览器上下文
+     * @return 带反检测配置的页面
+     */
+    public Page createStealthPage(BrowserContext context) {
+        return createPage(context);
+    }
+    
+    /**
+     * 创建页面（根据配置决定是否启用 Stealth）
+     * 
+     * @param context 浏览器上下文
+     * @return 页面实例
+     */
+    private Page createPage(BrowserContext context) {
+        BrowserCrawlerProperties.StealthConfig stealthConfig = properties.getStealth();
+        
+        if (stealthConfig == null || !stealthConfig.isEnabled()) {
+            log.debug("Stealth 未启用，使用普通页面");
+            return context.newPage();
+        }
+        
+        try {
+            // 使用 Stealth4j 默认配置（与 GongchangLoginTest 成功测试一致）
+            // 默认配置启用所有 15 个 evasion，经过验证可以绕过腾讯验证码检测
+            // 参考：Stealth4j.newStealthPage(context) 使用 Stealth4jConfig.DEFAULT
+            Page page = Stealth4j.newStealthPage(context);
+            log.debug("使用 Stealth4j 创建反检测页面（默认配置）");
+            return page;
+            
+        } catch (Exception e) {
+            log.warn("Stealth4j 创建页面失败，使用内置脚本: {}", e.getMessage());
+            Page page = context.newPage();
+            StealthHelper.applyBuiltinStealth(page);
+            return page;
+        }
     }
 }
 
