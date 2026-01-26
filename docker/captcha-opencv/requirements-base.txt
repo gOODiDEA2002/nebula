@@ -1,0 +1,20 @@
+# 基础依赖 - 很少变化，用于构建基础层
+# 这些是核心的大型依赖包
+
+# Web 框架
+flask==3.0.0
+gunicorn==21.2.0
+
+# OpenCV
+opencv-python-headless==4.9.0.80
+
+# 图像处理
+numpy==1.26.3
+Pillow==10.2.0
+
+# 科学计算
+scipy==1.12.0
+
+# 深度学习推理 (ONNX)
+onnxruntime==1.17.0
+shapely==2.0.2

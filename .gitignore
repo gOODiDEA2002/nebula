@@ -50,3 +50,13 @@ repomix.config.json
 repomix-output.md
 CLAUDE.md
 .claude/
+
+### Python ###
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
