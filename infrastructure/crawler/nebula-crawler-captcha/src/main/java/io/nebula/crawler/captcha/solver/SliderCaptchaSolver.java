@@ -55,15 +55,33 @@ public class SliderCaptchaSolver implements CaptchaSolver {
         try {
             // 尝试本地OpenCV服务检测
             if (properties.isLocalSliderEnabled() && openCvService != null) {
-                Integer offset = detectGapOffset(request.getBackgroundImage(), request.getSliderImage());
-                if (offset != null) {
+                OpenCvService.SliderDetectResult detectResult = detectGapOffset(
+                        request.getBackgroundImage(),
+                        request.getSliderImage(),
+                        request.getTargetWidth()
+                );
+                if (detectResult != null) {
+                    // 使用服务返回的缺口中心，如果没有则估算
+                    Integer gapCenter = (detectResult.gapCenter() != null && detectResult.gapCenter() > 0)
+                            ? detectResult.gapCenter()
+                            : detectResult.offset() + 25;
+                    Integer gapWidth = (detectResult.gapWidth() != null && detectResult.gapWidth() > 0)
+                            ? detectResult.gapWidth()
+                            : 50;
+
+                    log.info("SliderCaptchaSolver 结果: offset={}, gapCenter={} (原始: {}), gapWidth={} (原始: {})",
+                            detectResult.offset(), gapCenter, detectResult.gapCenter(),
+                            gapWidth, detectResult.gapWidth());
+
                     return CaptchaResult.builder()
                             .success(true)
                             .type(CaptchaType.SLIDER)
-                            .sliderOffset(offset)
+                            .sliderOffset(detectResult.offset())
+                            .sliderGapCenter(gapCenter)
+                            .sliderGapWidth(gapWidth)
                             .costTime(System.currentTimeMillis() - startTime)
                             .solverName("LocalOpenCV")
-                            .confidence(0.9)
+                            .confidence(detectResult.confidence())
                             .build();
                 }
             }
@@ -107,16 +125,17 @@ public class SliderCaptchaSolver implements CaptchaSolver {
      *
      * @param backgroundBase64 背景图Base64
      * @param sliderBase64     滑块图Base64
-     * @return 偏移量，检测失败返回null
+     * @param targetWidth      目标显示宽度（用于坐标缩放，可选）
+     * @return 检测结果，检测失败返回null
      */
-    private Integer detectGapOffset(String backgroundBase64, String sliderBase64) {
+    private OpenCvService.SliderDetectResult detectGapOffset(String backgroundBase64, String sliderBase64, Integer targetWidth) {
         if (openCvService == null) {
             log.debug("OpenCV服务未配置");
             return null;
         }
 
-        if (backgroundBase64 == null || sliderBase64 == null) {
-            log.debug("缺少背景图或滑块图");
+        if (backgroundBase64 == null) {
+            log.debug("缺少背景图");
             return null;
         }
 
@@ -125,11 +144,15 @@ public class SliderCaptchaSolver implements CaptchaSolver {
             return null;
         }
 
-        OpenCvService.SliderDetectResult result = openCvService.detectSliderGap(backgroundBase64, sliderBase64);
+        OpenCvService.SliderDetectResult result = openCvService.detectSliderGap(backgroundBase64, sliderBase64, targetWidth);
         if (result != null) {
-            log.info("OpenCV检测滑块缺口成功: offset={}, confidence={}",
-                    result.offset(), result.confidence());
-            return result.offset();
+            log.info("OpenCV检测滑块缺口成功: offset={}, originalOffset={}, originalWidth={}, scaleRatio={}, confidence={}",
+                    result.offset(),
+                    result.originalOffset(),
+                    result.originalWidth(),
+                    result.scaleRatio(),
+                    result.confidence());
+            return result;
         }
 
         return null;
