@@ -26,26 +26,26 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean, DisposableBean {
-    
+
     private final NacosProperties nacosProperties;
     private NamingService namingService;
     private final ConcurrentHashMap<String, List<ServiceInstance>> serviceCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, EventListener> listenerCache = new ConcurrentHashMap<>();
-    
+
     public NacosServiceDiscovery(NacosProperties nacosProperties) {
         this.nacosProperties = nacosProperties;
     }
-    
+
     @Override
     public void afterPropertiesSet() throws Exception {
         initNamingService();
     }
-    
+
     @Override
     public void destroy() throws Exception {
         shutdown();
     }
-    
+
     @Override
     public void shutdown() {
         try {
@@ -56,21 +56,21 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             log.error("关闭 Nacos 服务发现失败", e);
         }
     }
-    
+
     @Override
     public void register(ServiceInstance instance) throws ServiceDiscoveryException {
         try {
             Instance nacosInstance = convertToNacosInstance(instance);
-            namingService.registerInstance(instance.getServiceName(), 
-                    instance.getGroupName() != null ? instance.getGroupName() : nacosProperties.getGroupName(), 
+            namingService.registerInstance(instance.getServiceName(),
+                    instance.getGroupName() != null ? instance.getGroupName() : nacosProperties.getGroupName(),
                     nacosInstance);
-            log.info("注册服务实例: serviceName={}, instanceId={}, address={}", 
+            log.info("注册服务实例: serviceName={}, instanceId={}, address={}",
                     instance.getServiceName(), instance.getInstanceId(), instance.getAddress());
         } catch (NacosException e) {
             throw new ServiceDiscoveryException("注册服务实例失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public void deregister(String serviceName, String instanceId) throws ServiceDiscoveryException {
         try {
@@ -79,8 +79,9 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             if (instances != null) {
                 for (ServiceInstance instance : instances) {
                     if (instanceId.equals(instance.getInstanceId())) {
-                        namingService.deregisterInstance(serviceName, 
-                                instance.getGroupName() != null ? instance.getGroupName() : nacosProperties.getGroupName(),
+                        namingService.deregisterInstance(serviceName,
+                                instance.getGroupName() != null ? instance.getGroupName()
+                                        : nacosProperties.getGroupName(),
                                 instance.getIp(), instance.getPort());
                         log.info("注销服务实例: serviceName={}, instanceId={}", serviceName, instanceId);
                         return;
@@ -92,14 +93,14 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("注销服务实例失败: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * 注册服务实例（兼容方法）
      */
     public void registerInstance(String serviceName, String ip, int port) throws NacosException {
         registerInstance(serviceName, ip, port, nacosProperties.getClusterName());
     }
-    
+
     /**
      * 注册服务实例
      */
@@ -112,11 +113,11 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
         instance.setEnabled(nacosProperties.isInstanceEnabled());
         instance.setHealthy(nacosProperties.isHealthy());
         instance.setMetadata(nacosProperties.getMetadata());
-        
+
         namingService.registerInstance(serviceName, nacosProperties.getGroupName(), instance);
         log.info("注册服务实例: serviceName={}, ip={}, port={}", serviceName, ip, port);
     }
-    
+
     /**
      * 注销服务实例
      */
@@ -124,20 +125,22 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
         namingService.deregisterInstance(serviceName, nacosProperties.getGroupName(), ip, port);
         log.info("注销服务实例: serviceName={}, ip={}, port={}", serviceName, ip, port);
     }
-    
+
     @Override
     public List<ServiceInstance> getInstances(String serviceName) throws ServiceDiscoveryException {
         return getInstances(serviceName, true);
     }
-    
+
     @Override
-    public List<ServiceInstance> getInstances(String serviceName, boolean healthyOnly) throws ServiceDiscoveryException {
+    public List<ServiceInstance> getInstances(String serviceName, boolean healthyOnly)
+            throws ServiceDiscoveryException {
         try {
-            List<Instance> instances = namingService.selectInstances(serviceName, nacosProperties.getGroupName(), healthyOnly);
+            List<Instance> instances = namingService.selectInstances(serviceName, nacosProperties.getGroupName(),
+                    healthyOnly);
             List<ServiceInstance> result = instances.stream()
                     .map(this::convertToServiceInstance)
                     .collect(Collectors.toList());
-            
+
             // 更新缓存
             serviceCache.put(serviceName, result);
             return result;
@@ -145,9 +148,10 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("获取服务实例失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
-    public List<ServiceInstance> getInstances(String serviceName, String groupName, boolean healthyOnly) throws ServiceDiscoveryException {
+    public List<ServiceInstance> getInstances(String serviceName, String groupName, boolean healthyOnly)
+            throws ServiceDiscoveryException {
         try {
             List<Instance> instances = namingService.selectInstances(serviceName, groupName, healthyOnly);
             return instances.stream()
@@ -157,11 +161,13 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("获取服务实例失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
-    public List<ServiceInstance> getInstances(String serviceName, List<String> clusters) throws ServiceDiscoveryException {
+    public List<ServiceInstance> getInstances(String serviceName, List<String> clusters)
+            throws ServiceDiscoveryException {
         try {
-            List<Instance> instances = namingService.selectInstances(serviceName, nacosProperties.getGroupName(), clusters, true);
+            List<Instance> instances = namingService.selectInstances(serviceName, nacosProperties.getGroupName(),
+                    clusters, true);
             return instances.stream()
                     .map(this::convertToServiceInstance)
                     .collect(Collectors.toList());
@@ -169,7 +175,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("获取指定集群的服务实例失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public void subscribe(String serviceName, ServiceChangeListener listener) throws ServiceDiscoveryException {
         try {
@@ -178,20 +184,22 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("订阅服务变化失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
-    public void subscribe(String serviceName, String groupName, ServiceChangeListener listener) throws ServiceDiscoveryException {
+    public void subscribe(String serviceName, String groupName, ServiceChangeListener listener)
+            throws ServiceDiscoveryException {
         try {
             subscribeInternal(serviceName, groupName, listener);
         } catch (NacosException e) {
             throw new ServiceDiscoveryException("订阅服务变化失败: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * 内部订阅方法
      */
-    private void subscribeInternal(String serviceName, String groupName, ServiceChangeListener listener) throws NacosException {
+    private void subscribeInternal(String serviceName, String groupName, ServiceChangeListener listener)
+            throws NacosException {
         EventListener eventListener = new EventListener() {
             @Override
             public void onEvent(Event event) {
@@ -200,21 +208,21 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
                     List<ServiceInstance> instances = namingEvent.getInstances().stream()
                             .map(NacosServiceDiscovery.this::convertToServiceInstance)
                             .collect(Collectors.toList());
-                    
+
                     // 更新缓存
                     serviceCache.put(serviceName, instances);
-                    
+
                     // 通知监听器
                     listener.onServiceChange(serviceName, instances);
                 }
             }
         };
-        
+
         namingService.subscribe(serviceName, groupName, eventListener);
         listenerCache.put(serviceName + "#" + groupName, eventListener);
         log.info("订阅服务变化: serviceName={}, groupName={}", serviceName, groupName);
     }
-    
+
     @Override
     public void unsubscribe(String serviceName) throws ServiceDiscoveryException {
         try {
@@ -223,7 +231,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("取消订阅服务变化失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public void unsubscribe(String serviceName, String groupName) throws ServiceDiscoveryException {
         try {
@@ -238,7 +246,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("取消订阅服务变化失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public List<String> getServices() throws ServiceDiscoveryException {
         try {
@@ -247,7 +255,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("获取服务列表失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public List<String> getServices(int pageNo, int pageSize) throws ServiceDiscoveryException {
         try {
@@ -256,7 +264,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("获取服务列表失败: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public List<String> getServices(String groupName) throws ServiceDiscoveryException {
         try {
@@ -265,12 +273,12 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
             throw new ServiceDiscoveryException("获取服务列表失败: " + e.getMessage(), e);
         }
     }
-    
+
     private void initNamingService() throws NacosException {
         Properties properties = new Properties();
         properties.setProperty("serverAddr", nacosProperties.getServerAddr());
         properties.setProperty("namespace", nacosProperties.getNamespace());
-        
+
         // 设置认证信息(空字符串也会被设置,确保 Nacos 客户端能正确处理认证)
         if (nacosProperties.getUsername() != null && !nacosProperties.getUsername().isEmpty()) {
             properties.setProperty("username", nacosProperties.getUsername());
@@ -285,11 +293,50 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
         if (nacosProperties.getSecretKey() != null && !nacosProperties.getSecretKey().isEmpty()) {
             properties.setProperty("secretKey", nacosProperties.getSecretKey());
         }
-        
+
         namingService = NamingFactory.createNamingService(properties);
         log.info("Nacos NamingService 初始化完成");
+
+        // 等待 Nacos 客户端连接就绪
+        waitForClientReady();
     }
-    
+
+    /**
+     * 等待 Nacos 客户端连接就绪
+     * 防止服务注册时客户端还在 STARTING 状态导致注册失败
+     */
+    private void waitForClientReady() {
+        int maxRetries = 30; // 最多等待30秒
+        int retryIntervalMs = 1000; // 每秒检查一次
+
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                // 尝试获取服务列表来检验连接是否就绪
+                // 这是一个轻量级操作，可以快速验证连接状态
+                String serverStatus = namingService.getServerStatus();
+                if ("UP".equalsIgnoreCase(serverStatus)) {
+                    log.info("Nacos 客户端连接就绪, serverStatus={}", serverStatus);
+                    return;
+                }
+                log.debug("等待 Nacos 客户端连接就绪, 当前状态: {}, 尝试次数: {}/{}",
+                        serverStatus, i + 1, maxRetries);
+            } catch (Exception e) {
+                log.debug("检查 Nacos 连接状态时出错 (尝试 {}/{}): {}",
+                        i + 1, maxRetries, e.getMessage());
+            }
+
+            try {
+                Thread.sleep(retryIntervalMs);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.warn("等待 Nacos 客户端连接被中断");
+                break;
+            }
+        }
+
+        log.warn("等待 Nacos 客户端连接超时 ({}秒), 服务注册可能会失败", maxRetries);
+    }
+
     private ServiceInstance convertToServiceInstance(Instance instance) {
         return ServiceInstance.builder()
                 .serviceName(instance.getServiceName())
@@ -306,7 +353,7 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
                 .protocol("http") // 默认协议
                 .build();
     }
-    
+
     private Instance convertToNacosInstance(ServiceInstance serviceInstance) {
         Instance instance = new Instance();
         instance.setServiceName(serviceInstance.getServiceName());
@@ -316,8 +363,8 @@ public class NacosServiceDiscovery implements ServiceDiscovery, InitializingBean
         instance.setWeight(serviceInstance.getWeight());
         instance.setHealthy(serviceInstance.isHealthy());
         instance.setEnabled(serviceInstance.isEnabled());
-        instance.setClusterName(serviceInstance.getClusterName() != null ? 
-                               serviceInstance.getClusterName() : nacosProperties.getClusterName());
+        instance.setClusterName(serviceInstance.getClusterName() != null ? serviceInstance.getClusterName()
+                : nacosProperties.getClusterName());
         instance.setMetadata(serviceInstance.getMetadata());
         return instance;
     }
