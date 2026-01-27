@@ -4,7 +4,7 @@
 services:
   # Playwright Server - 版本必须与 Java 客户端匹配
   crawler-browser-01:
-    image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
+    image: harbor.vocoor.com/ci/browser-playwright:latest
     container_name: crawler-browser-01
     ports:
       - "9222:9222"
@@ -23,7 +23,7 @@ services:
       - crawler-network
 
   crawler-browser-02:
-    image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
+    image: harbor.vocoor.com/ci/browser-playwright:latest
     container_name: crawler-browser-02
     ports:
       - "9223:9222"
