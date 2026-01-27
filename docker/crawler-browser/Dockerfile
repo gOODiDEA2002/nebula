@@ -11,12 +11,12 @@ ARG HARBOR_HOST
 FROM node:20-slim
 
 # 设置标签
-LABEL name="curlawler-browser" \
+LABEL name="browser-playwright" \
       version="1.0.0" \
       project="ci" \
       platform="linux/amd64,linux/arm64" \
       maintainer="andy" \
-      description="Crawler Browser Image"
+      description="Playwright Browser Image"
 
 # 安装 Playwright 及其依赖
 RUN apt-get update && apt-get install -y \

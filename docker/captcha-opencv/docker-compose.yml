@@ -4,8 +4,7 @@
 services:
   # OpenCV 验证码识别服务
   captcha-opencv-01:
-    build: .
-    image: captcha-opencv:latest
+    image: harbor.vocoor.com/ci/captcha-opencv:latest
     container_name: captcha-opencv-01
     ports:
       - "8867:8080"
@@ -31,8 +30,7 @@ services:
           memory: 512M
 
   captcha-opencv-02:
-    build: .
-    image: captcha-opencv:latest
+    image: harbor.vocoor.com/ci/captcha-opencv:latest
     container_name: captcha-opencv-02
     ports:
       - "8868:8080"

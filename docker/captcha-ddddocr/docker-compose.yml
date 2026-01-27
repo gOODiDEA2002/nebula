@@ -4,7 +4,7 @@
 services:
   # ddddocr 验证码识别服务
   captcha-ddddocr-01:
-    image: harbor.vocoor.com.cn/ci/captcha-ddddocr:latest
+    image: harbor.vocoor.com/ci/captcha-ddddocr:latest
     container_name: captcha-ddddocr-01
     ports:
       - "8866:8866"
@@ -21,7 +21,7 @@ services:
       - crawler-network
 
   captcha-ddddocr-02:
-    image: harbor.vocoor.com.cn/ci/captcha-ddddocr:latest
+    image: harbor.vocoor.com/ci/captcha-ddddocr:latest
     container_name: captcha-ddddocr-02
     ports:
       - "8865:8866"
