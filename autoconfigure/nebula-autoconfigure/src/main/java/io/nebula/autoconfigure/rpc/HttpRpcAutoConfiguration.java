@@ -34,12 +34,12 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 @Slf4j
 @AutoConfiguration
-@AutoConfigureBefore(RpcDiscoveryAutoConfiguration.class)  // 关键：确保 httpRpcClient 先创建
-@ConditionalOnClass(name = {"io.nebula.rpc.http.config.HttpRpcProperties", "io.nebula.rpc.http.client.HttpRpcClient"})
+@AutoConfigureBefore(RpcDiscoveryAutoConfiguration.class) // 关键：确保 httpRpcClient 先创建
+@ConditionalOnClass(name = { "io.nebula.rpc.http.config.HttpRpcProperties", "io.nebula.rpc.http.client.HttpRpcClient" })
 @EnableConfigurationProperties(HttpRpcProperties.class)
 @ConditionalOnProperty(prefix = "nebula.rpc.http", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class HttpRpcAutoConfiguration {
-    
+
     /**
      * 配置 RestTemplateBuilder (如果不存在)
      * 某些场景下可能没有引入 spring-boot-starter-web，需要手动创建
@@ -55,27 +55,27 @@ public class HttpRpcAutoConfiguration {
      */
     @Bean(name = "rpcRestTemplate")
     @ConditionalOnMissingBean(name = "rpcRestTemplate")
-    public RestTemplate rpcRestTemplate(HttpRpcProperties properties, 
-                                       RestTemplateBuilder builder) {
+    public RestTemplate rpcRestTemplate(HttpRpcProperties properties,
+            RestTemplateBuilder builder) {
         HttpRpcProperties.ClientConfig clientConfig = properties.getClient();
-        
+
         RestTemplate restTemplate = builder
                 .setConnectTimeout(Duration.ofMillis(clientConfig.getConnectTimeout()))
                 .setReadTimeout(Duration.ofMillis(clientConfig.getReadTimeout()))
                 .build();
-        
+
         // 配置连接池
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(clientConfig.getConnectTimeout());
         factory.setReadTimeout(clientConfig.getReadTimeout());
         restTemplate.setRequestFactory(factory);
-        
+
         log.info("配置HTTP RPC RestTemplate: connectTimeout={}ms, readTimeout={}ms",
                 clientConfig.getConnectTimeout(), clientConfig.getReadTimeout());
-        
+
         return restTemplate;
     }
-    
+
     /**
      * 配置RPC客户端执行器
      */
@@ -90,34 +90,39 @@ public class HttpRpcAutoConfiguration {
         executor.setThreadNamePrefix("rpc-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
-        
+
         log.info("配置RPC执行器: corePoolSize=10, maxPoolSize=50, queueCapacity=200");
-        
+
         return executor;
     }
-    
+
     /**
      * 配置HTTP RPC客户端
+     * 
+     * 注意：当 baseUrl 未配置时，使用 Spring 的 server.port 作为默认端口，
+     * 确保与应用实际监听端口一致
      */
     @Bean(name = "httpRpcClient")
     @ConditionalOnMissingBean(name = "httpRpcClient")
     @ConditionalOnProperty(prefix = "nebula.rpc.http.client", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public HttpRpcClient httpRpcClient(RestTemplate rpcRestTemplate, 
-                                       Executor rpcExecutor,
-                                       HttpRpcProperties properties,
-                                       ObjectMapper objectMapper) {
+    public HttpRpcClient httpRpcClient(RestTemplate rpcRestTemplate,
+            Executor rpcExecutor,
+            HttpRpcProperties properties,
+            ObjectMapper objectMapper,
+            @org.springframework.beans.factory.annotation.Value("${server.port:8080}") int serverPort) {
         String baseUrl = properties.getClient().getBaseUrl();
         if (baseUrl == null || baseUrl.isEmpty()) {
-            baseUrl = "http://localhost:" + properties.getServer().getPort();
+            // 使用 Spring 的 server.port 而非 nebula.rpc.http.server.port
+            baseUrl = "http://localhost:" + serverPort;
         }
-        
+
         HttpRpcClient client = new HttpRpcClient(rpcRestTemplate, baseUrl, rpcExecutor, objectMapper);
-        
+
         log.info("配置HTTP RPC客户端: baseUrl={}", baseUrl);
-        
+
         return client;
     }
-    
+
     /**
      * 配置HTTP RPC服务器
      */
@@ -127,14 +132,14 @@ public class HttpRpcAutoConfiguration {
     public HttpRpcServer httpRpcServer(HttpRpcProperties properties) {
         HttpRpcServer server = new HttpRpcServer();
         server.start(properties.getServer().getPort());
-        
-        log.info("配置HTTP RPC服务器: port={}, contextPath={}", 
+
+        log.info("配置HTTP RPC服务器: port={}, contextPath={}",
                 properties.getServer().getPort(),
                 properties.getServer().getContextPath());
-        
+
         return server;
     }
-    
+
     /**
      * 配置HTTP RPC控制器
      */
@@ -145,7 +150,7 @@ public class HttpRpcAutoConfiguration {
         log.info("配置HTTP RPC控制器");
         return new HttpRpcController(httpRpcServer, objectMapper);
     }
-    
+
     /**
      * 配置RPC服务注册处理器
      */
@@ -155,4 +160,3 @@ public class HttpRpcAutoConfiguration {
         return new RpcServiceRegistrationProcessor(httpRpcServer);
     }
 }
-
