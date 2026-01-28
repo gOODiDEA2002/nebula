@@ -40,7 +40,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-rpc-grpc</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
         
         <!-- Service Discovery Modules -->
@@ -55,7 +54,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
-            <!-- 不再是 optional，微服务默认需要服务发现 -->
         </dependency>
         
         <!-- Messaging Modules -->
@@ -69,7 +67,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-messaging-rabbitmq</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
         
         <!-- Distributed Lock -->

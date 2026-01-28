@@ -47,7 +47,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-            <optional>true</optional>
         </dependency>
         
         <!-- Nebula Discovery Nacos（网关需要服务发现进行动态路由） -->
@@ -55,7 +54,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
-            <!-- 不再是 optional，网关默认需要服务发现 -->
         </dependency>
     </dependencies>
 

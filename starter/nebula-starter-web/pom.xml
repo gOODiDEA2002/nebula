@@ -42,7 +42,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-data-persistence</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
         
         <!-- Security Module (可选) -->
@@ -50,7 +49,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-security</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

@@ -85,7 +85,6 @@
         <module>integration/nebula-integration-notification</module>
         
         <!-- Starter 模块 -->
-        <module>starter/nebula-starter</module>
         <module>starter/nebula-starter-minimal</module>
         <module>starter/nebula-starter-web</module>
         <module>starter/nebula-starter-service</module>
