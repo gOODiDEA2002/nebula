@@ -141,10 +141,17 @@ public class HttpRpcAutoConfiguration {
                 : serverPort;
 
         HttpRpcServer server = new HttpRpcServer();
+<<<<<<< HEAD
         server.start(resolvedPort);
 
         log.info("配置HTTP RPC服务器: port={}, contextPath={}",
                 resolvedPort,
+=======
+        server.start(properties.getServer().getPort());
+
+        log.info("配置HTTP RPC服务器: port={}, contextPath={}",
+                properties.getServer().getPort(),
+>>>>>>> 57b67b3 (feat(nebula-rpc-http): 使用 server.port)
                 properties.getServer().getContextPath());
 
         return server;
@@ -169,6 +176,7 @@ public class HttpRpcAutoConfiguration {
     public static RpcServiceRegistrationProcessor rpcServiceRegistrationProcessor(@Lazy HttpRpcServer httpRpcServer) {
         return new RpcServiceRegistrationProcessor(httpRpcServer);
     }
+<<<<<<< HEAD
 
     /**
      * 组件摘要: HTTP RPC
@@ -196,4 +204,6 @@ public class HttpRpcAutoConfiguration {
 
         return new SimpleComponentSummary("RPC", "HTTP RPC", true, 200, details);
     }
+=======
+>>>>>>> 57b67b3 (feat(nebula-rpc-http): 使用 server.port)
 }
