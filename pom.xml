@@ -461,11 +461,11 @@
     <distributionManagement>
         <repository>
             <id>nexus</id>
-            <url>${nexus.release.url}</url>
+            <url>${env.NEXUS_RELEASE_URL}</url>
         </repository>
         <snapshotRepository>
             <id>nexus</id>
-            <url>${nexus.snapshot.url}</url>
+            <url>${env.NEXUS_SNAPSHOT_URL}</url>
         </snapshotRepository>
     </distributionManagement>
 
