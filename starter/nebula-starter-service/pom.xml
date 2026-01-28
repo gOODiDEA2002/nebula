@@ -40,7 +40,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-rpc-grpc</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
         
         <!-- Service Discovery Modules -->
@@ -68,7 +67,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-messaging-rabbitmq</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
         
         <!-- Distributed Lock -->
