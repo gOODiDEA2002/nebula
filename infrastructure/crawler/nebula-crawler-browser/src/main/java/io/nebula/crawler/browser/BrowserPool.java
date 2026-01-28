@@ -53,15 +53,17 @@ public class BrowserPool {
     public BrowserPool(BrowserCrawlerProperties properties) {
         this.properties = properties;
 
-        // 远程模式下跳过浏览器下载，避免在容器环境中不必要的下载操作
+        // 根据模式创建 Playwright 实例
         if (properties.isRemoteMode()) {
-            // 设置环境变量，告诉 Playwright 跳过浏览器下载
-            // 参考: https://playwright.dev/java/docs/browsers#skip-browser-downloads
-            System.setProperty("playwright.skip.browser.download", "1");
+            // 远程模式：通过 CreateOptions 设置环境变量跳过浏览器下载
             log.info("远程模式启用，跳过本地浏览器下载");
+            this.playwright = Playwright.create(new Playwright.CreateOptions()
+                    .setEnv(Map.of("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")));
+        } else {
+            // 本地模式：正常创建，允许自动下载浏览器
+            this.playwright = Playwright.create();
         }
 
-        this.playwright = Playwright.create();
         this.contextPool = new LinkedBlockingQueue<>(properties.getPoolSize());
 
         // 根据模式初始化
