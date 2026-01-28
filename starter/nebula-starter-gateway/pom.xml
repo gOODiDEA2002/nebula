@@ -49,7 +49,7 @@
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
         
-        <!-- Nebula Discovery Nacos（网关需要服务发现进行动态路由） -->
+        <!-- Nebula Discovery Nacos (可选，用于服务发现) -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
