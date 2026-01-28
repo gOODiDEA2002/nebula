@@ -462,11 +462,11 @@
     <distributionManagement>
         <repository>
             <id>nexus</id>
-            <url>https://nexus.vocoor.com/repository/maven-releases/</url>
+            <url>${nexus.release.url}</url>
         </repository>
         <snapshotRepository>
             <id>nexus</id>
-            <url>https://nexus.vocoor.com/repository/maven-snapshots/</url>
+            <url>${nexus.snapshot.url}</url>
         </snapshotRepository>
     </distributionManagement>
 
