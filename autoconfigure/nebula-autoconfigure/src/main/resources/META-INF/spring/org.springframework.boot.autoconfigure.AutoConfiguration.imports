@@ -87,8 +87,3 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
 # ========================================
 io.nebula.task.autoconfigure.TaskAutoConfiguration
 io.nebula.task.autoconfigure.XxlJobAutoConfiguration
-# ========================================
-# Diagnostic Layer - 诊断层（最后初始化）
-# ========================================
-io.nebula.autoconfigure.diagnostic.NebulaStartupSummaryListener
-io.nebula.autoconfigure.diagnostic.NebulaDiagnosticEndpoint
