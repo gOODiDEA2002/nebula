@@ -28,10 +28,6 @@ io.nebula.autoconfigure.data.ReadWriteDataSourceAutoConfiguration
 io.nebula.autoconfigure.data.ShardingSphereAutoConfiguration
 # 缓存配置
 io.nebula.autoconfigure.data.CacheAutoConfiguration
-# Neo4j 图数据库配置
-io.nebula.autoconfigure.data.Neo4jAutoConfiguration
-# Neo4j 健康检查（需要 Actuator 在 classpath）
-io.nebula.autoconfigure.data.Neo4jHealthAutoConfiguration
 
 # ========================================
 # Security Layer - 安全层（JWT、RBAC）
@@ -87,19 +83,7 @@ io.nebula.autoconfigure.ai.NebulaMcpServerAutoConfiguration
 io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
 
 # ========================================
-<<<<<<< HEAD
 # Task Layer - 任务调度层
 # ========================================
 io.nebula.task.autoconfigure.TaskAutoConfiguration
 io.nebula.task.autoconfigure.XxlJobAutoConfiguration
-# ========================================
-# Diagnostic Layer - 诊断层（最后初始化）
-# ========================================
-io.nebula.autoconfigure.diagnostic.NebulaStartupSummaryListener
-io.nebula.autoconfigure.diagnostic.NebulaDiagnosticEndpoint
-=======
-# Diagnostic Layer - 诊断层（最后初始化）
-# ========================================
-io.nebula.autoconfigure.diagnostic.NebulaStartupSummaryListener
-io.nebula.autoconfigure.diagnostic.NebulaDiagnosticEndpoint
->>>>>>> 0bdb87a (feat: 多个优化)
