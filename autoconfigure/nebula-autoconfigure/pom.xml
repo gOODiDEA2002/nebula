@@ -262,6 +262,14 @@
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
+
+        <!-- Task (XXL-JOB) (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-task</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
         
         <!-- Spring AI OpenAI Starter (可选，使用BOM管理版本) -->
         <dependency>
