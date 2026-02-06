@@ -1,24 +1,16 @@
 # Playwright 浏览器服务 Dockerfile
-# 提供远程浏览器连接能力（Playwright Server 模式）
-#
-# 版本说明：
-# - 必须与 Java 客户端版本匹配
-# - 当前客户端版本：1.41.0
-
-# 定义构建参数
-ARG HARBOR_HOST
+# 提供远程浏览器服务，支持 Playwright 客户端通过 WebSocket 连接
 
 FROM node:20-slim
 
-# 设置标签
 LABEL name="browser-playwright" \
       version="1.0.0" \
       project="ci" \
       platform="linux/amd64,linux/arm64" \
       maintainer="andy" \
-      description="Playwright Browser Image"
+      description="Playwright Browser Server for Remote Automation"
 
-# 安装 Playwright 及其依赖
+# 安装 Chromium 运行时依赖
 RUN apt-get update && apt-get install -y \
     curl \
     libnss3 \
@@ -36,7 +28,6 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     libgbm1 \
     libasound2 \
-    socat \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
@@ -51,13 +42,9 @@ RUN npm init -y && \
 # 暴露端口
 EXPOSE 9222
 
-# 复制启动脚本
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-# 健康检查（CDP 模式使用 /json/version 端点）
+# 健康检查
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
-    CMD curl -sf http://localhost:9222/json/version || exit 1
+    CMD curl -sf http://localhost:9222/ || exit 1
 
-# 使用 CDP 模式启动 Chromium（支持多客户端连接）
-CMD ["/app/entrypoint.sh"]
+# 启动 Playwright Server（支持远程连接）
+CMD ["npx", "playwright", "run-server", "--port", "9222", "--host", "0.0.0.0"]

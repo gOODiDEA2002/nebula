@@ -8,11 +8,13 @@ import io.nebula.crawler.browser.util.StealthHelper;
 import io.nebula.crawler.core.proxy.Proxy;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 浏览器实例池
@@ -35,6 +37,9 @@ public class BrowserPool {
     private final BlockingQueue<BrowserContext> contextPool;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final AtomicInteger activeCount = new AtomicInteger(0);
+
+    /** 重连锁，防止多线程同时触发重连 */
+    private final ReentrantLock reconnectLock = new ReentrantLock();
 
     // 本地模式使用
     private Browser localBrowser;
@@ -178,12 +183,15 @@ public class BrowserPool {
 
     /**
      * 执行健康检查
+     * 
+     * 重连后会清理池中所有失效上下文并重新填充
      */
     private void performHealthCheck() {
         if (shutdown.get()) {
             return;
         }
 
+        boolean reconnected = false;
         List<String> endpoints = properties.getRemote().getEndpoints();
 
         for (String endpoint : endpoints) {
@@ -203,8 +211,63 @@ public class BrowserPool {
 
                 // 尝试重连
                 connectToEndpoint(endpoint);
+                reconnected = true;
             }
         }
+
+        // 重连成功后，清理失效上下文并重新填充池
+        if (reconnected && hasAnyConnectedBrowser()) {
+            drainAndRefillPool();
+        }
+    }
+
+    /**
+     * 清空池中所有失效上下文，并重新填充
+     * 
+     * 当远程连接断开又重连后，旧的上下文引用全部失效，
+     * 必须清空并创建新的上下文
+     */
+    private void drainAndRefillPool() {
+        if (!reconnectLock.tryLock()) {
+            return;
+        }
+        try {
+            // 清空池中所有上下文
+            int drained = 0;
+            BrowserContext context;
+            while ((context = contextPool.poll()) != null) {
+                try {
+                    context.close();
+                } catch (Exception ignored) {
+                }
+                drained++;
+            }
+
+            if (drained > 0) {
+                log.info("已清空 {} 个失效上下文，开始重新填充", drained);
+            }
+
+            // 重新填充
+            initializeContextPool();
+            log.info("上下文池重新填充完成，当前可用: {}", contextPool.size());
+        } finally {
+            reconnectLock.unlock();
+        }
+    }
+
+    /**
+     * 检查是否有任何已连接的浏览器
+     */
+    private boolean hasAnyConnectedBrowser() {
+        if (properties.isLocalMode()) {
+            return localBrowser != null && localBrowser.isConnected();
+        }
+        for (Browser browser : remoteBrowsers.values()) {
+            if (browser != null && browser.isConnected()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -248,7 +311,12 @@ public class BrowserPool {
         for (int i = 0; i < properties.getPoolSize(); i++) {
             try {
                 BrowserContext context = createContext(null);
-                contextPool.offer(context);
+                if (!contextPool.offer(context)) {
+                    try {
+                        context.close();
+                    } catch (Exception ignored) {
+                    }
+                }
             } catch (Exception e) {
                 log.warn("初始化浏览器上下文失败: {}", e.getMessage());
             }
@@ -259,6 +327,8 @@ public class BrowserPool {
 
     /**
      * 选择浏览器（根据负载均衡策略）
+     * 
+     * 所有端点不可用时会主动触发重连
      */
     private Browser selectBrowser() {
         if (properties.isLocalMode()) {
@@ -266,7 +336,11 @@ public class BrowserPool {
         }
 
         if (remoteBrowsers.isEmpty()) {
-            throw new IllegalStateException("没有可用的远程浏览器连接");
+            // 尝试重连
+            triggerReconnect();
+            if (remoteBrowsers.isEmpty()) {
+                throw new IllegalStateException("没有可用的远程浏览器连接");
+            }
         }
 
         List<String> endpoints = properties.getRemote().getEndpoints();
@@ -291,8 +365,21 @@ public class BrowserPool {
             }
         }
 
+        // 所有端点不可用，触发重连
         if (browser == null || !browser.isConnected()) {
-            throw new IllegalStateException("所有远程端点均不可用");
+            triggerReconnect();
+            // 重连后再尝试选择
+            for (String endpoint : endpoints) {
+                browser = remoteBrowsers.get(endpoint);
+                if (browser != null && browser.isConnected()) {
+                    selectedEndpoint = endpoint;
+                    break;
+                }
+            }
+        }
+
+        if (browser == null || !browser.isConnected()) {
+            throw new IllegalStateException("所有远程端点均不可用（已尝试重连）");
         }
 
         // 增加连接计数
@@ -302,6 +389,44 @@ public class BrowserPool {
         }
 
         return browser;
+    }
+
+    /**
+     * 主动触发重连（非阻塞，同一时间只允许一个线程执行重连）
+     */
+    private void triggerReconnect() {
+        if (!reconnectLock.tryLock()) {
+            // 其他线程正在重连，等待短暂时间
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return;
+        }
+        try {
+            log.warn("所有端点不可用，主动触发重连");
+            List<String> endpoints = properties.getRemote().getEndpoints();
+            for (String endpoint : endpoints) {
+                Browser browser = remoteBrowsers.get(endpoint);
+                if (browser == null || !browser.isConnected()) {
+                    if (browser != null) {
+                        try {
+                            browser.close();
+                        } catch (Exception ignored) {
+                        }
+                        remoteBrowsers.remove(endpoint);
+                    }
+                    connectToEndpoint(endpoint);
+                }
+            }
+            // 重连后清空并重新填充池
+            if (hasAnyConnectedBrowser()) {
+                drainAndRefillPool();
+            }
+        } finally {
+            reconnectLock.unlock();
+        }
     }
 
     private String selectRoundRobinEndpoint(List<String> endpoints) {
@@ -337,19 +462,24 @@ public class BrowserPool {
 
     /**
      * 创建浏览器上下文（带反检测配置）
+     * 
+     * 创建前会检查连接有效性，避免在失效连接上创建上下文
      */
     private BrowserContext createContext(Proxy proxy) {
         Browser browser = selectBrowser();
 
+        // 前置检查：确保浏览器连接仍然有效
+        if (!browser.isConnected()) {
+            throw new PlaywrightException("浏览器连接已断开，无法创建上下文");
+        }
+
         // 简化上下文配置，与 GongchangLoginTest（成功测试）保持一致
-        // 过多的上下文选项可能与 Stealth4j 脚本设置的值不一致，被检测为异常
         Browser.NewContextOptions options = new Browser.NewContextOptions()
                 .setViewportSize(properties.getViewportWidth(), properties.getViewportHeight());
 
         // 设置 User-Agent（使用最新的 Chrome 版本号）
         String userAgent = properties.getUserAgent();
         if (userAgent == null || userAgent.isEmpty()) {
-            // 使用与 GongchangLoginTest 一致的 Chrome 版本
             userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
         }
         options.setUserAgent(userAgent);
@@ -368,7 +498,6 @@ public class BrowserPool {
         // 注意：不在 Context 级别注入 Stealth 脚本
         // Stealth4j 脚本由 BrowserCrawlerEngine.createPage() 在 Page 级别注入
         // 双重注入可能导致脚本冲突，被反机器人检测识别（errorCode:12）
-        // 参考：GongchangLoginTest 成功的关键是只在 Page 级别注入一次
 
         return context;
     }
@@ -387,6 +516,8 @@ public class BrowserPool {
 
     /**
      * 获取浏览器上下文
+     * 
+     * 从池中获取时会验证上下文有效性，遇到连续失效会批量清理并重连
      *
      * @param proxy 代理（可为 null）
      * @return 浏览器上下文
@@ -404,21 +535,35 @@ public class BrowserPool {
             return createContext(proxy);
         }
 
-        // 尝试从池中获取
+        // 尝试从池中获取（带失效检测）
+        int invalidCount = 0;
         BrowserContext context = contextPool.poll(30, TimeUnit.SECONDS);
 
-        if (context == null) {
-            log.warn("从池中获取上下文超时，创建临时上下文");
-            return createContext(null);
-        }
-
-        // 验证上下文是否仍然有效
-        if (!isContextValid(context)) {
-            log.debug("上下文已失效，创建新上下文");
+        while (context != null && !isContextValid(context)) {
+            invalidCount++;
             try {
                 context.close();
             } catch (Exception ignored) {
             }
+            // 连续 3 个以上失效，说明连接可能全断了，触发重连
+            if (invalidCount >= 3) {
+                log.warn("连续 {} 个上下文失效，触发重连", invalidCount);
+                triggerReconnect();
+                break;
+            }
+            // 继续尝试从池中取
+            context = contextPool.poll(1, TimeUnit.SECONDS);
+        }
+
+        if (context == null || !isContextValid(context)) {
+            // 池中无可用上下文，直接创建新的
+            if (context != null) {
+                try {
+                    context.close();
+                } catch (Exception ignored) {
+                }
+            }
+            log.warn("池中无可用上下文（失效 {} 个），创建新上下文", invalidCount);
             return createContext(null);
         }
 
@@ -444,45 +589,21 @@ public class BrowserPool {
         activeCount.decrementAndGet();
 
         // 减少端点连接计数（远程模式）
-        if (properties.isRemoteMode() && context != null) {
-            try {
-                Browser browser = context.browser();
-                for (Map.Entry<String, Browser> entry : remoteBrowsers.entrySet()) {
-                    if (entry.getValue() == browser) {
-                        AtomicInteger counter = endpointConnections.get(entry.getKey());
-                        if (counter != null) {
-                            counter.decrementAndGet();
-                        }
-                        break;
-                    }
-                }
-            } catch (Exception ignored) {
-            }
-        }
+        decrementEndpointConnections(context);
 
         if (context == null) {
             return;
         }
 
-        // 损坏的上下文直接关闭，不放回池中
-        if (corrupted) {
-            try {
-                context.close();
-            } catch (Exception ignored) {
-            }
+        // 损坏的上下文或连接已断开：直接关闭，不放回池中
+        if (corrupted || !isContextValid(context)) {
+            safeCloseContext(context);
             replenishPool();
             return;
         }
 
         if (!shutdown.get() && contextPool.size() < properties.getPoolSize()) {
             try {
-                if (!isContextValid(context)) {
-                    log.debug("上下文已失效，关闭并补充");
-                    context.close();
-                    replenishPool();
-                    return;
-                }
-
                 // 清理上下文状态
                 context.clearCookies();
 
@@ -496,21 +617,50 @@ public class BrowserPool {
 
                 // 放回池中
                 if (!contextPool.offer(context)) {
-                    context.close();
+                    safeCloseContext(context);
                 }
             } catch (Exception e) {
                 log.warn("释放上下文失败: {}", e.getMessage());
-                try {
-                    context.close();
-                } catch (Exception ignored) {
-                }
+                safeCloseContext(context);
                 replenishPool();
             }
         } else {
-            try {
-                context.close();
-            } catch (Exception ignored) {
+            safeCloseContext(context);
+        }
+    }
+
+    /**
+     * 安全关闭上下文（忽略异常）
+     */
+    private void safeCloseContext(BrowserContext context) {
+        if (context == null) {
+            return;
+        }
+        try {
+            context.close();
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * 减少端点连接计数
+     */
+    private void decrementEndpointConnections(BrowserContext context) {
+        if (!properties.isRemoteMode() || context == null) {
+            return;
+        }
+        try {
+            Browser browser = context.browser();
+            for (Map.Entry<String, Browser> entry : remoteBrowsers.entrySet()) {
+                if (entry.getValue() == browser) {
+                    AtomicInteger counter = endpointConnections.get(entry.getKey());
+                    if (counter != null) {
+                        counter.decrementAndGet();
+                    }
+                    break;
+                }
             }
+        } catch (Exception ignored) {
         }
     }
 
@@ -519,7 +669,8 @@ public class BrowserPool {
      */
     private boolean isContextValid(BrowserContext context) {
         try {
-            return context.browser().isConnected();
+            Browser browser = context.browser();
+            return browser != null && browser.isConnected();
         } catch (Exception e) {
             return false;
         }
@@ -527,18 +678,17 @@ public class BrowserPool {
 
     /**
      * 补充池中的上下文
+     * 
+     * 创建前检查是否有可用的浏览器连接
      */
     private void replenishPool() {
         if (shutdown.get()) {
             return;
         }
 
-        // 检查是否有可用的浏览器
-        boolean hasAvailableBrowser = properties.isLocalMode()
-                ? (localBrowser != null && localBrowser.isConnected())
-                : !remoteBrowsers.isEmpty();
-
-        if (!hasAvailableBrowser) {
+        // 检查是否有可用的浏览器连接
+        if (!hasAnyConnectedBrowser()) {
+            log.debug("无可用浏览器连接，跳过补充上下文");
             return;
         }
 
@@ -546,7 +696,7 @@ public class BrowserPool {
             if (contextPool.size() < properties.getPoolSize()) {
                 BrowserContext newContext = createContext(null);
                 if (!contextPool.offer(newContext)) {
-                    newContext.close();
+                    safeCloseContext(newContext);
                 }
             }
         } catch (Exception e) {
@@ -569,10 +719,7 @@ public class BrowserPool {
             // 关闭池中的上下文
             BrowserContext context;
             while ((context = contextPool.poll()) != null) {
-                try {
-                    context.close();
-                } catch (Exception ignored) {
-                }
+                safeCloseContext(context);
             }
 
             // 关闭本地浏览器
@@ -613,17 +760,7 @@ public class BrowserPool {
             return false;
         }
 
-        if (properties.isLocalMode()) {
-            return localBrowser != null && localBrowser.isConnected();
-        } else {
-            // 远程模式：至少有一个端点可用
-            for (Browser browser : remoteBrowsers.values()) {
-                if (browser.isConnected()) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        return hasAnyConnectedBrowser();
     }
 
     /**

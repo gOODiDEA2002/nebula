@@ -59,6 +59,12 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
         return CrawlerEngineType.BROWSER;
     }
     
+    /** 连接类错误最大重试次数 */
+    private static final int MAX_CONNECTION_RETRIES = 2;
+    
+    /** 重试间隔（毫秒） */
+    private static final long RETRY_DELAY_MS = 1000;
+
     @Override
     public CrawlerResponse crawl(CrawlerRequest request) {
         if (shutdown) {
@@ -66,6 +72,56 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
                 "引擎已关闭", null);
         }
         
+        // 连接类错误自动重试
+        CrawlerResponse lastResponse = null;
+        for (int attempt = 0; attempt <= MAX_CONNECTION_RETRIES; attempt++) {
+            if (attempt > 0) {
+                log.info("浏览器连接类错误，第 {} 次重试: url={}", attempt, request.getUrl());
+                try {
+                    Thread.sleep(RETRY_DELAY_MS * attempt);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            
+            lastResponse = doCrawl(request);
+            
+            // 成功或非连接类错误，直接返回
+            if (lastResponse.isSuccess() || !isConnectionError(lastResponse)) {
+                return lastResponse;
+            }
+        }
+        
+        return lastResponse;
+    }
+    
+    /**
+     * 判断响应是否为连接类错误（可通过重试恢复）
+     */
+    private boolean isConnectionError(CrawlerResponse response) {
+        if (response.isSuccess()) {
+            return false;
+        }
+        String errorMsg = response.getErrorMessage();
+        if (errorMsg == null) {
+            return true; // null 错误通常是 NPE，可能由连接问题导致
+        }
+        String lower = errorMsg.toLowerCase();
+        return lower.contains("object doesn't exist")
+                || lower.contains("target closed")
+                || lower.contains("browser has been closed")
+                || lower.contains("context has been closed")
+                || lower.contains("page has been closed")
+                || lower.contains("cannot find object")
+                || lower.contains("connection refused")
+                || lower.contains("websocket");
+    }
+
+    /**
+     * 执行单次浏览器爬取
+     */
+    private CrawlerResponse doCrawl(CrawlerRequest request) {
         long startTime = System.currentTimeMillis();
         BrowserContext context = null;
         Page page = null;
@@ -164,11 +220,7 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
             log.error("浏览器爬取失败: url={}, error={}", request.getUrl(), e.getMessage());
             
             // 检测是否是上下文损坏类型的错误
-            String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-            if (errorMsg.contains("target closed") || errorMsg.contains("browser has been closed") ||
-                errorMsg.contains("context has been closed") || errorMsg.contains("page has been closed")) {
-                contextCorrupted = true;
-            }
+            contextCorrupted = isContextCorruptedError(e);
             
             // 错误时截图
             byte[] errorScreenshot = null;
@@ -177,7 +229,7 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
                     errorScreenshot = page.screenshot();
                 } catch (Exception screenshotError) {
                     log.warn("错误截图失败: {}", screenshotError.getMessage());
-                    contextCorrupted = true; // 截图失败也说明上下文可能损坏
+                    contextCorrupted = true;
                 }
             }
             
@@ -211,6 +263,20 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
                 browserPool.release(context, contextCorrupted);
             }
         }
+    }
+    
+    /**
+     * 判断异常是否表示上下文/连接已损坏
+     */
+    private boolean isContextCorruptedError(Exception e) {
+        String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+        return errorMsg.contains("target closed")
+                || errorMsg.contains("browser has been closed")
+                || errorMsg.contains("context has been closed")
+                || errorMsg.contains("page has been closed")
+                || errorMsg.contains("object doesn't exist")
+                || errorMsg.contains("cannot find object")
+                || errorMsg.isEmpty(); // null message 通常是 NPE
     }
     
     @Override
