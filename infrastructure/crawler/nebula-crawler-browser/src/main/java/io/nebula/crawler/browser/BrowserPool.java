@@ -118,23 +118,40 @@ public class BrowserPool {
     }
 
     /**
-     * 连接到远程端点
+     * 连接到远程端点（支持 CDP 和 Playwright Server 两种模式）
      */
     private void connectToEndpoint(String endpoint) {
         try {
-            log.info("连接到远程 Playwright Server: {}", endpoint);
+            Browser browser;
 
-            Browser browser = playwright.chromium().connect(endpoint,
-                    new BrowserType.ConnectOptions()
-                            .setTimeout(properties.getConnectTimeout()));
+            if (properties.getRemote().isUseCdp()) {
+                // CDP 模式：使用 connectOverCDP 连接到 Chrome DevTools Protocol
+                // 支持多客户端同时连接，比 Playwright Server 模式更稳定
+                String cdpEndpoint = endpoint.replace("ws://", "http://");
+                log.info("使用 CDP 模式连接到远程浏览器: {}", cdpEndpoint);
+
+                browser = playwright.chromium().connectOverCDP(cdpEndpoint,
+                        new BrowserType.ConnectOverCDPOptions()
+                                .setTimeout(properties.getConnectTimeout()));
+
+                log.info("CDP 模式连接成功: endpoint={}, connected={}", cdpEndpoint, browser.isConnected());
+            } else {
+                // Playwright Server 模式：使用 connect（单客户端模式）
+                log.info("使用 Playwright Server 模式连接: {}", endpoint);
+
+                browser = playwright.chromium().connect(endpoint,
+                        new BrowserType.ConnectOptions()
+                                .setTimeout(properties.getConnectTimeout()));
+
+                log.info("Playwright Server 模式连接成功: endpoint={}, connected={}", endpoint, browser.isConnected());
+            }
 
             remoteBrowsers.put(endpoint, browser);
             endpointConnections.put(endpoint, new AtomicInteger(0));
 
-            log.info("远程端点连接成功: endpoint={}, connected={}", endpoint, browser.isConnected());
-
         } catch (Exception e) {
-            log.error("连接远程端点失败: endpoint={}, error={}", endpoint, e.getMessage());
+            log.error("连接远程端点失败: endpoint={}, useCdp={}, error={}",
+                    endpoint, properties.getRemote().isUseCdp(), e.getMessage());
         }
     }
 
