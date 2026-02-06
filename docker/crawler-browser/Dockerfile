@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     libgbm1 \
     libasound2 \
+    socat \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
@@ -50,9 +51,13 @@ RUN npm init -y && \
 # 暴露端口
 EXPOSE 9222
 
-# 健康检查
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
-    CMD curl -sf http://localhost:9222/ || exit 1
+# 复制启动脚本
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
-# 启动 Playwright Server
-CMD ["npx", "playwright", "run-server", "--port", "9222", "--host", "0.0.0.0"]
+# 健康检查（CDP 模式使用 /json/version 端点）
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+    CMD curl -sf http://localhost:9222/json/version || exit 1
+
+# 使用 CDP 模式启动 Chromium（支持多客户端连接）
+CMD ["/app/entrypoint.sh"]
