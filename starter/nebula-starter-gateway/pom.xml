@@ -54,8 +54,6 @@
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
-			
-            <!-- 不再是 optional，网关默认需要服务发现 -->
         </dependency>
     </dependencies>
 
