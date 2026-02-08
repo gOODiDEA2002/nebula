@@ -1,108 +1,148 @@
 package io.nebula.autoconfigure.diagnostic;
 
-import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.autoconfigure.rpc.AsyncRpcProperties;
+import io.nebula.discovery.nacos.config.NacosProperties;
+import io.nebula.rpc.core.config.RpcDiscoveryProperties;
+import io.nebula.rpc.http.config.HttpRpcProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 /**
  * Nebula 框架启动摘要监听器
- * <p>
- * 在应用启动完成后，自动收集所有 {@link NebulaComponentSummary} Bean，
- * 按分组渲染并输出框架配置摘要。
- * <p>
- * 本类是纯渲染器，不包含任何组件特定的逻辑。
- * 组件信息通过各 AutoConfiguration 类中的 NebulaComponentSummary @Bean 方法注册。
- *
+ * 
+ * 在应用启动完成后输出框架配置摘要，帮助开发者快速了解当前配置状态
+ * 
  * @author Nebula Framework
  * @since 2.0.1
  */
 @Slf4j
 @AutoConfiguration
 public class NebulaStartupSummaryListener {
-
+    
     @Bean
-    public ApplicationListener<ApplicationReadyEvent> nebulaStartupSummary(
-            Environment environment,
-            List<NebulaComponentSummary> summaries) {
-        return event -> printStartupSummary(environment, summaries);
+    public ApplicationListener<ApplicationReadyEvent> nebulaStartupSummary(Environment environment) {
+        return event -> printStartupSummary(environment);
     }
-
-    private void printStartupSummary(Environment environment,
-            List<NebulaComponentSummary> summaries) {
+    
+    private void printStartupSummary(Environment environment) {
         StringBuilder sb = new StringBuilder();
-        String ls = System.lineSeparator();
-
-        sb.append(ls);
-        sb.append("=".repeat(70)).append(ls);
-        sb.append("                    NEBULA FRAMEWORK STARTUP SUMMARY                   ").append(ls);
-        sb.append("=".repeat(70)).append(ls);
-
-        // 框架基本信息
-        appendSection(sb, "Framework Info");
-        appendEntry(sb, "Version", "2.0.1-SNAPSHOT");
-        appendEntry(sb, "Profile", getActiveProfiles(environment));
-
-        // 按 group 分组、组内按 order 排序
-        Map<String, List<NebulaComponentSummary>> grouped = groupByGroup(summaries);
-
-        for (Map.Entry<String, List<NebulaComponentSummary>> entry : grouped.entrySet()) {
-            appendSection(sb, entry.getKey());
-            for (NebulaComponentSummary cs : entry.getValue()) {
-                renderComponent(sb, cs);
-            }
-        }
-
-        sb.append("=".repeat(70)).append(ls);
-
+        String lineSeparator = System.lineSeparator();
+        
+        sb.append(lineSeparator);
+        sb.append("=".repeat(70)).append(lineSeparator);
+        sb.append("                    NEBULA FRAMEWORK STARTUP SUMMARY                   ").append(lineSeparator);
+        sb.append("=".repeat(70)).append(lineSeparator);
+        
+        // 框架版本
+        sb.append(formatSection("Framework Info"));
+        sb.append(formatEntry("Version", "2.0.1-SNAPSHOT"));
+        sb.append(formatEntry("Profile", getActiveProfiles(environment)));
+        
+        // 服务发现配置
+        appendNacosInfo(sb, environment, lineSeparator);
+        
+        // RPC 配置
+        appendRpcInfo(sb, environment, lineSeparator);
+        
+        // 异步 RPC 配置
+        appendAsyncRpcInfo(sb, environment, lineSeparator);
+        
+        sb.append("=".repeat(70)).append(lineSeparator);
+        
         log.info(sb.toString());
     }
-
-    /**
-     * 渲染单个组件: 名称 + 状态 + 配置详情
-     */
-    private void renderComponent(StringBuilder sb, NebulaComponentSummary cs) {
-        appendEntry(sb, cs.name(), cs.isEnabled() ? "ENABLED" : "DISABLED");
-        if (cs.isEnabled()) {
-            for (Map.Entry<String, String> detail : cs.configDetails().entrySet()) {
-                appendEntry(sb, "  " + detail.getKey(), detail.getValue());
-            }
+    
+    private void appendNacosInfo(StringBuilder sb, Environment environment, String lineSeparator) {
+        boolean nacosEnabled = environment.getProperty("nebula.discovery.nacos.enabled", Boolean.class, true);
+        
+        sb.append(formatSection("Service Discovery (Nacos)"));
+        
+        if (!nacosEnabled) {
+            sb.append(formatEntry("Status", "DISABLED"));
+            return;
+        }
+        
+        NacosProperties nacos = Binder.get(environment)
+            .bind("nebula.discovery.nacos", NacosProperties.class)
+            .orElseGet(NacosProperties::new);
+        
+        sb.append(formatEntry("Status", "ENABLED"));
+        sb.append(formatEntry("Server Address", nacos.getServerAddr()));
+        sb.append(formatEntry("Namespace", nacos.getNamespace().isEmpty() ? "public" : nacos.getNamespace()));
+        sb.append(formatEntry("Group", nacos.getGroupName()));
+        sb.append(formatEntry("Cluster", nacos.getClusterName()));
+        sb.append(formatEntry("Auto Register", String.valueOf(nacos.isAutoRegister())));
+    }
+    
+    private void appendRpcInfo(StringBuilder sb, Environment environment, String lineSeparator) {
+        boolean httpRpcEnabled = environment.getProperty("nebula.rpc.http.enabled", Boolean.class, true);
+        boolean discoveryEnabled = environment.getProperty("nebula.rpc.discovery.enabled", Boolean.class, true);
+        
+        sb.append(formatSection("RPC Configuration"));
+        
+        // HTTP RPC
+        if (httpRpcEnabled) {
+            HttpRpcProperties httpRpc = Binder.get(environment)
+                .bind("nebula.rpc.http", HttpRpcProperties.class)
+                .orElseGet(HttpRpcProperties::new);
+            
+            sb.append(formatEntry("HTTP RPC", "ENABLED"));
+            sb.append(formatEntry("  Server Port", String.valueOf(httpRpc.getServer().getPort())));
+            sb.append(formatEntry("  Context Path", httpRpc.getServer().getContextPath()));
+            sb.append(formatEntry("  Client Timeout", httpRpc.getClient().getReadTimeout() + "ms"));
+        } else {
+            sb.append(formatEntry("HTTP RPC", "DISABLED"));
+        }
+        
+        // RPC Discovery
+        if (discoveryEnabled) {
+            RpcDiscoveryProperties discovery = Binder.get(environment)
+                .bind("nebula.rpc.discovery", RpcDiscoveryProperties.class)
+                .orElseGet(RpcDiscoveryProperties::new);
+            
+            sb.append(formatEntry("Discovery Integration", "ENABLED"));
+            sb.append(formatEntry("  Load Balance", discovery.getLoadBalanceStrategy().toUpperCase()));
+            sb.append(formatEntry("  Cache Enabled", String.valueOf(discovery.isEnableCache())));
+        } else {
+            sb.append(formatEntry("Discovery Integration", "DISABLED"));
         }
     }
-
-    /**
-     * 按 group 分组，保持插入顺序，组内按 order 排序
-     */
-    private Map<String, List<NebulaComponentSummary>> groupByGroup(
-            List<NebulaComponentSummary> summaries) {
-        // 先按 order 全局排序，再按 group 分组保持顺序
-        List<NebulaComponentSummary> sorted = new ArrayList<>(summaries);
-        sorted.sort((a, b) -> Integer.compare(a.getOrder(), b.getOrder()));
-
-        return sorted.stream()
-                .collect(Collectors.groupingBy(
-                        NebulaComponentSummary::group,
-                        LinkedHashMap::new,
-                        Collectors.toList()));
+    
+    private void appendAsyncRpcInfo(StringBuilder sb, Environment environment, String lineSeparator) {
+        boolean asyncEnabled = environment.getProperty("nebula.rpc.async.enabled", Boolean.class, true);
+        
+        sb.append(formatSection("Async RPC Configuration"));
+        
+        if (!asyncEnabled) {
+            sb.append(formatEntry("Status", "DISABLED"));
+            return;
+        }
+        
+        AsyncRpcProperties async = Binder.get(environment)
+            .bind("nebula.rpc.async", AsyncRpcProperties.class)
+            .orElseGet(AsyncRpcProperties::new);
+        
+        sb.append(formatEntry("Status", "ENABLED"));
+        sb.append(formatEntry("Storage Type", async.getStorage().getType().toUpperCase()));
+        sb.append(formatEntry("Executor Pool", 
+            async.getExecutor().getCorePoolSize() + "-" + async.getExecutor().getMaxPoolSize()));
+        sb.append(formatEntry("Cleanup Enabled", String.valueOf(async.getCleanup().isEnabled())));
     }
-
-    private void appendSection(StringBuilder sb, String title) {
-        sb.append(String.format("%n  [%s]%n", title));
+    
+    private String formatSection(String title) {
+        return String.format("%n  [%s]%n", title);
     }
-
-    private void appendEntry(StringBuilder sb, String key, String value) {
-        sb.append(String.format("    %-20s : %s%n", key, value != null ? value : "N/A"));
+    
+    private String formatEntry(String key, String value) {
+        return String.format("    %-20s : %s%n", key, value);
     }
-
+    
     private String getActiveProfiles(Environment environment) {
         String[] profiles = environment.getActiveProfiles();
         if (profiles.length == 0) {
