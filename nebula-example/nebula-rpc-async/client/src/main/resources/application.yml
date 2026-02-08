@@ -1,0 +1,88 @@
+# ==================================================
+# Async RPC Client 配置文件
+# 作为 RPC 服务消费方，演示异步调用
+# ==================================================
+
+server:
+  port: 8082
+
+spring:
+  application:
+    name: async-rpc-client
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+# ==================================================
+# Nebula 框架配置
+# ==================================================
+nebula:
+  # 服务发现配置（Nacos）
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: localhost:8848
+      namespace: public
+      group-name: DEFAULT_GROUP
+      username: nacos
+      password: nacos
+
+  # RPC 配置
+  rpc:
+    http:
+      enabled: true
+      server:
+        enabled: true
+        port: ${server.port}
+      client:
+        enabled: true
+        connect-timeout: 30000
+        read-timeout: 120000  # 较长的超时以支持耗时调用
+    
+    # RPC 服务发现集成
+    discovery:
+      enabled: true
+      load-balance-strategy: ROUND_ROBIN
+    
+    # 异步 RPC 配置
+    async:
+      enabled: true
+      storage:
+        type: nacos  # 使用 Nacos 存储执行状态
+        nacos:
+          server-addr: localhost:8848
+          namespace: public
+          username: nacos
+          password: nacos
+      executor:
+        core-pool-size: 10
+        max-pool-size: 50
+        queue-capacity: 200
+        thread-name-prefix: async-rpc-
+      cleanup:
+        enabled: true
+        retention-days: 7
+
+# ==================================================
+# 日志配置
+# ==================================================
+logging:
+  level:
+    root: INFO
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ==================================================
+# Actuator 监控配置
+# ==================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebula Web Example</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Nebula Framework</h1>
+            <p class="subtitle">Web Application Example</p>
+        </header>
+
+        <nav>
+            <a th:href="@{/}" class="active">首页</a>
+            <a th:href="@{/about}">关于</a>
+            <a th:href="@{/api/info}">API Info</a>
+            <a th:href="@{/actuator/health}">Health</a>
+        </nav>
+
+        <main>
+            <section class="info-card">
+                <h2>系统信息</h2>
+                <table>
+                    <tr>
+                        <td>应用名称</td>
+                        <td th:text="${applicationName}">nebula-example-web</td>
+                    </tr>
+                    <tr>
+                        <td>Nebula 版本</td>
+                        <td th:text="${nebulaVersion}">2.0.1-SNAPSHOT</td>
+                    </tr>
+                    <tr>
+                        <td>Java 版本</td>
+                        <td th:text="${javaVersion}">21</td>
+                    </tr>
+                    <tr>
+                        <td>当前时间</td>
+                        <td th:text="${currentTime}">2026-01-21 12:00:00</td>
+                    </tr>
+                </table>
+            </section>
+
+            <section class="feature-list">
+                <h2>功能特性</h2>
+                <ul>
+                    <li>Thymeleaf 模板引擎集成</li>
+                    <li>静态资源自动处理</li>
+                    <li>RESTful API 支持</li>
+                    <li>Spring Boot Actuator 监控</li>
+                    <li>Nebula Framework 核心能力</li>
+                </ul>
+            </section>
+
+            <section class="api-list">
+                <h2>可用 API</h2>
+                <table>
+                    <tr>
+                        <th>方法</th>
+                        <th>路径</th>
+                        <th>描述</th>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td><a th:href="@{/api/hello}">/api/hello</a></td>
+                        <td>Hello 接口</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td><a th:href="@{/api/info}">/api/info</a></td>
+                        <td>系统信息</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td><a th:href="@{/actuator/health}">/actuator/health</a></td>
+                        <td>健康检查</td>
+                    </tr>
+                </table>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by <strong>Nebula Framework</strong> | 
+               <span th:text="${nebulaVersion}">2.0.1-SNAPSHOT</span></p>
+        </footer>
+    </div>
+
+    <script th:src="@{/js/main.js}"></script>
+</body>
+</html>

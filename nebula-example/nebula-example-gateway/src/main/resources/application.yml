@@ -1,0 +1,153 @@
+# ==================================================
+# Nebula Gateway Example 配置
+# API 网关示例 - HTTP 反向代理、认证、限流
+# ==================================================
+
+server:
+  port: 8000
+
+spring:
+  application:
+    name: nebula-gateway
+  
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+# ==================================================
+# Nebula 框架配置
+# ==================================================
+nebula:
+  # 服务发现配置（从 Nacos 获取后端服务地址）
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: localhost:8848
+      namespace: public
+      username: nacos
+      password: nacos
+      group-name: DEFAULT_GROUP
+      auto-register: false  # Gateway 不需要注册自己
+
+  # Gateway 框架配置
+  gateway:
+    enabled: true
+    
+    # JWT 认证配置
+    auth:
+      jwt:
+        enabled: true
+        secret: nebula-jwt-secret-key-2024-must-be-at-least-32-bytes
+        header: Authorization
+        prefix: "Bearer "
+        whitelist:
+          # 公开接口
+          - /api/users/login
+          - /api/users/register
+          - /api/users          # 用户列表（示例用）
+          - /api/orders         # 订单列表（示例用）
+          - /actuator/**
+          - /health/**
+    
+    # 日志配置
+    logging:
+      enabled: true
+      slow-request-threshold: 3000
+    
+    # 限流配置
+    rate-limit:
+      enabled: true
+      strategy: ip
+      replenish-rate: 100
+      burst-capacity: 200
+      requested-tokens: 1
+      redis:
+        enabled: true
+        host: localhost
+        port: 6379
+        database: 0
+    
+    # 路由配置
+    routes:
+      api-path-prefix: /api
+      default-filters:
+        - RequestRateLimiter
+    
+    # CORS 配置
+    cors:
+      enabled: true
+      allowed-origins:
+        - "*"
+      allowed-methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowed-headers:
+        - "*"
+      exposed-headers:
+        - Authorization
+      allow-credentials: false
+      max-age: 3600
+    
+    # HTTP 代理配置
+    # 将请求转发到后端服务的 Controller
+    http:
+      enabled: true
+      use-discovery: true  # 从 Nacos 获取服务地址
+      services:
+        user-service:
+          api-paths:
+            - /api/users/**
+        order-service:
+          api-paths:
+            - /api/orders/**
+
+# ==================================================
+# Redis 配置（限流）
+# ==================================================
+spring.data.redis:
+  host: localhost
+  port: 6379
+  database: 0
+
+# ==================================================
+# Resilience4j 熔断配置
+# ==================================================
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      userService:
+        baseConfig: default
+      orderService:
+        baseConfig: default
+  
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+    instances:
+      userService:
+        baseConfig: default
+      orderService:
+        baseConfig: default
+
+# ==================================================
+# 日志配置
+# ==================================================
+logging:
+  level:
+    root: INFO
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

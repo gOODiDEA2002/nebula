@@ -1,0 +1,58 @@
+# ==================================================
+# Order Service 配置文件
+# 订单服务 - 演示服务间 RPC 调用
+# 
+# 说明：Nebula Framework 2.0.1+ 提供智能默认值，
+# 大部分配置项都有合理的默认值，只需配置必要的内容。
+# ==================================================
+
+server:
+  port: 8002
+
+spring:
+  application:
+    name: order-service
+
+# ==================================================
+# Nebula 框架配置
+# 
+# 智能默认值：
+# - 服务发现：自动启用，连接 localhost:8848，用户名/密码 nacos/nacos
+# - RPC：自动启用 HTTP RPC，上下文路径 /rpc
+# - RPC 服务发现集成：自动启用（当有服务发现模块时）
+# 
+# 以下配置为非默认值或需要显式配置的项
+# ==================================================
+nebula:
+  # 如果 Nacos 地址不是 localhost:8848，需要配置
+  # discovery:
+  #   nacos:
+  #     server-addr: ${NACOS_ADDR:localhost:8848}
+
+  # RPC 配置（可选，使用默认值即可）
+  rpc:
+    http:
+      server:
+        port: ${server.port}
+        context-path: /rpc
+
+# ==================================================
+# 日志配置
+# ==================================================
+logging:
+  level:
+    root: INFO
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+
+# ==================================================
+# Actuator 监控配置
+# ==================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

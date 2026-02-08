@@ -330,6 +330,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Boot Actuator (可选，用于诊断端点) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

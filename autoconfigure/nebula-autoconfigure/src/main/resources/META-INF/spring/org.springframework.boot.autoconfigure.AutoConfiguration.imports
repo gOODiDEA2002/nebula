@@ -81,3 +81,9 @@ io.nebula.autoconfigure.ai.NebulaMcpServerAutoConfiguration
 # Crawler Layer - 爬虫层
 # ========================================
 io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
+
+# ========================================
+# Diagnostic Layer - 诊断层（最后初始化）
+# ========================================
+io.nebula.autoconfigure.diagnostic.NebulaStartupSummaryListener
+io.nebula.autoconfigure.diagnostic.NebulaDiagnosticEndpoint

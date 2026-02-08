@@ -50,12 +50,12 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- Nebula Discovery Nacos (可选，用于服务发现) -->
+        <!-- Nebula Discovery Nacos（网关需要服务发现进行动态路由） -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
+            <!-- 不再是 optional，网关默认需要服务发现 -->
         </dependency>
     </dependencies>
 

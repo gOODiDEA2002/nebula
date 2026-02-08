@@ -99,6 +99,9 @@
         <!-- Auto-Configuration 模块 -->
         <module>autoconfigure/nebula-autoconfigure</module>
 
+        <!-- 示例项目 -->
+        <module>nebula-example</module>
+
     </modules>
 
     <properties>

@@ -50,11 +50,12 @@
             <version>${project.version}</version>
         </dependency>
         
+        <!-- Nacos 服务发现（微服务必需） -->
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
+            <!-- 不再是 optional，微服务默认需要服务发现 -->
         </dependency>
         
         <!-- Messaging Modules -->
