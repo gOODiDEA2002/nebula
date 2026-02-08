@@ -22,6 +22,13 @@ import org.springframework.core.env.Environment;
 
 /**
  * RPC 与服务发现集成自动配置
+ * 
+ * 自动启用条件：
+ * - 存在 ServiceDiscovery 类（引入了服务发现模块）
+ * - 存在 RpcClient 类（引入了 RPC 模块）
+ * - 存在 ServiceDiscovery Bean（服务发现已配置）
+ * - nebula.rpc.discovery.enabled != false（默认启用）
+ * 
  * 必须在 NacosDiscoveryAutoConfiguration 之后初始化
  * 
  * @author Nebula Framework
@@ -33,7 +40,7 @@ import org.springframework.core.env.Environment;
 @ConditionalOnClass({ServiceDiscovery.class, RpcClient.class})
 @ConditionalOnBean(ServiceDiscovery.class)  // 确保 ServiceDiscovery Bean 存在
 @EnableConfigurationProperties(RpcDiscoveryProperties.class)
-@ConditionalOnProperty(prefix = "nebula.rpc.discovery", name = "enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(prefix = "nebula.rpc.discovery", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class RpcDiscoveryAutoConfiguration {
     
     /**

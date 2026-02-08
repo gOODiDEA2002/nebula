@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于 - Nebula Web Example</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Nebula Framework</h1>
+            <p class="subtitle">关于本示例</p>
+        </header>
+
+        <nav>
+            <a th:href="@{/}">首页</a>
+            <a th:href="@{/about}" class="active">关于</a>
+            <a th:href="@{/api/info}">API Info</a>
+            <a th:href="@{/actuator/health}">Health</a>
+        </nav>
+
+        <main>
+            <section class="info-card">
+                <h2>关于 Nebula Framework</h2>
+                <p>Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java 21 构建，
+                   提供企业级应用开发的完整解决方案。</p>
+                
+                <h3>核心特性</h3>
+                <ul>
+                    <li><strong>现代化技术栈</strong>: Java 21 + Spring Boot 3.x + Maven</li>
+                    <li><strong>模块化架构</strong>: 基于 DDD 原则的清晰模块划分</li>
+                    <li><strong>RPC 通信</strong>: HTTP RPC 和 gRPC 支持</li>
+                    <li><strong>服务发现</strong>: Nacos 集成</li>
+                    <li><strong>多级缓存</strong>: 本地 + 分布式缓存</li>
+                    <li><strong>任务调度</strong>: XXL-Job 集成</li>
+                </ul>
+            </section>
+
+            <section class="info-card">
+                <h2>本示例项目</h2>
+                <p>这是一个简单的 Web 应用示例，演示了 Nebula Framework 的 Web 开发能力。</p>
+                
+                <h3>技术栈</h3>
+                <ul>
+                    <li>nebula-starter-web</li>
+                    <li>Spring Boot Web</li>
+                    <li>Thymeleaf 模板引擎</li>
+                    <li>Spring Boot Actuator</li>
+                </ul>
+                
+                <h3>版本信息</h3>
+                <table>
+                    <tr>
+                        <td>应用名称</td>
+                        <td th:text="${applicationName}">nebula-example-web</td>
+                    </tr>
+                    <tr>
+                        <td>Nebula 版本</td>
+                        <td th:text="${nebulaVersion}">2.0.1-SNAPSHOT</td>
+                    </tr>
+                </table>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by <strong>Nebula Framework</strong> | 
+               <span th:text="${nebulaVersion}">2.0.1-SNAPSHOT</span></p>
+        </footer>
+    </div>
+
+    <script th:src="@{/js/main.js}"></script>
+</body>
+</html>

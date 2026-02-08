@@ -1,0 +1,62 @@
+# ==================================================
+# Data Process Service 配置文件
+# 作为 RPC 服务提供方
+# ==================================================
+
+server:
+  port: 8081
+
+spring:
+  application:
+    name: data-process-service
+
+# ==================================================
+# Nebula 框架配置
+# ==================================================
+nebula:
+  # 服务发现配置（Nacos）
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: localhost:8848
+      namespace: public
+      group-name: DEFAULT_GROUP
+      username: nacos
+      password: nacos
+      auto-register: true  # 启用服务自动注册
+
+  # RPC 配置
+  rpc:
+    http:
+      enabled: true
+      server:
+        enabled: true
+        port: ${server.port}
+        context-path: /rpc
+      client:
+        enabled: true
+        connect-timeout: 30000
+        read-timeout: 60000
+
+# ==================================================
+# 日志配置
+# ==================================================
+logging:
+  level:
+    root: INFO
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ==================================================
+# Actuator 监控配置
+# ==================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

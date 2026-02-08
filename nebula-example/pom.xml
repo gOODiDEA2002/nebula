@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-example</artifactId>
+    <name>Nebula Example Projects</name>
+    <description>Example projects demonstrating Nebula Framework usage</description>
+    <packaging>pom</packaging>
+
+    <modules>
+        <!-- 异步 RPC 示例 -->
+        <module>nebula-rpc-async</module>
+        
+        <!-- Web 应用示例 -->
+        <module>nebula-example-web</module>
+        
+        <!-- 微服务示例 -->
+        <module>nebula-example-microservice</module>
+        
+        <!-- 网关示例 -->
+        <module>nebula-example-gateway</module>
+    </modules>
+
+    <properties>
+        <!-- 示例项目不需要发布到仓库 -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+</project>

@@ -1,0 +1,69 @@
+# ==================================================
+# Nebula Web Example 配置文件
+# 演示 Web 应用开发
+# ==================================================
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: nebula-example-web
+  
+  # Thymeleaf 配置
+  thymeleaf:
+    cache: false  # 开发时禁用缓存
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+  
+  # 静态资源配置
+  web:
+    resources:
+      static-locations:
+        - classpath:/static/
+        - classpath:/public/
+
+# ==================================================
+# Nebula 框架配置
+# ==================================================
+nebula:
+  version: 2.0.1-SNAPSHOT
+
+# ==================================================
+# 日志配置
+# ==================================================
+logging:
+  level:
+    root: INFO
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ==================================================
+# Actuator 监控配置
+# ==================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+# ==================================================
+# 应用信息（用于 /actuator/info）
+# ==================================================
+info:
+  app:
+    name: ${spring.application.name}
+    description: Nebula Framework Web 应用示例
+    version: ${project.version:1.0.0-SNAPSHOT}
+  nebula:
+    version: ${nebula.version}
