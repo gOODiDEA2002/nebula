@@ -41,6 +41,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestClient;
+import org.springframework.http.client.ReactorClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -75,11 +76,11 @@ public class AIAutoConfiguration {
         // 添加 HTTP 日志拦截器
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
         
-        // 不使用 BufferingClientHttpRequestFactory，直接使用默认的 SimpleClientHttpRequestFactory
-        // BufferingClientHttpRequestFactory 可能导致与某些服务器的兼容性问题
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        // 使用 ReactorClientHttpRequestFactory 以匹配 Spring 6.2 默认行为
+        // SimpleClientHttpRequestFactory 在 Reactor Netty 存在时会被忽略
+        ReactorClientHttpRequestFactory requestFactory = new ReactorClientHttpRequestFactory();
         requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(10));
-        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(120));
+        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(300));
         
         return RestClient.builder()
                 .requestFactory(requestFactory)
@@ -95,7 +96,7 @@ public class AIAutoConfiguration {
     @ConditionalOnClass(OpenAiApi.class)
     @ConditionalOnMissingBean(name = "nebulaOpenAiApi")
     @ConditionalOnProperty(prefix = "nebula.ai.openai", name = "api-key")
-    public OpenAiApi nebulaOpenAiApi(AIProperties aiProperties) {
+    public OpenAiApi nebulaOpenAiApi(AIProperties aiProperties, RestClient.Builder restClientBuilder) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
         
         log.info("配置 OpenAiApi, Base URL: {}", openAIConfig.getBaseUrl());
@@ -103,6 +104,7 @@ public class AIAutoConfiguration {
         return OpenAiApi.builder()
                 .apiKey(openAIConfig.getApiKey())
                 .baseUrl(openAIConfig.getBaseUrl())
+                .restClientBuilder(restClientBuilder)
                 .build();
     }
     

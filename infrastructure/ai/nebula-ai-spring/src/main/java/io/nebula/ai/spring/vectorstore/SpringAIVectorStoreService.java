@@ -510,15 +510,17 @@ public class SpringAIVectorStoreService implements VectorStoreService {
 
     /**
      * 将Spring AI搜索结果转换为Nebula搜索结果
+     * 从 Document 的 metadata 中提取 score 字段（由 CustomChromaVectorStore 计算：1.0 - distance）
      */
     private SearchResult convertToNebulaSearchResult(
             List<org.springframework.ai.document.Document> springResults, String query) {
         
         List<SearchResult.DocumentResult> nebulaResults = springResults.stream()
-                .map(doc -> SearchResult.DocumentResult.fromDocument(
-                        convertToNebulaDocument(doc), 
-                        1.0 // Spring AI 结果默认没有分数，这里使用1.0
-                ))
+                .map(doc -> {
+                    double score = extractScore(doc);
+                    return SearchResult.DocumentResult.fromDocument(
+                            convertToNebulaDocument(doc), score);
+                })
                 .collect(Collectors.toList());
 
         return SearchResult.builder()
@@ -527,6 +529,21 @@ public class SpringAIVectorStoreService implements VectorStoreService {
                 .totalFound(nebulaResults.size())
                 .timestamp(LocalDateTime.now())
                 .build();
+    }
+
+    /**
+     * 从 Spring AI Document metadata 中提取相似度分数
+     * CustomChromaVectorStore 在 convertQueryResponse 中设置 metadata["score"] = 1.0 - distance
+     */
+    private double extractScore(org.springframework.ai.document.Document doc) {
+        if (doc.getMetadata() != null) {
+            Object scoreObj = doc.getMetadata().get("score");
+            if (scoreObj instanceof Number) {
+                return ((Number) scoreObj).doubleValue();
+            }
+        }
+        // 默认返回 0.0 表示无法获取分数
+        return 0.0;
     }
 
     /**

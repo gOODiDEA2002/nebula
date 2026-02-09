@@ -53,8 +53,8 @@ public class HttpRpcController {
                         .body(RpcResponse.error(request.getRequestId(), "方法未找到: " + request.getMethodName()));
             }
 
-            // 转换参数类型(Jackson反序列化可能导致类型不匹配)
-            Object[] convertedParams = convertParameters(request.getParameters(), request.getParameterTypes());
+            // 使用方法声明的参数类型做转换（而非请求中传来的类型，避免接口/实现类型不匹配）
+            Object[] convertedParams = convertParameters(request.getParameters(), method.getParameterTypes());
 
             // 执行方法
             Object result = method.invoke(serviceImpl, convertedParams);
@@ -72,19 +72,77 @@ public class HttpRpcController {
 
     /**
      * 查找方法
+     * <p>
+     * 策略：
+     * 1. 精确匹配 - 使用 getMethod(name, parameterTypes) 查找
+     * 2. 兼容匹配 - 当客户端传来的参数类型是实现类（如 ArrayList）而方法声明使用接口（如 List）时，
+     *    通过方法名 + 参数数量 + isAssignableFrom 做 fallback 匹配
+     * 3. 名称匹配 - 当 parameterTypes 为 null 时，仅按方法名匹配（取唯一同名方法）
      */
     private Method findMethod(Class<?> clazz, String methodName, Class<?>[] parameterTypes) {
-        try {
-            return clazz.getMethod(methodName, parameterTypes);
-        } catch (NoSuchMethodException e) {
-            log.debug("方法未找到: {}", methodName, e);
-            return null;
+        // 策略1: 精确匹配
+        if (parameterTypes != null) {
+            try {
+                return clazz.getMethod(methodName, parameterTypes);
+            } catch (NoSuchMethodException e) {
+                log.debug("精确匹配失败，尝试兼容匹配: method={}, parameterTypes={}", methodName, parameterTypes);
+            }
         }
+
+        // 策略2/3: 遍历所有公开方法做兼容匹配
+        Method candidate = null;
+        int candidateCount = 0;
+        for (Method m : clazz.getMethods()) {
+            if (!m.getName().equals(methodName)) {
+                continue;
+            }
+            Class<?>[] declaredTypes = m.getParameterTypes();
+
+            // 如果请求中没有 parameterTypes，按名称匹配
+            if (parameterTypes == null) {
+                candidate = m;
+                candidateCount++;
+                continue;
+            }
+
+            // 参数数量不同，跳过
+            if (declaredTypes.length != parameterTypes.length) {
+                continue;
+            }
+
+            // 检查每个参数类型是否兼容（请求类型 isAssignableFrom 声明类型，或反向兼容）
+            boolean compatible = true;
+            for (int i = 0; i < declaredTypes.length; i++) {
+                if (!declaredTypes[i].isAssignableFrom(parameterTypes[i])
+                        && !parameterTypes[i].isAssignableFrom(declaredTypes[i])) {
+                    compatible = false;
+                    break;
+                }
+            }
+            if (compatible) {
+                candidate = m;
+                candidateCount++;
+            }
+        }
+
+        if (candidateCount == 1) {
+            log.debug("兼容匹配成功: method={}", methodName);
+            return candidate;
+        } else if (candidateCount > 1) {
+            log.warn("兼容匹配到多个方法，返回最后一个: method={}, count={}", methodName, candidateCount);
+            return candidate;
+        }
+
+        log.debug("方法未找到: {}", methodName);
+        return null;
     }
 
     /**
      * 转换参数类型
      * 解决 Jackson 反序列化导致的类型不匹配问题
+     * <p>
+     * 使用方法声明的参数类型（而非请求中客户端推断的类型），
+     * 确保 Jackson convertValue 能正确处理泛型信息
      */
     private Object[] convertParameters(Object[] parameters, Class<?>[] parameterTypes) {
         if (parameters == null || parameterTypes == null) {
