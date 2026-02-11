@@ -1,5 +1,7 @@
 package io.nebula.autoconfigure.rpc;
 
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.http.client.HttpRpcClient;
@@ -125,16 +127,24 @@ public class HttpRpcAutoConfiguration {
 
     /**
      * 配置HTTP RPC服务器
+     * 
+     * 当 nebula.rpc.http.server.port 未配置时，自动使用 Spring Boot 的 server.port
      */
     @Bean
     @ConditionalOnMissingBean(HttpRpcServer.class)
     @ConditionalOnProperty(prefix = "nebula.rpc.http.server", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public HttpRpcServer httpRpcServer(HttpRpcProperties properties) {
+    public HttpRpcServer httpRpcServer(HttpRpcProperties properties,
+            @org.springframework.beans.factory.annotation.Value("${server.port:8080}") int serverPort) {
+        // 当未显式配置端口时，自动使用 server.port
+        int resolvedPort = properties.getServer().getPort() != null
+                ? properties.getServer().getPort()
+                : serverPort;
+
         HttpRpcServer server = new HttpRpcServer();
-        server.start(properties.getServer().getPort());
+        server.start(resolvedPort);
 
         log.info("配置HTTP RPC服务器: port={}, contextPath={}",
-                properties.getServer().getPort(),
+                resolvedPort,
                 properties.getServer().getContextPath());
 
         return server;
@@ -158,5 +168,32 @@ public class HttpRpcAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.rpc.http.server", name = "enabled", havingValue = "true", matchIfMissing = true)
     public static RpcServiceRegistrationProcessor rpcServiceRegistrationProcessor(@Lazy HttpRpcServer httpRpcServer) {
         return new RpcServiceRegistrationProcessor(httpRpcServer);
+    }
+
+    /**
+     * 组件摘要: HTTP RPC
+     */
+    @Bean
+    NebulaComponentSummary httpRpcSummary(HttpRpcProperties properties,
+            org.springframework.core.env.Environment env) {
+        var details = new java.util.LinkedHashMap<String, String>();
+
+        // Server Info
+        Integer port = properties.getServer().getPort();
+        if (port == null) {
+            port = env.getProperty("server.port", Integer.class, 8080);
+        }
+        details.put("Server Port", String.valueOf(port));
+        details.put("Context Path", properties.getServer().getContextPath());
+        details.put("Request Timeout", properties.getServer().getRequestTimeout() + "ms");
+
+        // Client Info
+        details.put("Connect Timeout", properties.getClient().getConnectTimeout() + "ms");
+        details.put("Read Timeout", properties.getClient().getReadTimeout() + "ms");
+        details.put("Max Connections", String.valueOf(properties.getClient().getMaxConnections()));
+        details.put("Retry Count", String.valueOf(properties.getClient().getRetryCount()));
+        details.put("Compression", String.valueOf(properties.getClient().isCompressionEnabled()));
+
+        return new SimpleComponentSummary("RPC", "HTTP RPC", true, 200, details);
     }
 }

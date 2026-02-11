@@ -1,5 +1,7 @@
 package io.nebula.lock.redis;
 
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.lock.LockManager;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
@@ -22,12 +24,12 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  */
 @Slf4j
 @Configuration
-@ConditionalOnClass({RedissonClient.class, LockManager.class})
+@ConditionalOnClass({ RedissonClient.class, LockManager.class })
 @ConditionalOnProperty(prefix = "nebula.lock", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(RedisLockProperties.class)
 @EnableAspectJAutoProxy
 public class RedisLockAutoConfiguration {
-    
+
     /**
      * 配置 RedissonClient
      * 当配置了 nebula.lock.redis 时，创建独立的 RedissonClient
@@ -38,12 +40,12 @@ public class RedisLockAutoConfiguration {
     @ConditionalOnMissingBean(RedissonClient.class)
     public RedissonClient nebulaLockRedissonClient(RedisLockProperties properties) {
         RedisLockProperties.RedisConfig redisConfig = properties.getRedis();
-        
-        log.info("配置 Nebula Lock RedissonClient: host={}, port={}, database={}", 
+
+        log.info("配置 Nebula Lock RedissonClient: host={}, port={}, database={}",
                 redisConfig.getHost(), redisConfig.getPort(), redisConfig.getDatabase());
-        
+
         Config config = new Config();
-        
+
         // 单机模式配置
         String address = String.format("redis://%s:%d", redisConfig.getHost(), redisConfig.getPort());
         SingleServerConfig serverConfig = config.useSingleServer()
@@ -52,15 +54,15 @@ public class RedisLockAutoConfiguration {
                 .setConnectionMinimumIdleSize(redisConfig.getConnectionMinimumIdleSize())
                 .setConnectionPoolSize(redisConfig.getConnectionPoolSize())
                 .setTimeout(redisConfig.getTimeout());
-        
+
         // 设置密码（如果有）
         if (redisConfig.getPassword() != null && !redisConfig.getPassword().isEmpty()) {
             serverConfig.setPassword(redisConfig.getPassword());
         }
-        
+
         return Redisson.create(config);
     }
-    
+
     /**
      * 配置Redis锁管理器
      */
@@ -70,7 +72,7 @@ public class RedisLockAutoConfiguration {
         log.info("初始化Redis锁管理器");
         return new RedisLockManager(redissonClient);
     }
-    
+
     /**
      * 配置@Locked注解切面
      */
@@ -81,5 +83,19 @@ public class RedisLockAutoConfiguration {
         log.info("初始化@Locked注解切面");
         return new LockedAspect(lockManager);
     }
-}
 
+    /**
+     * 组件摘要: Redis分布式锁
+     */
+    @Bean
+    NebulaComponentSummary redisLockSummary(RedisLockProperties properties) {
+        var details = new java.util.LinkedHashMap<String, String>();
+        details.put("Wait Time", properties.getDefaultWaitTime().toString());
+        details.put("Lease Time", properties.getDefaultLeaseTime().toString());
+        details.put("Watchdog", String.valueOf(properties.isEnableWatchdog()));
+        details.put("Fair Lock", String.valueOf(properties.isFair()));
+        details.put("Redlock", String.valueOf(properties.getRedlock().isEnabled()));
+        details.put("Aspect", String.valueOf(properties.isEnableAspect()));
+        return new SimpleComponentSummary("Infrastructure", "Redis Lock", true, 800, details);
+    }
+}

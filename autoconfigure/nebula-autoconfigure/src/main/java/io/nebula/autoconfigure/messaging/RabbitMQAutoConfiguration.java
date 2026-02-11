@@ -1,5 +1,7 @@
 package io.nebula.autoconfigure.messaging;
 
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.messaging.core.serializer.MessageSerializer;
 import io.nebula.messaging.core.serializer.JsonMessageSerializer;
 import io.nebula.messaging.core.router.MessageRouter;
@@ -29,17 +31,17 @@ import org.springframework.context.annotation.Primary;
  * RabbitMQ自动配置
  */
 @Configuration
-@ConditionalOnClass({ConnectionFactory.class, Connection.class})
+@ConditionalOnClass({ ConnectionFactory.class, Connection.class })
 @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = false)
-@EnableConfigurationProperties({RabbitMQProperties.class, RabbitDelayMessageProperties.class})
+@EnableConfigurationProperties({ RabbitMQProperties.class, RabbitDelayMessageProperties.class })
 public class RabbitMQAutoConfiguration {
-    
+
     private final RabbitMQProperties properties;
-    
+
     public RabbitMQAutoConfiguration(RabbitMQProperties properties) {
         this.properties = properties;
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public ConnectionFactory rabbitMQConnectionFactory() {
@@ -49,97 +51,119 @@ public class RabbitMQAutoConfiguration {
         factory.setUsername(properties.getUsername());
         factory.setPassword(properties.getPassword());
         factory.setVirtualHost(properties.getVirtualHost());
-        
+
         // 连接池配置
         factory.setConnectionTimeout(properties.getConnectionTimeout());
         factory.setRequestedHeartbeat(properties.getHeartbeat());
         factory.setAutomaticRecoveryEnabled(properties.isAutomaticRecovery());
         factory.setNetworkRecoveryInterval(properties.getNetworkRecoveryInterval());
-        
+
         return factory;
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public Connection rabbitMQConnection(ConnectionFactory connectionFactory) throws Exception {
         return connectionFactory.newConnection();
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     @Primary
     public MessageSerializer messageSerializer() {
         return new JsonMessageSerializer();
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     @Primary
     public MessageRouter messageRouter() {
         return new DefaultMessageRouter();
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public RabbitMQExchangeManager rabbitMQExchangeManager(Connection connection) {
         return new RabbitMQExchangeManager(connection);
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq.delay-message", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public DelayMessageProducer delayMessageProducer(Connection connection, 
-                                                    MessageSerializer messageSerializer,
-                                                    RabbitDelayMessageProperties delayProperties) {
+    public DelayMessageProducer delayMessageProducer(Connection connection,
+            MessageSerializer messageSerializer,
+            RabbitDelayMessageProperties delayProperties) {
         return new DelayMessageProducer(connection, messageSerializer, delayProperties);
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq.delay-message", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public DelayMessageConsumer delayMessageConsumer(Connection connection, 
-                                                    MessageSerializer messageSerializer,
-                                                    RabbitDelayMessageProperties delayProperties) {
+    public DelayMessageConsumer delayMessageConsumer(Connection connection,
+            MessageSerializer messageSerializer,
+            RabbitDelayMessageProperties delayProperties) {
         return new DelayMessageConsumer(connection, messageSerializer, delayProperties);
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public RabbitMQMessageProducer rabbitMQMessageProducer(
-            Connection connection, 
+            Connection connection,
             MessageSerializer messageSerializer,
             @Lazy DelayMessageProducer delayMessageProducer) {
         return new RabbitMQMessageProducer(connection, messageSerializer, delayMessageProducer);
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
-    public RabbitMQMessageConsumer rabbitMQMessageConsumer(Connection connection, 
-                                                          MessageSerializer messageSerializer,
-                                                          MessageRouter messageRouter) {
+    public RabbitMQMessageConsumer rabbitMQMessageConsumer(Connection connection,
+            MessageSerializer messageSerializer,
+            MessageRouter messageRouter) {
         return new RabbitMQMessageConsumer(connection, messageSerializer, messageRouter);
     }
-    
-    
+
     @Bean
     @ConditionalOnMissingBean
     @Primary
     public RabbitMQMessageManager rabbitMQMessageManager(RabbitMQMessageProducer producer,
-                                                        RabbitMQMessageConsumer consumer,
-                                                        RabbitMQExchangeManager exchangeManager) {
+            RabbitMQMessageConsumer consumer,
+            RabbitMQExchangeManager exchangeManager) {
         return new RabbitMQMessageManager(producer, consumer, exchangeManager);
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public static MessageHandlerProcessor messageHandlerProcessor(@Lazy RabbitMQMessageManager messageManager) {
         return new MessageHandlerProcessor(messageManager);
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq.delay-message", name = "enabled", havingValue = "true", matchIfMissing = true)
     public static DelayMessageListenerProcessor delayMessageListenerProcessor() {
         return new DelayMessageListenerProcessor();
+    }
+
+    /**
+     * 组件摘要: RabbitMQ
+     */
+    @Bean
+    NebulaComponentSummary rabbitMqSummary() {
+        var details = new java.util.LinkedHashMap<String, String>();
+        details.put("Host", properties.getHost() + ":" + properties.getPort());
+        details.put("Virtual Host", properties.getVirtualHost());
+        details.put("Heartbeat", properties.getHeartbeat() + "s");
+
+        details.put("Publisher Confirms", String.valueOf(properties.getProducer().isPublisherConfirms()));
+        details.put("Exchange Type", properties.getExchange().getDefaultType());
+
+        details.put("Consumer Prefetch", String.valueOf(properties.getConsumer().getPrefetchCount()));
+        details.put("Consumer AutoAck", String.valueOf(properties.getConsumer().isAutoAck()));
+
+        if (properties.getDelayMessage().isEnabled()) {
+            details.put("Delay Message", "ENABLED");
+        }
+
+        return new SimpleComponentSummary("Messaging", "RabbitMQ", true, 500, details);
     }
 }

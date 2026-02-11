@@ -1,5 +1,7 @@
 package io.nebula.autoconfigure.crawler;
 
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.crawler.core.CrawlerEngine;
 import io.nebula.crawler.core.config.CrawlerProperties;
 import io.nebula.crawler.core.proxy.ProxyProvider;
@@ -26,13 +28,13 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(prefix = "nebula.crawler", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(CrawlerProperties.class)
 @Import({
-    HttpCrawlerAutoConfiguration.class,
-    BrowserCrawlerAutoConfiguration.class,
-    ProxyCrawlerAutoConfiguration.class,
-    CaptchaCrawlerAutoConfiguration.class
+        HttpCrawlerAutoConfiguration.class,
+        BrowserCrawlerAutoConfiguration.class,
+        ProxyCrawlerAutoConfiguration.class,
+        CaptchaCrawlerAutoConfiguration.class
 })
 public class CrawlerAutoConfiguration {
-    
+
     /**
      * 爬虫引擎管理器
      */
@@ -40,9 +42,18 @@ public class CrawlerAutoConfiguration {
     public CrawlerEngineManager crawlerEngineManager(
             java.util.List<CrawlerEngine> engines,
             java.util.Optional<ProxyProvider> proxyProvider) {
-        log.info("初始化爬虫引擎管理器，可用引擎: {}", 
-            engines.stream().map(e -> e.getType().name()).toList());
+        log.info("初始化爬虫引擎管理器，可用引擎: {}",
+                engines.stream().map(e -> e.getType().name()).toList());
         return new CrawlerEngineManager(engines, proxyProvider.orElse(null));
     }
-}
 
+    /**
+     * 组件摘要: 爬虫
+     */
+    @Bean
+    NebulaComponentSummary crawlerSummary(CrawlerProperties properties) {
+        var details = new java.util.LinkedHashMap<String, String>();
+        details.put("Enabled", String.valueOf(properties.isEnabled()));
+        return new SimpleComponentSummary("Application", "Crawler", true, 1000, details);
+    }
+}

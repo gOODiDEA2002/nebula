@@ -1,5 +1,7 @@
 package io.nebula.autoconfigure.gateway;
 
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.gateway.config.GatewayProperties;
 import io.nebula.gateway.config.GatewayRedisAutoConfiguration;
 import io.nebula.gateway.config.GatewayRoutesAutoConfiguration;
@@ -31,12 +33,13 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnClass(name = "org.springframework.cloud.gateway.filter.GatewayFilter")
 @ConditionalOnProperty(prefix = "nebula.gateway", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(GatewayProperties.class)
-@Import({RateLimitKeyResolverConfig.class, GatewayRoutesAutoConfiguration.class, GatewayRedisAutoConfiguration.class, GatewayHealthController.class})
+@Import({ RateLimitKeyResolverConfig.class, GatewayRoutesAutoConfiguration.class, GatewayRedisAutoConfiguration.class,
+        GatewayHealthController.class })
 public class GatewayAutoConfiguration {
-    
+
     // 注意：JWT 认证过滤器已移至应用层实现（如 ticket-gateway）
     // 框架不再内置 JWT 认证，由各应用根据业务需求自行实现
-    
+
     /**
      * 全局日志过滤器
      * <p>
@@ -52,5 +55,34 @@ public class GatewayAutoConfiguration {
     public GlobalFilter loggingGlobalFilter(GatewayProperties gatewayProperties) {
         log.info("初始化Nebula Gateway日志过滤器");
         return new LoggingGlobalFilter(gatewayProperties);
+    }
+
+    /**
+     * 组件摘要: 网关
+     */
+    @Bean
+    NebulaComponentSummary gatewaySummary(GatewayProperties gatewayProperties) {
+        var details = new java.util.LinkedHashMap<String, String>();
+
+        // Rate Limit
+        if (gatewayProperties.getRateLimit().isEnabled()) {
+            details.put("Rate Limit", "ENABLED (" + gatewayProperties.getRateLimit().getStrategy() + ")");
+            details.put("Replenish Rate", String.valueOf(gatewayProperties.getRateLimit().getReplenishRate()));
+            details.put("Burst Capacity", String.valueOf(gatewayProperties.getRateLimit().getBurstCapacity()));
+        } else {
+            details.put("Rate Limit", "DISABLED");
+        }
+
+        // Auth
+        details.put("JWT Auth", gatewayProperties.getAuth().getJwt().isEnabled() ? "ENABLED" : "DISABLED");
+
+        // Routes
+        details.put("API Prefix", gatewayProperties.getRoutes().getApiPathPrefix());
+        details.put("Route Count", String.valueOf(gatewayProperties.getRoutes().getDefinitions().size()));
+
+        // CORS
+        details.put("CORS", gatewayProperties.getCors().isEnabled() ? "ENABLED" : "DISABLED");
+
+        return new SimpleComponentSummary("Infrastructure", "Gateway", true, 1100, details);
     }
 }

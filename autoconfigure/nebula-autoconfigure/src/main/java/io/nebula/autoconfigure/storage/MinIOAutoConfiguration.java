@@ -1,6 +1,8 @@
 package io.nebula.autoconfigure.storage;
 
 import io.minio.MinioClient;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.storage.core.StorageService;
 import io.nebula.storage.minio.config.MinIOProperties;
 import io.nebula.storage.minio.MinIOStorageService;
@@ -22,25 +24,25 @@ import java.util.concurrent.TimeUnit;
  * MinIO自动配置
  */
 @Configuration
-@ConditionalOnClass({MinioClient.class})
+@ConditionalOnClass({ MinioClient.class })
 @ConditionalOnProperty(prefix = "nebula.storage.minio", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(MinIOProperties.class)
 public class MinIOAutoConfiguration {
-    
+
     private static final Logger log = LoggerFactory.getLogger(MinIOAutoConfiguration.class);
-    
+
     private final MinIOProperties properties;
-    
+
     public MinIOAutoConfiguration(MinIOProperties properties) {
         this.properties = properties;
     }
-    
+
     @PostConstruct
     public void init() {
-        log.info("MinIO存储服务已启用: endpoint={}, defaultBucket={}", 
+        log.info("MinIO存储服务已启用: endpoint={}, defaultBucket={}",
                 properties.getEndpoint(), properties.getDefaultBucket());
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public OkHttpClient okHttpClient() {
@@ -50,7 +52,7 @@ public class MinIOAutoConfiguration {
                 .readTimeout(properties.getReadTimeout(), TimeUnit.MILLISECONDS)
                 .build();
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public MinioClient minioClient(OkHttpClient okHttpClient) {
@@ -59,32 +61,32 @@ public class MinIOAutoConfiguration {
                     .endpoint(properties.getEndpoint())
                     .credentials(properties.getAccessKey(), properties.getSecretKey())
                     .httpClient(okHttpClient);
-            
+
             if (properties.getRegion() != null) {
                 builder.region(properties.getRegion());
             }
-            
+
             MinioClient client = builder.build();
-            
+
             // 测试连接
             client.listBuckets();
             log.info("MinIO客户端连接成功: endpoint={}", properties.getEndpoint());
-            
+
             return client;
-            
+
         } catch (Exception e) {
             log.error("MinIO客户端初始化失败: endpoint={}", properties.getEndpoint(), e);
             throw new RuntimeException("MinIO客户端初始化失败", e);
         }
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     @Primary
     public StorageService minioStorageService(MinioClient minioClient) {
         // 使用带accessBaseUrl的构造函数
         MinIOStorageService service = new MinIOStorageService(minioClient, properties.getAccessBaseUrl());
-        
+
         // 自动创建默认存储桶
         if (properties.isAutoCreateDefaultBucket()) {
             try {
@@ -97,15 +99,30 @@ public class MinIOAutoConfiguration {
                 log.warn("自动创建默认存储桶失败: {}", properties.getDefaultBucket(), e);
             }
         }
-        
+
         log.info("MinIO存储服务初始化完成: accessBaseUrl={}", properties.getAccessBaseUrl());
-        
+
         return service;
     }
-    
+
     @Bean
     @ConditionalOnMissingBean
     public MinIOStorageService minIOStorageService(MinioClient minioClient) {
         return new MinIOStorageService(minioClient, properties.getAccessBaseUrl());
+    }
+
+    /**
+     * 组件摘要: MinIO
+     */
+    @Bean
+    NebulaComponentSummary minioSummary() {
+        var details = new java.util.LinkedHashMap<String, String>();
+        details.put("Endpoint", properties.getEndpoint());
+        details.put("Bucket", properties.getDefaultBucket());
+        if (properties.getAccessBaseUrl() != null && !properties.getAccessBaseUrl().isEmpty()) {
+            details.put("Access Base URL", properties.getAccessBaseUrl());
+        }
+        details.put("Connect Timeout", properties.getConnectTimeout() + "ms");
+        return new SimpleComponentSummary("Storage", "MinIO", true, 600, details);
     }
 }

@@ -1,6 +1,8 @@
 package io.nebula.autoconfigure.ai;
 
 import io.nebula.ai.core.chat.ChatService;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.ai.core.embedding.EmbeddingService;
 import io.nebula.ai.core.mcp.McpServerService;
 import io.nebula.ai.core.mcp.McpClientService;
@@ -52,9 +54,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @since 2.0.0
  */
 @AutoConfiguration
-@ConditionalOnClass({ChatClient.class, ChatModel.class})
+@ConditionalOnClass({ ChatClient.class, ChatModel.class })
 @ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties({AIProperties.class, io.nebula.ai.spring.config.VectorStoreProperties.class})
+@EnableConfigurationProperties({ AIProperties.class, io.nebula.ai.spring.config.VectorStoreProperties.class })
 public class AIAutoConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AIAutoConfiguration.class);
@@ -62,7 +64,7 @@ public class AIAutoConfiguration {
     public AIAutoConfiguration() {
         log.info("Nebula AI 模块自动配置已启用");
     }
-    
+
     /**
      * 配置 RestClient.Builder
      * 为 ChromaApi 和 OllamaApi 提供 RestClient.Builder Bean
@@ -72,21 +74,21 @@ public class AIAutoConfiguration {
     @ConditionalOnMissingBean
     public RestClient.Builder builder() {
         log.info("配置 RestClient.Builder (带HTTP日志拦截器)");
-        
+
         // 添加 HTTP 日志拦截器
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-        
+
         // 使用 ReactorClientHttpRequestFactory 以匹配 Spring 6.2 默认行为
         // SimpleClientHttpRequestFactory 在 Reactor Netty 存在时会被忽略
         ReactorClientHttpRequestFactory requestFactory = new ReactorClientHttpRequestFactory();
         requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(10));
         requestFactory.setReadTimeout(java.time.Duration.ofSeconds(300));
-        
+
         return RestClient.builder()
                 .requestFactory(requestFactory)
                 .requestInterceptor(loggingInterceptor);
     }
-    
+
     /**
      * 配置 OpenAiApi
      * 基于 Nebula 配置创建 OpenAiApi Bean
@@ -98,16 +100,16 @@ public class AIAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.ai.openai", name = "api-key")
     public OpenAiApi nebulaOpenAiApi(AIProperties aiProperties, RestClient.Builder restClientBuilder) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
-        
+
         log.info("配置 OpenAiApi, Base URL: {}", openAIConfig.getBaseUrl());
-        
+
         return OpenAiApi.builder()
                 .apiKey(openAIConfig.getApiKey())
                 .baseUrl(openAIConfig.getBaseUrl())
                 .restClientBuilder(restClientBuilder)
                 .build();
     }
-    
+
     /**
      * 配置 OpenAI ChatModel
      * 基于 Nebula 配置创建 ChatModel Bean
@@ -120,22 +122,22 @@ public class AIAutoConfiguration {
     public ChatModel nebulaOpenAiChatModel(OpenAiApi nebulaOpenAiApi, AIProperties aiProperties) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
         AIProperties.OpenAIChatOptions chatOptions = openAIConfig.getChat().getOptions();
-        
-        log.info("配置 OpenAI ChatModel, Model: {}, Temperature: {}, MaxTokens: {}", 
+
+        log.info("配置 OpenAI ChatModel, Model: {}, Temperature: {}, MaxTokens: {}",
                 chatOptions.getModel(), chatOptions.getTemperature(), chatOptions.getMaxTokens());
-        
+
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(chatOptions.getModel())
                 .temperature(chatOptions.getTemperature())
                 .maxTokens(chatOptions.getMaxTokens())
                 .build();
-        
+
         return OpenAiChatModel.builder()
                 .openAiApi(nebulaOpenAiApi)
                 .defaultOptions(options)
                 .build();
     }
-    
+
     /**
      * 配置 OpenAI EmbeddingModel
      * 基于 Nebula 配置创建 EmbeddingModel Bean
@@ -147,16 +149,17 @@ public class AIAutoConfiguration {
     public EmbeddingModel nebulaOpenAiEmbeddingModel(OpenAiApi nebulaOpenAiApi, AIProperties aiProperties) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
         AIProperties.OpenAIEmbeddingOptions embeddingOptions = openAIConfig.getEmbedding().getOptions();
-        
+
         log.info("配置 OpenAI EmbeddingModel, Model: {}", embeddingOptions.getModel());
-        
+
         OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
                 .model(embeddingOptions.getModel())
                 .build();
-        
-        return new OpenAiEmbeddingModel(nebulaOpenAiApi, MetadataMode.EMBED, options, RetryUtils.DEFAULT_RETRY_TEMPLATE);
+
+        return new OpenAiEmbeddingModel(nebulaOpenAiApi, MetadataMode.EMBED, options,
+                RetryUtils.DEFAULT_RETRY_TEMPLATE);
     }
-    
+
     /**
      * 配置 OllamaApi
      * 基于 Nebula 配置创建 OllamaApi Bean
@@ -167,11 +170,11 @@ public class AIAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.ai.ollama", name = "base-url")
     public OllamaApi nebulaOllamaApi(AIProperties aiProperties, RestClient.Builder restClientBuilder) {
         AIProperties.OllamaProperties ollamaConfig = aiProperties.getOllama();
-        
+
         log.info("配置 OllamaApi, Base URL: {}", ollamaConfig.getBaseUrl());
         log.info("- 读取超时: {}", ollamaConfig.getTimeout().getRead());
         log.info("- 连接超时: {}", ollamaConfig.getTimeout().getConnect());
-        
+
         // 使用自定义的RestClient.Builder（带HTTP日志拦截器）
         // Spring AI 1.0.3的OllamaApi.builder()支持restClientBuilder()方法
         return OllamaApi.builder()
@@ -179,7 +182,7 @@ public class AIAutoConfiguration {
                 .restClientBuilder(restClientBuilder)
                 .build();
     }
-    
+
     /**
      * 配置 Ollama EmbeddingModel
      * 基于 Nebula 配置创建 EmbeddingModel Bean
@@ -190,18 +193,18 @@ public class AIAutoConfiguration {
     @ConditionalOnMissingBean(name = "nebulaOllamaEmbeddingModel")
     @ConditionalOnProperty(prefix = "nebula.ai.ollama.embedding", name = "enabled", havingValue = "true", matchIfMissing = true)
     public EmbeddingModel nebulaOllamaEmbeddingModel(
-            OllamaApi nebulaOllamaApi, 
+            OllamaApi nebulaOllamaApi,
             AIProperties aiProperties) {
         AIProperties.OllamaProperties ollamaConfig = aiProperties.getOllama();
         AIProperties.OllamaEmbeddingOptions embeddingOptions = ollamaConfig.getEmbedding().getOptions();
-        
+
         log.info("配置 Ollama EmbeddingModel, Model: {}", embeddingOptions.getModel());
-        
+
         // Spring AI 1.1.0 使用 OllamaEmbeddingOptions
         OllamaEmbeddingOptions options = OllamaEmbeddingOptions.builder()
                 .model(embeddingOptions.getModel())
                 .build();
-        
+
         // Spring AI 1.1.0 使用 Builder 模式
         return OllamaEmbeddingModel.builder()
                 .ollamaApi(nebulaOllamaApi)
@@ -209,7 +212,6 @@ public class AIAutoConfiguration {
                 .build();
     }
 
-    
     /**
      * 配置 ChromaApi
      * 基于 Nebula 配置创建 ChromaApi Bean
@@ -221,35 +223,35 @@ public class AIAutoConfiguration {
     public ChromaApi nebulaChromaApi(RestClient.Builder builder, ObjectMapper objectMapper, AIProperties aiProperties) {
         AIProperties.ChromaProperties chromaConfig = aiProperties.getVectorStore().getChroma();
         String chromaUrl = chromaConfig.getUrl();
-        
-        log.info("配置 ChromaApi, URL: {}, Collection: {}, InitializeSchema: {}", 
+
+        log.info("配置 ChromaApi, URL: {}, Collection: {}, InitializeSchema: {}",
                 chromaUrl, chromaConfig.getCollectionName(), chromaConfig.isInitializeSchema());
-        
+
         return new ChromaApi(chromaUrl, builder, objectMapper);
     }
-    
+
     /**
      * 配置 ChromaVectorStore
      * 基于 Nebula 配置创建 ChromaVectorStore Bean
      */
     @Bean("nebulaChromaVectorStore")
     @Primary
-    @ConditionalOnClass({ChromaVectorStore.class, ChromaApi.class})
+    @ConditionalOnClass({ ChromaVectorStore.class, ChromaApi.class })
     @ConditionalOnMissingBean(name = "nebulaChromaVectorStore")
-    public VectorStore nebulaChromaVectorStore(ChromaApi nebulaChromaApi, EmbeddingModel embeddingModel, AIProperties aiProperties) {
+    public VectorStore nebulaChromaVectorStore(ChromaApi nebulaChromaApi, EmbeddingModel embeddingModel,
+            AIProperties aiProperties) {
         AIProperties.ChromaProperties chromaConfig = aiProperties.getVectorStore().getChroma();
-        
-        log.info("配置 CustomChromaVectorStore, Collection: {}, InitializeSchema: {}", 
+
+        log.info("配置 CustomChromaVectorStore, Collection: {}, InitializeSchema: {}",
                 chromaConfig.getCollectionName(), chromaConfig.isInitializeSchema());
         log.info("注入的 EmbeddingModel 类型: {}", embeddingModel.getClass().getName());
-        
+
         // 使用自定义实现绕过JSON解析兼容性问题
         return new CustomChromaVectorStore(
                 nebulaChromaApi,
                 embeddingModel,
                 chromaConfig.getCollectionName(),
-                chromaConfig.isInitializeSchema()
-        );
+                chromaConfig.isInitializeSchema());
     }
 
     /**
@@ -281,10 +283,10 @@ public class AIAutoConfiguration {
     @ConditionalOnClass(VectorStore.class)
     @ConditionalOnMissingBean(VectorStoreService.class)
     public VectorStoreService vectorStoreService(
-            VectorStore vectorStore, 
+            VectorStore vectorStore,
             EmbeddingService embeddingService,
             io.nebula.ai.spring.config.VectorStoreProperties properties) {
-        log.info("配置 Nebula VectorStoreService - 批处理: {}, 重试: {}", 
+        log.info("配置 Nebula VectorStoreService - 批处理: {}, 重试: {}",
                 properties.isBatchingEnabled(), properties.isRetryEnabled());
         return new SpringAIVectorStoreService(vectorStore, embeddingService, properties);
     }
@@ -310,5 +312,39 @@ public class AIAutoConfiguration {
         log.info("配置 Nebula McpClientService");
         return new SpringAIMcpClientService(aiProperties.getMcp().getClient());
     }
-}
 
+    /**
+     * 组件摘要: AI
+     */
+    @Bean
+    NebulaComponentSummary aiSummary(AIProperties aiProperties) {
+        var details = new java.util.LinkedHashMap<String, String>();
+
+        // Chat
+        details.put("Chat Provider", aiProperties.getChat().getDefaultProvider());
+
+        // OpenAI Specific
+        var openai = aiProperties.getOpenai();
+        if (openai != null) {
+            if (openai.getBaseUrl() != null) {
+                details.put("OpenAI URL", openai.getBaseUrl());
+            }
+            if (openai.getChat() != null && openai.getChat().getOptions() != null) {
+                details.put("Chat Model", openai.getChat().getOptions().getModel());
+            }
+            if (openai.getEmbedding() != null && openai.getEmbedding().getOptions() != null) {
+                details.put("Embedding Model", openai.getEmbedding().getOptions().getModel());
+            }
+        }
+
+        // Vector Store
+        details.put("Vector Store", aiProperties.getVectorStore().getDefaultProvider());
+        if ("chroma".equalsIgnoreCase(aiProperties.getVectorStore().getDefaultProvider())) {
+            var chroma = aiProperties.getVectorStore().getChroma();
+            details.put("Chroma Host", chroma.getHost() + ":" + chroma.getPort());
+            details.put("Collection", chroma.getCollectionName());
+        }
+
+        return new SimpleComponentSummary("AI", "Spring AI", true, 900, details);
+    }
+}

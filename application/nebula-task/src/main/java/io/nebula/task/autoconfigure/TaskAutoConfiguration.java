@@ -3,6 +3,8 @@ package io.nebula.task.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.task.core.TaskExecutor;
 import io.nebula.task.core.TaskHandler;
 import io.nebula.task.execution.TaskEngine;
@@ -28,13 +30,13 @@ import java.util.Map;
  */
 @Slf4j
 @AutoConfiguration
-@EnableConfigurationProperties({TaskProperties.class})
+@EnableConfigurationProperties({ TaskProperties.class })
 @ConditionalOnProperty(prefix = "nebula.task", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class TaskAutoConfiguration {
-    
+
     @Autowired
     private TaskProperties taskProperties;
-    
+
     /**
      * 任务注册器
      */
@@ -43,7 +45,7 @@ public class TaskAutoConfiguration {
     public TaskRegistry taskRegistry() {
         return new TaskRegistry();
     }
-    
+
     /**
      * 任务执行引擎
      */
@@ -52,7 +54,7 @@ public class TaskAutoConfiguration {
     public TaskEngine taskEngine() {
         return new TaskEngine();
     }
-    
+
     /**
      * ObjectMapper
      */
@@ -64,8 +66,7 @@ public class TaskAutoConfiguration {
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         return mapper;
     }
-    
-    
+
     /**
      * 任务执行器注册监听器
      */
@@ -73,31 +74,31 @@ public class TaskAutoConfiguration {
     public TaskExecutorRegistryListener taskExecutorRegistryListener() {
         return new TaskExecutorRegistryListener();
     }
-    
+
     /**
      * 任务执行器注册监听器实现
      */
     @Slf4j
     static class TaskExecutorRegistryListener implements ApplicationListener<ContextRefreshedEvent> {
-        
+
         @Autowired
         private TaskRegistry taskRegistry;
-        
+
         @Autowired(required = false)
         private XxlJobRegistryService xxlJobRegistryService;
-        
+
         @Override
         public void onApplicationEvent(ContextRefreshedEvent event) {
             ApplicationContext applicationContext = event.getApplicationContext();
-            
+
             // 自动注册所有 TaskExecutor Bean
             Map<String, TaskExecutor> executors = applicationContext.getBeansOfType(TaskExecutor.class);
             log.info("发现 {} 个任务执行器", executors.size());
-            
+
             for (Map.Entry<String, TaskExecutor> entry : executors.entrySet()) {
                 String beanName = entry.getKey();
                 TaskExecutor executor = entry.getValue();
-                
+
                 try {
                     taskRegistry.registerExecutor(executor);
                     log.info("注册任务执行器: {} -> {}", beanName, executor.getExecutorName());
@@ -105,20 +106,20 @@ public class TaskAutoConfiguration {
                     log.error("注册任务执行器失败: {} -> {}", beanName, executor.getExecutorName(), e);
                 }
             }
-            
+
             // 自动注册带有 @TaskHandler 注解的 Bean
             Map<String, Object> handlerBeans = applicationContext.getBeansWithAnnotation(TaskHandler.class);
             log.info("发现 {} 个任务处理器", handlerBeans.size());
-            
+
             for (Map.Entry<String, Object> entry : handlerBeans.entrySet()) {
                 String beanName = entry.getKey();
                 Object handler = entry.getValue();
-                
+
                 if (handler instanceof TaskExecutor) {
                     // 已经通过 TaskExecutor 接口注册了
                     continue;
                 }
-                
+
                 try {
                     // 为非 TaskExecutor 的处理器创建适配器
                     TaskExecutor executor = createExecutorAdapter(handler);
@@ -130,15 +131,15 @@ public class TaskAutoConfiguration {
                     log.error("注册任务处理器失败: {}", beanName, e);
                 }
             }
-            
+
             // 启动 XXL-JOB 注册服务
             if (xxlJobRegistryService != null) {
                 xxlJobRegistryService.start();
             }
-            
+
             log.info("任务模块初始化完成，共注册 {} 个执行器", taskRegistry.getExecutorCount());
         }
-        
+
         /**
          * 为处理器创建执行器适配器
          */
@@ -147,15 +148,15 @@ public class TaskAutoConfiguration {
             if (annotation == null) {
                 return null;
             }
-            
+
             String handlerName = getHandlerName(annotation, handler.getClass());
-            
+
             // 这里可以根据需要创建不同类型的适配器
             // 目前先返回 null，表示不支持
             log.warn("暂不支持为非 TaskExecutor 类型的处理器创建适配器: {}", handlerName);
             return null;
         }
-        
+
         /**
          * 获取处理器名称
          */
@@ -169,7 +170,7 @@ public class TaskAutoConfiguration {
             }
             return name;
         }
-        
+
         /**
          * 应用关闭时的清理工作
          */
@@ -180,5 +181,30 @@ public class TaskAutoConfiguration {
             }
             log.info("任务模块已关闭");
         }
+    }
+
+    /**
+     * 组件摘要: 任务
+     */
+    @Bean
+    NebulaComponentSummary taskSummary() {
+        var details = new java.util.LinkedHashMap<String, String>();
+
+        // Executor
+        details.put("Pool Size",
+                taskProperties.getExecutor().getCorePoolSize() + "-" + taskProperties.getExecutor().getMaxPoolSize());
+        details.put("Queue Capacity", String.valueOf(taskProperties.getExecutor().getQueueCapacity()));
+
+        // XXL-JOB
+        if (taskProperties.getXxlJob() != null && taskProperties.getXxlJob().isEnabled()) {
+            details.put("XXL-JOB", "ENABLED");
+            details.put("Admin Addr", taskProperties.getXxlJob().getAdminAddresses());
+            details.put("Executor Port", String.valueOf(taskProperties.getXxlJob().getExecutorPort()));
+            details.put("App Name", taskProperties.getXxlJob().getExecutorName());
+        } else {
+            details.put("XXL-JOB", "DISABLED");
+        }
+
+        return new SimpleComponentSummary("Application", "Task", true, 1010, details);
     }
 }

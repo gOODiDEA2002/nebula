@@ -3,6 +3,8 @@ package io.nebula.autoconfigure.discovery;
 import io.nebula.discovery.core.ServiceDiscovery;
 import io.nebula.discovery.nacos.NacosServiceAutoRegistrar;
 import io.nebula.discovery.nacos.NacosServiceDiscovery;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.discovery.nacos.config.NacosProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -22,52 +24,75 @@ import org.springframework.core.env.Environment;
  */
 @Slf4j
 @AutoConfiguration
-@ConditionalOnClass({ServiceDiscovery.class, NacosServiceDiscovery.class})
+@ConditionalOnClass({ ServiceDiscovery.class, NacosServiceDiscovery.class })
 @ConditionalOnProperty(prefix = "nebula.discovery.nacos", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class NacosDiscoveryAutoConfiguration {
-    
-    /**
-     * 创建 NacosServiceDiscovery Bean
-     * 使用Binder手动绑定属性，避免@ConfigurationProperties绑定时机问题
-     * 
-     * @param environment Spring环境
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public NacosServiceDiscovery nacosServiceDiscovery(Environment environment) {
-        log.info("创建 NacosServiceDiscovery Bean");
-        
-        // 使用 Binder 手动绑定属性
-        NacosProperties nacosProperties = Binder.get(environment)
-            .bind("nebula.discovery.nacos", NacosProperties.class)
-            .orElseGet(NacosProperties::new);
-        
-        log.info("  - serverAddr: {}", nacosProperties.getServerAddr());
-        log.info("  - namespace: {}", nacosProperties.getNamespace());
-        log.info("  - username: {}", nacosProperties.getUsername());
-        log.info("  - password: {}", nacosProperties.getPassword() != null && !nacosProperties.getPassword().isEmpty() ? "****" : "null");
-        log.info("  - groupName: {}", nacosProperties.getGroupName());
-        log.info("  - clusterName: {}", nacosProperties.getClusterName());
-        log.info("  - autoRegister: {}", nacosProperties.isAutoRegister());
-        
-        return new NacosServiceDiscovery(nacosProperties);
-    }
-    
-    /**
-     * 创建 Nacos 服务自动注册器 Bean
-     */
-    @Bean
-    @ConditionalOnProperty(prefix = "nebula.discovery.nacos", name = "auto-register", havingValue = "true", matchIfMissing = true)
-    public NacosServiceAutoRegistrar nacosServiceAutoRegistrar(ServiceDiscovery serviceDiscovery,
-                                                              Environment environment) {
-        log.info("配置 Nacos 服务自动注册器");
-        
-        // 使用 Binder 手动绑定属性
-        NacosProperties nacosProperties = Binder.get(environment)
-            .bind("nebula.discovery.nacos", NacosProperties.class)
-            .orElseGet(NacosProperties::new);
-        
-        return new NacosServiceAutoRegistrar(serviceDiscovery, nacosProperties, environment);
-    }
-}
 
+        /**
+         * 创建 NacosServiceDiscovery Bean
+         * 使用Binder手动绑定属性，避免@ConfigurationProperties绑定时机问题
+         * 
+         * @param environment Spring环境
+         */
+        @Bean
+        @ConditionalOnMissingBean
+        public NacosServiceDiscovery nacosServiceDiscovery(Environment environment) {
+                log.info("创建 NacosServiceDiscovery Bean");
+
+                // 使用 Binder 手动绑定属性
+                NacosProperties nacosProperties = Binder.get(environment)
+                                .bind("nebula.discovery.nacos", NacosProperties.class)
+                                .orElseGet(NacosProperties::new);
+
+                log.info("  - serverAddr: {}", nacosProperties.getServerAddr());
+                log.info("  - namespace: {}", nacosProperties.getNamespace());
+                log.info("  - username: {}", nacosProperties.getUsername());
+                log.info("  - password: {}",
+                                nacosProperties.getPassword() != null && !nacosProperties.getPassword().isEmpty()
+                                                ? "****"
+                                                : "null");
+                log.info("  - groupName: {}", nacosProperties.getGroupName());
+                log.info("  - clusterName: {}", nacosProperties.getClusterName());
+                log.info("  - autoRegister: {}", nacosProperties.isAutoRegister());
+
+                return new NacosServiceDiscovery(nacosProperties);
+        }
+
+        /**
+         * 创建 Nacos 服务自动注册器 Bean
+         */
+        @Bean
+        @ConditionalOnProperty(prefix = "nebula.discovery.nacos", name = "auto-register", havingValue = "true", matchIfMissing = true)
+        public NacosServiceAutoRegistrar nacosServiceAutoRegistrar(ServiceDiscovery serviceDiscovery,
+                        Environment environment) {
+                log.info("配置 Nacos 服务自动注册器");
+
+                // 使用 Binder 手动绑定属性
+                NacosProperties nacosProperties = Binder.get(environment)
+                                .bind("nebula.discovery.nacos", NacosProperties.class)
+                                .orElseGet(NacosProperties::new);
+
+                return new NacosServiceAutoRegistrar(serviceDiscovery, nacosProperties, environment);
+        }
+
+        /**
+         * 组件摘要: Nacos Discovery
+         */
+        @Bean
+        NebulaComponentSummary nacosSummary(Environment environment) {
+                // 使用 Binder 手动绑定属性以获取配置详情
+                NacosProperties props = Binder.get(environment)
+                                .bind("nebula.discovery.nacos", NacosProperties.class)
+                                .orElseGet(NacosProperties::new);
+
+                var details = new java.util.LinkedHashMap<String, String>();
+                details.put("Server Addr", props.getServerAddr());
+                details.put("Namespace", props.getNamespace().isEmpty() ? "public" : props.getNamespace());
+                details.put("Group", props.getGroupName());
+                details.put("Cluster", props.getClusterName());
+                details.put("Weight", String.valueOf(props.getWeight()));
+                details.put("Heartbeat", props.getHeartbeatInterval() + "ms");
+                details.put("Auto Register", String.valueOf(props.isAutoRegister()));
+                return new SimpleComponentSummary("Service Discovery", "Nacos", true, 100, details);
+        }
+}

@@ -2,6 +2,8 @@ package io.nebula.autoconfigure.data;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.annotation.IdType;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -217,5 +219,22 @@ public class DataPersistenceAutoConfiguration {
     public DefaultMetaObjectHandler defaultMetaObjectHandler() {
         log.info("配置默认元数据处理器");
         return new DefaultMetaObjectHandler();
+    }
+
+    /**
+     * 组件摘要: 数据持久层
+     */
+    @Bean
+    NebulaComponentSummary persistenceSummary() {
+        var details = new java.util.LinkedHashMap<String, String>();
+        if (mybatisPlusProperties != null) {
+            details.put("ID Type", mybatisPlusProperties.getGlobalConfig().getDbConfig().getIdType());
+            details.put("Logic Delete", mybatisPlusProperties.getGlobalConfig().getDbConfig().getLogicDeleteField());
+            details.put("Table Underline",
+                    String.valueOf(mybatisPlusProperties.getGlobalConfig().getDbConfig().isTableUnderline()));
+            details.put("Mapper Locations", mybatisPlusProperties.getMapperLocations());
+            details.put("Log Impl", mybatisPlusProperties.getLogImpl());
+        }
+        return new SimpleComponentSummary("Data", "Persistence", true, 300, details);
     }
 }

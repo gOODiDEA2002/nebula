@@ -1,6 +1,8 @@
 package io.nebula.autoconfigure.search;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.search.core.SearchService;
 import io.nebula.search.elasticsearch.config.ElasticsearchProperties;
 import io.nebula.search.elasticsearch.service.ElasticsearchSearchService;
@@ -47,7 +49,7 @@ import java.util.List;
  * @author nebula
  */
 @AutoConfiguration(after = ElasticsearchDataAutoConfiguration.class)
-@ConditionalOnClass({ElasticsearchClient.class, ElasticsearchOperations.class})
+@ConditionalOnClass({ ElasticsearchClient.class, ElasticsearchOperations.class })
 @ConditionalOnProperty(prefix = "nebula.search.elasticsearch", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(ElasticsearchProperties.class)
 public class ElasticsearchAutoConfiguration {
@@ -68,22 +70,21 @@ public class ElasticsearchAutoConfiguration {
     public RestClient elasticsearchRestClient() {
         try {
             logger.info("Configuring Elasticsearch client with uris: {}", properties.getUris());
-            
+
             List<HttpHost> hosts = properties.getUris().stream()
-                .map(uri -> {
-                    try {
-                        java.net.URI parsedUri = java.net.URI.create(uri);
-                        return new HttpHost(
-                            parsedUri.getHost(),
-                            parsedUri.getPort() != -1 ? parsedUri.getPort() : 9200,
-                            parsedUri.getScheme()
-                        );
-                    } catch (Exception e) {
-                        logger.warn("Invalid Elasticsearch URI: {}, using localhost:9200", uri);
-                        return new HttpHost("localhost", 9200, "http");
-                    }
-                })
-                .toList();
+                    .map(uri -> {
+                        try {
+                            java.net.URI parsedUri = java.net.URI.create(uri);
+                            return new HttpHost(
+                                    parsedUri.getHost(),
+                                    parsedUri.getPort() != -1 ? parsedUri.getPort() : 9200,
+                                    parsedUri.getScheme());
+                        } catch (Exception e) {
+                            logger.warn("Invalid Elasticsearch URI: {}, using localhost:9200", uri);
+                            return new HttpHost("localhost", 9200, "http");
+                        }
+                    })
+                    .toList();
 
             RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[0]));
 
@@ -91,28 +92,22 @@ public class ElasticsearchAutoConfiguration {
             if (properties.getUsername() != null && properties.getPassword() != null) {
                 CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 credentialsProvider.setCredentials(
-                    AuthScope.ANY,
-                    new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword())
-                );
-                
-                builder.setHttpClientConfigCallback(httpClientBuilder ->
-                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
-                );
+                        AuthScope.ANY,
+                        new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword()));
+
+                builder.setHttpClientConfigCallback(
+                        httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
             }
 
             // 配置连接
-            builder.setRequestConfigCallback(requestConfigBuilder ->
-                requestConfigBuilder
+            builder.setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                     .setConnectTimeout((int) properties.getConnectionTimeout().toMillis())
-                    .setSocketTimeout((int) properties.getReadTimeout().toMillis())
-            );
+                    .setSocketTimeout((int) properties.getReadTimeout().toMillis()));
 
             // 配置连接池
-            builder.setHttpClientConfigCallback(httpClientBuilder ->
-                httpClientBuilder
+            builder.setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder
                     .setMaxConnTotal(properties.getMaxConnections())
-                    .setMaxConnPerRoute(properties.getMaxConnectionsPerRoute())
-            );
+                    .setMaxConnPerRoute(properties.getMaxConnectionsPerRoute()));
 
             // 配置 SSL
             if (properties.isSslEnabled()) {
@@ -130,7 +125,7 @@ public class ElasticsearchAutoConfiguration {
             RestClient client = builder.build();
             logger.info("Elasticsearch REST client configured successfully");
             return client;
-            
+
         } catch (Exception e) {
             logger.error("Failed to configure Elasticsearch client", e);
             throw new RuntimeException("Failed to configure Elasticsearch client", e);
@@ -157,7 +152,7 @@ public class ElasticsearchAutoConfiguration {
     @Primary
     @ConditionalOnMissingBean(SearchService.class)
     public SearchService searchService(ElasticsearchClient elasticsearchClient,
-                                       ElasticsearchOperations elasticsearchOperations) {
+            ElasticsearchOperations elasticsearchOperations) {
         logger.info("Configuring Nebula Elasticsearch Search Service");
         return new ElasticsearchSearchService(elasticsearchClient, elasticsearchOperations, properties);
     }
@@ -193,9 +188,25 @@ public class ElasticsearchAutoConfiguration {
             // 这里需要根据具体的证书格式实现
             // 由于证书格式可能多样，这里提供基础框架
             logger.warn("Client certificate configuration not fully implemented. " +
-                       "Please implement based on your certificate format.");
+                    "Please implement based on your certificate format.");
         }
 
         return sslContextBuilder.build();
+    }
+
+    /**
+     * 组件摘要: Elasticsearch
+     */
+    @Bean
+    NebulaComponentSummary elasticsearchSummary() {
+        var details = new java.util.LinkedHashMap<String, String>();
+        details.put("URIs", String.join(", ", properties.getUris()));
+        details.put("Index Prefix", properties.getIndexPrefix());
+        details.put("Shards", String.valueOf(properties.getDefaultShards()));
+        details.put("Replicas", String.valueOf(properties.getDefaultReplicas()));
+        details.put("Max Connections", String.valueOf(properties.getMaxConnections()));
+        details.put("Connect Timeout", properties.getConnectionTimeout().toString());
+        details.put("SSL Enabled", String.valueOf(properties.isSslEnabled()));
+        return new SimpleComponentSummary("Search", "Elasticsearch", true, 400, details);
     }
 }

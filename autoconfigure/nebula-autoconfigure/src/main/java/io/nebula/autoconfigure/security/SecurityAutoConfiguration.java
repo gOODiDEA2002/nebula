@@ -1,5 +1,7 @@
 package io.nebula.autoconfigure.security;
 
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.security.authorization.SecurityAspect;
 import io.nebula.security.config.SecurityProperties;
 import io.nebula.security.jwt.DefaultJwtService;
@@ -25,14 +27,14 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @Slf4j
 @AutoConfiguration
 @ConditionalOnClass(name = {
-    "io.nebula.security.jwt.JwtService",
-    "io.nebula.security.config.SecurityProperties"
+        "io.nebula.security.jwt.JwtService",
+        "io.nebula.security.config.SecurityProperties"
 })
 @ConditionalOnProperty(prefix = "nebula.security", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(SecurityProperties.class)
 @EnableAspectJAutoProxy
 public class SecurityAutoConfiguration {
-    
+
     /**
      * 配置安全注解切面
      */
@@ -42,7 +44,7 @@ public class SecurityAutoConfiguration {
         log.info("初始化Security注解切面");
         return new SecurityAspect();
     }
-    
+
     /**
      * 配置JWT服务
      * 
@@ -55,5 +57,25 @@ public class SecurityAutoConfiguration {
         log.info("初始化JWT服务");
         return new DefaultJwtService(properties);
     }
-}
 
+    /**
+     * 组件摘要: 安全
+     */
+    @Bean
+    NebulaComponentSummary securitySummary(SecurityProperties properties) {
+        var details = new java.util.LinkedHashMap<String, String>();
+
+        // JWT
+        boolean jwtEnabled = properties.getJwt().isEnabled();
+        details.put("JWT", jwtEnabled ? "ENABLED" : "DISABLED");
+        if (jwtEnabled) {
+            details.put("Token Prefix", properties.getJwt().getTokenPrefix());
+            details.put("Header", properties.getJwt().getHeaderName());
+        }
+
+        // RBAC
+        details.put("RBAC", properties.getRbac().isEnabled() ? "ENABLED" : "DISABLED");
+
+        return new SimpleComponentSummary("Security", "Security", true, 700, details);
+    }
+}

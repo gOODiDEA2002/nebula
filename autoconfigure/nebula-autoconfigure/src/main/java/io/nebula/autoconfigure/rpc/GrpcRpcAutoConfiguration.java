@@ -1,6 +1,8 @@
 package io.nebula.autoconfigure.rpc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.rpc.grpc.client.GrpcRpcClient;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
 import io.nebula.rpc.grpc.server.GrpcRpcServer;
@@ -23,8 +25,8 @@ import org.springframework.context.annotation.Primary;
  */
 @Slf4j
 @AutoConfiguration
-@AutoConfigureBefore(RpcDiscoveryAutoConfiguration.class)  // 关键：确保 grpcRpcClient 先创建
-@ConditionalOnClass(name = {"io.nebula.rpc.grpc.client.GrpcRpcClient", "io.nebula.rpc.grpc.config.GrpcRpcProperties"})
+@AutoConfigureBefore(RpcDiscoveryAutoConfiguration.class) // 关键：确保 grpcRpcClient 先创建
+@ConditionalOnClass(name = { "io.nebula.rpc.grpc.client.GrpcRpcClient", "io.nebula.rpc.grpc.config.GrpcRpcProperties" })
 @EnableConfigurationProperties(GrpcRpcProperties.class)
 @ConditionalOnProperty(prefix = "nebula.rpc.grpc", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class GrpcRpcAutoConfiguration {
@@ -45,12 +47,33 @@ public class GrpcRpcAutoConfiguration {
      * 标记为 @Primary，优先使用 gRPC（如果启用）
      */
     @Bean(name = "grpcRpcClient")
-    @Primary  // 如果 gRPC 启用，优先使用它
+    @Primary // 如果 gRPC 启用，优先使用它
     @ConditionalOnMissingBean(name = "grpcRpcClient")
     @ConditionalOnProperty(prefix = "nebula.rpc.grpc.client", name = "enabled", havingValue = "true", matchIfMissing = true)
     public GrpcRpcClient grpcRpcClient(ObjectMapper objectMapper, GrpcRpcProperties properties) {
         log.info("配置 gRPC RPC 客户端: target={}", properties.getClient().getTarget());
         return new GrpcRpcClient(objectMapper, properties.getClient());
     }
-}
 
+    /**
+     * 组件摘要: gRPC RPC
+     */
+    @Bean
+    NebulaComponentSummary grpcRpcSummary(GrpcRpcProperties properties) {
+        var details = new java.util.LinkedHashMap<String, String>();
+
+        // Server
+        details.put("Server Port", String.valueOf(properties.getServer().getPort()));
+        details.put("Max Concurrent", String.valueOf(properties.getServer().getMaxConcurrentCalls()));
+        details.put("KeepAlive Time", properties.getServer().getKeepAliveTime() + "s");
+
+        // Client
+        details.put("Target", properties.getClient().getTarget());
+        details.put("Negotiation", properties.getClient().getNegotiationType());
+        details.put("Load Balancing", properties.getClient().getLoadBalancingPolicy());
+        details.put("Connect Timeout", properties.getClient().getConnectTimeout() + "ms");
+        details.put("Request Timeout", properties.getClient().getRequestTimeout() + "ms");
+
+        return new SimpleComponentSummary("RPC", "gRPC RPC", true, 210, details);
+    }
+}

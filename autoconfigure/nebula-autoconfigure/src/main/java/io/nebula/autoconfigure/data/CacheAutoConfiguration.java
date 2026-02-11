@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.nebula.core.common.diagnostic.NebulaComponentSummary;
+import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.data.cache.config.CacheProperties;
 import io.nebula.data.cache.manager.CacheManager;
 import io.nebula.data.cache.manager.MultiLevelCacheConfig;
@@ -46,7 +48,7 @@ import java.time.Duration;
 @ConditionalOnProperty(prefix = "nebula.data.cache", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(CacheProperties.class)
 public class CacheAutoConfiguration {
-    
+
     /**
      * Redis连接工厂配置
      */
@@ -56,9 +58,9 @@ public class CacheAutoConfiguration {
     @ConditionalOnMissingBean(RedisConnectionFactory.class)
     public RedisConnectionFactory redisConnectionFactory(CacheProperties properties) {
         log.info("Configuring Redis Connection Factory");
-        
+
         CacheProperties.RedisCache redisConfig = properties.getRedis();
-        
+
         // Redis单机配置
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(redisConfig.getHost());
@@ -67,7 +69,7 @@ public class CacheAutoConfiguration {
         if (redisConfig.getPassword() != null) {
             config.setPassword(redisConfig.getPassword());
         }
-        
+
         // Lettuce连接池配置
         @SuppressWarnings("unchecked")
         GenericObjectPoolConfig<Object> poolConfig = new GenericObjectPoolConfig<>();
@@ -75,21 +77,21 @@ public class CacheAutoConfiguration {
         poolConfig.setMaxIdle(redisConfig.getPool().getMaxIdle());
         poolConfig.setMinIdle(redisConfig.getPool().getMinIdle());
         poolConfig.setMaxWait(redisConfig.getPool().getMaxWait());
-        
-        LettucePoolingClientConfiguration.LettucePoolingClientConfigurationBuilder builder = 
-                LettucePoolingClientConfiguration.builder()
-                        .commandTimeout(redisConfig.getTimeout())
-                        .poolConfig((GenericObjectPoolConfig) poolConfig);
-        
+
+        LettucePoolingClientConfiguration.LettucePoolingClientConfigurationBuilder builder = LettucePoolingClientConfiguration
+                .builder()
+                .commandTimeout(redisConfig.getTimeout())
+                .poolConfig((GenericObjectPoolConfig) poolConfig);
+
         if (redisConfig.getPool().getConnectTimeout() != null) {
             builder.commandTimeout(redisConfig.getPool().getConnectTimeout());
         }
-        
+
         LettucePoolingClientConfiguration clientConfig = builder.build();
-        
+
         return new LettuceConnectionFactory(config, clientConfig);
     }
-    
+
     /**
      * Redis连接工厂配置（多级缓存）
      */
@@ -100,7 +102,7 @@ public class CacheAutoConfiguration {
     public RedisConnectionFactory multiLevelRedisConnectionFactory(CacheProperties properties) {
         return redisConnectionFactory(properties);
     }
-    
+
     /**
      * RedisTemplate配置
      */
@@ -110,14 +112,14 @@ public class CacheAutoConfiguration {
     @ConditionalOnMissingBean(name = "redisTemplate")
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
         log.info("Configuring RedisTemplate with JSR310 support");
-        
+
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory);
-        
+
         // 设置key序列化器
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
-        
+
         // 创建支持 Java 8 日期时间类型并启用类型信息的 ObjectMapper
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
@@ -126,18 +128,17 @@ public class CacheAutoConfiguration {
                 BasicPolymorphicTypeValidator.builder()
                         .allowIfBaseType(Object.class)
                         .build(),
-                ObjectMapper.DefaultTyping.NON_FINAL
-        );
-        
+                ObjectMapper.DefaultTyping.NON_FINAL);
+
         // 设置value序列化器（支持 LocalDateTime 等 Java 8 时间类型，保留类型信息）
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);
-        
+
         template.afterPropertiesSet();
         return template;
     }
-    
+
     /**
      * RedisTemplate配置（多级缓存）
      */
@@ -148,7 +149,7 @@ public class CacheAutoConfiguration {
     public RedisTemplate<String, Object> multiLevelRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
         return redisTemplate(redisConnectionFactory);
     }
-    
+
     /**
      * StringRedisTemplate 配置
      * 用于简单的字符串操作场景（如验证码存储、计数器等）
@@ -164,7 +165,7 @@ public class CacheAutoConfiguration {
         template.afterPropertiesSet();
         return template;
     }
-    
+
     /**
      * 本地缓存管理器
      */
@@ -174,20 +175,19 @@ public class CacheAutoConfiguration {
     @ConditionalOnMissingBean(name = "localCacheManager")
     public CacheManager localCacheManager(CacheProperties properties) {
         log.info("Configuring Local Cache Manager");
-        
+
         CacheProperties.LocalCache localConfig = properties.getLocal();
-        
+
         LocalCacheManager.LocalCacheConfig config = new LocalCacheManager.LocalCacheConfig(
                 localConfig.getMaxSize(),
                 localConfig.getInitialCapacity(),
                 localConfig.getExpireAfterWrite(),
                 localConfig.getCleanupInterval(),
-                convertEvictionPolicy(localConfig.getEvictionPolicy())
-        );
-        
+                convertEvictionPolicy(localConfig.getEvictionPolicy()));
+
         return new LocalCacheManager(config);
     }
-    
+
     /**
      * Redis缓存管理器
      */
@@ -200,7 +200,7 @@ public class CacheAutoConfiguration {
         log.info("Configuring Redis Cache Manager");
         return new DefaultCacheManager(redisTemplate);
     }
-    
+
     /**
      * 多级缓存管理器
      */
@@ -212,9 +212,9 @@ public class CacheAutoConfiguration {
     public CacheManager multiLevelCacheManager(
             CacheProperties properties,
             RedisTemplate<String, Object> redisTemplate) {
-        
+
         log.info("Configuring Multi-Level Cache Manager");
-        
+
         // 创建L1本地缓存
         CacheProperties.LocalCache localConfig = properties.getLocal();
         LocalCacheManager.LocalCacheConfig l1Config = new LocalCacheManager.LocalCacheConfig(
@@ -222,13 +222,12 @@ public class CacheAutoConfiguration {
                 localConfig.getInitialCapacity(),
                 localConfig.getExpireAfterWrite(),
                 localConfig.getCleanupInterval(),
-                convertEvictionPolicy(localConfig.getEvictionPolicy())
-        );
+                convertEvictionPolicy(localConfig.getEvictionPolicy()));
         CacheManager l1Cache = new LocalCacheManager(l1Config);
-        
+
         // 创建L2远程缓存
         CacheManager l2Cache = new DefaultCacheManager(redisTemplate);
-        
+
         // 创建多级缓存配置
         CacheProperties.MultiLevel multiConfig = properties.getMultiLevel();
         MultiLevelCacheConfig config = MultiLevelCacheConfig.builder()
@@ -244,32 +243,31 @@ public class CacheAutoConfiguration {
                 .l1MaxSize(multiConfig.getL1MaxSize())
                 .syncEnabled(multiConfig.isSyncOnUpdate())
                 .build();
-        
+
         return new MultiLevelCacheManager(l1Cache, l2Cache, config);
     }
-    
+
     /**
      * 默认缓存管理器（当没有其他缓存管理器时使用本地缓存）
      */
     @Bean("defaultCacheManager")
     @Primary
-    @ConditionalOnMissingBean(name = {"localCacheManager", "redisCacheManager", "multiLevelCacheManager"})
+    @ConditionalOnMissingBean(name = { "localCacheManager", "redisCacheManager", "multiLevelCacheManager" })
     public CacheManager defaultCacheManager(CacheProperties properties) {
         log.info("Configuring Default Cache Manager (Local Cache - Fallback)");
-        
+
         CacheProperties.LocalCache localConfig = properties.getLocal();
-        
+
         LocalCacheManager.LocalCacheConfig config = new LocalCacheManager.LocalCacheConfig(
                 localConfig.getMaxSize(),
                 localConfig.getInitialCapacity(),
                 localConfig.getExpireAfterWrite(),
                 localConfig.getCleanupInterval(),
-                convertEvictionPolicy(localConfig.getEvictionPolicy())
-        );
-        
+                convertEvictionPolicy(localConfig.getEvictionPolicy()));
+
         return new LocalCacheManager(config);
     }
-    
+
     /**
      * 多级缓存配置Bean
      */
@@ -278,7 +276,7 @@ public class CacheAutoConfiguration {
     @ConditionalOnMissingBean(MultiLevelCacheConfig.class)
     public MultiLevelCacheConfig multiLevelCacheConfig(CacheProperties properties) {
         CacheProperties.MultiLevel multiConfig = properties.getMultiLevel();
-        
+
         return MultiLevelCacheConfig.builder()
                 .l1ReadEnabled(multiConfig.isLocalCacheEnabled())
                 .l1WriteEnabled(multiConfig.isLocalCacheEnabled())
@@ -293,7 +291,7 @@ public class CacheAutoConfiguration {
                 .syncEnabled(multiConfig.isSyncOnUpdate())
                 .build();
     }
-    
+
     /**
      * 转换驱逐策略
      */
@@ -301,7 +299,7 @@ public class CacheAutoConfiguration {
         if (policy == null) {
             return LocalCacheManager.EvictionPolicy.LRU;
         }
-        
+
         switch (policy) {
             case LFU:
                 return LocalCacheManager.EvictionPolicy.LFU;
@@ -311,5 +309,30 @@ public class CacheAutoConfiguration {
             default:
                 return LocalCacheManager.EvictionPolicy.LRU;
         }
+    }
+
+    /**
+     * 组件摘要: 缓存
+     */
+    @Bean
+    NebulaComponentSummary cacheSummary(CacheProperties properties) {
+        var details = new java.util.LinkedHashMap<String, String>();
+        String type = properties.getType() != null ? properties.getType().name() : "local";
+        details.put("Type", type);
+
+        details.put("Default TTL", properties.getDefaultTtl().toString());
+        details.put("Default Max Size", String.valueOf(properties.getDefaultMaxSize()));
+
+        if ("REDIS".equalsIgnoreCase(type) || "MULTI_LEVEL".equalsIgnoreCase(type)) {
+            details.put("Redis Host", properties.getRedis().getHost() + ":" + properties.getRedis().getPort());
+            details.put("Serialization", properties.getRedis().getSerialization().name());
+        }
+
+        if ("MULTI_LEVEL".equalsIgnoreCase(type)) {
+            details.put("L1 Max Size", String.valueOf(properties.getMultiLevel().getL1MaxSize()));
+            details.put("Sync Update", String.valueOf(properties.getMultiLevel().isSyncOnUpdate()));
+        }
+
+        return new SimpleComponentSummary("Data", "Cache", true, 310, details);
     }
 }
