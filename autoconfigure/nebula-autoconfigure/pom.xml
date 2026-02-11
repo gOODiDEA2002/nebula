@@ -119,6 +119,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Data Neo4j (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-data-neo4j</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Messaging Core (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
