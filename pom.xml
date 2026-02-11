@@ -27,6 +27,7 @@
         <module>infrastructure/data/nebula-data-persistence</module>
         <!-- <module>infrastructure/data/nebula-data-mongodb</module> -->
         <module>infrastructure/data/nebula-data-cache</module>
+        <module>infrastructure/data/nebula-data-neo4j</module>
         
         <!-- 消息传递层 -->
         <module>infrastructure/messaging/nebula-messaging-core</module>

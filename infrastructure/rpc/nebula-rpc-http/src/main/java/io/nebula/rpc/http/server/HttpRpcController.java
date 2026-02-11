@@ -1,14 +1,17 @@
 package io.nebula.rpc.http.server;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.rpc.core.message.RpcRequest;
 import io.nebula.rpc.core.message.RpcResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 
 /**
  * HTTP RPC 控制器
@@ -33,7 +36,7 @@ public class HttpRpcController {
     /**
      * 处理RPC请求
      */
-    @PostMapping
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RpcResponse> handleRpcRequest(@RequestBody RpcRequest request) {
         log.debug("收到RPC请求: requestId={}, service={}, method={}",
                 request.getRequestId(), request.getServiceName(), request.getMethodName());
@@ -46,15 +49,15 @@ public class HttpRpcController {
                         .body(RpcResponse.error(request.getRequestId(), "服务未找到: " + request.getServiceName()));
             }
 
-            // 通过反射调用方法
+            // 通过反射调用方法（支持接口/实现类参数类型兼容匹配）
             Method method = findMethod(serviceImpl.getClass(), request.getMethodName(), request.getParameterTypes());
             if (method == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(RpcResponse.error(request.getRequestId(), "方法未找到: " + request.getMethodName()));
             }
 
-            // 使用方法声明的参数类型做转换（而非请求中传来的类型，避免接口/实现类型不匹配）
-            Object[] convertedParams = convertParameters(request.getParameters(), method.getParameterTypes());
+            // 使用方法的泛型参数类型做深度转换（处理 List<Dto> 等嵌套泛型场景）
+            Object[] convertedParams = convertParameters(request.getParameters(), method);
 
             // 执行方法
             Object result = method.invoke(serviceImpl, convertedParams);
@@ -65,19 +68,18 @@ public class HttpRpcController {
         } catch (Exception e) {
             log.error("RPC调用失败: requestId={}, service={}, method={}",
                     request.getRequestId(), request.getServiceName(), request.getMethodName(), e);
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(RpcResponse.error(request.getRequestId(), "RPC调用失败: " + e.getMessage()));
+                    .body(RpcResponse.error(request.getRequestId(), "RPC调用失败: " + cause.getMessage()));
         }
     }
 
     /**
-     * 查找方法
+     * 查找方法（三级 fallback 策略）
      * <p>
-     * 策略：
-     * 1. 精确匹配 - 使用 getMethod(name, parameterTypes) 查找
-     * 2. 兼容匹配 - 当客户端传来的参数类型是实现类（如 ArrayList）而方法声明使用接口（如 List）时，
-     *    通过方法名 + 参数数量 + isAssignableFrom 做 fallback 匹配
-     * 3. 名称匹配 - 当 parameterTypes 为 null 时，仅按方法名匹配（取唯一同名方法）
+     * 1. 精确匹配 - 使用 getMethod(name, parameterTypes)
+     * 2. 兼容匹配 - 方法名 + 参数数量 + isAssignableFrom（处理 ArrayList vs List 等）
+     * 3. 名称匹配 - 仅方法名 + 参数数量（parameterTypes 为 null 或反序列化丢失时）
      */
     private Method findMethod(Class<?> clazz, String methodName, Class<?>[] parameterTypes) {
         // 策略1: 精确匹配
@@ -85,88 +87,103 @@ public class HttpRpcController {
             try {
                 return clazz.getMethod(methodName, parameterTypes);
             } catch (NoSuchMethodException e) {
-                log.debug("精确匹配失败，尝试兼容匹配: method={}, parameterTypes={}", methodName, parameterTypes);
+                log.debug("精确匹配失败，尝试兼容匹配: method={}", methodName);
             }
         }
 
-        // 策略2/3: 遍历所有公开方法做兼容匹配
-        Method candidate = null;
-        int candidateCount = 0;
-        for (Method m : clazz.getMethods()) {
-            if (!m.getName().equals(methodName)) {
-                continue;
-            }
-            Class<?>[] declaredTypes = m.getParameterTypes();
+        int paramCount = parameterTypes != null ? parameterTypes.length : -1;
 
-            // 如果请求中没有 parameterTypes，按名称匹配
-            if (parameterTypes == null) {
-                candidate = m;
-                candidateCount++;
-                continue;
-            }
+        // 策略2: 兼容匹配（isAssignableFrom）
+        if (parameterTypes != null) {
+            for (Method m : clazz.getMethods()) {
+                if (!m.getName().equals(methodName)) continue;
+                Class<?>[] declaredTypes = m.getParameterTypes();
+                if (declaredTypes.length != paramCount) continue;
 
-            // 参数数量不同，跳过
-            if (declaredTypes.length != parameterTypes.length) {
-                continue;
-            }
-
-            // 检查每个参数类型是否兼容（请求类型 isAssignableFrom 声明类型，或反向兼容）
-            boolean compatible = true;
-            for (int i = 0; i < declaredTypes.length; i++) {
-                if (!declaredTypes[i].isAssignableFrom(parameterTypes[i])
-                        && !parameterTypes[i].isAssignableFrom(declaredTypes[i])) {
-                    compatible = false;
-                    break;
+                boolean compatible = true;
+                for (int i = 0; i < declaredTypes.length; i++) {
+                    if (!declaredTypes[i].isAssignableFrom(parameterTypes[i])
+                            && !parameterTypes[i].isAssignableFrom(declaredTypes[i])) {
+                        compatible = false;
+                        break;
+                    }
+                }
+                if (compatible) {
+                    log.debug("兼容匹配成功: method={}", methodName);
+                    return m;
                 }
             }
-            if (compatible) {
-                candidate = m;
-                candidateCount++;
-            }
         }
 
-        if (candidateCount == 1) {
-            log.debug("兼容匹配成功: method={}", methodName);
+        // 策略3: 名称 + 参数数量匹配（最宽松，处理 parameterTypes 为 null 的情况）
+        Method candidate = null;
+        int count = 0;
+        for (Method m : clazz.getMethods()) {
+            if (!m.getName().equals(methodName)) continue;
+            if (paramCount >= 0 && m.getParameterCount() != paramCount) continue;
+            candidate = m;
+            count++;
+        }
+
+        if (count == 1) {
+            log.debug("名称匹配成功: method={}", methodName);
             return candidate;
-        } else if (candidateCount > 1) {
-            log.warn("兼容匹配到多个方法，返回最后一个: method={}, count={}", methodName, candidateCount);
+        } else if (count > 1) {
+            log.warn("名称匹配到多个同名方法，返回最后一个: method={}, count={}", methodName, count);
             return candidate;
         }
 
-        log.debug("方法未找到: {}", methodName);
+        log.warn("方法未找到: class={}, method={}", clazz.getSimpleName(), methodName);
         return null;
     }
 
     /**
-     * 转换参数类型
-     * 解决 Jackson 反序列化导致的类型不匹配问题
+     * 转换参数类型（使用方法的泛型参数类型）
      * <p>
-     * 使用方法声明的参数类型（而非请求中客户端推断的类型），
-     * 确保 Jackson convertValue 能正确处理泛型信息
+     * 核心改进: 使用 Method.getGenericParameterTypes() 获取完整泛型信息，
+     * 通过 JavaType 做深度转换，解决 List&lt;LinkedHashMap&gt; -> List&lt;Dto&gt; 的嵌套泛型问题。
+     * <p>
+     * 场景: 客户端发送 indexDocuments(List&lt;IndexRequest&gt;)，
+     * Jackson 将 JSON 反序列化为 ArrayList&lt;LinkedHashMap&gt;，
+     * 虽然 List.isInstance(ArrayList) 为 true，但内部元素类型不对。
+     * 使用 JavaType 可以正确转换嵌套的泛型元素。
      */
-    private Object[] convertParameters(Object[] parameters, Class<?>[] parameterTypes) {
-        if (parameters == null || parameterTypes == null) {
+    private Object[] convertParameters(Object[] parameters, Method method) {
+        if (parameters == null) return parameters;
+
+        Class<?>[] rawTypes = method.getParameterTypes();
+        Type[] genericTypes = method.getGenericParameterTypes();
+
+        if (parameters.length != rawTypes.length) {
+            log.warn("参数数量不匹配: expected={}, actual={}", rawTypes.length, parameters.length);
             return parameters;
         }
-        
-        if (parameters.length != parameterTypes.length) {
-            return parameters;
-        }
-        
-        Object[] convertedParams = new Object[parameters.length];
+
+        Object[] converted = new Object[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
             if (parameters[i] == null) {
-                convertedParams[i] = null;
-            } else if (parameterTypes[i].isInstance(parameters[i])) {
-                // 类型匹配,直接使用
-                convertedParams[i] = parameters[i];
-            } else {
-                // 类型不匹配,使用 ObjectMapper 转换
-                convertedParams[i] = objectMapper.convertValue(parameters[i], parameterTypes[i]);
+                converted[i] = null;
+                continue;
+            }
+
+            // 基础类型、String、枚举: 直接用 raw class 转换
+            if (rawTypes[i].isPrimitive() || rawTypes[i] == String.class || rawTypes[i].isEnum()) {
+                converted[i] = objectMapper.convertValue(parameters[i], rawTypes[i]);
+                continue;
+            }
+
+            // 复杂类型: 统一用 JavaType（含泛型信息）做深度转换
+            // 即使容器类型匹配（如 ArrayList），内部元素也可能是 LinkedHashMap 需要转换
+            try {
+                JavaType javaType = objectMapper.getTypeFactory().constructType(genericTypes[i]);
+                converted[i] = objectMapper.convertValue(parameters[i], javaType);
+            } catch (Exception e) {
+                log.warn("参数转换失败，使用原始值: index={}, type={}, error={}",
+                        i, rawTypes[i].getSimpleName(), e.getMessage());
+                converted[i] = parameters[i];
             }
         }
-        
-        return convertedParams;
+        return converted;
     }
 }
 
