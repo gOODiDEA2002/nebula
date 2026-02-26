@@ -119,7 +119,7 @@ class NacosServiceAutoRegistrarTest {
         
         // 验证元数据包含gRPC端口
         ServiceInstance instance = captor.getValue();
-        assertThat(instance.getMetadata()).containsEntry("grpc.port", "9090");
+        assertThat(instance.getMetadata()).containsEntry("grpcPort", "9090");
     }
     
     @Test

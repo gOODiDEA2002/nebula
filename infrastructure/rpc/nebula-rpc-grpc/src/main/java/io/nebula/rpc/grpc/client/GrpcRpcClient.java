@@ -3,6 +3,7 @@ package io.nebula.rpc.grpc.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.core.discovery.ServiceDiscoveryRpcClient;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
@@ -50,16 +51,15 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
 
         log.info("初始化 gRPC Channel: target={}", target);
 
-        ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder
+        NettyChannelBuilder channelBuilder = NettyChannelBuilder
                 .forTarget(target)
-                .maxInboundMessageSize(clientConfig.getMaxInboundMessageSize());
+                .maxInboundMessageSize(clientConfig.getMaxInboundMessageSize())
+                .proxyDetector(addr -> null);
 
-        // 配置协商类型
         if ("plaintext".equals(clientConfig.getNegotiationType())) {
             channelBuilder.usePlaintext();
         }
 
-        // 配置负载均衡
         if (clientConfig.getLoadBalancingPolicy() != null) {
             channelBuilder.defaultLoadBalancingPolicy(clientConfig.getLoadBalancingPolicy());
         }

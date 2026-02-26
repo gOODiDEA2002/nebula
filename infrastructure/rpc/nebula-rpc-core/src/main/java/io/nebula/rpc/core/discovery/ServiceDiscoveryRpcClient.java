@@ -213,12 +213,14 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     private String buildGrpcAddress(ServiceInstance instance) {
         String host = extractHost(instance.getAddress());
         
-        // ✅ 优先从元数据获取 gRPC 端口
+        // 优先从元数据获取 gRPC 端口（兼容 grpcPort 和 grpc.port 两种 key）
         Map<String, String> metadata = instance.getMetadata();
-        if (metadata != null && metadata.containsKey("grpc.port")) {
-            String grpcPort = metadata.get("grpc.port");
-            log.debug("从元数据获取 gRPC 端口: host={}, grpc.port={}", host, grpcPort);
-            return host + ":" + grpcPort;
+        if (metadata != null) {
+            String grpcPort = metadata.getOrDefault("grpcPort", metadata.get("grpc.port"));
+            if (grpcPort != null && !grpcPort.isEmpty() && !"-1".equals(grpcPort)) {
+                log.debug("从元数据获取 gRPC 端口: host={}, grpcPort={}", host, grpcPort);
+                return host + ":" + grpcPort;
+            }
         }
         
         // ✅ 兜底：使用 HTTP 端口 + 1000
