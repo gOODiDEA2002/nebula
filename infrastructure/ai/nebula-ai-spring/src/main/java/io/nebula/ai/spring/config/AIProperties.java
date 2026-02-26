@@ -45,8 +45,9 @@ public class AIProperties {
     private OpenAIProperties openai = new OpenAIProperties();
     
     /**
-     * Ollama配置
+     * @deprecated Ollama 已统一通过 OpenAI 兼容 API 调用，此属性保留仅为向后兼容
      */
+    @Deprecated
     private OllamaProperties ollama = new OllamaProperties();
 
     public boolean isEnabled() {
@@ -435,8 +436,9 @@ public class AIProperties {
      */
     public static class OpenAIChatProperties {
         /**
-         * 是否启用
+         * @deprecated 配置了 api-key 即自动启用，无需单独设置
          */
+        @Deprecated
         private boolean enabled = true;
         
         /**
@@ -510,8 +512,9 @@ public class AIProperties {
      */
     public static class OpenAIEmbeddingProperties {
         /**
-         * 是否启用
+         * @deprecated 配置了 api-key 即自动启用，无需单独设置
          */
+        @Deprecated
         private boolean enabled = true;
         
         /**
@@ -555,8 +558,9 @@ public class AIProperties {
     }
     
     /**
-     * Ollama 特定配置
+     * @deprecated Ollama 已统一通过 OpenAI 兼容 API 调用
      */
+    @Deprecated
     public static class OllamaProperties {
         /**
          * 基础 URL

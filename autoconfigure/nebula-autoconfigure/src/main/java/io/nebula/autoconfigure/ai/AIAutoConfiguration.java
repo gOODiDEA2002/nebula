@@ -28,15 +28,11 @@ import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
-import org.springframework.ai.ollama.OllamaEmbeddingModel;
-import org.springframework.ai.ollama.api.OllamaApi;
-import org.springframework.ai.ollama.api.OllamaEmbeddingOptions;
 import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.retry.RetryUtils;
-import io.micrometer.observation.ObservationRegistry;
-import java.time.Duration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -44,7 +40,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestClient;
 import org.springframework.http.client.ReactorClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -67,8 +62,7 @@ public class AIAutoConfiguration {
 
     /**
      * 配置 RestClient.Builder
-     * 为 ChromaApi 和 OllamaApi 提供 RestClient.Builder Bean
-     * 添加 HTTP 日志拦截器
+     * 为 OpenAiApi / ChromaApi 提供统一的 RestClient.Builder Bean
      */
     @Bean
     @ConditionalOnMissingBean
@@ -112,13 +106,13 @@ public class AIAutoConfiguration {
 
     /**
      * 配置 OpenAI ChatModel
-     * 基于 Nebula 配置创建 ChatModel Bean
+     * 配置了 nebula.ai.openai.api-key 即自动创建
      */
     @Bean("nebulaOpenAiChatModel")
     @Primary
     @ConditionalOnClass(OpenAiChatModel.class)
     @ConditionalOnMissingBean(name = "nebulaOpenAiChatModel")
-    @ConditionalOnProperty(prefix = "nebula.ai.openai.chat", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnBean(name = "nebulaOpenAiApi")
     public ChatModel nebulaOpenAiChatModel(OpenAiApi nebulaOpenAiApi, AIProperties aiProperties) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
         AIProperties.OpenAIChatOptions chatOptions = openAIConfig.getChat().getOptions();
@@ -140,12 +134,13 @@ public class AIAutoConfiguration {
 
     /**
      * 配置 OpenAI EmbeddingModel
-     * 基于 Nebula 配置创建 EmbeddingModel Bean
+     * 配置了 nebula.ai.openai.api-key 即自动创建
      */
     @Bean("nebulaOpenAiEmbeddingModel")
+    @Primary
     @ConditionalOnClass(OpenAiEmbeddingModel.class)
     @ConditionalOnMissingBean(name = "nebulaOpenAiEmbeddingModel")
-    @ConditionalOnProperty(prefix = "nebula.ai.openai.embedding", name = "enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnBean(name = "nebulaOpenAiApi")
     public EmbeddingModel nebulaOpenAiEmbeddingModel(OpenAiApi nebulaOpenAiApi, AIProperties aiProperties) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
         AIProperties.OpenAIEmbeddingOptions embeddingOptions = openAIConfig.getEmbedding().getOptions();
@@ -158,58 +153,6 @@ public class AIAutoConfiguration {
 
         return new OpenAiEmbeddingModel(nebulaOpenAiApi, MetadataMode.EMBED, options,
                 RetryUtils.DEFAULT_RETRY_TEMPLATE);
-    }
-
-    /**
-     * 配置 OllamaApi
-     * 基于 Nebula 配置创建 OllamaApi Bean
-     */
-    @Bean("nebulaOllamaApi")
-    @ConditionalOnClass(OllamaApi.class)
-    @ConditionalOnMissingBean(name = "nebulaOllamaApi")
-    @ConditionalOnProperty(prefix = "nebula.ai.ollama", name = "base-url")
-    public OllamaApi nebulaOllamaApi(AIProperties aiProperties, RestClient.Builder restClientBuilder) {
-        AIProperties.OllamaProperties ollamaConfig = aiProperties.getOllama();
-
-        log.info("配置 OllamaApi, Base URL: {}", ollamaConfig.getBaseUrl());
-        log.info("- 读取超时: {}", ollamaConfig.getTimeout().getRead());
-        log.info("- 连接超时: {}", ollamaConfig.getTimeout().getConnect());
-
-        // 使用自定义的RestClient.Builder（带HTTP日志拦截器）
-        // Spring AI 1.0.3的OllamaApi.builder()支持restClientBuilder()方法
-        return OllamaApi.builder()
-                .baseUrl(ollamaConfig.getBaseUrl())
-                .restClientBuilder(restClientBuilder)
-                .build();
-    }
-
-    /**
-     * 配置 Ollama EmbeddingModel
-     * 基于 Nebula 配置创建 EmbeddingModel Bean
-     */
-    @Bean("nebulaOllamaEmbeddingModel")
-    @Primary
-    @ConditionalOnClass(OllamaEmbeddingModel.class)
-    @ConditionalOnMissingBean(name = "nebulaOllamaEmbeddingModel")
-    @ConditionalOnProperty(prefix = "nebula.ai.ollama.embedding", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public EmbeddingModel nebulaOllamaEmbeddingModel(
-            OllamaApi nebulaOllamaApi,
-            AIProperties aiProperties) {
-        AIProperties.OllamaProperties ollamaConfig = aiProperties.getOllama();
-        AIProperties.OllamaEmbeddingOptions embeddingOptions = ollamaConfig.getEmbedding().getOptions();
-
-        log.info("配置 Ollama EmbeddingModel, Model: {}", embeddingOptions.getModel());
-
-        // Spring AI 1.1.0 使用 OllamaEmbeddingOptions
-        OllamaEmbeddingOptions options = OllamaEmbeddingOptions.builder()
-                .model(embeddingOptions.getModel())
-                .build();
-
-        // Spring AI 1.1.0 使用 Builder 模式
-        return OllamaEmbeddingModel.builder()
-                .ollamaApi(nebulaOllamaApi)
-                .defaultOptions(options)
-                .build();
     }
 
     /**
