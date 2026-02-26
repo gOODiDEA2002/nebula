@@ -285,7 +285,12 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
             headers.set("X-Request-ID", request.getRequestId());
             
-            HttpEntity<RpcRequest> entity = new HttpEntity<>(request, headers);
+            // 调试: 先序列化为字符串发送，排除 HttpEntity<RpcRequest> 序列化问题
+            String jsonBody = objectMapper.writeValueAsString(request);
+            log.debug("RPC请求序列化: url={}, bodyLength={}, service={}, method={}",
+                    url, jsonBody.length(), request.getServiceName(), request.getMethodName());
+            
+            HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
             
             ResponseEntity<RpcResponse> responseEntity = restTemplate.exchange(
                     url, 
