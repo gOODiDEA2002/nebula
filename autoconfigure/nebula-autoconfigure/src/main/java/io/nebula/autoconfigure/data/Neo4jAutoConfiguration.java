@@ -53,8 +53,16 @@ public class Neo4jAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(Driver.class)
     public Driver neo4jDriver(Neo4jProperties properties) {
-        log.info("初始化 Neo4j Driver: uri={}, database={}",
-                properties.getUri(), properties.getDatabase());
+        log.info("初始化 Neo4j Driver: uri={}, database={}, poolSize={}, " +
+                        "connTimeout={}s, acquireTimeout={}s, livenessCheck={}s, " +
+                        "maxLifetime={}s, txRetry={}s",
+                properties.getUri(), properties.getDatabase(),
+                properties.getMaxConnectionPoolSize(),
+                properties.getConnectionTimeoutSeconds(),
+                properties.getConnectionAcquisitionTimeoutSeconds(),
+                properties.getConnectionLivenessCheckTimeoutSeconds(),
+                properties.getMaxConnectionLifetimeSeconds(),
+                properties.getMaxTransactionRetryTimeSeconds());
 
         AuthToken authToken = AuthTokens.basic(
                 properties.getUsername(),
@@ -64,6 +72,14 @@ public class Neo4jAutoConfiguration {
                 .withMaxConnectionPoolSize(properties.getMaxConnectionPoolSize())
                 .withConnectionAcquisitionTimeout(
                         properties.getConnectionAcquisitionTimeoutSeconds(), TimeUnit.SECONDS)
+                .withConnectionTimeout(
+                        properties.getConnectionTimeoutSeconds(), TimeUnit.SECONDS)
+                .withMaxTransactionRetryTime(
+                        properties.getMaxTransactionRetryTimeSeconds(), TimeUnit.SECONDS)
+                .withConnectionLivenessCheckTimeout(
+                        properties.getConnectionLivenessCheckTimeoutSeconds(), TimeUnit.SECONDS)
+                .withMaxConnectionLifetime(
+                        properties.getMaxConnectionLifetimeSeconds(), TimeUnit.SECONDS)
                 .withLogging(Logging.slf4j())
                 .build();
 
