@@ -26,6 +26,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
@@ -34,6 +35,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -225,8 +228,20 @@ public class DataPersistenceAutoConfiguration {
      * 组件摘要: 数据持久层
      */
     @Bean
-    NebulaComponentSummary persistenceSummary() {
+    NebulaComponentSummary persistenceSummary( DataSource primaryDataSource, MybatisPlusProperties mybatisPlusProperties) {
         var details = new java.util.LinkedHashMap<String, String>();
+        if (primaryDataSource != null) {
+            details.put("DataSource", primaryDataSource.getClass().getName());
+            details.put("Driver Class Name", primaryDataSource.getClass().getName());
+            try {
+                Connection connection = primaryDataSource.getConnection();
+                DatabaseMetaData metaData = connection.getMetaData();
+                details.put("URL", metaData.getURL());
+                details.put("Username", metaData.getUserName());
+            } catch (Exception e) {
+                log.error( e.getMessage() );
+            }
+        }
         if (mybatisPlusProperties != null) {
             details.put("ID Type", mybatisPlusProperties.getGlobalConfig().getDbConfig().getIdType());
             details.put("Logic Delete", mybatisPlusProperties.getGlobalConfig().getDbConfig().getLogicDeleteField());
