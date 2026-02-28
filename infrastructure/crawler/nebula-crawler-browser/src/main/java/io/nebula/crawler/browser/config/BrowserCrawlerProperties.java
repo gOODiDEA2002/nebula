@@ -50,6 +50,15 @@ public class BrowserCrawlerProperties {
     private int poolSize = 5;
 
     /**
+     * 获取浏览器上下文的超时时间（秒）
+     * <p>
+     * 当活跃的 BrowserContext 数量达到 poolSize 上限时，
+     * 新的请求会阻塞等待，超过此时间后抛出异常。
+     * </p>
+     */
+    private int acquireTimeout = 60;
+
+    /**
      * 页面加载超时(ms)
      */
     private int pageTimeout = 30000;
@@ -169,6 +178,19 @@ public class BrowserCrawlerProperties {
          * false: 使用 connect（Playwright Server 模式），只支持单客户端
          */
         private boolean useCdp = true;
+
+        /**
+         * 每个端点建立的独立 Browser 连接数
+         * <p>
+         * 每个连接对应独立的 WebSocket 通道和浏览器实例，
+         * 避免多个 BrowserContext 共享同一个 Browser 导致的对象引用冲突。
+         * </p>
+         * <p>
+         * 建议值: Math.ceil(poolSize / endpoints.size())，
+         * 确保 connectionsPerEndpoint * endpoints.size() >= poolSize
+         * </p>
+         */
+        private int connectionsPerEndpoint = 1;
 
         /**
          * 获取第一个端点（兼容单端点配置）
