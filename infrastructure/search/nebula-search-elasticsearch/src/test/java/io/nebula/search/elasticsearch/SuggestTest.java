@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 
 import java.util.*;
 import java.util.function.Function;
@@ -33,9 +32,6 @@ class SuggestTest {
     private ElasticsearchClient elasticsearchClient;
 
     @Mock
-    private ElasticsearchOperations elasticsearchOperations;
-
-    @Mock
     private ElasticsearchProperties properties;
 
     private ElasticsearchSearchService searchService;
@@ -46,7 +42,7 @@ class SuggestTest {
         lenient().when(properties.getBulkTimeout()).thenReturn(java.time.Duration.ofSeconds(30));
         lenient().when(properties.getDefaultShards()).thenReturn(1);
         lenient().when(properties.getDefaultReplicas()).thenReturn(1);
-        searchService = new ElasticsearchSearchService(elasticsearchClient, elasticsearchOperations, properties);
+        searchService = new ElasticsearchSearchService(elasticsearchClient, properties);
     }
 
     @Test

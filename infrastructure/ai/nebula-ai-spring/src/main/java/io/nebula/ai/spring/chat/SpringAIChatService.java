@@ -9,6 +9,7 @@ import io.nebula.ai.core.model.ChatResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -87,26 +88,33 @@ public class SpringAIChatService implements ChatService {
     @Override
     public ChatResponse chat(ChatRequest request) {
         try {
-            log.debug("发送聊天请求: {} 条消息", request.getMessages().size());
+            log.debug("发送聊天请求: {} 条消息, model={}", request.getMessages().size(), request.getModel());
 
-            // 使用更低级的ChatModel API来支持更多配置选项
             List<org.springframework.ai.chat.messages.Message> springAiMessages = request.getMessages()
                     .stream()
                     .map(this::convertToSpringAiMessage)
                     .collect(Collectors.toList());
 
-            Prompt prompt = new Prompt(springAiMessages);
+            Prompt prompt;
+            if (request.getModel() != null && !request.getModel().isBlank()) {
+                prompt = new Prompt(springAiMessages,
+                        OpenAiChatOptions.builder().model(request.getModel()).build());
+            } else {
+                prompt = new Prompt(springAiMessages);
+            }
+
             org.springframework.ai.chat.model.ChatResponse springResponse = chatModel.call(prompt);
 
             String responseContent = springResponse.getResult().getOutput().getText();
+            String usedModel = request.getModel() != null ? request.getModel() : getCurrentModel();
 
             return ChatResponse.builder()
                     .content(responseContent)
                     .timestamp(LocalDateTime.now())
-                    .model(getCurrentModel())
+                    .model(usedModel)
                     .usage(new ChatResponse.Usage(
                             springResponse.getMetadata().getUsage().getPromptTokens(),
-                            springResponse.getMetadata().getUsage().getPromptTokens(), // 临时使用相同值
+                            springResponse.getMetadata().getUsage().getCompletionTokens(),
                             springResponse.getMetadata().getUsage().getTotalTokens()
                     ))
                     .finishReason(springResponse.getResult().getMetadata().getFinishReason())

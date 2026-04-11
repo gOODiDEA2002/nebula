@@ -28,7 +28,6 @@ import io.nebula.search.elasticsearch.converter.SuggesterConverter;
 import org.elasticsearch.client.RequestOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -48,14 +47,11 @@ public class ElasticsearchSearchService implements SearchService {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSearchService.class);
 
     private final ElasticsearchClient client;
-    private final ElasticsearchOperations elasticsearchOperations;
     private final ElasticsearchProperties properties;
 
     public ElasticsearchSearchService(ElasticsearchClient client,
-                                      ElasticsearchOperations elasticsearchOperations,
                                       ElasticsearchProperties properties) {
         this.client = client;
-        this.elasticsearchOperations = elasticsearchOperations;
         this.properties = properties;
     }
 

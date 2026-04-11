@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 
 import java.time.Duration;
 import java.util.*;
@@ -36,9 +35,6 @@ class AggregationTest {
     private ElasticsearchClient elasticsearchClient;
 
     @Mock
-    private ElasticsearchOperations elasticsearchOperations;
-
-    @Mock
     private ElasticsearchProperties properties;
 
     private ElasticsearchSearchService searchService;
@@ -52,7 +48,6 @@ class AggregationTest {
         
         searchService = new ElasticsearchSearchService(
             elasticsearchClient,
-            elasticsearchOperations,
             properties
         );
     }

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 
 import java.time.Duration;
 
@@ -31,9 +30,6 @@ class DocumentOperationsTest {
     @Mock
     private ElasticsearchClient elasticsearchClient;
 
-    @Mock
-    private ElasticsearchOperations elasticsearchOperations;
-
     private ElasticsearchSearchService searchService;
     private ElasticsearchProperties properties;
 
@@ -47,7 +43,7 @@ class DocumentOperationsTest {
         properties.setScrollTimeout(Duration.ofMinutes(1));
         
         searchService = new ElasticsearchSearchService(
-                elasticsearchClient, elasticsearchOperations, properties);
+                elasticsearchClient, properties);
     }
 
     /**

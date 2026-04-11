@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -31,9 +30,6 @@ class IndexManagementTest {
 
     @Mock
     private ElasticsearchClient elasticsearchClient;
-
-    @Mock
-    private ElasticsearchOperations elasticsearchOperations;
 
     @Mock
     private ElasticsearchProperties properties;
@@ -54,7 +50,6 @@ class IndexManagementTest {
         
         searchService = new ElasticsearchSearchService(
             elasticsearchClient,
-            elasticsearchOperations,
             properties
         );
     }

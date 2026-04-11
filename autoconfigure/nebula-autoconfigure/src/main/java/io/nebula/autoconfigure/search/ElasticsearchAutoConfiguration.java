@@ -27,14 +27,13 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
@@ -48,8 +47,13 @@ import java.util.List;
  *
  * @author nebula
  */
-@AutoConfiguration(after = ElasticsearchDataAutoConfiguration.class)
-@ConditionalOnClass({ ElasticsearchClient.class, ElasticsearchOperations.class })
+@AutoConfiguration
+@AutoConfigureBefore(name = {
+    "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration",
+    "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration",
+    "org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration"
+})
+@ConditionalOnClass(ElasticsearchClient.class)
 @ConditionalOnProperty(prefix = "nebula.search.elasticsearch", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(ElasticsearchProperties.class)
 public class ElasticsearchAutoConfiguration {
@@ -151,10 +155,9 @@ public class ElasticsearchAutoConfiguration {
     @Bean
     @Primary
     @ConditionalOnMissingBean(SearchService.class)
-    public SearchService searchService(ElasticsearchClient elasticsearchClient,
-            ElasticsearchOperations elasticsearchOperations) {
+    public SearchService searchService(ElasticsearchClient elasticsearchClient) {
         logger.info("Configuring Nebula Elasticsearch Search Service");
-        return new ElasticsearchSearchService(elasticsearchClient, elasticsearchOperations, properties);
+        return new ElasticsearchSearchService(elasticsearchClient, properties);
     }
 
     /**
