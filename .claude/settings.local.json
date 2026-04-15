@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn help:describe:*)",
+      "Bash(mvn clean:*)",
+      "Bash(mvn compile:*)",
+      "Bash(mvn install:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

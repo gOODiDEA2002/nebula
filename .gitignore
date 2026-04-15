@@ -34,22 +34,13 @@ build/
 .vscode/
 
 .pmdCache
-.cursorrules
-refs
-tasks/
-prototypes/
+
 logs/
 
 .DS_Store
 
 ### Maven CI-Friendly Version ###
 .flattened-pom.xml
-
-.repomixignore
-repomix.config.json
-repomix-output.md
-CLAUDE.md
-.claude/
 
 ### Python ###
 *.pyc

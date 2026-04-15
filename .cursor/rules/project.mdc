@@ -1,0 +1,345 @@
+---
+description: Nebula 框架项目规则 - 技术栈、目录结构、编码规范、鉴权机制、注意事项
+globs:
+alwaysApply: true
+---
+
+# Nebula Framework 项目规则
+
+## 1. 项目简介
+
+Nebula 是一个基于 Java 21 与 Spring Boot 3.5.8 构建的现代化企业级后端框架，采用分层模块化架构，提供从数据持久化、消息队列、RPC、缓存、搜索、AI 到 API 网关的完整基础设施能力。
+
+## 2. 技术栈和版本
+
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| Java | 21 | LTS，源码和目标编译级别 |
+| Spring Boot | 3.5.8 | 父 POM 继承 |
+| Spring Cloud | 2025.0.0 | Gateway/LoadBalancer |
+| Spring AI | 1.1.0 | AI 模块集成 |
+| Maven | - | 构建工具，CI-Friendly 版本管理 `${revision}` |
+| MyBatis-Plus | 3.5.9 | ORM 框架 |
+| MySQL | 9.1.0 (Driver) | 主数据库 |
+| Redis | 8.2.1 (Server) | 缓存 + 分布式锁 |
+| Redisson | 3.39.0 | Redis 客户端 |
+| RabbitMQ | 3.12 (Server) | 消息队列 |
+| Elasticsearch | 7.17.19 (Server) / 8.11.1 (Client) | 搜索引擎 |
+| MinIO | 8.5.7 (SDK) | 对象存储 |
+| Aliyun OSS | 3.17.4 (SDK) | 对象存储（可选） |
+| Nacos | 2.5.1 | 服务注册与发现 |
+| gRPC | 1.68.1 | RPC 通信 |
+| XXL-JOB | 3.2.0 | 任务调度 |
+| JJWT | 0.12.3 | JWT 签发与验证 |
+| Lombok | (Spring Boot 管理) | 样板代码消除 |
+| Swagger/OpenAPI | springdoc | API 文档 |
+| 项目版本 | 2.0.1-SNAPSHOT | CI-Friendly，只在根 pom.xml 修改 |
+
+## 3. 目录结构
+
+```
+nebula/
+├── pom.xml                          # 根 POM，聚合所有模块，定义 ${revision}
+├── CLAUDE.md                        # AI 协作指引（与代码实现严格对齐）
+├── .cursor/rules/project.mdc        # 本规则文件
+│
+├── core/                            # 核心层 -- 不可随意修改
+│   ├── nebula-foundation/           #   基础工具：Result/PageResult/异常体系/ID生成/加密/JSON工具
+│   └── nebula-security/             #   安全认证：JWT(JwtService)/RBAC(SecurityAspect)/SecurityContext
+│
+├── infrastructure/                  # 基础设施层 -- 各子模块 core+实现 分离
+│   ├── data/
+│   │   ├── nebula-data-persistence/ #   MyBatis-Plus 持久化 + 多数据源 + 读写分离 + 分库分表
+│   │   ├── nebula-data-cache/       #   多级缓存（Caffeine + Redis）
+│   │   └── nebula-data-neo4j/       #   Neo4j 图数据库（可选）
+│   ├── messaging/
+│   │   ├── nebula-messaging-core/   #   消息抽象接口
+│   │   ├── nebula-messaging-rabbitmq/ # RabbitMQ 实现（含延迟消息）
+│   │   └── nebula-messaging-redis/  #   Redis Stream 消息实现
+│   ├── websocket/
+│   │   ├── nebula-websocket-core/   #   WebSocket 抽象
+│   │   ├── nebula-websocket-spring/ #   Spring WebSocket 实现
+│   │   └── nebula-websocket-netty/  #   Netty WebSocket 实现
+│   ├── rpc/
+│   │   ├── nebula-rpc-core/         #   RPC 抽象 + @RemoteService 注解
+│   │   ├── nebula-rpc-http/         #   HTTP RPC 实现
+│   │   ├── nebula-rpc-grpc/         #   gRPC 实现
+│   │   └── nebula-rpc-async/        #   异步 RPC 实现
+│   ├── discovery/
+│   │   ├── nebula-discovery-core/   #   服务发现抽象
+│   │   └── nebula-discovery-nacos/  #   Nacos 实现
+│   ├── storage/
+│   │   ├── nebula-storage-core/     #   存储统一接口 StorageService
+│   │   ├── nebula-storage-minio/    #   MinIO 实现
+│   │   └── nebula-storage-aliyun-oss/ # 阿里云 OSS 实现
+│   ├── search/
+│   │   ├── nebula-search-core/      #   搜索抽象
+│   │   └── nebula-search-elasticsearch/ # ES 实现
+│   ├── ai/
+│   │   ├── nebula-ai-core/          #   AI 核心接口
+│   │   └── nebula-ai-spring/        #   Spring AI 集成（Chat/Embedding/VectorStore）
+│   ├── crawler/
+│   │   ├── nebula-crawler-core/     #   爬虫核心抽象
+│   │   ├── nebula-crawler-http/     #   HTTP 爬虫引擎
+│   │   ├── nebula-crawler-browser/  #   Playwright 浏览器爬虫引擎
+│   │   ├── nebula-crawler-proxy/    #   代理 IP 管理
+│   │   └── nebula-crawler-captcha/  #   验证码识别
+│   ├── lock/
+│   │   ├── nebula-lock-core/        #   分布式锁抽象
+│   │   └── nebula-lock-redis/       #   Redis 分布式锁（Redisson）
+│   └── gateway/
+│       └── nebula-gateway-core/     #   API 网关（Spring Cloud Gateway，仅 HTTP 反向代理）
+│
+├── application/                     # 应用层
+│   ├── nebula-web/                  #   Web 框架：认证拦截/限流/响应缓存/性能监控/健康检查/数据脱敏
+│   └── nebula-task/                 #   任务调度（XXL-JOB 集成）
+│
+├── autoconfigure/
+│   └── nebula-autoconfigure/        # 统一自动配置中心（所有模块的 AutoConfiguration 集中于此）
+│
+├── integration/                     # 第三方集成层
+│   ├── nebula-integration-payment/  #   支付集成（含 Mock 模式）
+│   └── nebula-integration-notification/ # 通知集成（短信）
+│
+├── starter/                         # 启动器 -- 按场景组合依赖 + nebula-defaults.properties
+│   ├── nebula-starter-minimal/      #   最小化（仅 foundation + autoconfigure）
+│   ├── nebula-starter-web/          #   Web 应用（+web +cache +persistence +security）
+│   ├── nebula-starter-service/      #   微服务（+rpc +discovery +messaging +lock +task）
+│   ├── nebula-starter-gateway/      #   API 网关（+Spring Cloud Gateway +nacos）
+│   ├── nebula-starter-ai/           #   AI 应用（+ai +cache）
+│   ├── nebula-starter-mcp/          #   MCP 服务
+│   ├── nebula-starter-task/         #   任务调度
+│   ├── nebula-starter-all/          #   完整单体（几乎全部模块）
+│   └── nebula-starter-api/          #   API 契约（仅 rpc-core + validation）
+│
+├── examples/                        # 示例项目
+│   ├── starter-web-example/         #   Web Starter 快速入门       (端口 8080)
+│   ├── starter-service-example/     #   Service Starter 快速入门   (端口 8082)
+│   ├── starter-ai-example/          #   AI Starter 快速入门        (端口 8083)
+│   ├── starter-minimal-example/     #   Minimal Starter（无 Web）
+│   ├── starter-all-example/         #   All Starter 单体应用       (端口 8084)
+│   ├── starter-api-example/         #   API 契约 Starter
+│   ├── gateway-example/             #   网关示例（需 Nacos+Redis） (端口 9000)
+│   ├── rpc-async-example/           #   异步 RPC 示例（api/service/client 多模块）
+│   ├── microservice-example/        #   微服务示例（user-api/user-service/order-api/order-service）
+│   ├── fullstack-example/           #   全功能演示（所有模块综合用法）(端口 1000)
+│   ├── crawler-example/             #   爬虫示例（HTTP+Browser 引擎）(端口 8090)
+│   ├── websocket-example/           #   WebSocket 示例（backend+frontend）(端口 8091)
+│   └── oauth-example/               #   OAuth 前后端分离（backend+frontend）
+│
+├── docker/                          # Docker 相关
+│   ├── middleware/                   #   开发环境中间件脚本（MySQL/Redis/RabbitMQ/ES/MinIO/Nacos/XXL-JOB）
+│   ├── crawler-browser/             #   Playwright 浏览器容器
+│   ├── captcha-ddddocr/             #   验证码识别服务（ddddocr）
+│   └── captcha-opencv/              #   验证码识别服务（OpenCV）
+│
+└── docs/                            # 文档
+    ├── INDEX.md                     #   文档索引
+    ├── Nebula框架使用指南.md          #   使用指南
+    └── nebula-framework-review.md   #   架构审查报告
+```
+
+## 4. 编码规范
+
+### 4.1 命名约定
+
+| 类型 | 规则 | 示例 |
+|------|------|------|
+| 类名 | PascalCase | `DataSourceManager`, `SpringAIChatService` |
+| 方法/变量 | camelCase | `getServiceName()`, `requestId` |
+| 常量 | UPPER_SNAKE_CASE | `DEFAULT_TIMEOUT`, `MAX_RETRY_COUNT` |
+| 包名 | 全小写 | `io.nebula.web.interceptor` |
+| DTO | `XxxDto` 后缀，内嵌静态类 `Request`/`Response` | `CacheSetDto.Request`, `CacheSetDto.Response` |
+| VO | `XxxVo` 后缀 | `ProductVo`, `OrderVo` |
+| DO/Entity | 放在 `entity/dos/` 包下，类名即实体名 | `Product`, `Order` |
+| Mapper | `XxxMapper` 后缀 | `ProductMapper`, `OrderMapper` |
+| Service | 接口 `XxxService` + 实现 `XxxServiceImpl` | `DataDemoService` / `DataDemoServiceImpl` |
+| Controller | `XxxController` 后缀 | `DataController`, `CacheController` |
+| 配置属性 | `XxxProperties` + `@ConfigurationProperties` | `SecurityProperties`, `WebProperties` |
+| 自动配置 | `XxxAutoConfiguration` | `SecurityAutoConfiguration` |
+
+### 4.2 包结构
+
+```
+io.nebula.[模块]
+  ├── core/           # 核心接口与抽象
+  ├── config/         # 配置类
+  ├── service/        # 服务层
+  │   └── impl/       # 服务实现
+  ├── controller/     # 控制器
+  ├── entity/         # 实体目录
+  │   ├── dos/        # 数据库实体(DO)
+  │   ├── dto/        # 数据传输对象
+  │   └── vo/         # 视图对象
+  ├── mapper/         # MyBatis Mapper
+  ├── exception/      # 异常类
+  └── util/           # 工具类
+```
+
+### 4.3 代码风格
+
+- **缩进**: 4 空格（Java 和 XML 统一）
+- **Lombok**: 全面使用，`@Data`、`@Getter`、`@Setter`、`@RequiredArgsConstructor`、`@Slf4j`、`@Builder`
+- **Swagger/OpenAPI**: 使用 `@Tag`（类级）和 `@Schema`（字段级）注解
+- **参数校验**: 使用 `jakarta.validation` 注解（`@NotBlank`、`@NotNull`、`@Min` 等），Controller 上标注 `@Validated`
+- **统一返回**: 所有 REST API 使用 `Result<T>` 封装返回，分页使用 `PageResult<T>`
+- **异常体系**: 继承 `NebulaException`（抽象基类），子类 `BusinessException`（业务异常）、`SystemException`（系统异常）、`ValidationException`（校验异常）
+- **日志**: 使用 `@Slf4j`（Lombok）或 `LoggerFactory.getLogger()`
+- **注释语言**: 中文注释，Javadoc 使用 `@author`、`@since`、`@param`、`@return`
+- **字符编码**: 全局 UTF-8
+
+### 4.4 配置约定
+
+- 所有模块的自动配置集中在 `autoconfigure/nebula-autoconfigure` 中管理
+- 配置前缀统一为 `nebula.xxx`（如 `nebula.security.*`、`nebula.web.*`、`nebula.data.*`）
+- 三级启用策略:
+  - Level 1 (`matchIfMissing: true`): 纯内存组件（Security）默认启用
+  - Level 2 (`matchIfMissing: false`): 需外部服务（DB/Redis/MQ/ES）默认禁用
+  - Level 3 (`matchIfMissing: false`): 特定部署形态（RPC/Gateway/AI/Crawler）默认禁用
+- 各 Starter 通过 `META-INF/nebula-defaults.properties` 预设默认启用项
+
+## 5. 启动方式和访问地址
+
+### 5.1 首次构建
+
+```bash
+# 安装所有模块到本地 Maven 仓库（首次必须）
+mvn install -DskipTests
+
+# 仅编译（验证代码正确性）
+mvn clean compile
+```
+
+### 5.2 开发环境中间件
+
+```bash
+# 一键启动所有中间件（MySQL/Redis/RabbitMQ/ES/MinIO/Nacos/XXL-JOB）
+cd docker/middleware && bash setup-dev-env.sh
+```
+
+中间件默认端口:
+
+| 服务 | 端口 | 默认账号 |
+|------|------|---------|
+| MySQL | 3306 | root/root123 |
+| Redis | 6379 | redis/redis123 |
+| RabbitMQ | 5672 (AMQP) / 15672 (管理) | admin/admin123 |
+| Elasticsearch | 9200 | - |
+| MinIO | 9000 (API) / 9090 (控制台) | minioadmin/minioadmin |
+| Nacos | 8848 | nacos/nacos |
+| XXL-JOB | 9001 | admin/123456 |
+
+### 5.3 示例项目启动
+
+```bash
+# Web 示例
+mvn -q -f examples/starter-web-example spring-boot:run
+# 访问 http://localhost:8080/hello
+
+# Service 示例（需 Nacos）
+mvn -q -f examples/starter-service-example spring-boot:run
+# 访问 http://localhost:8082/hello
+
+# AI 示例（需配置 OpenAI API Key）
+mvn -q -f examples/starter-ai-example spring-boot:run
+# 访问 http://localhost:8083/ai/echo?q=hello
+
+# 全功能示例（需所有中间件）
+mvn -q -f examples/fullstack-example spring-boot:run
+# 访问 http://localhost:1000
+
+# 网关示例（需 Nacos + Redis）
+mvn -q -f examples/gateway-example spring-boot:run
+# 访问 http://localhost:9000
+```
+
+### 5.4 日志调试
+
+```bash
+mvn spring-boot:run -Dlogging.level.io.nebula=DEBUG
+```
+
+## 6. 鉴权方式
+
+Nebula 采用**双层鉴权架构**:
+
+### 6.1 安全层 (`nebula-security`)
+
+- **JWT 认证**: 由 `JwtService`（`DefaultJwtService`）签发和验证 Token
+  - 密钥配置: `nebula.security.jwt.secret`（**必须显式配置，>= 32 字符**，无默认值）
+  - Token 有效期: 默认 24 小时（`nebula.security.jwt.expiration`）
+  - Refresh Token: 默认 7 天（`nebula.security.jwt.refresh-expiration`）
+  - Header: `Authorization: Bearer <token>`
+- **RBAC 授权**: 由 `SecurityAspect` 切面处理
+  - 超级管理员角色: `SUPER_ADMIN`（`nebula.security.rbac.super-admin-role`）
+  - 权限缓存: 默认 30 分钟
+- 条件加载: `nebula.security.enabled=true`（Level 1, 默认启用）
+
+### 6.2 Web 层 (`nebula-web`)
+
+- **AuthInterceptor**: 拦截所有请求进行 Token 验证
+  - 启用开关: `nebula.web.auth.enabled`
+  - 忽略路径: `nebula.web.auth.ignore-paths`（Ant 风格匹配，默认包含 `/public/**`、`/actuator/**`、`/swagger-ui/**`）
+  - 认证上下文: `AuthContext` 线程绑定当前用户信息
+
+### 6.3 Gateway 层
+
+- JWT 认证已移至**应用层**实现，各应用应自行实现 `GlobalFilter` 进行 Token 验证
+- 网关仅负责 HTTP 反向代理、日志和限流
+
+### 6.4 注意事项
+
+- **已废弃**: `io.nebula.web.auth.JwtUtils`，请使用 `io.nebula.security.jwt.JwtService`
+- CORS `allowedOrigins` 默认为空数组，生产环境**必须显式配置**
+- 密码哈希和敏感配置通过环境变量管理
+
+## 7. 注意事项
+
+### 7.1 不可修改的框架基础模块
+
+以下模块是框架核心，修改会影响所有下游应用，**不得随意修改**:
+
+| 模块 | 原因 |
+|------|------|
+| `core/nebula-foundation` | 统一结果封装、异常体系、ID 生成器、工具类 -- 全局基础 |
+| `core/nebula-security` | JWT/RBAC 认证授权 -- 安全核心 |
+| `autoconfigure/nebula-autoconfigure` | 所有模块的自动配置集中管理入口 |
+| `starter/*` | 启动器只做依赖聚合 + defaults 配置，不含业务逻辑 |
+
+如需修改，必须评估向后兼容性影响，并在 `CLAUDE.md` 的 v2.0.x 变更记录中同步更新。
+
+### 7.2 已废弃注解和 API（不要使用）
+
+| 废弃项 | 替代方案 |
+|--------|---------|
+| `@RpcClient` | `@RemoteService` |
+| `@MessageHandler` | `@MessageListener` |
+| `JwtUtils` (`nebula-web`) | `JwtService` (`nebula-security`) |
+
+### 7.3 不要直接引入的依赖
+
+- 不要在子模块中直接声明 Spring Boot 版本，统一由根 POM 的 `spring-boot-starter-parent` 管理
+- 不要引入 `spring-security`，框架使用自研的 `nebula-security` 轻量方案
+- 不要引入 `spring-data-jpa`，框架统一使用 MyBatis-Plus
+- 不要引入 Druid 连接池，框架使用 HikariCP（Spring Boot 默认）
+- 不要在实现类上加 `@Service`（对自动配置管理的 Bean），统一由 `AutoConfiguration` 的 `@Bean` 方法管理
+
+### 7.4 自动配置规则
+
+- 新模块的自动配置类统一注册到 `autoconfigure/nebula-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- 例外: `TaskAutoConfiguration` 由 `nebula-task` 模块自身注册（避免 classpath 缺失时报 `ClassNotFoundException`）
+- 使用 `@ConditionalOnClass(name = "xxx")` 字符串形式避免类不存在时异常
+- 使用 `@ConditionalOnProperty` 控制模块启用，遵守三级启用策略
+
+### 7.5 版本管理
+
+- 版本号格式: `2.0.x-SNAPSHOT`（开发期），发布时移除 `-SNAPSHOT`
+- 版本由根 POM 的 `<revision>` 属性统一管理，所有子模块使用 `${revision}` 引用
+- 发布到 Nexus: `mvn clean deploy -P release`（正式版）或 `mvn clean deploy`（快照版）
+
+### 7.6 开发工作流
+
+- 新功能优先在所属模块实现，保持接口向后兼容
+- 通过 Maven 统一管理依赖，**严禁循环依赖**
+- 爬虫模块 `trustAllCerts` 仅在非生产环境（dev/test/local profile）生效，生产环境自动忽略
+- 示例项目中使用环境变量控制外部服务地址: `${NEBULA_DEV_SERVER:127.0.0.1}`
