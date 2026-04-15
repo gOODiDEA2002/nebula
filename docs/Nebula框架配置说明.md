@@ -593,7 +593,7 @@ nebula:
       enabled: true                    # 统一响应封装
     auth:
       enabled: true                    # 启用认证
-      jwt-secret: your-secret-key      # JWT密钥（至少32字节）
+      jwt-secret: ${JWT_SECRET}        # [必填] JWT密钥（至少32字节，建议通过环境变量注入）
       jwt-expiration: 86400            # Token过期时间(秒)
       ignore-paths:                    # 忽略认证的路径
         - /health/**
@@ -605,7 +605,21 @@ nebula:
     performance:
       enabled: true                    # 启用性能监控
       slow-request-threshold: 1000     # 慢请求阈值(ms)
+    cors:
+      enabled: true                    # 启用 CORS
+      allowed-origins:                 # [必填] 允许的域名（默认为空，不配置则拒绝跨域）
+        - https://example.com
+        - https://admin.example.com
+      allowed-methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+      allow-credentials: true
+      max-age: 3600
 ```
+
+> **安全提示**：`allowed-origins` 默认为空数组，必须显式配置允许的域名。不要在生产环境使用 `*`。
 
 ---
 
@@ -619,7 +633,7 @@ nebula:
     enabled: true
     jwt:
       enabled: true
-      secret: your-secret-key-at-least-32-bytes
+      secret: ${JWT_SECRET}            # [必填] 至少32字节，缺失或过短将导致启动失败
       expiration: 24h                  # 访问Token过期时间
       refresh-expiration: 7d           # 刷新Token过期时间
 ```

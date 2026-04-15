@@ -130,6 +130,16 @@
 | nebula-lock-core | 锁抽象层 | [README](../infrastructure/lock/nebula-lock-core/README.md) |
 | nebula-lock-redis | Redis 分布式锁 | [README](../infrastructure/lock/nebula-lock-redis/README.md) |
 
+#### 爬虫引擎 (Crawler)
+
+| 模块 | 说明 | 文档 |
+|------|------|------|
+| nebula-crawler-core | 爬虫抽象层 | [README](../infrastructure/crawler/nebula-crawler-core/README.md) |
+| nebula-crawler-http | OkHttp 爬虫引擎 | [README](../infrastructure/crawler/nebula-crawler-http/README.md) |
+| nebula-crawler-browser | Playwright 浏览器引擎 | [README](../infrastructure/crawler/nebula-crawler-browser/README.md) |
+| nebula-crawler-proxy | 代理 IP 池管理 | [README](../infrastructure/crawler/nebula-crawler-proxy/README.md) |
+| nebula-crawler-captcha | 验证码识别 | [README](../infrastructure/crawler/nebula-crawler-captcha/README.md) |
+
 ### 应用层 (Application)
 
 | 模块 | 说明 | 文档 |
@@ -151,7 +161,10 @@
 | nebula-starter-minimal | foundation | 最小化应用 | [README](../starter/nebula-starter-minimal/README.md) |
 | nebula-starter-web | foundation + security + web | Web 应用 | [README](../starter/nebula-starter-web/README.md) |
 | nebula-starter-service | foundation + data + messaging + rpc + discovery | 微服务 | [README](../starter/nebula-starter-service/README.md) |
+| nebula-starter-gateway | gateway + nacos | API 网关 | [README](../starter/nebula-starter-gateway/README.md) |
+| nebula-starter-task | task + http-rpc | 任务调度 | [README](../starter/nebula-starter-task/README.md) |
 | nebula-starter-ai | foundation + ai-spring | AI 应用 | [README](../starter/nebula-starter-ai/README.md) |
+| nebula-starter-mcp | ai + mcp | MCP Server | [README](../starter/nebula-starter-mcp/README.md) |
 | nebula-starter-all | 所有模块 | 单体应用 | [README](../starter/nebula-starter-all/README.md) |
 
 ## 🔧 按功能查找
@@ -186,22 +199,16 @@
 - [支付集成](../integration/nebula-integration-payment/)
 - [通知集成](../integration/nebula-integration-notification/)
 
-## 📝 配置文档
+## 配置文档
 
-### 环境配置
-- [开发环境配置](configs/CONFIG_DEVELOPMENT.md)
-- [生产环境配置](configs/CONFIG_PRODUCTION.md)
+所有模块的配置项统一参考 [Nebula 框架配置说明](Nebula框架配置说明.md)，包含环境配置、场景配置和各模块的配置项详解。
 
-### 场景配置
-- [票务系统配置](configs/CONFIG_TICKETING.md)
-- [微服务配置](configs/CONFIG_MICROSERVICE.md)
+## 集成指南
 
-## 🔗 集成指南
-
-- [微服务架构指南](integration/MICROSERVICE_GUIDE.md)
-- [单体架构指南](integration/MONOLITH_GUIDE.md)
-- [集成模式](integration/INTEGRATION_PATTERNS.md)
-- [服务通信指南](integration/SERVICE_COMMUNICATION.md)
+微服务架构设计、服务通信模式、集成实践等内容，请参考：
+- [框架使用指南 - RPC 章节](Nebula框架使用指南.md) -- 服务间通信与集成
+- [架构设计](framework/ARCHITECTURE.md) -- 微服务/单体架构选型
+- [快速开始](framework/QUICK_START.md) -- 包含微服务场景的分步教程
 
 ## 🛠 运维文档
 

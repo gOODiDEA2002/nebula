@@ -167,6 +167,19 @@ MyBatis 中的接口，定义数据库操作方法。
 - 系统解耦
 - 流量削峰
 
+### matchIfMissing
+`@ConditionalOnProperty` 的属性，控制配置项缺失时的默认行为。Nebula 采用三级启用策略：
+- Level 1（`matchIfMissing=true`）：纯内存组件（如 Security）
+- Level 2/3（`matchIfMissing=false`）：依赖外部服务或特定部署形态的模块
+
+### MCP (Model Context Protocol)
+AI 模型上下文协议，用于 AI 模型与外部工具/数据源的标准化交互。
+
+**Nebula 支持**：`nebula-starter-mcp`
+
+### @MessageListener
+消息处理注解，标注在方法上声明消息订阅处理器。v2.0.1 引入，替代已废弃的 `@MessageHandler`。
+
 ### Microservice (微服务)
 将应用拆分为多个小型、独立的服务。
 
@@ -211,6 +224,12 @@ MyBatis 的增强工具，简化 CRUD 操作。
 - 健康检查
 
 **Nebula 支持**：nebula-discovery-nacos
+
+### nebula-defaults.properties
+各 Starter 模块通过 `META-INF/nebula-defaults.properties` 声明默认启用的模块。由 `NebulaStarterDefaultsPostProcessor` 以最低优先级注入 Environment，用户 `application.yml` 始终可覆盖。
+
+### NebulaStarterDefaultsPostProcessor
+框架启动时读取 `nebula-defaults.properties` 并注入 Environment 的后置处理器。保证 Starter 的预置默认值生效，同时不影响用户的显式配置。
 
 ### Non-Blocking (非阻塞)
 操作不会等待完成，立即返回。
@@ -289,6 +308,12 @@ User → Role → Permission → Resource
 Redis 的 Java 客户端，提供丰富的分布式数据结构。
 
 **Nebula 使用**：实现分布式锁
+
+### @RemoteService
+RPC 客户端注解，标注在接口上声明远程服务代理。v2.0.1 引入，替代已废弃的 `@RpcClient`（注解）。
+
+### RestClient
+Spring Framework 6 引入的 HTTP 客户端，替代已废弃的 `RestTemplate`。Nebula HTTP RPC 模块已迁移至 RestClient。
 
 ### Refresh Token (刷新令牌)
 用于获取新的访问令牌，延长会话。
@@ -405,41 +430,6 @@ Spring Boot 的依赖管理方式，一次引入相关依赖。
 - 失败重试
 - 任务监控
 
-## 票务系统专用术语
-
-### Showtime (场次)
-电影的放映时间和场地信息。
-
-### Seat Lock (座位锁定)
-用户选座后，临时锁定座位，防止其他用户选择。
-
-**实现**：分布式锁 + 超时释放
-
-### Oversell Prevention (防超卖)
-防止票卖出数量超过实际可用座位数。
-
-**核心技术**：
-- 分布式锁
-- 库存检查
-- 事务管理
-
-### E-Ticket (电子票)
-在线购票后生成的电子凭证。
-
-**包含信息**：
-- 二维码
-- 订单号
-- 场次信息
-- 座位信息
-
-### Order Timeout (订单超时)
-未在规定时间内完成支付的订单。
-
-**处理**：
-- 自动取消订单
-- 释放座位
-- 恢复库存
-
 ## 缩写对照
 
 | 缩写 | 全称 | 中文 |
@@ -454,6 +444,7 @@ Spring Boot 的依赖管理方式，一次引入相关依赖。
 | OSS | Object Storage Service | 对象存储服务 |
 | QPS | Queries Per Second | 每秒查询数 |
 | RBAC | Role-Based Access Control | 基于角色的访问控制 |
+| MCP | Model Context Protocol | 模型上下文协议 |
 | RPC | Remote Procedure Call | 远程过程调用 |
 | TPS | Transactions Per Second | 每秒事务数 |
 | VO | Value Object | 值对象 |
@@ -466,8 +457,8 @@ Spring Boot 的依赖管理方式，一次引入相关依赖。
 
 ---
 
-**最后更新**: 2025-11-20  
-**文档版本**: v1.0
+**最后更新**: 2026-04-15  
+**文档版本**: v2.0.1
 
 如有遗漏或错误，欢迎[提交 Issue](https://github.com/nebula/nebula/issues)。
 
