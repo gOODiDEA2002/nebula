@@ -623,22 +623,32 @@ public class CacheAutoConfiguration {
 }
 ```
 
+**三级启用策略**：
+- Level 1（`matchIfMissing = true`）：Security，纯内存组件，默认启用
+- Level 2（`matchIfMissing = false`）：需要外部服务（DB/Redis/MQ），默认禁用
+- Level 3（`matchIfMissing = false`）：特定部署形态（RPC/Gateway/AI），默认禁用
+
 **配置优先级**：
 1. 外部配置文件
 2. 环境变量
-3. 默认配置
+3. Starter 默认值（`META-INF/nebula-defaults.properties`）
+4. 默认配置
 
 ## Starter 设计
 
 ### Starter 模块
 
-| Starter | 包含模块 | 适用场景 |
-|---------|---------|---------|
-| nebula-starter-minimal | foundation | 最小化应用 |
-| nebula-starter-web | foundation, security, web | Web 应用 |
-| nebula-starter-service | foundation, security, data, messaging, rpc, discovery | 微服务 |
-| nebula-starter-ai | foundation, ai-spring | AI 应用 |
-| nebula-starter-all | 所有模块 | 单体应用 |
+| Starter | 包含模块 | 默认启用 | 适用场景 |
+|---------|---------|---------|---------|
+| nebula-starter-minimal | foundation | 无 | 最小化应用 |
+| nebula-starter-web | foundation, security, web | persistence, cache | Web 应用 |
+| nebula-starter-service | foundation, security, data, messaging, rpc, discovery | persistence, cache, http-rpc, rpc-discovery, nacos, lock | 微服务 |
+| nebula-starter-gateway | gateway, discovery | gateway, nacos | API 网关 |
+| nebula-starter-ai | foundation, ai-spring | ai, cache | AI 应用 |
+| nebula-starter-all | 所有模块 | persistence, cache, rpc, nacos, lock, ai | 单体应用 |
+
+各 Starter 通过 `META-INF/nebula-defaults.properties` 声明默认启用模块，
+由 `NebulaStarterDefaultsPostProcessor`（`EnvironmentPostProcessor`）以最低优先级注入。
 
 ### 使用方式
 

@@ -62,5 +62,47 @@ public interface LockManager {
      * @return 是否可用
      */
     boolean isAvailable();
+    
+    /**
+     * 使用锁回调执行业务逻辑（阻塞式获取锁）
+     * 
+     * @param key 锁的唯一标识
+     * @param callback 在持有锁期间执行的回调
+     * @param <T> 回调返回值类型
+     * @return 回调执行结果
+     */
+    <T> T execute(String key, LockCallback<T> callback);
+    
+    /**
+     * 使用锁回调执行业务逻辑（阻塞式获取锁，带配置）
+     * 
+     * @param key 锁的唯一标识
+     * @param config 锁配置
+     * @param callback 在持有锁期间执行的回调
+     * @param <T> 回调返回值类型
+     * @return 回调执行结果
+     */
+    <T> T execute(String key, LockConfig config, LockCallback<T> callback);
+    
+    /**
+     * 尝试使用锁执行业务逻辑（非阻塞，获取锁失败返回 null）
+     * 
+     * @param key 锁的唯一标识
+     * @param callback 在持有锁期间执行的回调
+     * @param <T> 回调返回值类型
+     * @return 回调执行结果，获取锁失败时返回 null
+     */
+    <T> T tryExecute(String key, LockCallback<T> callback);
+    
+    /**
+     * 尝试使用锁执行业务逻辑（非阻塞，带配置）
+     * 
+     * @param key 锁的唯一标识
+     * @param config 锁配置
+     * @param callback 在持有锁期间执行的回调
+     * @param <T> 回调返回值类型
+     * @return 回调执行结果，获取锁失败时返回 null
+     */
+    <T> T tryExecute(String key, LockConfig config, LockCallback<T> callback);
 }
 

@@ -31,7 +31,7 @@ import org.springframework.context.annotation.Import;
 @Slf4j
 @AutoConfiguration
 @ConditionalOnClass(name = "org.springframework.cloud.gateway.filter.GatewayFilter")
-@ConditionalOnProperty(prefix = "nebula.gateway", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.gateway", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(GatewayProperties.class)
 @Import({ RateLimitKeyResolverConfig.class, GatewayRoutesAutoConfiguration.class, GatewayRedisAutoConfiguration.class,
         GatewayHealthController.class })

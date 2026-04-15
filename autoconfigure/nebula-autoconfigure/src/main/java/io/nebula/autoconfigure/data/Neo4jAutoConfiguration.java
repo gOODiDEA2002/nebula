@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @AutoConfiguration(before = org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration.class)
 @ConditionalOnClass(Driver.class)
-@ConditionalOnProperty(prefix = "nebula.data.neo4j", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.data.neo4j", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(Neo4jProperties.class)
 public class Neo4jAutoConfiguration {
 

@@ -11,11 +11,11 @@ import io.nebula.websocket.netty.NettyWebSocketMessageService;
 import io.nebula.websocket.netty.server.NettyWebSocketServer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,10 +23,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Netty WebSocket 自动配置
+ * Netty WebSocket 配置（由 nebula-autoconfigure 统一注册）
  */
 @Slf4j
-@AutoConfiguration
+@Configuration
 @ConditionalOnProperty(prefix = "nebula.websocket.netty", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(NettyWebSocketProperties.class)
 @RequiredArgsConstructor

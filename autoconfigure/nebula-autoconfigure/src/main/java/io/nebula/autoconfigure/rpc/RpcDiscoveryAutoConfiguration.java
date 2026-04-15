@@ -40,7 +40,7 @@ import org.springframework.core.env.Environment;
 @ConditionalOnClass({ServiceDiscovery.class, RpcClient.class})
 @ConditionalOnBean(ServiceDiscovery.class)  // 确保 ServiceDiscovery Bean 存在
 @EnableConfigurationProperties(RpcDiscoveryProperties.class)
-@ConditionalOnProperty(prefix = "nebula.rpc.discovery", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.rpc.discovery", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class RpcDiscoveryAutoConfiguration {
     
     /**

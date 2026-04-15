@@ -1,2 +1,1 @@
-io.nebula.websocket.netty.config.NettyWebSocketAutoConfiguration
-
+# 已迁移至 nebula-autoconfigure 统一管理

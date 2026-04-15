@@ -16,14 +16,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -39,43 +37,27 @@ import java.util.concurrent.ThreadPoolExecutor;
 @AutoConfigureBefore(RpcDiscoveryAutoConfiguration.class) // 关键：确保 httpRpcClient 先创建
 @ConditionalOnClass(name = { "io.nebula.rpc.http.config.HttpRpcProperties", "io.nebula.rpc.http.client.HttpRpcClient" })
 @EnableConfigurationProperties(HttpRpcProperties.class)
-@ConditionalOnProperty(prefix = "nebula.rpc.http", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.rpc.http", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class HttpRpcAutoConfiguration {
 
     /**
-     * 配置 RestTemplateBuilder (如果不存在)
-     * 某些场景下可能没有引入 spring-boot-starter-web，需要手动创建
+     * 配置HTTP RPC专用的RestClient（替代 RestTemplate）
      */
-    @Bean
-    @ConditionalOnMissingBean(RestTemplateBuilder.class)
-    public RestTemplateBuilder restTemplateBuilder() {
-        return new RestTemplateBuilder();
-    }
-
-    /**
-     * 配置HTTP RPC专用的RestTemplate
-     */
-    @Bean(name = "rpcRestTemplate")
-    @ConditionalOnMissingBean(name = "rpcRestTemplate")
-    public RestTemplate rpcRestTemplate(HttpRpcProperties properties,
-            RestTemplateBuilder builder) {
+    @Bean(name = "rpcRestClient")
+    @ConditionalOnMissingBean(name = "rpcRestClient")
+    public RestClient rpcRestClient(HttpRpcProperties properties) {
         HttpRpcProperties.ClientConfig clientConfig = properties.getClient();
 
-        RestTemplate restTemplate = builder
-                .setConnectTimeout(Duration.ofMillis(clientConfig.getConnectTimeout()))
-                .setReadTimeout(Duration.ofMillis(clientConfig.getReadTimeout()))
-                .build();
-
-        // 配置连接池
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(clientConfig.getConnectTimeout());
         factory.setReadTimeout(clientConfig.getReadTimeout());
-        restTemplate.setRequestFactory(factory);
 
-        log.info("配置HTTP RPC RestTemplate: connectTimeout={}ms, readTimeout={}ms",
+        log.info("配置HTTP RPC RestClient: connectTimeout={}ms, readTimeout={}ms",
                 clientConfig.getConnectTimeout(), clientConfig.getReadTimeout());
 
-        return restTemplate;
+        return RestClient.builder()
+                .requestFactory(factory)
+                .build();
     }
 
     /**
@@ -107,18 +89,17 @@ public class HttpRpcAutoConfiguration {
     @Bean(name = "httpRpcClient")
     @ConditionalOnMissingBean(name = "httpRpcClient")
     @ConditionalOnProperty(prefix = "nebula.rpc.http.client", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public HttpRpcClient httpRpcClient(RestTemplate rpcRestTemplate,
+    public HttpRpcClient httpRpcClient(RestClient rpcRestClient,
             Executor rpcExecutor,
             HttpRpcProperties properties,
             ObjectMapper objectMapper,
             @org.springframework.beans.factory.annotation.Value("${server.port:8080}") int serverPort) {
         String baseUrl = properties.getClient().getBaseUrl();
         if (baseUrl == null || baseUrl.isEmpty()) {
-            // 使用 Spring 的 server.port 而非 nebula.rpc.http.server.port
             baseUrl = "http://localhost:" + serverPort;
         }
 
-        HttpRpcClient client = new HttpRpcClient(rpcRestTemplate, baseUrl, rpcExecutor, objectMapper);
+        HttpRpcClient client = new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor, objectMapper);
 
         log.info("配置HTTP RPC客户端: baseUrl={}", baseUrl);
 
@@ -135,23 +116,15 @@ public class HttpRpcAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.rpc.http.server", name = "enabled", havingValue = "true", matchIfMissing = true)
     public HttpRpcServer httpRpcServer(HttpRpcProperties properties,
             @org.springframework.beans.factory.annotation.Value("${server.port:8080}") int serverPort) {
-        // 当未显式配置端口时，自动使用 server.port
-        int resolvedPort = properties.getServer().getPort() != null
+        int resolvedPort = properties.getServer().getPort() > 0
                 ? properties.getServer().getPort()
                 : serverPort;
 
         HttpRpcServer server = new HttpRpcServer();
-<<<<<<< HEAD
         server.start(resolvedPort);
 
         log.info("配置HTTP RPC服务器: port={}, contextPath={}",
                 resolvedPort,
-=======
-        server.start(properties.getServer().getPort());
-
-        log.info("配置HTTP RPC服务器: port={}, contextPath={}",
-                properties.getServer().getPort(),
->>>>>>> 57b67b3 (feat(nebula-rpc-http): 使用 server.port)
                 properties.getServer().getContextPath());
 
         return server;
@@ -176,7 +149,6 @@ public class HttpRpcAutoConfiguration {
     public static RpcServiceRegistrationProcessor rpcServiceRegistrationProcessor(@Lazy HttpRpcServer httpRpcServer) {
         return new RpcServiceRegistrationProcessor(httpRpcServer);
     }
-<<<<<<< HEAD
 
     /**
      * 组件摘要: HTTP RPC
@@ -204,6 +176,4 @@ public class HttpRpcAutoConfiguration {
 
         return new SimpleComponentSummary("RPC", "HTTP RPC", true, 200, details);
     }
-=======
->>>>>>> 57b67b3 (feat(nebula-rpc-http): 使用 server.port)
 }

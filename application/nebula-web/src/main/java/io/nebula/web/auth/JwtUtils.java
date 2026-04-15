@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
@@ -20,7 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * JWT 工具类
+ *
+ * @deprecated 请使用 {@code io.nebula.security.jwt.JwtService}（nebula-security 模块），
+ *             该接口提供更完整的 JWT 管理能力且与安全框架集成。
+ *             本工具类将在未来版本中移除。
  */
+@Deprecated(since = "2.0.1", forRemoval = true)
 @Slf4j
 @RequiredArgsConstructor
 public class JwtUtils {

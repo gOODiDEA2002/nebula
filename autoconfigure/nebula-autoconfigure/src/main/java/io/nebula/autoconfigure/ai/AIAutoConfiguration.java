@@ -50,7 +50,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @AutoConfiguration
 @ConditionalOnClass({ ChatClient.class, ChatModel.class })
-@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties({ AIProperties.class, io.nebula.ai.spring.config.VectorStoreProperties.class })
 public class AIAutoConfiguration {
 

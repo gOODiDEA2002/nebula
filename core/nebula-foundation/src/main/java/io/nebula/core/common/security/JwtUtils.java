@@ -14,7 +14,12 @@ import java.util.Map;
 /**
  * JWT工具类
  * 提供JWT token的生成、解析和验证功能
+ *
+ * @deprecated 请使用 {@code io.nebula.security.jwt.JwtService}（nebula-security 模块），
+ *             该接口提供更完整的 JWT 管理能力且与安全框架集成。
+ *             本工具类将在未来版本中移除。
  */
+@Deprecated(since = "2.0.1", forRemoval = true)
 public final class JwtUtils {
     
     private static final String DEFAULT_ISSUER = "nebula";

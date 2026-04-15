@@ -25,7 +25,7 @@ import org.springframework.core.env.Environment;
 @Slf4j
 @AutoConfiguration
 @ConditionalOnClass({ ServiceDiscovery.class, NacosServiceDiscovery.class })
-@ConditionalOnProperty(prefix = "nebula.discovery.nacos", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.discovery.nacos", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class NacosDiscoveryAutoConfiguration {
 
         /**

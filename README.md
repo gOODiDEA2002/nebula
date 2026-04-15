@@ -1,83 +1,132 @@
 # Nebula Framework
 
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.java.net/projects/jdk/21/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.12-green.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.8-green.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java 21 构建，提供企业级应用开发的完整解决方案
+Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java 21 构建，提供企业级应用开发的完整解决方案。
 
-##  特性
+## 特性
 
-- **现代化技术栈**: Java 21 + Spring Boot 3.x + Maven
-- **模块化架构**: 基于 DDD 原则的清晰模块划分
-- **安全组件**: 加密工具JWT 支持
-- **数据访问**: 统一的数据访问抽象层，支持多种存储后端
-- **持久化层**: MyBatis-Plus集成，支持读写分离和分库分表
-- **文档数据库**: MongoDB完整支持，包含地理查询和聚合
-- **多级缓存**: 本地+分布式缓存，防穿透/雪崩保护
-- **消息传递**: 统一的消息处理抽象
-- **Web 支持**: 完整的 Web 开发支持
-- **任务调度**: 灵活的任务调度系统
-- **配置管理**: 类型安全的配置属性
+- **现代化技术栈**: Java 21 + Spring Boot 3.5.8 + Maven
+- **模块化架构**: 清晰的分层设计，按需引入
+- **安全认证**: JWT + RBAC 权限体系，安全注解支持
+- **数据持久化**: MyBatis-Plus 集成，读写分离/分库分表
+- **多级缓存**: Caffeine（本地） + Redis（分布式），防穿透/雪崩
+- **消息队列**: RabbitMQ 集成，延迟消息支持
+- **RPC 通信**: HTTP RPC（RestClient） + gRPC，内置负载均衡
+- **服务发现**: Nacos 注册与发现，自动注册/注销
+- **分布式锁**: 基于 Redisson，公平锁/读写锁/回调封装
+- **WebSocket**: Spring WebSocket + Netty 双实现，Redis 集群消息
+- **对象存储**: MinIO + 阿里云 OSS 双实现
+- **搜索引擎**: Elasticsearch 集成，全文检索/聚合/建议
+- **AI 集成**: Spring AI 封装，聊天/嵌入/向量存储
+- **API 网关**: Spring Cloud Gateway，HTTP 反向代理/限流/日志
+- **任务调度**: XXL-JOB 集成，声明式任务处理器
+- **Web 框架**: 认证拦截/限流/响应缓存/性能监控/数据脱敏
 
-## ️ 架构设计
+## 架构设计
 
 ```
 Nebula Framework
- 核心层 (Core Layer)
-    nebula-foundation       # 基础工具和异常处理
- 基础设施层 (Infrastructure Layer)
-    数据访问 (Data Access)
-       nebula-data-access      # 数据访问抽象层
-       nebula-data-persistence # MyBatis-Plus 集成
-       nebula-data-mongodb     # MongoDB 支持
-       nebula-data-cache       # 多级缓存
+
+  核心层 (Core)
+    nebula-foundation         基础工具、异常处理、统一结果封装
+    nebula-security           JWT 认证、RBAC 授权、安全注解
+
+  基础设施层 (Infrastructure)
+    数据访问 (Data)
+      nebula-data-persistence   MyBatis-Plus、读写分离、分库分表
+      nebula-data-cache         Caffeine + Redis 多级缓存
+      nebula-data-mongodb       MongoDB 支持（可选）
+
     消息传递 (Messaging)
-       nebula-messaging-core   # 消息传递核心
-       nebula-messaging-rabbitmq  # RabbitMQ 实现
+      nebula-messaging-core     消息抽象
+      nebula-messaging-rabbitmq RabbitMQ 实现
+
     RPC 通信 (RPC)
-       nebula-rpc-core         # RPC 抽象
-       nebula-rpc-http         # HTTP RPC 实现
+      nebula-rpc-core           RPC 抽象
+      nebula-rpc-http           HTTP RPC（RestClient）
+      nebula-rpc-grpc           gRPC 实现
+
     服务发现 (Discovery)
-       nebula-discovery-core   # 服务发现核心
-       nebula-discovery-nacos  # Nacos 实现
+      nebula-discovery-core     服务发现核心
+      nebula-discovery-nacos    Nacos 实现
+
+    WebSocket
+      nebula-websocket-spring   Spring WebSocket 实现
+      nebula-websocket-netty    Netty WebSocket 实现
+
+    分布式锁 (Lock)
+      nebula-lock-core          锁抽象
+      nebula-lock-redis         Redisson 实现
+
     存储服务 (Storage)
-       nebula-storage-core     # 存储抽象
-       nebula-storage-minio    # MinIO 实现
-       nebula-storage-aliyun-oss # 阿里云OSS实现
+      nebula-storage-core       存储抽象
+      nebula-storage-minio      MinIO 实现
+      nebula-storage-aliyun-oss 阿里云 OSS 实现
+
     搜索服务 (Search)
-       nebula-search-core      # 搜索抽象
-       nebula-search-elasticsearch # Elasticsearch实现
+      nebula-search-core        搜索抽象
+      nebula-search-elasticsearch Elasticsearch 实现
+
     AI 服务 (AI)
-        nebula-ai-core          # AI 核心
-        nebula-ai-spring        # Spring AI 集成
- 应用层 (Application Layer)
-    nebula-web                 # Web 框架
-    nebula-task                # 任务调度
- 集成层 (Integration Layer)
-    nebula-integration-payment # 支付集成
- Starter 模块 (Starter Modules)
-     nebula-starter             # Spring Boot Starter
-     nebula-example             # 使用示例
+      nebula-ai-core            AI 核心
+      nebula-ai-spring          Spring AI 集成
+
+    网关 (Gateway)
+      nebula-gateway-core       HTTP 反向代理、限流、日志
+
+    爬虫 (Crawler)
+      nebula-crawler-core/http/browser/proxy/captcha
+
+  应用层 (Application)
+    nebula-web                认证/限流/缓存/性能监控/健康检查
+    nebula-task               XXL-JOB 任务调度
+
+  集成层 (Integration)
+    nebula-integration-payment       支付集成
+    nebula-integration-notification  短信通知
+
+  自动配置层
+    nebula-autoconfigure      统一自动配置（所有模块集中管理）
+
+  启动器 (Starter)
+    nebula-starter-minimal    最小化（仅 foundation）
+    nebula-starter-web        Web 应用
+    nebula-starter-service    微服务（RPC + 发现 + 锁）
+    nebula-starter-gateway    API 网关
+    nebula-starter-ai         AI 应用
+    nebula-starter-all        单体应用（全功能）
+    nebula-starter-api        API 契约模块
 ```
 
-##  快速开始
+## 快速开始
 
-### 1. 环境要求
+### 环境要求
 
-- Java 21 或更高版本
-- Maven 3.6+ 
-- Spring Boot 3.x
+- Java 21+
+- Maven 3.6+
+
+### 1. 选择 Starter
+
+根据项目类型选择合适的 Starter：
+
+| Starter | 适用场景 | 默认启用的模块 |
+|---------|---------|---------------|
+| `nebula-starter-web` | REST API / 管理后台 / 单体应用 | Persistence, Cache |
+| `nebula-starter-service` | 微服务 | Persistence, Cache, HTTP RPC, Nacos, Lock |
+| `nebula-starter-gateway` | API 网关 | Gateway, Nacos |
+| `nebula-starter-ai` | AI 应用 | AI, Cache |
+| `nebula-starter-minimal` | CLI / 批处理 | 无（仅 Security 默认） |
 
 ### 2. 添加依赖
-
-在您的 `pom.xml` 中添加 Nebula Starter:
 
 ```xml
 <dependency>
     <groupId>io.nebula</groupId>
-    <artifactId>nebula-starter</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <artifactId>nebula-starter-web</artifactId>
+    <version>2.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -85,9 +134,9 @@ Nebula Framework
 
 ```java
 @SpringBootApplication
-public class YourApplication {
+public class MyApplication {
     public static void main(String[] args) {
-        SpringApplication.run(YourApplication.class, args);
+        SpringApplication.run(MyApplication.class, args);
     }
 }
 ```
@@ -97,24 +146,11 @@ public class YourApplication {
 ```java
 @RestController
 @RequestMapping("/api")
-public class YourController extends BaseController {
-    
-    @Override
-    protected Long getCurrentUserId() {
-        // 实现获取当前用户ID的逻辑
-        return 1L;
-    }
-    
-    @Override
-    protected String getCurrentUsername() {
-        // 实现获取当前用户名的逻辑
-        return "user";
-    }
-    
+public class HelloController {
+
     @GetMapping("/hello")
-    @Monitored(name = "hello.api", description = "Hello API")
     public Result<String> hello() {
-        return success("Hello, Nebula!");
+        return Result.success("Hello, Nebula!");
     }
 }
 ```
@@ -122,115 +158,39 @@ public class YourController extends BaseController {
 ### 5. 配置应用
 
 ```yaml
-# application.yml
+spring:
+  application:
+    name: my-app
+  datasource:
+    url: jdbc:mysql://localhost:3306/mydb
+    username: root
+    password: ${DB_PASSWORD}
+
 nebula:
-  metrics:
-    enabled: true
-  datasources:
-    primary:
-      url: jdbc:h2:mem:testdb
-      username: sa
-      password: ""
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration: 86400
 ```
 
-##  模块说明
+> Starter 已通过 `NebulaStarterDefaultsPostProcessor` 自动启用对应模块，
+> 无需重复声明 `enabled: true`。如需额外模块，显式配置即可。
 
-### 核心模块
+## 模块启用策略
 
-#### nebula-foundation
-提供基础功能和异常处理：
-- 统一异常处理体系
-- 常用工具类和工具方法
-- 基础配置支持
-- 通用工具函数
+框架采用三级启用策略，通过 `@ConditionalOnProperty` 的 `matchIfMissing` 控制：
 
-### 数据访问模块
+| 级别 | 策略 | 说明 |
+|------|------|------|
+| Level 1 | 默认启用 | Security（纯内存组件） |
+| Level 2 | 默认禁用 | 需要外部服务（DB/Redis/MQ/ES） |
+| Level 3 | 默认禁用 | 特定部署形态（RPC/Gateway/AI/Crawler） |
 
-#### nebula-data-access
-统一数据访问抽象层：
-- 通用Repository接口和实现
-- 链式QueryBuilder查询构建器
-- 统一事务管理接口
-- 完善的异常处理体系
+各 Starter 通过 `META-INF/nebula-defaults.properties` 为目标应用类型预置默认值，
+由 `NebulaStarterDefaultsPostProcessor` 以最低优先级注入 Environment，
+用户 `application.yml` 始终可以覆盖。
 
-#### nebula-data-persistence
-关系型数据库完整解决方案：
-- MyBatis-Plus深度集成
-- 智能读写分离（主从路由/负载均衡）
-- ShardingSphere分库分表支持
-- 声明式和编程式事务
-- 代码生成器和性能监控
-
-#### nebula-data-mongodb
-MongoDB文档数据库支持：
-- 完整的CRUD操作
-- 地理位置查询和索引
-- 聚合管道查询
-- 嵌入文档和数组操作
-- 事务支持和性能优化
-
-#### nebula-data-cache
-企业级多级缓存：
-- 本地缓存（Caffeine）+ 分布式缓存（Redis）
-- Cache-Aside/Write-Through/Write-Back模式
-- 缓存穿透/击穿/雪崩防护
-- 注解驱动的缓存管理
-- 缓存统计和监控
-
-### 应用模块
-
-#### nebula-web
-Web 框架支持：
-- 控制器基类和工具类
-- 全局异常处理
-- 参数验证和转换
-- 认证和授权支持
-- 性能监控和限流
-
-#### nebula-task
-任务调度框架：
-- 定时任务管理
-- 任务执行器抽象
-- 执行结果跟踪
-- 分布式任务协调
-
-### 基础设施模块
-
-#### 消息传递 (Messaging)
-- **nebula-messaging-core**: 统一的消息处理抽象和核心接口
-- **nebula-messaging-rabbitmq**: RabbitMQ 消息队列实现
-
-#### RPC 通信 (RPC)
-- **nebula-rpc-core**: RPC 调用抽象和协议定义
-- **nebula-rpc-http**: 基于 HTTP 的 RPC 实现
-
-#### 服务发现 (Discovery)
-- **nebula-discovery-core**: 服务发现核心抽象和负载均衡
-- **nebula-discovery-nacos**: Nacos 服务注册与发现实现
-
-#### 存储服务 (Storage)
-- **nebula-storage-core**: 统一的对象存储抽象接口
-- **nebula-storage-minio**: MinIO 对象存储实现
-- **nebula-storage-aliyun-oss**: 阿里云 OSS 对象存储实现
-
-#### 搜索服务 (Search)
-- **nebula-search-core**: 统一的搜索服务抽象
-- **nebula-search-elasticsearch**: Elasticsearch 搜索引擎实现
-
-#### AI 服务 (AI)
-- **nebula-ai-core**: AI 服务核心抽象和工具
-- **nebula-ai-spring**: Spring AI 集成和自动化配置
-
-### 集成模块
-
-#### nebula-integration-payment
-支付集成模块：
-- 统一支付接口抽象
-- 多支付渠道支持
-- 支付结果回调处理
-- 交易状态管理
-
-## ️ 开发指南
+## 开发指南
 
 ### 构建项目
 
@@ -238,199 +198,63 @@ Web 框架支持：
 # 编译项目
 mvn clean compile
 
-# 安装所有模块到本地仓库（首次运行必需）
-mvn install -DskipTests
-```
-
-### 快速验证框架功能
-
-```bash
-# 编译基础测试程序
-javac -cp "$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp.java
-
-# 运行基础功能测试
-java -cp ".:$(find ~/.m2 -name 'nebula-foundation-*.jar' | head -1)" TestApp
-```
-
-### 运行完整示例应用
-
-```bash
-# 1. 首先确保所有模块已安装到本地Maven仓库
+# 安装到本地仓库（首次运行必需）
 mvn install -DskipTests
 
-# 2. 运行示例应用（使用简化配置）
-cd nebula-example
-mvn spring-boot:run -Dspring-boot.run.profiles=simple
-```
+# 编译特定模块
+mvn clean compile -pl core/nebula-foundation
 
-### 验证应用接口
-
-应用启动成功后，可以访问以下接口：
-```bash
-# 系统信息
-curl http://localhost:8080/api/info
-
-# 健康检查
-curl http://localhost:8080/api/health
-
-# Hello接口
-curl http://localhost:8080/api/hello
-
-# 用户管理
-curl http://localhost:8080/api/users
-
-# 测试接口
-curl http://localhost:8080/api/test/success
-
-# 性能监控（需要启用性能监控配置）
-curl http://localhost:8080/performance/status
-curl http://localhost:8080/performance/metrics
-```
-
-### 配置说明
-
-#### 简化配置（推荐用于快速开始）
-使用 `application-simple.yml` 配置：
-- **数据库**: H2 内存数据库（无需安装）
-- **缓存**: 内存缓存（无需Redis）
-- **端口**: 8080
-
-#### 完整配置
-使用 `application.yml` 配置：
-- **数据库**: MySQL（需要单独安装和配置）
-- **缓存**: Redis（需要单独安装和配置）
-- **消息队列**: RabbitMQ（可选）
-- **服务发现**: Nacos（可选）
-- **对象存储**: MinIO/阿里云OSS（可选）
-- **搜索引擎**: Elasticsearch（可选）
-- **AI服务**: Spring AI集成（可选）
-
-#### 其他配置选项
-- `application-minimal.yml`: 最小化配置，仅包含基础功能
-- `application-docker.yml`: Docker容器化部署配置
-- `application-xxljob-optimized.yml`: XXL-Job任务调度优化配置
-
-### 故障排除
-
-如果应用启动失败，请检查：
-1. Java 版本是否为 21+
-2. Maven 依赖是否正确安装：`mvn install -DskipTests`
-3. 端口 8080 是否被占用：`netstat -an | grep :8080`
-4. 使用简化配置启动：`-Dspring-boot.run.profiles=simple`
-
-### 运行测试
-
-```bash
+# 运行测试
 mvn test
 ```
 
-##  监控
+### 运行示例应用
 
-框架内置了完整的监控体系：
+```bash
+# 安装所有模块
+mvn install -DskipTests
 
-1. **性能监控**: 自动收集HTTP请求性能指标，包括响应时间成功率失败率等
-2. **系统监控**: 实时监控CPU内存线程等系统资源使用情况
-3. **健康检查**: 集成 Spring Boot Actuator 健康端点
-4. **性能端点**: 提供 `/performance/metrics`, `/performance/system`, `/performance/status` 等监控接口
+# Web 示例
+mvn -q -f examples/starter-web-example spring-boot:run
 
-##  配置
+# 微服务示例
+mvn -q -f examples/starter-service-example spring-boot:run
 
-### 基础配置
-
-```yaml
-nebula:
-  # 启用监控
-  metrics:
-    enabled: true
-  
-  # 数据源配置
-  datasources:
-    primary:
-      url: ${DB_URL:jdbc:h2:mem:nebula}
-      username: ${DB_USERNAME:sa}
-      password: ${DB_PASSWORD:}
+# AI 示例（需配置 API Key）
+mvn -q -f examples/starter-ai-example spring-boot:run
 ```
 
-### 高级配置
+### 验证接口
 
-```yaml
-nebula:
-  # 数据访问配置
-  data:
-    # 数据源配置
-    sources:
-      primary:
-        type: mysql
-        url: jdbc:mysql://localhost:3306/nebula_db
-        username: root
-        password: password
-        pool:
-          min-size: 5
-          max-size: 20
-    
-    # 缓存配置
-    cache:
-      enabled: true
-      type: multi-level  # local, redis, multi-level
-      local:
-        max-size: 10000
-        expire-after-write: 300s
-      redis:
-        enabled: true
-        key-prefix: "nebula:cache:"
-    
-    # 读写分离配置
-    read-write-separation:
-      enabled: true
-      clusters:
-        default:
-          master: primary
-          slaves: [slave1, slave2]
-          load-balance-strategy: ROUND_ROBIN
-    
-    # 分库分表配置
-    sharding:
-      enabled: true
-      schemas:
-        default:
-          data-sources: [ds0, ds1]
-          tables:
-            - logic-table: t_user
-              actual-data-nodes: ds${0..1}.t_user_${0..1}
-    
-    # MongoDB配置
-    mongodb:
-      enabled: true
-      database: nebula_mongo
-      
-  # 安全配置
-  security:
-    jwt:
-      secret: ${JWT_SECRET:your-secret-key}
-      expiration: 86400
-  
-  # 消息配置
-  messaging:
-    provider: rabbitmq
-    rabbitmq:
-      host: ${RABBITMQ_HOST:localhost}
-      port: ${RABBITMQ_PORT:5672}
+```bash
+# 健康检查
+curl http://localhost:8080/health/ping
+
+# 性能监控
+curl http://localhost:8080/performance/status
 ```
 
-##  贡献
+## 监控
 
-我们欢迎所有形式的贡献！请查看 [贡献指南](CONTRIBUTING.md) 了解详情
+框架内置监控体系：
 
-##  许可证
+- **健康检查**: `/health/ping`, `/health/status`, `/health/liveness`, `/health/readiness`
+- **性能监控**: `/performance/metrics`, `/performance/system`, `/performance/status`
+- **请求日志**: 自动记录请求耗时，慢请求标记
+- **Micrometer**: 可对接 Prometheus/Grafana
 
-本项目采用 MIT License 许可证详情请查看 [LICENSE](LICENSE) 文件
+## 文档
 
-##  相关链接
+- [框架使用指南](docs/Nebula框架使用指南.md) -- 各模块详细用法与代码示例
+- [配置说明](docs/Nebula框架配置说明.md) -- 配置项完整参考
+- [Starter 选择指南](docs/Nebula%20Starter%20选择指南.md) -- 选型建议与对比
+- [框架审查报告](docs/nebula-framework-review.md) -- 架构评审与优化记录
+- [自动配置指南](docs/framework/AUTO_CONFIGURATION_GUIDE.md) -- 自动配置机制详解
+- [快速开始](docs/framework/QUICK_START.md) -- 分步骤详细教程
+- [架构说明](docs/framework/ARCHITECTURE.md) -- 架构设计与决策
+- [FAQ](docs/FAQ.md) -- 常见问题
+- [贡献指南](docs/CONTRIBUTING.md)
 
-- [Spring Boot 文档](https://spring.io/projects/spring-boot)
-- [Java 21 文档](https://openjdk.java.net/projects/jdk/21/)
-- [Maven 指南](https://maven.apache.org/guides/)
+## 许可证
 
----
-
-**Nebula Framework** - 构建现代化 Java 应用的最佳选择！
+本项目采用 Apache License 2.0 许可证。详情请查看 [LICENSE](LICENSE) 文件。

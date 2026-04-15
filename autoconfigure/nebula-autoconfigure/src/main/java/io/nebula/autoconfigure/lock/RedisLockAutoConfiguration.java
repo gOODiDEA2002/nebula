@@ -25,7 +25,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @Slf4j
 @Configuration
 @ConditionalOnClass({ RedissonClient.class, LockManager.class })
-@ConditionalOnProperty(prefix = "nebula.lock", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.lock", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(RedisLockProperties.class)
 @EnableAspectJAutoProxy
 public class RedisLockAutoConfiguration {

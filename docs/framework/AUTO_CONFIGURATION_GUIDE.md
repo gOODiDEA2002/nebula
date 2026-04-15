@@ -147,32 +147,77 @@ public class SecurityAutoConfiguration {
 - 在 `nebula-autoconfigure` 的 pom.xml 中使用 `<optional>true</optional>`
 - 在配置类中使用 `@ConditionalOnClass(name = "...")` 条件判断
 
+### 4. 代理模式（适用于模块内已有 @Configuration 的情况）
+
+当基础设施模块内部已有完整的 `@Configuration` 类时，可在 `nebula-autoconfigure` 创建代理类：
+
+```java
+// nebula-autoconfigure 中的代理类
+@AutoConfiguration
+@ConditionalOnClass(name = "io.nebula.websocket.spring.config.WebSocketAutoConfiguration")
+@Import(io.nebula.websocket.spring.config.WebSocketAutoConfiguration.class)
+public class SpringWebSocketAutoConfiguration {
+}
+```
+
+对应的模块内部配置类使用 `@Configuration`（而非 `@AutoConfiguration`），由代理类统一注册：
+
+```java
+// 基础设施模块中的配置类
+@Configuration  // 注意：不是 @AutoConfiguration
+@ConditionalOnProperty(prefix = "nebula.websocket", name = "enabled", havingValue = "true")
+public class WebSocketAutoConfiguration {
+    // ...
+}
+```
+
+### 5. 三级启用策略
+
+所有自动配置类使用 `@ConditionalOnProperty` 控制启用，遵循三级策略：
+
+| 级别 | matchIfMissing | 适用范围 |
+|------|---------------|---------|
+| Level 1 | `true` | Security（纯内存组件） |
+| Level 2 | `false` | 需要外部服务（DB/Redis/MQ/ES） |
+| Level 3 | `false` | 特定部署形态（RPC/Gateway/AI/Crawler） |
+
+各 Starter 通过 `META-INF/nebula-defaults.properties` 声明默认启用模块，
+由 `NebulaStarterDefaultsPostProcessor`（`EnvironmentPostProcessor`）以最低优先级注入，
+用户 `application.yml` 始终可以覆盖。
+
 ## 当前实现
 
 ```
 nebula-autoconfigure/
   src/main/java/io/nebula/autoconfigure/
+    env/
+      NebulaStarterDefaultsPostProcessor.java  # Starter 默认值注入
     security/
-      SecurityAutoConfiguration.java      # 安全配置（直接定义在 autoconfigure 中）
+      SecurityAutoConfiguration.java           # 安全配置（直接定义）
     rpc/
-      GrpcRpcAutoConfiguration.java       # gRPC 配置
-      HttpRpcAutoConfiguration.java       # HTTP RPC 配置
+      GrpcRpcAutoConfiguration.java            # gRPC 配置
+      HttpRpcAutoConfiguration.java            # HTTP RPC 配置
+      AsyncRpcAutoConfiguration.java           # 异步 RPC 配置
+      RpcDiscoveryAutoConfiguration.java       # RPC 发现配置
     data/
-      CacheAutoConfiguration.java         # 缓存配置
-      DataPersistenceAutoConfiguration.java # 数据持久化配置
+      CacheAutoConfiguration.java              # 缓存配置
+      DataPersistenceAutoConfiguration.java    # 数据持久化配置
+      Neo4jAutoConfiguration.java              # Neo4j 配置
+    websocket/
+      SpringWebSocketAutoConfiguration.java    # Spring WebSocket 代理
+      NettyWebSocketAutoConfiguration.java     # Netty WebSocket 代理
+    discovery/
+      NacosDiscoveryAutoConfiguration.java     # Nacos 发现配置
+    gateway/
+      GatewayAutoConfiguration.java            # 网关配置
+    lock/
+      RedisLockAutoConfiguration.java          # Redis 锁配置
+    ai/
+      AIAutoConfiguration.java                 # AI 配置
       
   src/main/resources/META-INF/spring/
     org.springframework.boot.autoconfigure.AutoConfiguration.imports
-      # Security Layer - 配置类在 autoconfigure 内部
-      io.nebula.autoconfigure.security.SecurityAutoConfiguration
-      
-      # RPC Layer - 配置类在 autoconfigure 内部
-      io.nebula.autoconfigure.rpc.GrpcRpcAutoConfiguration
-      io.nebula.autoconfigure.rpc.HttpRpcAutoConfiguration
-      
-      # Data Layer - 配置类在 autoconfigure 内部
-      io.nebula.autoconfigure.data.CacheAutoConfiguration
-      io.nebula.autoconfigure.data.DataPersistenceAutoConfiguration
+    org.springframework.boot.env.EnvironmentPostProcessor.imports
 ```
 
 ## 验证方法

@@ -6,9 +6,6 @@ import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * Redis锁管理器
  * 
@@ -23,8 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RedisLockManager implements LockManager {
     
     private final RedissonClient redissonClient;
-    private final Map<String, Lock> lockCache = new ConcurrentHashMap<>();
-    private final Map<String, ReadWriteLock> rwLockCache = new ConcurrentHashMap<>();
     
     public RedisLockManager(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
@@ -65,40 +60,26 @@ public class RedisLockManager implements LockManager {
             throw new IllegalArgumentException("Lock key cannot be null or empty");
         }
         
-        return rwLockCache.computeIfAbsent(key, k -> {
-            RReadWriteLock rRwLock = redissonClient.getReadWriteLock(k);
-            return new RedisReadWriteLock(rRwLock, k, config);
-        });
+        RReadWriteLock rRwLock = redissonClient.getReadWriteLock(key);
+        return new RedisReadWriteLock(rRwLock, key, config);
     }
     
     @Override
     public void releaseLock(String key) {
-        Lock lock = lockCache.remove(key);
-        if (lock != null && lock.isHeldByCurrentThread()) {
-            try {
-                lock.unlock();
-                log.debug("释放并移除锁: key={}", key);
-            } catch (Exception e) {
-                log.error("释放锁失败: key={}", key, e);
+        try {
+            RLock rLock = redissonClient.getLock(key);
+            if (rLock.isHeldByCurrentThread()) {
+                rLock.unlock();
+                log.debug("释放锁: key={}", key);
             }
+        } catch (Exception e) {
+            log.error("释放锁失败: key={}", key, e);
         }
     }
     
     @Override
     public void releaseAllLocks() {
-        log.info("释放所有锁, 总数: {}", lockCache.size());
-        lockCache.forEach((key, lock) -> {
-            if (lock.isHeldByCurrentThread()) {
-                try {
-                    lock.unlock();
-                    log.debug("释放锁: key={}", key);
-                } catch (Exception e) {
-                    log.error("释放锁失败: key={}", key, e);
-                }
-            }
-        });
-        lockCache.clear();
-        rwLockCache.clear();
+        log.info("releaseAllLocks 被调用，Redisson 管理的锁由各持有者自行释放");
     }
     
     @Override
@@ -111,27 +92,12 @@ public class RedisLockManager implements LockManager {
         }
     }
     
-    /**
-     * 使用锁回调执行业务逻辑
-     * 
-     * @param key 锁key
-     * @param callback 回调函数
-     * @param <T> 返回值类型
-     * @return 执行结果
-     */
+    @Override
     public <T> T execute(String key, LockCallback<T> callback) {
         return execute(key, LockConfig.defaultConfig(), callback);
     }
     
-    /**
-     * 使用锁回调执行业务逻辑（带配置）
-     * 
-     * @param key 锁key
-     * @param config 锁配置
-     * @param callback 回调函数
-     * @param <T> 返回值类型
-     * @return 执行结果
-     */
+    @Override
     public <T> T execute(String key, LockConfig config, LockCallback<T> callback) {
         Lock lock = getLock(key, config);
         try {
@@ -145,28 +111,12 @@ public class RedisLockManager implements LockManager {
         }
     }
     
-    /**
-     * 尝试使用锁执行业务逻辑
-     * 如果获取锁失败,返回null
-     * 
-     * @param key 锁key
-     * @param callback 回调函数
-     * @param <T> 返回值类型
-     * @return 执行结果,获取锁失败返回null
-     */
+    @Override
     public <T> T tryExecute(String key, LockCallback<T> callback) {
         return tryExecute(key, LockConfig.tryLockConfig(), callback);
     }
     
-    /**
-     * 尝试使用锁执行业务逻辑（带配置）
-     * 
-     * @param key 锁key
-     * @param config 锁配置
-     * @param callback 回调函数
-     * @param <T> 返回值类型
-     * @return 执行结果,获取锁失败返回null
-     */
+    @Override
     public <T> T tryExecute(String key, LockConfig config, LockCallback<T> callback) {
         Lock lock = getLock(key, config);
         try {

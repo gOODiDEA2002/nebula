@@ -45,18 +45,29 @@ Nebula 框架所有配置统一使用 `nebula.*` 前缀，与 Spring Boot 原生
 
 ### 模块启用机制
 
-每个模块都有 `enabled` 属性控制是否启用：
+每个模块都有 `enabled` 属性控制是否启用。框架采用**三级启用策略**：
 
+| 级别 | 策略 | matchIfMissing | 适用范围 |
+|------|------|---------------|---------|
+| Level 1 | 默认启用 | `true` | Security（纯内存组件） |
+| Level 2 | 默认禁用 | `false` | 需要外部服务（DB/Redis/MQ/ES） |
+| Level 3 | 默认禁用 | `false` | 特定部署形态（RPC/Gateway/AI/Crawler） |
+
+> **Starter 自动默认值**：各 Starter 通过 `META-INF/nebula-defaults.properties` 声明默认启用模块，
+> 由 `NebulaStarterDefaultsPostProcessor` 以最低优先级注入。引入 Starter 后对应模块自动启用，
+> 用户 `application.yml` 中的配置始终可以覆盖。
+
+配置示例：
 ```yaml
 nebula:
   data:
     persistence:
-      enabled: true  # 启用数据持久化
+      enabled: true  # 启用数据持久化（starter-web 已默认启用）
     cache:
-      enabled: true  # 启用缓存
+      enabled: true  # 启用缓存（starter-web 已默认启用）
   messaging:
     rabbitmq:
-      enabled: true  # 启用消息队列
+      enabled: true  # 启用消息队列（需显式启用）
 ```
 
 ---

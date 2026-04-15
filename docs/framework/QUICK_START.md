@@ -150,19 +150,21 @@ server:
   port: 8080
 
 nebula:
-  # 启用 Web 支持
-  web:
-    enabled: true
-  
-  # 数据访问配置（如需要）
+  # 以下模块已由 nebula-starter-web 默认启用，无需重复声明：
+  #   - nebula.data.persistence.enabled=true
+  #   - nebula.data.cache.enabled=true
+  # 如需覆盖，显式设置即可
+
+  # 数据访问配置（连接信息仍需配置）
   data:
     persistence:
       enabled: true
   
-  # 缓存配置（如需要）
-  cache:
-    enabled: true
-    type: caffeine
+  # 缓存配置
+  data:
+    cache:
+      enabled: true
+      type: caffeine
 ```
 
 ### 步骤4：创建启动类
@@ -361,8 +363,9 @@ server:
   port: 8081
 
 # Nebula 配置
+# nebula-starter-service 已默认启用：persistence, cache, http-rpc, rpc-discovery, nacos, lock
 nebula:
-  # 数据访问
+  # 数据访问（starter-service 已默认启用）
   data:
     persistence:
       enabled: true
@@ -370,18 +373,18 @@ nebula:
       enabled: true
       type: redis
   
-  # 消息队列
+  # 消息队列（需显式启用）
   messaging:
     rabbitmq:
       enabled: true
   
-  # RPC
+  # RPC（starter-service 已默认启用 http-rpc）
   rpc:
     grpc:
       server:
         port: 9090
   
-  # 服务发现
+  # 服务发现（starter-service 已默认启用）
   discovery:
     nacos:
       server-addr: localhost:8848

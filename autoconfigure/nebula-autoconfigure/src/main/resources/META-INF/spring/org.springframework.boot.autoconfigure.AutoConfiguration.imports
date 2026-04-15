@@ -49,10 +49,9 @@ io.nebula.autoconfigure.messaging.RabbitMQAutoConfiguration
 
 # ========================================
 # WebSocket Layer - WebSocket层
-# 注意: WebSocket 配置在各自模块中自动注册
-# - nebula-websocket-spring: Spring WebSocket 实现
-# - nebula-websocket-netty: Netty WebSocket 实现
 # ========================================
+io.nebula.autoconfigure.websocket.SpringWebSocketAutoConfiguration
+io.nebula.autoconfigure.websocket.NettyWebSocketAutoConfiguration
 
 # ========================================
 # Search Layer - 搜索层

@@ -27,7 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @AutoConfiguration
 @EnableConfigurationProperties(AsyncRpcProperties.class)
 @ConditionalOnClass(name = "io.nebula.rpc.async.execution.AsyncRpcExecutionManager")
-@ConditionalOnProperty(prefix = "nebula.rpc.async", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.rpc.async", name = "enabled", havingValue = "true", matchIfMissing = false)
 @Import(NacosAsyncStorageAutoConfiguration.class)
 public class AsyncRpcAutoConfiguration {
 

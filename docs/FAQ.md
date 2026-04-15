@@ -120,12 +120,13 @@ Nebula Framework（增强）
 
 ### Q6: 配置文件怎么写？
 
-**A**: Nebula 统一使用 `nebula` 前缀：
+**A**: Nebula 统一使用 `nebula` 前缀。除 Security（Level 1）外，所有模块默认禁用，
+需显式 `enabled: true`。如使用 Starter，对应模块已自动启用，只需配置连接参数。
 
 ```yaml
 # application.yml
 nebula:
-  # 数据访问
+  # 数据访问（starter-web 已默认启用）
   data:
     persistence:
       enabled: true
@@ -133,13 +134,12 @@ nebula:
       enabled: true
       type: redis
   
-  # 安全认证
+  # 安全认证（Level 1，默认启用）
   security:
     jwt:
-      enabled: true
       secret: your-secret-key
   
-  # RPC 通信
+  # RPC 通信（Level 3，需显式启用或由 starter-service 默认启用）
   rpc:
     grpc:
       enabled: true
@@ -151,7 +151,8 @@ nebula:
 1. 命令行参数 (--nebula.xxx=yyy)
 2. application-{profile}.yml
 3. application.yml
-4. 默认配置
+4. Starter 默认值 (META-INF/nebula-defaults.properties)
+5. 框架默认配置
 ```
 
 **详细配置**：查看各模块的 `CONFIG.md`

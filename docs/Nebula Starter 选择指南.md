@@ -174,6 +174,21 @@
 | nebula-starter-gateway | Nacos | - | - | - | 是 | - |
 | nebula-starter-ai | - | - | - | - | - | 是 |
 
+## 自动启用的模块
+
+各 Starter 通过 `META-INF/nebula-defaults.properties` 声明默认启用的模块。
+引入 Starter 后对应模块自动激活，无需在 `application.yml` 中重复声明 `enabled: true`。
+用户配置始终可以覆盖 Starter 默认值。
+
+| Starter | 默认启用的模块 |
+|---------|---------------|
+| nebula-starter-minimal | 无（仅 Security 默认生效） |
+| nebula-starter-web | Data Persistence, Data Cache |
+| nebula-starter-service | Data Persistence, Data Cache, HTTP RPC, RPC Discovery, Nacos, Redis Lock |
+| nebula-starter-gateway | Gateway, Nacos |
+| nebula-starter-ai | AI, Data Cache |
+| nebula-starter-all | Persistence, Cache, HTTP RPC, RPC Discovery, Nacos, Lock, AI |
+
 ## 继承关系
 
 ```
@@ -195,16 +210,16 @@ nebula-starter-minimal
 
 ### Q: 可以在运行时禁用某些功能吗？
 
-是的，大多数功能都可以通过配置禁用：
+是的，所有功能都可以通过配置禁用。Starter 默认启用的模块也可以在 `application.yml` 中覆盖：
 
 ```yaml
 nebula:
   discovery:
     nacos:
-      enabled: false  # 禁用 Nacos
+      enabled: false  # 禁用 Nacos（覆盖 Starter 默认值）
   rpc:
     http:
-      enabled: false  # 禁用 HTTP RPC
+      enabled: false  # 禁用 HTTP RPC（覆盖 Starter 默认值）
 ```
 
 ### Q: 如何排除不需要的传递依赖？

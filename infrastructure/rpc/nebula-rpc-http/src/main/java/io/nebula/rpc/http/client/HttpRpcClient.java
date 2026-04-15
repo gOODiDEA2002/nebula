@@ -8,12 +8,11 @@ import io.nebula.rpc.core.message.RpcRequest;
 import io.nebula.rpc.core.message.RpcResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +21,7 @@ import java.util.concurrent.Executor;
 
 /**
  * HTTP RPC 客户端实现
- * 支持服务发现集成
+ * 基于 Spring 6.1+ RestClient，支持服务发现集成
  *
  * @author Nebula Framework
  * @since 2.0.0
@@ -30,16 +29,15 @@ import java.util.concurrent.Executor;
 @Slf4j
 public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcClient {
     
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private volatile String baseUrl;
     private final Executor executor;
     private final ObjectMapper objectMapper;
     
-    // 方法缓存: key = serviceClass + methodName + paramCount
     private final ConcurrentHashMap<MethodCacheKey, Method> methodCache = new ConcurrentHashMap<>();
     
-    public HttpRpcClient(RestTemplate restTemplate, String baseUrl, Executor executor, ObjectMapper objectMapper) {
-        this.restTemplate = restTemplate;
+    public HttpRpcClient(RestClient restClient, String baseUrl, Executor executor, ObjectMapper objectMapper) {
+        this.restClient = restClient;
         this.baseUrl = baseUrl;
         this.executor = executor;
         this.objectMapper = objectMapper;
@@ -280,26 +278,18 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
         try {
             String url = baseUrl + "/rpc";
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.set("X-Request-ID", request.getRequestId());
-            
-            // 调试: 先序列化为字符串发送，排除 HttpEntity<RpcRequest> 序列化问题
             String jsonBody = objectMapper.writeValueAsString(request);
             log.debug("RPC请求序列化: url={}, bodyLength={}, service={}, method={}",
                     url, jsonBody.length(), request.getServiceName(), request.getMethodName());
             
-            HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
-            
-            ResponseEntity<RpcResponse> responseEntity = restTemplate.exchange(
-                    url, 
-                    HttpMethod.POST, 
-                    entity, 
-                    RpcResponse.class
-            );
-            
-            return responseEntity.getBody();
+            return restClient.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .header("X-Request-ID", request.getRequestId())
+                    .body(jsonBody)
+                    .retrieve()
+                    .body(RpcResponse.class);
         } catch (Exception e) {
             log.error("发送RPC请求失败: requestId={}", request.getRequestId(), e);
             return RpcResponse.exception(request.getRequestId(), e);

@@ -112,14 +112,15 @@ class RedisLockManagerTest {
     }
     
     @Test
-    void testGetReadWriteLockWithCache() {
+    void testGetReadWriteLockMultipleCalls() {
         String lockKey = "test:rw:cache";
-        
+
         ReadWriteLock rwLock1 = lockManager.getReadWriteLock(lockKey);
         ReadWriteLock rwLock2 = lockManager.getReadWriteLock(lockKey);
-        
-        assertThat(rwLock1).isSameAs(rwLock2);
-        verify(redissonClient, times(1)).getReadWriteLock(lockKey);
+
+        assertThat(rwLock1).isNotNull();
+        assertThat(rwLock2).isNotNull();
+        verify(redissonClient, times(2)).getReadWriteLock(lockKey);
     }
     
     @Test
