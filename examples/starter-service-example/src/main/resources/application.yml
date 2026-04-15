@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: starter-service-example
+server:
+  port: 8082
+grpc:
+  server:
+    port: -1
+nebula:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:nebula-starter-service-example-dev-secret-key-at-least-32-bytes}
+  discovery:
+    nacos:
+      enabled: false
+  rpc:
+    http:
+      enabled: false
+    grpc:
+      enabled: false
+  messaging:
+    rabbitmq:
+      enabled: false
+  lock:
+    enabled: true
+    enable-aspect: true

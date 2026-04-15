@@ -225,17 +225,20 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
     }
     
     /**
-     * 生成Bean名称
+     * 生成Bean名称，兼容 @RpcClient 和 @RemoteService 注解
      */
     private String generateBeanName(Class<?> clientClass) {
-        RpcClient annotation = clientClass.getAnnotation(RpcClient.class);
-        
-        // 优先使用 contextId
-        if (StringUtils.hasText(annotation.contextId())) {
-            return annotation.contextId();
+        RpcClient rpcClient = clientClass.getAnnotation(RpcClient.class);
+        if (rpcClient != null && StringUtils.hasText(rpcClient.contextId())) {
+            return rpcClient.contextId();
         }
-        
-        // 使用类名（首字母小写）
+
+        io.nebula.rpc.core.annotation.RemoteService remoteService =
+                clientClass.getAnnotation(io.nebula.rpc.core.annotation.RemoteService.class);
+        if (remoteService != null && StringUtils.hasText(remoteService.contextId())) {
+            return remoteService.contextId();
+        }
+
         String className = clientClass.getSimpleName();
         return Character.toLowerCase(className.charAt(0)) + className.substring(1);
     }

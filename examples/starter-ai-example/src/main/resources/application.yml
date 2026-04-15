@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: starter-ai-example
+server:
+  port: 8083
+nebula:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:nebula-starter-ai-example-dev-secret-key-at-least-32-bytes}
+  ai:
+    enabled: false
+    openai:
+      api-key: 
+      base-url: https://api.openai.com
+      chat:
+        enabled: true
+      embedding:
+        enabled: true
+    vector-store:
+      chroma:
+        url: http://localhost:8000
+        collection-name: nebula_vectors
+        initialize-schema: true

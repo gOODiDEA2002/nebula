@@ -1,0 +1,35 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: nebula-websocket-example
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+
+nebula:
+  security:
+    enabled: false
+  websocket:
+    enabled: true
+    endpoint: /ws
+    allowed-origins:
+      - "*"
+    sock-js-enabled: false
+    heartbeat:
+      enabled: true
+      interval-seconds: 30
+      timeout-seconds: 60
+    cluster:
+      enabled: false
+  web:
+    auth:
+      enabled: false
+
+logging:
+  level:
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+    io.nebula.websocket: DEBUG

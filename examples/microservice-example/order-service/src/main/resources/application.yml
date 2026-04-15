@@ -1,0 +1,79 @@
+server:
+  port: 1002
+
+spring:
+  application:
+    name: nebula-example-order-service
+
+# gRPC配置
+grpc:
+  server:
+    port: 2002  # gRPC端口（独立于HTTP端口）
+
+# Nebula配置
+nebula:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:nebula-order-service-dev-secret-key-at-least-32-bytes}
+  # 服务发现配置
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: localhost:8848
+      namespace: ${NACOS_NAMESPACE:public}
+      username: nacos
+      password: nacos
+      group-name: DEFAULT_GROUP
+      cluster-name: DEFAULT
+      auto-register: true
+      weight: 1.0
+      healthy: true
+      instance-enabled: true
+      preferred-networks:
+        - 192.168.2
+        - 10.0
+      ignored-interfaces:
+        - docker0
+        - veth
+      metadata:
+        version: 1.0.0
+        env: dev
+      
+  # RPC配置
+  rpc:
+    # HTTP RPC 配置
+    http:
+      enabled: true
+      # 服务端配置（对外提供OrderRpcService）
+      server:
+        enabled: true
+        port: ${server.port}  # 引用 Spring Boot 的 server.port
+        context-path: /rpc
+      # 客户端配置（调用UserRpcService）
+      client:
+        enabled: true  # 需要调用UserService
+        connect-timeout: 30000
+        read-timeout: 60000
+    # gRPC RPC 配置
+    grpc:
+      enabled: true  # 启用 Nebula gRPC RPC
+      server:
+        enabled: true
+        port: ${grpc.server.port}  # 引用 Spring Boot gRPC Starter 的端口
+    # RPC服务发现（用于调用UserService）
+    discovery:
+      enabled: true
+      load-balance-strategy: round_robin
+    
+    # 🎉 实验：完全移除 services 配置，测试框架是否已支持零配置
+    # 框架应该从 @RpcClient(value="nebula-example-service") 自动获取服务名
+    # 详见：FRAMEWORK_OPTIMIZATION_ANALYSIS.md
+
+# 日志配置
+logging:
+  level:
+    io.nebula: DEBUG
+    io.nebula.example.order: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+

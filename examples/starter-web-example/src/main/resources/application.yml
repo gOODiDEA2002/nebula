@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: starter-web-example
+server:
+  port: 8080
+nebula:
+  web:
+    performance:
+      enabled: true
+  security:
+    jwt:
+      secret: ${JWT_SECRET:nebula-starter-web-example-dev-secret-key-at-least-32-bytes}
+      expiration: 86400

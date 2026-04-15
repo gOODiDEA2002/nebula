@@ -1,0 +1,408 @@
+server:
+  port: 1000
+
+spring:
+  application:
+    name: nebula-example
+  profiles:
+    active: dev
+  
+  # 禁用 Spring Security 自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+  
+# gRPC配置
+grpc:
+  server:
+    port: 2000  # gRPC端口（独立于HTTP端口）
+
+# Nebula 配置
+nebula:
+  security:
+    jwt:
+      secret: ${NEBULA_JWT_SECRET:nebula-development-secret-key-please-change-in-production-environments-this-key-must-be-at-least-256-bits-long}
+  # Nacos 服务发现配置
+  discovery:
+    nacos:
+      enabled: true
+      server-addr: ${NEBULA_DEV_SERVER:127.0.0.1}:8848
+      namespace: ${NACOS_NAMESPACE:public}
+      username: nacos
+      password: nacos
+      group-name: DEFAULT_GROUP
+      # cluster-name: DEFAULT
+      auto-register: true  # 启用自动服务注册
+      weight: 1.0
+      healthy: true
+      instance-enabled: true
+      # 首选网络地址配置(避免nacos取网卡出错)
+      preferred-networks:
+        - 192.168.
+        - 10.0
+      # 忽略的网络接口
+      ignored-interfaces:
+        - docker0
+        - veth
+      metadata:
+        version: 1.0.0
+        env: dev
+  
+  data:
+    # 数据持久化配置
+    persistence:
+      enabled: true
+      # 数据源配置
+      sources:
+        primary:
+          type: mysql
+          url: jdbc:mysql://${NEBULA_DEV_SERVER:127.0.0.1}:3306/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: root
+          password: root
+          pool:
+            min-size: 5
+            max-size: 20
+            connection-timeout: 30s
+    
+    # Nebula 缓存配置
+    cache:
+      enabled: true
+      type: multi-level          # 使用多级缓存
+      default-ttl: 300s          # 默认5分钟过期
+      
+      # 本地缓存配置（L1）
+      local:
+        enabled: true
+        max-size: 10000
+        expire-after-write: 120s  # 2分钟写入过期
+        expire-after-access: 300s # 5分钟访问过期
+        
+      # Redis缓存配置（L2）
+      redis:
+        enabled: true
+        host: ${NEBULA_DEV_SERVER:127.0.0.1}
+        port: 6379
+        password: redis
+        database: 1
+        timeout: 2000ms
+        key-prefix: "nebula:example:cache:"
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 2000ms
+        
+      # 多级缓存配置
+      multi-level:
+        enabled: true
+        local-cache-enabled: true
+        remote-cache-enabled: true
+        sync-on-update: true
+        l1-write-back-enabled: true
+  web:
+    # 全局异常处理
+    exception-handler:
+      enabled: true
+      log-stack-trace: true
+      include-exception-details: true  # 开发环境可以启用
+    
+    # API 文档
+    api-doc:
+      enabled: true
+      title: "Nebula Example API"
+      description: "Nebula Framework 示例应用 API 文档"
+      version: "2.0.1-SNAPSHOT"
+      contact-name: "Nebula Team"
+      contact-email: "nebula@example.com"
+    
+    # CORS 配置（生产环境请替换为实际域名，禁止使用 *）
+    cors:
+      enabled: true
+      allowed-origins: ["*"]
+      allowed-methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      allowed-headers: ["*"]
+      allow-credentials: true
+      max-age: 3600
+    
+    # 启用健康检查
+    health:
+      enabled: true
+      show-details: true  # 开发环境显示详细信息
+      
+    # 启用认证系统并配置忽略路径
+    auth:
+      enabled: true
+      # JWT 密钥配置（至少 256 位）
+      # 生产环境请使用环境变量 NEBULA_JWT_SECRET 或修改此配置
+      jwt-secret: ${NEBULA_JWT_SECRET:nebula-development-secret-key-please-change-in-production-environments-this-key-must-be-at-least-256-bits-long}
+      jwt-expiration: 86400  # 24小时
+      ignore-paths:
+        - "/public/**"
+        - "/actuator/**"
+        - "/swagger-ui/**"
+        - "/v3/api-docs/**"
+        - "/health/**"
+        - "/hello"           # HelloController 公开访问
+        - "/hello/**"        # HelloController 所有子路径
+        - "/auth/login"      # 登录接口需要公开
+        - "/performance/**"  # 性能监控接口
+        - "/messaging/**"    # 消息传递演示接口
+        - "/data/**"         # 数据访问演示接口
+        - "/rpc/**"          # RPC演示接口
+        - "/rpc-client/**"   # RPC客户端演示接口
+        - "/task/**"         # 任务调度演示接口
+        - "/payment/**"      # 支付演示接口
+        - "/notification/**" # 通知演示接口
+    
+    # 启用限流
+    rate-limit:
+      enabled: true
+      default-requests-per-second: 10  # 开发环境设置较小值便于测试
+      time-window: 60
+      key-strategy: "IP"
+      limit-exceeded-message: "请求过于频繁，请稍后再试"
+    
+    # 启用响应缓存
+    cache:
+      enabled: true
+      default-ttl: 60      # 1分钟，便于测试
+      max-size: 100
+      key-prefix: "nebula:cache:"
+    
+    # 启用数据脱敏
+    data-masking:
+      enabled: true
+      sensitive-fields: ["password", "mobile", "email", "idCard", "bankCard"]
+      strategy: "MASK"
+      mask-char: "*"
+  
+  # 支付配置（使用 Mock 模式，无需外部支付服务）
+  payment:
+    mock:
+      enabled: true
+
+  # 任务调度配置
+  task:
+    enabled: true
+    xxl-job:
+      enabled: false  # 不依赖 XXL-JOB 调度中心，仅使用框架内置任务引擎
+
+  # RPC HTTP 配置
+  rpc:
+    http:
+      enabled: true
+      # 服务器配置（客户端不需要服务端）
+      server:
+        enabled: false
+      # 客户端配置
+      client:
+        enabled: true
+        # base-url留空，通过服务发现自动获取
+        connect-timeout: 30000
+        read-timeout: 60000
+        retry-count: 3
+        retry-interval: 1000
+        compression-enabled: false
+        logging-enabled: true
+    # RPC服务发现集成（通过Nacos发现nebula-example-service）
+    discovery:
+      enabled: true  # 启用 RPC 服务发现
+      load-balance-strategy: round_robin
+    # RPC服务配置（完全省略）
+    # 通过 @EnableRpcClients + @RpcClient 注解自动扫描和配置
+    # 仅在需要覆盖默认行为时才配置
+    # services:
+    #   user-rpc-service:
+    #     protocol: http  # 例如：覆盖默认 gRPC
+    #     url: http://specific-host:8081  # 例如：直连特定服务器
+    # gRPC 配置
+    grpc:
+      enabled: true
+      # 服务器配置
+      server:
+        enabled: true
+        # port: 9090
+        max-inbound-message-size: 10485760  # 10MB
+        keep-alive-time: 30
+        keep-alive-timeout: 10
+        permit-keep-alive-without-calls: true
+        max-concurrent-calls: 1000
+      # 客户端配置
+      client:
+        enabled: true
+        # target: ${NEBULA_DEV_SERVER}:9090
+        negotiation-type: plaintext
+        load-balancing-policy: round_robin
+        max-inbound-message-size: 10485760  # 10MB
+        connect-timeout: 30000
+        request-timeout: 60000
+        retry-count: 3
+        retry-interval: 1000
+        compression-enabled: false
+        logging-enabled: true
+  
+  # Elasticsearch 搜索配置
+  search:
+    elasticsearch:
+      enabled: ${NEBULA_SEARCH_ENABLED:true}
+      uris:
+        - http://${NEBULA_DEV_SERVER:127.0.0.1}:9200
+      username: elastic
+      password:  # 如果没有密码可以留空
+      connection-timeout: 10s
+      read-timeout: 30s
+      index-prefix: nebula_example
+      default-shards: 1
+      default-replicas: 0  # 单节点设置为0
+      bulk-size: 1000
+      bulk-timeout: 30s
+      search-timeout: 30s
+      scroll-timeout: 1m
+      scroll-size: 1000
+  
+  # RabbitMQ 消息传递配置
+  messaging:
+    rabbitmq:
+      enabled: true
+      host: ${NEBULA_DEV_SERVER:127.0.0.1}
+      port: 5672
+      username: guest
+      password: guest
+      virtual-host: /
+      
+      # 连接配置
+      connection-timeout: 60000
+      heartbeat: 60
+      automatic-recovery: true
+      network-recovery-interval: 5000
+      
+      # 生产者配置
+      producer:
+        publisher-confirms: true
+        confirm-timeout: 5000
+        publisher-returns: true
+      
+      # 消费者配置
+      consumer:
+        prefetch-count: 1
+        auto-ack: false
+        retry-count: 3
+        retry-interval: 1000
+      
+      # Exchange配置
+      exchange:
+        default-type: topic
+        durable: true
+        auto-delete: false
+    
+    # 启用性能监控
+    performance:
+      enabled: true
+      slow-request-threshold: 1000  # 1秒
+      enable-detailed-metrics: true
+      metrics-interval: 30
+    
+    # 启用请求日志
+    request-logging:
+      enabled: true
+      include-headers: true
+      include-request-body: false  # 避免记录敏感信息
+      include-response-body: false
+      ignore-paths: 
+        - "/actuator/**"
+        - "/health/**" 
+        - "/performance/**"
+      max-request-body-length: 1024
+      max-response-body-length: 1024
+  # Minio 存储配置
+  storage:
+    minio:
+      enabled: ${NEBULA_MINIO_ENABLED:true}
+      endpoint: http://${NEBULA_DEV_SERVER:127.0.0.1}:9000
+      access-key: minioadmin
+      secret-key: minioadmin
+      default-bucket: nebula-files
+      auto-create-default-bucket: true
+  
+  # AI 模块配置
+  ai:
+    enabled: ${NEBULA_AI_ENABLED:true}
+    # OpenAI 配置
+    openai:
+      api-key: ${DEEPSEEK_API_KEY}
+      base-url: https://api.deepseek.com
+      chat:
+        enabled: true
+        options:
+          model: deepseek-chat
+          temperature: 0.7
+      embedding:
+        enabled: true
+        options:
+          model: text-embedding-ada-002
+    chat:
+      default-provider: openai
+    embedding:
+      default-provider: openai
+    vector-store:
+      default-provider: chroma
+      # Chroma 向量存储配置
+      chroma:
+        host: ${NEBULA_DEV_SERVER:127.0.0.1}
+        port: 9002
+        tenant-name: SpringAiTenant
+        database-name: SpringAiDatabase
+        collection-name: nebula-collection
+        initialize-schema: true
+    mcp:
+      server:
+        enabled: true
+        name: "Nebula AI MCP Server"
+        version: "1.0.0"
+        type: SYNC
+        transport: WEBMVC
+        sse-message-endpoint: /mcp/message
+      client:
+        enabled: false
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+      table-underline: true
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: io.nebula.example.modules.data.entity.dos
+
+# 日志配置
+logging:
+  level:
+    # 核心业务日志保持 DEBUG
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+    io.nebula.web: DEBUG
+    io.nebula.web.health: DEBUG
+    io.nebula.data: DEBUG
+    io.nebula.data.access: DEBUG
+    io.nebula.data.persistence: DEBUG
+    io.nebula.messaging: DEBUG
+    io.nebula.messaging.core: DEBUG
+    io.nebula.messaging.rabbitmq: DEBUG
+    io.nebula.rpc: DEBUG
+    io.nebula.rpc.core: DEBUG
+    io.nebula.rpc.http: DEBUG
+    io.nebula.discovery: DEBUG
+    
+    # 降低第三方库的日志级别，减少警告噪音
+    io.netty.resolver.dns: OFF                     # MacOS DNS 解析器警告（已知问题，不影响功能）
+    com.baomidou.mybatisplus: DEBUG                # MyBatis-Plus 保持 DEBUG
+    com.baomidou.mybatisplus.extension: INFO       # MyBatis-Plus 扫描信息降为 INFO
+    org.mybatis.spring.mapper: INFO                # MyBatis Mapper 扫描信息降为 INFO
+    com.rabbitmq: INFO                             # RabbitMQ 详细日志降为 INFO
+    org.springframework.amqp: INFO                 # Spring AMQP 日志降为 INFO

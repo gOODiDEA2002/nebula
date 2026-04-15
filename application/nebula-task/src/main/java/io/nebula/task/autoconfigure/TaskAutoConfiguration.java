@@ -16,6 +16,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.util.StringUtils;
 
@@ -24,11 +25,13 @@ import java.util.Map;
 
 /**
  * 任务自动配置类
+ * XxlJobAutoConfiguration 由本类通过 @Import 引入，不独立注册
  */
 @Slf4j
 @AutoConfiguration
 @EnableConfigurationProperties({ TaskProperties.class })
 @ConditionalOnProperty(prefix = "nebula.task", name = "enabled", havingValue = "true", matchIfMissing = false)
+@Import(XxlJobAutoConfiguration.class)
 public class TaskAutoConfiguration {
 
     @Autowired

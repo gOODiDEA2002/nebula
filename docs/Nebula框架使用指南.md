@@ -468,7 +468,7 @@ nebula:
 - ✅ **完整追踪** - 状态、参数、结果全记录
 - ✅ **优雅降级** - 异步组件不可用时自动降级同步
 
-**示例项目：** 完整的异步RPC示例请参考 [nebula-example/nebula-rpc-async](../nebula-example/nebula-rpc-async/)
+**示例项目：** 完整的异步RPC示例请参考 [examples/rpc-async-example](../examples/rpc-async-example/)
 
 详细架构说明请参考 [rpc/ARCHITECTURE.md](rpc/ARCHITECTURE.md) 异步RPC章节。
 

@@ -100,7 +100,7 @@
         <module>autoconfigure/nebula-autoconfigure</module>
 
         <!-- 示例项目 -->
-        <module>nebula-example</module>
+        <module>examples</module>
 
     </modules>
 

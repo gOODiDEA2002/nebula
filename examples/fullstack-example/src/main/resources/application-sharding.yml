@@ -1,0 +1,113 @@
+# 分片功能配置示例
+# 使用方式：spring.profiles.active=dev,sharding
+
+spring:
+  config:
+    activate:
+      on-profile: sharding
+# 禁用自动数据源配置，使用 ShardingSphere 数据源
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+nebula:
+  data:
+    persistence:
+      enabled: true
+      # 数据源配置 - 配置多个数据源用于分片
+      sources:
+        # 数据源0 - 分片数据库0
+        ds0:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_sharding_0?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: root
+          password: root
+          pool:
+            min-size: 5
+            max-size: 20
+            connection-timeout: 30s
+            idle-timeout: 10m
+            max-lifetime: 30m
+        
+        # 数据源1 - 分片数据库1
+        ds1:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_sharding_1?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: root
+          password: root
+          pool:
+            min-size: 5
+            max-size: 20
+            connection-timeout: 30s
+            idle-timeout: 10m
+            max-lifetime: 30m
+
+    # 分片配置
+    sharding:
+      enabled: true
+      
+      # Schema配置
+      schemas:
+        # 默认schema
+        default:
+          # 使用的数据源列表
+          data-sources: [ds0, ds1]
+          
+          # 表分片配置
+          tables:
+            # 订单表分片配置（按用户ID分库，按订单ID分表）
+            - logic-table: t_order
+              actual-data-nodes: ds${0..1}.t_order_${0..1}
+              
+              # 数据库分片策略（按用户ID取模）
+              database-sharding-config:
+                sharding-column: user_id
+                algorithm-name: database-user-mod
+                algorithm-expression: ds${user_id % 2}
+              
+              # 表分片策略（按订单ID取模）
+              table-sharding-config:
+                sharding-column: id
+                algorithm-name: table-order-mod
+                algorithm-expression: t_order_${id % 2}
+              
+              # 主键生成策略（雪花算法）
+              key-generate-config:
+                column: id
+                algorithm-name: snowflake
+
+# MyBatis-Plus 配置（分片模式）
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: assign_id # 分片场景下使用 MyBatis-Plus 内置雪花算法，与 ShardingSphere 兼容
+      table-underline: true
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: io.nebula.example.modules.data.entity.dos
+
+# ShardingSphere 日志配置
+logging:
+  level:
+    # Nebula 分片相关日志
+    io.nebula.data.persistence.sharding: DEBUG
+    io.nebula.data.persistence.sharding.ShardingSphereManager: DEBUG
+    io.nebula.data.persistence.sharding.algorithm: DEBUG
+    
+    # ShardingSphere 核心日志
+    org.apache.shardingsphere: DEBUG
+    org.apache.shardingsphere.infra.route: DEBUG
+    org.apache.shardingsphere.sharding.route: DEBUG
+    org.apache.shardingsphere.sql: DEBUG
+    
+    # SQL 执行日志
+    org.apache.shardingsphere.sql.parser: INFO
+    org.apache.shardingsphere.infra.executor.sql: DEBUG
+    
+    # 显示实际执行的 SQL
+    ShardingSphere-SQL: DEBUG

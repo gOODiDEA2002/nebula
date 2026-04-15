@@ -3,6 +3,7 @@ package io.nebula.rpc.grpc.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.stub.StreamObserver;
 import io.nebula.rpc.core.annotation.RpcClient;
+import io.nebula.rpc.core.annotation.RemoteService;
 import io.nebula.rpc.core.annotation.RpcService;
 import io.nebula.rpc.core.context.RpcContext;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
@@ -77,32 +78,30 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
      * @return 服务接口类
      */
     private Class<?> findServiceInterface(Class<?> beanClass, RpcService rpcService) {
-        // 1. 如果手动指定了接口，直接使用
         Class<?> specifiedInterface = rpcService.value();
         if (specifiedInterface != null && specifiedInterface != void.class) {
             return specifiedInterface;
         }
         
-        // 2. 自动查找标注了 @RpcClient 的接口
         Class<?>[] interfaces = beanClass.getInterfaces();
         List<Class<?>> rpcInterfaces = new ArrayList<>();
         
         for (Class<?> iface : interfaces) {
-            if (iface.isAnnotationPresent(RpcClient.class)) {
+            if (iface.isAnnotationPresent(RpcClient.class) 
+                    || iface.isAnnotationPresent(RemoteService.class)) {
                 rpcInterfaces.add(iface);
             }
         }
         
-        // 3. 验证结果
         if (rpcInterfaces.isEmpty()) {
             throw new IllegalStateException(String.format(
-                "类 %s 没有实现任何标注了 @RpcClient 的接口，请在 @RpcService 中手动指定接口类",
+                "类 %s 没有实现任何标注了 @RpcClient 或 @RemoteService 的接口，请在 @RpcService 中手动指定接口类",
                 beanClass.getName()));
         }
         
         if (rpcInterfaces.size() > 1) {
             throw new IllegalStateException(String.format(
-                "类 %s 实现了多个 @RpcClient 接口 %s，请在 @RpcService 中手动指定接口类",
+                "类 %s 实现了多个 RPC 接口 %s，请在 @RpcService 中手动指定接口类",
                 beanClass.getName(), rpcInterfaces));
         }
         

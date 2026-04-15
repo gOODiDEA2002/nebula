@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <groupId>io.nebula.examples</groupId>
+    <artifactId>fullstack-example</artifactId>
+    <name>Nebula Fullstack Example</name>
+    <description>Nebula 全功能示例 - 展示框架所有模块的综合用法</description>
+
+    <properties>
+        <spring-ai.version>1.0.3</spring-ai.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-starter-all</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.nebula.examples</groupId>
+            <artifactId>nebula-example-user-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- 支付集成 -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-integration-payment</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- 通知集成 -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-integration-notification</artifactId>
+            <version>${revision}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

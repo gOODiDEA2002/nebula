@@ -7,7 +7,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -25,7 +24,6 @@ import java.util.Set;
  * @since 2.0.0
  */
 @Slf4j
-@Component
 public class DelayMessageListenerProcessor implements BeanPostProcessor, ApplicationContextAware {
     
     private ApplicationContext applicationContext;

@@ -1,5 +1,6 @@
 package io.nebula.rpc.core.scan;
 
+import io.nebula.rpc.core.annotation.RemoteService;
 import io.nebula.rpc.core.annotation.RpcCall;
 import io.nebula.rpc.core.annotation.RpcClient;
 import io.nebula.rpc.core.context.RpcContextHolder;
@@ -132,39 +133,40 @@ public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationCon
     }
 
     /**
-     * 创建RPC客户端代理
-     * 始终创建动态代理，延迟到实际调用时才查找RpcClient实例
+     * 创建RPC客户端代理，兼容 @RpcClient 和 @RemoteService 注解
      */
     private Object createProxy() {
         if (type == null) {
             throw new IllegalStateException("RPC客户端类型不能为null");
         }
 
-        RpcClient annotation = type.getAnnotation(RpcClient.class);
-        if (annotation == null) {
-            throw new IllegalStateException("类 " + type.getName() + " 缺少 @RpcClient 注解");
+        RpcClient rpcClientAnnotation = type.getAnnotation(RpcClient.class);
+        RemoteService remoteServiceAnnotation = type.getAnnotation(RemoteService.class);
+
+        if (rpcClientAnnotation == null && remoteServiceAnnotation == null) {
+            throw new IllegalStateException("类 " + type.getName() + " 缺少 @RpcClient 或 @RemoteService 注解");
         }
 
-        // 创建动态代理，延迟查找RpcClient实例
         log.debug("创建 RPC 客户端代理: {}", type.getName());
         return Proxy.newProxyInstance(
                 type.getClassLoader(),
                 new Class<?>[] { type },
-                new RpcInvocationHandler(type, annotation));
+                new RpcInvocationHandler(type, rpcClientAnnotation, remoteServiceAnnotation));
     }
 
     /**
-     * RPC调用处理器
-     * 在实际调用时才获取RpcClient实例，实现真正的延迟加载
+     * RPC调用处理器，兼容 @RpcClient 和 @RemoteService 注解
      */
     private class RpcInvocationHandler implements InvocationHandler {
 
         private final Class<?> interfaceClass;
         private final RpcClient clientAnnotation;
+        private final RemoteService remoteServiceAnnotation;
 
-        public RpcInvocationHandler(Class<?> interfaceClass, RpcClient clientAnnotation) {
+        public RpcInvocationHandler(Class<?> interfaceClass, RpcClient clientAnnotation, RemoteService remoteServiceAnnotation) {
             this.interfaceClass = interfaceClass;
             this.clientAnnotation = clientAnnotation;
+            this.remoteServiceAnnotation = remoteServiceAnnotation;
         }
 
         @Override
@@ -354,21 +356,28 @@ public class RpcClientFactoryBean implements FactoryBean<Object>, ApplicationCon
         }
 
         /**
-         * 获取服务名称
+         * 获取服务名称，兼容 @RpcClient 和 @RemoteService
          */
         private String getServiceName() {
-            // 优先使用外部注入的服务名
             if (StringUtils.hasText(RpcClientFactoryBean.this.name)) {
                 return RpcClientFactoryBean.this.name;
             }
-            // 其次使用注解中的服务名
-            if (StringUtils.hasText(clientAnnotation.name())) {
-                return clientAnnotation.name();
+            if (clientAnnotation != null) {
+                if (StringUtils.hasText(clientAnnotation.name())) {
+                    return clientAnnotation.name();
+                }
+                if (StringUtils.hasText(clientAnnotation.value())) {
+                    return clientAnnotation.value();
+                }
             }
-            if (StringUtils.hasText(clientAnnotation.value())) {
-                return clientAnnotation.value();
+            if (remoteServiceAnnotation != null) {
+                if (StringUtils.hasText(remoteServiceAnnotation.name())) {
+                    return remoteServiceAnnotation.name();
+                }
+                if (StringUtils.hasText(remoteServiceAnnotation.value())) {
+                    return remoteServiceAnnotation.value();
+                }
             }
-            // 最后使用接口全限定名作为服务名
             return interfaceClass.getName();
         }
     }

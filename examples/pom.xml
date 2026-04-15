@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-examples</artifactId>
+    <name>Nebula Examples</name>
+    <description>Nebula Framework example projects</description>
+    <packaging>pom</packaging>
+
+    <modules>
+        <!-- Quickstart: Starter 快速入门 -->
+        <module>starter-web-example</module>
+        <module>starter-service-example</module>
+        <module>starter-ai-example</module>
+        <module>starter-minimal-example</module>
+        <module>starter-all-example</module>
+        <module>starter-api-example</module>
+
+        <!-- Advanced: 进阶示例 -->
+        <module>gateway-example</module>
+        <module>rpc-async-example</module>
+        <module>microservice-example</module>
+        <module>fullstack-example</module>
+        <module>oauth-example/backend</module>
+        <module>crawler-example</module>
+        <module>websocket-example/backend</module>
+    </modules>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+    </properties>
+
+</project>

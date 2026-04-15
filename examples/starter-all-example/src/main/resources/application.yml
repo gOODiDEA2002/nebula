@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: starter-all-example
+server:
+  port: 8084
+nebula:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:nebula-starter-all-example-dev-secret-key-at-least-32-bytes}
+  discovery:
+    nacos:
+      enabled: false
+  rpc:
+    http:
+      enabled: false
+    grpc:
+      enabled: false
+  messaging:
+    rabbitmq:
+      enabled: false
+  lock:
+    enabled: true
+    enable-aspect: true
+  data:
+    persistence:
+      enabled: false
+    cache:
+      enabled: false
+  storage:
+    minio:
+      enabled: false

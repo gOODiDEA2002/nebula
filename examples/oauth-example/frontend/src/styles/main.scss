@@ -1,0 +1,381 @@
+:root {
+  // 主色调 - Arco Blue
+  --color-primary: #165DFF;
+  --color-primary-light: #4080FF;
+  --color-primary-lighter: #94BFFF;
+  --color-primary-lightest: #E8F3FF;
+  --color-primary-dark: #0E42D2;
+  
+  // 成功色
+  --color-success: #00B42A;
+  --color-success-light: #23C343;
+  --color-success-lighter: #7BE188;
+  --color-success-lightest: #E8FFEA;
+  
+  // 警告色
+  --color-warning: #FF7D00;
+  --color-warning-light: #FF9A2E;
+  --color-warning-lighter: #FFCF8B;
+  --color-warning-lightest: #FFF7E8;
+  
+  // 错误色
+  --color-error: #F53F3F;
+  --color-error-light: #F76560;
+  --color-error-lighter: #FBACA3;
+  --color-error-lightest: #FFECE8;
+  
+  // 背景色
+  --color-bg-1: #FFFFFF;
+  --color-bg-2: #F7F8FA;
+  --color-bg-3: #F2F3F5;
+  --color-bg-4: #E5E6EB;
+  --color-bg-5: #C9CDD4;
+  
+  // 文字颜色
+  --color-text-1: #1D2129;
+  --color-text-2: #4E5969;
+  --color-text-3: #86909C;
+  --color-text-4: #C9CDD4;
+  
+  // 边框
+  --color-border-1: #F2F3F5;
+  --color-border-2: #E5E6EB;
+  --color-border-3: #C9CDD4;
+  
+  // 填充色
+  --color-fill-1: #F7F8FA;
+  --color-fill-2: #F2F3F5;
+  --color-fill-3: #E5E6EB;
+  --color-fill-4: #C9CDD4;
+  
+  // 字体
+  --font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-size-body: 14px;
+  --font-size-title: 16px;
+  --font-size-heading: 20px;
+  
+  // 圆角
+  --border-radius-small: 4px;
+  --border-radius-medium: 8px;
+  --border-radius-large: 12px;
+  --border-radius-xlarge: 16px;
+  
+  // 阴影
+  --shadow-1: 0 0 1px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --shadow-3: 0 4px 10px rgba(0, 0, 0, 0.1);
+  --shadow-4: 0 8px 20px rgba(0, 0, 0, 0.1);
+  --shadow-5: 0 16px 40px rgba(0, 0, 0, 0.1);
+  
+  // 过渡
+  --transition-duration: 0.2s;
+}
+
+// ===== 全局重置 =====
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  min-height: 100vh;
+}
+
+html {
+  font-size: var(--font-size-body);
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--color-text-1);
+  background: linear-gradient(135deg, #E8F3FF 0%, #F2F3F5 50%, #E8F0FF 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5715;
+}
+
+// ===== 页面布局 =====
+.page-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+}
+
+// ===== 卡片样式 =====
+.arco-card {
+  background: var(--color-bg-1);
+  border-radius: var(--border-radius-xlarge);
+  box-shadow: var(--shadow-4);
+  border: 1px solid var(--color-border-1);
+  transition: all var(--transition-duration) ease;
+  
+  &:hover {
+    box-shadow: var(--shadow-5);
+  }
+}
+
+// ===== 主要按钮 =====
+.arco-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--border-radius-medium);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-duration) ease;
+  white-space: nowrap;
+  
+  &--primary {
+    background: var(--color-primary);
+    color: #fff;
+    
+    &:hover {
+      background: var(--color-primary-light);
+    }
+    
+    &:active {
+      background: var(--color-primary-dark);
+    }
+  }
+  
+  &--secondary {
+    background: var(--color-bg-2);
+    color: var(--color-text-2);
+    border: 1px solid var(--color-border-2);
+    
+    &:hover {
+      background: var(--color-bg-3);
+      border-color: var(--color-border-3);
+    }
+  }
+  
+  &--outline {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    
+    &:hover {
+      background: var(--color-primary-lightest);
+    }
+  }
+  
+  &--large {
+    height: 48px;
+    padding: 0 28px;
+    font-size: 16px;
+    border-radius: var(--border-radius-large);
+  }
+  
+  &--block {
+    width: 100%;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ===== Vocoor 登录按钮 =====
+.vocoor-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  border: none;
+  border-radius: var(--border-radius-large);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-duration) ease;
+  box-shadow: 0 4px 12px rgba(22, 93, 255, 0.3);
+  
+  .vocoor-logo {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--border-radius-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(22, 93, 255, 0.4);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// ===== 动画 =====
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+
+// 渐次动画
+.stagger-fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+
+@for $i from 1 through 10 {
+  .stagger-#{$i} {
+    animation-delay: #{$i * 0.06}s;
+  }
+}
+
+// ===== 用户卡片 =====
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--color-fill-1);
+  border-radius: var(--border-radius-large);
+  border: 1px solid var(--color-border-1);
+  
+  .user-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-primary-lighter);
+  }
+  
+  .user-info {
+    flex: 1;
+    
+    .user-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-1);
+      margin-bottom: 4px;
+    }
+    
+    .user-detail {
+      font-size: 13px;
+      color: var(--color-text-3);
+    }
+  }
+}
+
+// ===== 状态标签 =====
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  
+  &.success {
+    background: var(--color-success-lightest);
+    color: var(--color-success);
+  }
+  
+  &.error {
+    background: var(--color-error-lightest);
+    color: var(--color-error);
+  }
+  
+  &.loading {
+    background: var(--color-primary-lightest);
+    color: var(--color-primary);
+  }
+}
+
+// ===== 旋转动画 =====
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+// ===== Element Plus 覆盖 =====
+.el-button {
+  font-family: var(--font-family);
+  border-radius: var(--border-radius-medium) !important;
+  
+  &--primary {
+    background: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    
+    &:hover {
+      background: var(--color-primary-light) !important;
+      border-color: var(--color-primary-light) !important;
+    }
+  }
+  
+  &--default {
+    background: var(--color-bg-1) !important;
+    border: 1px solid var(--color-border-2) !important;
+    color: var(--color-text-2) !important;
+    
+    &:hover {
+      border-color: var(--color-primary) !important;
+      color: var(--color-primary) !important;
+    }
+  }
+}
+
+.el-tag {
+  font-size: 12px;
+  border-radius: var(--border-radius-small);
+  font-weight: 500;
+  
+  &--info {
+    background: var(--color-primary-lightest);
+    color: var(--color-primary);
+    border-color: var(--color-primary-lighter);
+  }
+  
+  &--warning {
+    background: var(--color-warning-lightest);
+    color: var(--color-warning);
+    border-color: var(--color-warning-lighter);
+  }
+  
+  &--success {
+    background: var(--color-success-lightest);
+    color: var(--color-success);
+    border-color: var(--color-success-lighter);
+  }
+}

@@ -903,3 +903,367 @@ nebula:
     nacos:
       server-addr: localhost:8848
 ```
+
+---
+
+## 11. 逐文件深度审查报告
+
+> 审查方式：逐目录、逐文件审查，按六维度（代码质量、架构设计、API 设计、配置管理、异常处理、测试覆盖）分析
+> 严重级别：[致命] > [高] > [中] > [低] > [建议]
+
+### 11.1 A1: core/nebula-foundation（19 文件）
+
+**审查范围**：基础工具类、异常体系、统一响应封装、ID 生成器、加密工具、JSON 工具等
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `Result.java` | 反序列化风险：`code` 字段为 `int` 类型但 `error()` 工厂方法接受 `String code`，JSON 反序列化时 `int code` 与 `String code` 可能混淆。建议统一为 `int` 或定义枚举。 |
+| 2 | [中] | `JwtUtils.java` | 功能重叠：与 `nebula-security` 的 `JwtService` 存在功能重复。`JwtUtils` 位于 foundation 层导致 JWT 实现分散在两个模块。建议标记 `@Deprecated` 引导迁移至 `JwtService`。 |
+| 3 | [低] | `HashUtils.java` | 安全性：提供了 MD5/SHA-1 方法，这些算法已不推荐用于安全场景。建议添加 `@Deprecated` 注解并提供 SHA-256/SHA-3 替代方案。 |
+| 4 | [低] | `IdGenerator.java` | 雪花算法 `workerId` 默认为 0，集群环境下多节点部署会产生 ID 冲突。建议支持自动获取或配置 workerId。 |
+| 5 | [低] | `ErrorCode.java` | 错误码体系不完整：部分模块自定义错误码与全局错误码范围重叠，缺少统一的分段管理规范。 |
+| 6 | [低] | `PageResult.java` | 缺少 `totalPages` 字段的直接获取方法，需手动计算 `(total + size - 1) / size`。 |
+| 7 | [建议] | `DateTimeUtils.java` | 可添加对 `Instant`、`ZonedDateTime` 的格式化支持，增强 Java 21 时间 API 的兼容性。 |
+| 8 | [建议] | `GlobalExceptionHandler.java` | Logger 字段已声明但部分方法未使用 `log` 而直接使用 `System.err`。 |
+
+### 11.2 A2: core/nebula-security（14 文件）
+
+**审查范围**：JWT 认证、RBAC 授权、安全注解、安全上下文管理
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `JwtService.java` | 默认密钥硬编码：`DEFAULT_SECRET = "nebula-default-secret-key-please-change-in-production"`，生产环境若未覆盖将导致 JWT 完全不安全。建议启动时检查并拒绝使用默认密钥。 |
+| 2 | [中] | `SecurityContext.java` | 使用 `ThreadLocal` 存储安全上下文，但未提供 `InheritableThreadLocal` 选项。异步场景（如 `@Async`、`CompletableFuture`）下上下文会丢失。 |
+| 3 | [中] | `SecurityAutoConfiguration.java` | 安全模块使用 `matchIfMissing = true`（一级策略），但其切面 Bean 依赖注解扫描，若应用未使用 `@RequiresPermission` 等注解则切面空转。开销虽小但语义不够明确。 |
+| 4 | [中] | `SecurityException.java` | 异常类型过于泛化：认证失败、授权失败、Token 过期均抛出同一个 `SecurityException`，调用方难以区分具体错误类型。 |
+| 5 | [低] | `RequiresPermission.java` | 注解仅支持字符串权限码比较，缺少通配符或层级权限匹配能力（如 `user:*`、`user:read`）。 |
+| 6 | [低] | `RbacService.java` | 接口仅定义了 `hasPermission()` 和 `hasRole()` 方法，缺少批量检查或组合条件（AND/OR）支持。 |
+| 7 | [建议] | 模块整体 | 缺少密码编码工具（BCrypt），安全模块仅覆盖认证/授权但不提供密码处理。 |
+
+### 11.3 B1: infra/data（32 文件）
+
+**审查范围**：数据持久化（MyBatis-Plus、动态数据源、读写分离）、多级缓存（Caffeine + Redis）、MongoDB、Neo4j
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `DataPersistenceAutoConfiguration.java` | 当存在多个数据源时，`SqlSessionFactory` 和 `MybatisPlusInterceptor` 可能被重复注册。需要 `@ConditionalOnMissingBean` 保护。 |
+| 2 | [中] | `MultiLevelCacheManager.java` | L1 缓存统计计数器使用 `AtomicLong`（非线程安全的复合操作：先 get 后 incrementAndGet），高并发下统计值可能不准确。 |
+| 3 | [中] | `ReadWriteDataSourceManager.java` | 读写分离路由基于 `ThreadLocal` 标记，但在异步上下文（`@Async`、`CompletableFuture`）下标记会丢失，默认走主库，无法利用从库分流。 |
+| 4 | [中] | `DataSourceManager.java` | `destroy()` 方法在关闭数据源时仅捕获 `Exception`，若 HikariCP 抛出 `Error` 级别异常将导致部分数据源未关闭。 |
+| 5 | [低] | `IService.java` | 统一服务接口方法签名与 MyBatis-Plus 的 `IService` 命名高度相似但不兼容，可能造成开发者混淆。 |
+| 6 | [建议] | `nebula-data-mongodb` / `nebula-data-neo4j` | 这两个模块仅包含 POM 和极少代码（配置类），属于占位模块。建议明确标注为 "实验性" 或暂时移除。 |
+
+### 11.4 B2: infra/messaging（46 文件）
+
+**审查范围**：消息核心抽象层、RabbitMQ 实现（含延迟消息）、Redis Pub/Sub + Stream 实现
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `@MessageHandler` 注解 vs `MessageHandler` 接口 | **命名冲突**：`io.nebula.messaging.core.annotation.MessageHandler`（注解）与 `io.nebula.messaging.core.consumer.MessageHandler`（接口）同名，在同一个消息模块中极易混淆。 |
+| 2 | [高] | `RabbitMQMessageProducer.java` | 直接使用原生 `com.rabbitmq.client.Channel`，未使用 Spring AMQP 的 `RabbitTemplate`。手动管理 Channel 生命周期容易泄漏资源，且不支持连接池复用。 |
+| 3 | [高] | `RabbitMQMessageConsumer.java` | 同上，直接使用原生 `Channel.basicConsume()`。手动 ACK/NACK 逻辑不够健壮，缺少预取计数（prefetch）配置，高负载下可能导致消费者被淹没。 |
+| 4 | [中] | `DelayMessageProducer.java` | 延迟消息使用 TTL + DLX 方式实现，每个延迟时间创建一个临时队列。大量不同延迟时间的消息会导致队列爆炸。建议支持 RabbitMQ 延迟消息插件（`rabbitmq_delayed_message_exchange`）。 |
+| 5 | [中] | `MessageHandlerProcessor.java` | `@MessageHandler` 注解处理器在 Bean 后置处理阶段自动订阅消息，但若消费者 Bean 初始化失败，已建立的订阅不会回滚。 |
+| 6 | [中] | `DefaultMessageRouter.java` | 路由模式缓存（`patternCache`）使用 `ConcurrentHashMap` 但无大小限制，极端场景下可能导致内存泄漏。 |
+| 7 | [中] | `RabbitMQMessageProducer.ProducerStats` | 统计接口 `getSuccessCount()`/`getFailureCount()`/`getAvgLatency()` 全部返回 0，形同虚设。而 Redis 实现有完整的统计功能，两者不一致。 |
+| 8 | [中] | `RedisMessagingAutoConfiguration.java` | `@ConditionalOnProperty(prefix = "nebula.messaging.redis", name = "enabled", havingValue = "true", matchIfMissing = true)` **违反三级策略**：Redis 消息需要外部 Redis 服务，应使用 `matchIfMissing = false`（二级策略）。 |
+| 9 | [中] | `RedisMessageManager.java` | `@PostConstruct` 初始化和 `@PreDestroy` 销毁中混用了 Pub/Sub 和 Stream 两种模式的生命周期管理，逻辑耦合较深。 |
+| 10 | [低] | `JsonMessageSerializer.java` | Jackson `ObjectMapper` 在构造函数中创建，未提供注入外部 `ObjectMapper` 的途径。与 Spring Boot 的全局 `ObjectMapper` 配置可能不一致。 |
+| 11 | [低] | `MessagingException.java` | 异常错误码以字符串常量定义（如 `"MSG_001"`），与 foundation 层的 `int` 类型 `ErrorCode` 不一致。 |
+| 12 | [低] | `Message.java` | `headers` 字段类型为 `Map<String, Object>`，序列化时 Object 类型值的反序列化需要类型信息，JSON 场景下容易丢失具体类型。 |
+| 13 | [建议] | 模块整体 | RabbitMQ 实现建议迁移到 Spring AMQP（`RabbitTemplate` + `@RabbitListener`），利用 Spring 生态的连接池、事务、确认机制。 |
+
+### 11.5 B3: infra/rpc（43 文件）
+
+**审查范围**：RPC 核心抽象、HTTP RPC（RestClient）、gRPC、异步 RPC
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `@RpcClient` 注解 vs `RpcClient` 接口 | **命名冲突**：`io.nebula.rpc.core.annotation.RpcClient`（注解）与 `io.nebula.rpc.core.client.RpcClient`（接口）同名，与 B2 的 MessageHandler 冲突问题模式相同。 |
+| 2 | [高] | `RpcClientFactoryBean.java` | 通过反射检测 `AsyncRpcExecutionManager` 是否存在并调用其方法。这种脆弱的集成方式在方法签名变更时会静默失败。 |
+| 3 | [高] | `HttpRpcController.java` | 服务端反射调用逻辑：通过 `Method.invoke()` 执行 RPC 请求，参数类型转换使用手写的 `convertParameter()` 方法。对于复杂对象（嵌套对象、泛型集合）的转换不够健壮。 |
+| 4 | [中] | `ServiceDiscoveryRpcClient.java` | 使用 `Class.forName("io.nebula.rpc.grpc.client.GrpcRpcClient")` 检测 gRPC 是否可用。硬编码类名在重构时容易遗漏，且破坏了模块间的解耦。 |
+| 5 | [中] | `GrpcRpcClient.java` | gRPC Channel 使用 `ManagedChannelBuilder.forTarget(address).usePlaintext()` 创建，不支持 TLS。生产环境部署需要安全连接。 |
+| 6 | [中] | `HttpRpcClient.java` | 请求超时从 `HttpRpcProperties` 获取，但在 `RestClient` 构建后无法动态调整。不支持按方法或按服务的超时配置。 |
+| 7 | [中] | `AsyncRpcExecutionManager.java` | 异步执行记录存储依赖 `AsyncExecutionStorage` 接口，但框架仅提供了内存实现。应用重启后所有异步执行状态丢失。 |
+| 8 | [中] | `RpcRequest.java` / `RpcResponse.java` | 使用 `Object[]` 类型传递参数和 `Object` 类型返回结果，JSON 序列化/反序列化时类型信息丢失，容易出现 `LinkedHashMap` 无法转换为目标类型的问题。 |
+| 9 | [低] | `HttpRpcServer.java` | `serviceMap` 使用 `ConcurrentHashMap` 但 `registerService()` 方法不做重复注册检查，同名服务会被静默覆盖。 |
+| 10 | [低] | `@RpcService` 注解 | `interfaceClass` 属性默认为 `void.class`，通过运行时推导接口。如果服务类实现了多个接口，推导逻辑可能选错接口。 |
+| 11 | [建议] | 模块整体 | 建议引入熔断器（Circuit Breaker）模式，当下游服务不可用时快速失败，避免级联故障。可参考 Resilience4j 集成。 |
+
+### 11.6 B4: infra/discovery（13 + 5 测试文件）
+
+**审查范围**：服务发现核心抽象（负载均衡器、健康检查器）、Nacos 实现
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `HttpHealthChecker.java` | **未实现**：`check()` 方法体是 `Thread.sleep(10)` + 硬编码返回 healthy。注释标注 `// TODO: 实现真正的HTTP健康检查`，框架的 HTTP 健康检查实际未工作。 |
+| 2 | [高] | `ConsistentHashLoadBalancer` | **线程安全问题**：`hashRing`（TreeMap）非线程安全，`buildHashRing()` 先 `clear()` 再逐个 `put`。多线程调用 `choose()` 时可能在 clear 后 put 前读到空 Map，返回 null。 |
+| 3 | [高] | `NacosServiceDiscovery.deregister()` | **依赖缓存查找**：通过 `serviceCache.get(serviceName)` 查找实例信息用于注销。若缓存未预热（未调用过 `getInstances()`），注销必然失败并抛出异常。`NacosServiceAutoRegistrar` 已做 workaround 绕开此方法。 |
+| 4 | [中] | `LoadBalancer.java` | **文件组织混乱**：一个文件中包含 5 个类/接口（`LoadBalancer`、`LoadBalanceContext`、`RoundRobinLoadBalancer`、`RandomLoadBalancer`、`WeightedRandomLoadBalancer`），违反单一职责和 Java 文件组织惯例。 |
+| 5 | [中] | `HealthChecker.java` | 同上：一个文件包含 5 个类型（`HealthChecker`、`HealthCheckResult`、`HealthCheckType`、`HttpHealthChecker`、`TcpHealthChecker`）。 |
+| 6 | [中] | `ServiceChangeListener.java` | 同上：一个文件包含 4 个类型（`ServiceChangeListener`、`ServiceChangeType`、`ServiceChangeEvent`、`DetailedServiceChangeListener`）。其中 `DetailedServiceChangeListener` 和 `ServiceChangeEvent` 未被任何代码引用。 |
+| 7 | [中] | `LoadBalancerFactory` | **注册与创建不一致**：静态 Map `LOAD_BALANCERS` 仅注册 3 种策略，但 `createLoadBalancer()` 支持 7 种。`isSupported()` 方法仅检查 Map，返回不完整的结果。`getLoadBalancer()` 对 4 种高级策略永远抛异常。 |
+| 8 | [中] | `LeastActiveLoadBalancer` | **计数器只增不减**：`choose()` 中 `incrementAndGet()` 增加活跃计数，但 `completeCall()` 不在 `LoadBalancer` 接口中，调用者必须强转为具体类型才能减少计数。遗忘调用会导致计数持续增长。 |
+| 9 | [中] | `NacosProperties` | 默认凭据硬编码：`username = "nacos"`、`password = "nacos"`。虽可覆盖，但源码中出现默认密码是安全隐患。 |
+| 10 | [低] | `ServiceDiscoveryException` | **未继承 NebulaException**：直接继承 `Exception`，与框架其他模块的异常体系（继承 `NebulaException`）不一致。 |
+| 11 | [低] | `NacosServiceAutoRegistrar` | 监听 `ApplicationEvent` 全部类型然后 `instanceof` 筛选，建议使用 `SmartApplicationListener` 或 `@EventListener` 精确监听。 |
+| 12 | [低] | `convertToServiceInstance()` | 每次转换时 `registerTime` 和 `lastHeartbeat` 均设为 `System.currentTimeMillis()`（查询时间），而非实例真正的注册/心跳时间。 |
+| 13 | [中] | 测试文件 | 多个测试通过反射注入 `namingService`、调用私有方法 `registerService`，表明代码的测试友好性不足。建议提供 package-private 构造函数或使用 `@VisibleForTesting`。 |
+
+**测试覆盖评价**：Nacos 实现有 5 个测试类覆盖注册/发现/订阅/工具类，覆盖率较好。但 discovery-core 模块（负载均衡器、健康检查器）**完全没有测试**，而它包含复杂的并发逻辑（一致性哈希、加权轮询），风险较高。
+
+### 11.7 B5: infra/websocket（25 文件）
+
+**审查范围**：WebSocket 核心抽象（会话管理、消息服务、集群代理）、Spring WebSocket 实现、Netty 实现
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | 模块整体 | **零测试覆盖**：整个 websocket 模块（core + spring + netty，25 个源文件）没有任何测试文件。WebSocket 涉及并发会话管理和消息路由，缺少测试风险很高。 |
+| 2 | [中] | `WebSocketAutoConfiguration.java` (Spring) | `matchIfMissing = true` 需要审视：WebSocket 属于特定场景组件，模块内部使用 `matchIfMissing = true` 意味着只要引入依赖就默认启用。虽然注册已集中到 `nebula-autoconfigure`，但模块内部的 `@Configuration` 条件仍可能独立生效。 |
+| 3 | [中] | `NettyWebSocketAutoConfiguration.java` | 同上：`@ConditionalOnProperty(prefix = "nebula.websocket.netty", name = "enabled", havingValue = "true", matchIfMissing = true)`。 |
+| 4 | [中] | Spring + Netty 两个模块 | **`NoopClusterMessageBroker` 重复定义**：Spring 和 Netty 模块各自定义了完全相同的 `NoopClusterMessageBroker` 内部类。应提取到 core 模块。 |
+| 5 | [中] | `SpringWebSocketHandler` + `WebSocketFrameHandler` | **消息路由逻辑重复**：两个处理器的 `routeMessage()` 方法实现完全一致（心跳检测 + 处理器查找 + 错误处理），应提取到 core 模块的公共类。 |
+| 6 | [中] | `WebSocketAutoConfiguration.registerWebSocketHandlers()` | 直接调用 `springWebSocketHandler(sessionRegistry())` 获取 Bean，绕过 Spring 代理可能导致多实例创建。应通过 `@Autowired` 注入。 |
+| 7 | [中] | `WebSocketProperties` | `allowedOrigins` 默认为 `{"*"}`，允许所有跨域请求。生产环境存在 CSRF/跨站请求安全风险，建议默认值留空或仅允许同源。 |
+| 8 | [低] | `SpringWebSocketMessageService.sendToTopic()` | 主题订阅基于会话属性 `subscribed_topics` 的约定，但模块未提供标准的 subscribe/unsubscribe API，完全依赖外部代码手动设置属性。 |
+| 9 | [低] | `SpringWebSocketSession.sendAsync()` | `CompletableFuture.runAsync(() -> send(message))` 使用默认 `ForkJoinPool.commonPool()`，大量并发发送可能阻塞公共线程池。建议使用独立的线程池。 |
+
+**架构评价**：核心抽象层设计良好，`WebSocketMessageService` / `SessionRegistry` / `ClusterMessageBroker` 三层分离清晰。Spring 和 Netty 两套实现覆盖了不同性能需求场景。主要问题是两个实现间的大量重复代码应提取到 core 层，以及完全缺失的测试覆盖。
+
+### 11.8 B6: infra/lock（18 文件，含 2 测试）
+
+**审查范围**：分布式锁核心抽象（Lock/LockManager/ReadWriteLock）、Redis 实现（Redisson）、AOP 切面
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `RedisLock.lock()` | **看门狗逻辑无效**：`if (config.isEnableWatchdog())` 分支和 `else` 分支执行完全相同的代码 `rLock.lock(leaseTime, MILLISECONDS)`。Redisson 的看门狗机制需要传 `-1` 作为 leaseTime 才能启用自动续期，当前实现传了固定 leaseTime 导致看门狗永远不生效。 |
+| 2 | [中] | `RedisLock.tryLock(timeout, unit)` | **参数覆盖逻辑矛盾**：方法接受 `timeout` 参数，但内部又检查 `config.getWaitTime()`，若配置了等待时间则完全忽略传入的 `timeout`。这违反了方法签名的语义契约。 |
+| 3 | [中] | `RedisLockManager.execute()` | 异常处理：catch 所有 `Exception` 后包装为 `RuntimeException` 抛出，丢失了原始异常的类型信息。且 `LockCallback` 的受检异常未正确传播。 |
+| 4 | [中] | `RedisLockManager.releaseAllLocks()` | **空实现**：方法仅打印日志，不做任何实际释放操作。接口声明了此方法但实现为空，可能误导使用者。 |
+| 5 | [低] | `LockedAspect.toChronoUnit()` | 使用 switch-case 手动转换 `TimeUnit` 到 `ChronoUnit`。Java 9+ 提供了 `TimeUnit.toChronoUnit()` 方法，可直接使用。 |
+| 6 | [低] | `LockConfig` | `waitTime` 默认值为 `Duration.ofSeconds(30)`，对于 `tryExecute`（预期快速失败）场景偏长。`tryLockConfig()` 提供了 3 秒的短超时，但默认配置可能被忽视。 |
+| 7 | [建议] | `RedisLockManager.getRedLock()` | 红锁方法在 `LockManager` 接口中未声明，需要强转为 `RedisLockManager` 才能调用。若红锁是通用需求，建议添加到接口。 |
+
+**架构评价**：分层清晰，core 定义接口，redis 提供 Redisson 实现。`@Locked` 注解 + SpEL 支持的 AOP 切面设计完善，失败策略（抛异常/返回 null/返回 false/跳过）覆盖常见场景。主要问题是看门狗实现逻辑错误，需要修复。测试覆盖有 2 个测试类，基本够用。
+
+### 11.9 B7: infra/storage（15 文件，含 6 测试）
+
+**审查范围**：存储核心抽象（StorageService/模型/异常）、MinIO 实现、阿里云 OSS 实现
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `MinIOStorageService.java` / `AliyunOSSStorageService.java` | 两个实现类都使用 `@Service` 注解，但实际注册由 `nebula-autoconfigure` 通过 `@Bean` 方法管理。`@Service` 可能导致重复 Bean 注册（如果组件扫描包含这些类）。 |
+| 2 | [中] | `MinIOStorageService.upload()` | 每次上传前调用 `bucketExists()` + `createBucket()`，频繁操作会增加网络开销。建议在初始化时一次性检查/创建默认桶，或缓存桶存在状态。 |
+| 3 | [低] | `StorageService` 接口 | 缺少分片上传（multipart upload）支持，大文件上传场景不友好。MinIO 和 OSS 底层都支持分片上传，但接口未暴露。 |
+| 4 | [低] | `ObjectMetadata` | `contentLength` 字段类型为 `Long`（包装类型），在 MinIO 的 `PutObjectArgs.stream()` 中传入 null 会导致 NPE。应增加空值检查或默认值。 |
+| 5 | [建议] | `AliyunOSSStorageService` | 缺少 OSS Client 资源关闭逻辑。`OSS` 客户端实现了 `Closeable`，应在 Bean 销毁时调用 `ossClient.shutdown()`。 |
+
+**测试覆盖评价**：MinIO 实现有 6 个测试类分别覆盖上传/下载/删除/元数据/预签名/桶管理，测试结构完善。阿里云 OSS 实现无测试。
+
+### 11.10 B8: infra/search（46 文件，含 7 测试）
+
+**审查范围**：搜索核心抽象（SearchService/查询构建器/聚合/建议）、Elasticsearch 实现
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `ElasticsearchSearchService.java` | 使用 `@Service` 注解（同 storage 模块问题），可能与 `nebula-autoconfigure` 的 `@Bean` 注册冲突。 |
+| 2 | [中] | `ElasticsearchSearchService` | 方法过长：多个方法超过 50 行（如 `search()`、`scrollSearch()`、`aggregate()`），包含复杂的 ES 客户端 API 调用，可读性下降。建议提取子方法。 |
+| 3 | [中] | `QueryConverter` | 查询转换器将 Nebula 抽象查询转换为 ES 查询，但转换逻辑使用 `switch-case`，扩展新查询类型需要修改转换器（违反开闭原则）。建议使用策略模式或转换器注册机制。 |
+| 4 | [低] | `SearchQuery` | `scrollTimeout` 默认值为 `"1m"`（字符串），解析依赖 ES 客户端。建议使用 `Duration` 类型并在转换器中格式化。 |
+| 5 | [低] | 核心抽象层 | 聚合（aggregation）和建议（suggestion）的模型类较多（14 个），但多数只有简单的属性定义。可考虑使用 Builder 模式减少类数量。 |
+| 6 | [建议] | 模块整体 | `SearchService` 接口覆盖了索引管理、文档 CRUD、搜索、聚合、建议、滚动等全部操作，职责过重。可按功能拆分为 `IndexService`、`DocumentService`、`SearchQueryService`。 |
+
+**测试覆盖评价**：ES 实现有 7 个测试文件，但均需要 ES 服务运行，属于集成测试而非单元测试。
+
+### 11.11 B9: infra/gateway（6 文件）
+
+**审查范围**：API 网关核心（基于 Spring Cloud Gateway，HTTP 反向代理、日志、限流、CORS）
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `GatewayRoutesAutoConfiguration` | `matchIfMissing = true` 违反三级策略：网关是特定部署类型组件，应使用 `matchIfMissing = false`。虽然 `nebula-autoconfigure` 可能控制外层开关，但模块内的条件应与策略一致。 |
+| 2 | [中] | `determineTargetUri()` | 服务发现回退逻辑直接取第一个实例，**无负载均衡**。注释标注 "实际生产中应该使用负载均衡"，但代码未实现。对于固定配置可以接受，但对于动态发现场景会导致流量集中。 |
+| 3 | [中] | `GatewayRoutesAutoConfiguration` | 使用 `@PostConstruct` 在 Bean 初始化时修改 `springGatewayProperties.getRoutes()`，直接操作 Spring Cloud Gateway 的内部数据结构。如果 Spring Cloud Gateway 的路由刷新机制改变，这种方式会失效。 |
+| 4 | [低] | `CorsConfig` | `allowedOrigins` 默认为 `["*"]`，与 WebSocket 模块同样的跨域安全问题。 |
+| 5 | [低] | `GatewayHealthController` | 健康检查端点独立于 `nebula-web` 的 `HealthController`，但两者功能重叠。Gateway 项目不引入 `nebula-web`，所以需要独立健康检查，但应保持响应格式一致。 |
+| 6 | [建议] | 模块整体 | 缺少测试文件。Gateway 配置逻辑（路由生成、服务发现回退、限流参数注入）应有单元测试覆盖。 |
+
+**架构评价**：Gateway 模块定位清晰（纯 HTTP 反向代理），遵循微服务三原则。配置化程度高，支持静态地址和服务发现两种模式。主要风险是直接操作 Spring Cloud Gateway 内部数据结构和缺乏负载均衡。
+
+### 11.12 B10: infra/ai（core + spring，35 文件）
+
+**审查范围**：AI 核心抽象（ChatService/EmbeddingService/VectorStoreService/MCP）、Spring AI 实现（chat/embedding/vectorstore/rag/mcp）
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `SpringAIChatService.chatStream(List/ChatRequest)` | 流式聊天多消息列表版本**丢弃系统消息和助手上下文**：仅提取 USER 角色消息拼接为单个字符串，导致对话上下文丢失。`chatStream(ChatRequest)` 甚至只取第一条 USER 消息。 |
+| 2 | [高] | `SpringAIChatService.isAvailable()` | 可用性检查发送真实 API 请求 `chat("test")`，在按量计费的 AI 服务中**每次调用消耗 token**。应该用轻量级心跳或配置检查。 |
+| 3 | [中] | `SpringAIChatService.getCurrentModel()` | 硬编码返回 `"gpt-3.5-turbo"`，完全忽略实际配置的模型。`getSupportedModels()` 也硬编码 OpenAI 模型列表，不适配其他厂商。 |
+| 4 | [中] | `SpringAIVectorStoreService.count()` | 返回 `-1` 表示"不支持"，但接口声明返回 `long`。调用方无法区分"0 条文档"和"不支持"。应抛出 `UnsupportedOperationException` 或在接口中增加 `Optional`。 |
+| 5 | [中] | `SpringAIVectorStoreService.get(id)` | 通过搜索 `query("dummy")` + `filterExpression("id == '" + id + "'")` 来按 ID 获取文档，效率低下且有 SQL 注入风险（`id` 未转义拼入过滤表达式）。 |
+| 6 | [中] | `SpringAIMcpClientService` | 整个类是空实现（`connect()` 方法只设置 `connected = true`，所有 tool/resource 方法返回空值）。属于占位符代码，容易误导使用者。 |
+| 7 | [低] | `SpringAIChatService` | 同时使用 `@Slf4j`（Lombok）和手动声明 `Logger`（未使用），以及导入 `import java.util.stream.Collectors`（在行 69 又重复了全限定名调用）。冗余导入。 |
+| 8 | [低] | `SpringAIVectorStoreService.addWithRetry()` | 日志中使用 emoji 字符（如 "Successfully..." 等），不符合框架整体日志风格。 |
+| 9 | [建议] | 模块整体 | **零测试覆盖**。AI 模块所有实现（chat/embedding/vectorstore/mcp/rag）均无测试文件。 |
+
+**架构评价**：core 层接口抽象合理，spring 层实现基本可用。RAG（文档解析/分块）和 MCP（客户端/服务器）属于半成品，需要更多迭代。向量存储的批处理+重试机制设计完善。主要问题是 chat 流式多消息支持不完整、MCP 空实现。
+
+### 11.13 B11: infra/crawler（72+ 文件，5 子模块）
+
+**审查范围**：爬虫核心（CrawlerEngine/Request/Response/Cookie/Proxy/Parser/RateLimiter）、HTTP 引擎（OkHttp）、浏览器引擎（Playwright）、代理池、验证码识别
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `HttpCrawlerEngine.configureUnsafeSsl()` | 信任所有 SSL 证书的 `TrustManager` 实现虽有 `if (properties.isTrustAllCerts())` 保护和日志警告，但缺少**环境检查**（如 `@Profile("!production")`），有在生产环境误开启的风险。 |
+| 2 | [中] | `BrowserCrawlerEngine` | 浏览器引擎的 `crawlBatch()` 串行执行所有请求（逐个调用 `crawl()`），未利用 `BrowserPool` 的并发能力。对比 `HttpCrawlerEngine.crawlBatch()` 使用了 `CompletableFuture` 并行执行。 |
+| 3 | [中] | `ProxyPool` | 使用 `new Random()` 选择代理，非线程安全且分布不均匀。应使用 `ThreadLocalRandom`。代理池依赖 `CacheManager`（Redis），无法在无 Redis 环境下降级使用。 |
+| 4 | [中] | `CrawlerRateLimiter` | 使用 `Thread.sleep()` 阻塞线程进行限流，高并发场景会耗尽线程池。建议使用令牌桶或 Guava RateLimiter 非阻塞方案。 |
+| 5 | [低] | `InMemoryCookieStore` | Cookie 存储使用 `ConcurrentHashMap` 但无过期清理机制，长时间运行会内存泄漏。 |
+| 6 | [低] | `BrowserCaptchaAutoConfiguration` | captcha 子模块的 `@AutoConfiguration` 直接在 browser 模块中，应统一到 `nebula-autoconfigure`。 |
+| 7 | [建议] | 模块整体 | 测试覆盖率低。仅 captcha 模块有少量测试（OpenCV 相关），核心引擎和代理池缺少测试。 |
+
+**架构评价**：Crawler 模块分层合理（core 抽象 + http/browser 实现 + proxy 管理 + captcha 识别），功能覆盖面广。核心问题是安全性（SSL）和性能（限流阻塞、批量串行）。
+
+### 11.14 C1: application/nebula-web（53 文件）
+
+**审查范围**：Web 自动配置、认证系统、限流、响应缓存、性能监控、健康检查、数据脱敏、请求日志、全局异常处理
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `WebAutoConfiguration` | 该类超过 430 行，职责过重：同时管理异常处理、API 文档、CORS、限流、缓存、认证、数据脱敏、性能监控、健康检查等 10+ 组件的 Bean 注册和拦截器配置。应按功能拆分为多个配置类。 |
+| 2 | [中] | `WebAutoConfiguration.objectMapper()` `TaskAutoConfiguration.objectMapper()` | **ObjectMapper Bean 冲突**：`nebula-web` 和 `nebula-task` 都声明了 `@Bean @ConditionalOnMissingBean ObjectMapper`，两者同时启用时行为取决于加载顺序。 |
+| 3 | [中] | `MemoryRateLimiter` | 使用 `synchronized (window)` 进行同步，但 `WindowData` 内部已使用 `AtomicLong`/`AtomicInteger`。两种同步机制混用，`synchronized` 消除了 Atomic 的无锁优势。应统一为一种方案。 |
+| 4 | [中] | `MemoryRateLimiter` | `windows` 的 `ConcurrentHashMap` 只在 `cleanup()` 方法中清理过期数据，但 `cleanup()` 没有被定时调用。需要定时任务或计数触发清理，否则高 cardinality key 场景内存泄漏。 |
+| 5 | [中] | `AuthInterceptor` / `JwtUtils`（web 模块） | `nebula-web` 有独立的 `JwtUtils` 和认证逻辑，与 `nebula-security` 模块的 `JwtService` 功能重叠。两套 JWT 工具并存增加维护成本。 |
+| 6 | [低] | `WebProperties.Cors` | `allowedOrigins` 默认为 `["*"]`，与 WebSocket 和 Gateway 模块相同的跨域安全问题。 |
+| 7 | [低] | 模块整体 | `WebAutoConfiguration` 中使用 `@AutoConfiguration` 但同时被 `nebula-autoconfigure` 通过 `AutoConfiguration.imports` 注册，存在双重注册的可能。 |
+
+**测试覆盖评价**：有 `PerformanceMonitorTest` 等少量测试，但认证、限流、缓存等核心拦截器缺少单元测试。
+
+### 11.15 C2: application/nebula-task（27 文件）
+
+**审查范围**：任务调度核心（Task/TaskExecutor/TaskEngine/TaskRegistry）、XXL-JOB 集成、定时任务接口
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `TaskAutoConfiguration.objectMapper()` | 声明了独立的 `ObjectMapper` Bean（已在 C1 中提到冲突风险）。 |
+| 2 | [中] | `TaskExecutorRegistryListener.createExecutorAdapter()` | 对非 `TaskExecutor` 类型的 `@TaskHandler` Bean，适配器创建**直接返回 null 并打印警告**。这意味着 `@TaskHandler` 注解在非 `TaskExecutor` 类上无效，但没有编译期或启动期的明确错误提示。 |
+| 3 | [低] | `TaskExecutorRegistryListener` | 使用 `ApplicationListener<ContextRefreshedEvent>` 而非 `SmartLifecycle` 或 `@EventListener`。在有多层 `ApplicationContext`（如 Spring Cloud）时，`ContextRefreshedEvent` 可能触发多次。 |
+| 4 | [低] | `XxlJobRegistryService` | 使用自定义 `XxlJobHttpClient` 与 XXL-JOB Admin 通信，未使用 Spring 的 `RestClient`/`WebClient`，缺少连接池管理和超时重试。 |
+| 5 | [建议] | 模块整体 | 零测试覆盖。任务注册、执行引擎、XXL-JOB 集成均无测试。 |
+
+**架构评价**：Task 模块设计合理，`TaskExecutor` 接口 + `@TaskHandler` 注解 + 自动发现注册的模式与 Spring 生态一致。XXL-JOB 集成提供了分布式调度支持。主要问题是 `@TaskHandler` 适配不完整和 ObjectMapper 冲突。
+
+### 11.16 D1: integration/payment + notification（25 文件）
+
+**审查范围**：支付集成（接口/模型/Mock 实现/自动配置）、通知集成（短信接口/配置）
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `PaymentAutoConfiguration` | 仅注册了 `MockPaymentService`，没有真实支付渠道（微信/支付宝）的实现或 SPI 机制。Mock 实现不应该在非测试 profile 下自动生效。 |
+| 2 | [中] | `SmsService` | 接口仅有 2 个方法，且**无任何实现类**。通知模块整体为空壳，仅有接口和配置 Properties 定义。 |
+| 3 | [低] | `PaymentService` 接口 | 接口设计完备（创建/查询/取消/退款/回调），但缺少异步支付和批量查询能力。 |
+| 4 | [低] | `MockPaymentService` | Mock 实现中使用 `ConcurrentHashMap` 存储订单，但无过期清理，长期运行会内存泄漏。 |
+| 5 | [建议] | 模块整体 | 零测试覆盖。支付和通知属于高风险业务模块，应有充分的单元和集成测试。 |
+
+**架构评价**：支付模块接口抽象合理，模型完整。但仅有 Mock 实现的半成品状态，需要实际支付渠道的接入。通知模块更是仅有接口定义的空壳。
+
+### 11.17 E1: autoconfigure/nebula-autoconfigure（40 文件）
+
+**审查范围**：统一自动配置中心，覆盖所有模块的条件化 Bean 注册
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [高] | `CaptchaCrawlerAutoConfiguration` / `HttpCrawlerAutoConfiguration` | Crawler 子模块的自动配置仍使用 `matchIfMissing = true`（如 `nebula.crawler.http.enabled` 和 `nebula.crawler.captcha.enabled`），**违反三级策略**。Crawler 属于第三级（特定部署类型），应使用 `matchIfMissing = false`。 |
+| 2 | [中] | `Neo4jHealthAutoConfiguration` | `matchIfMissing = true`（行 24），但 Neo4j 属于第二级（需要外部服务），应为 `matchIfMissing = false`。 |
+| 3 | [中] | `SecurityAutoConfiguration` | `matchIfMissing = true`（行 33/55），属于第一级（纯内存），设计上正确。但 `JwtService` Bean 创建需要配置 secret，若使用硬编码默认 secret 则有安全风险。 |
+| 4 | [中] | 多个 `@AutoConfiguration` 类 | `WebAutoConfiguration`（`nebula-web` 模块内）和 `TaskAutoConfiguration`（`nebula-task` 模块内）使用了 `@AutoConfiguration` 注解，同时又被 `nebula-autoconfigure` 的 `AutoConfiguration.imports` 文件注册，存在**双重发现**风险。 |
+| 5 | [低] | `NebulaAutoConfigurationImportFilter` | 自动配置排除过滤器实现正确，但缺少文档说明排除了哪些默认 Spring Boot 自动配置及原因。 |
+| 6 | [建议] | 模块整体 | 零测试覆盖。自动配置的条件化逻辑是框架的核心，应有充分的条件匹配/不匹配测试。 |
+
+### 11.18 F1: starter/*（9 模块 POM + defaults）
+
+**审查范围**：启动器依赖声明、默认属性配置
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [中] | `nebula-starter-task/pom.xml` | `nebula-starter-minimal` 依赖被注释掉了，导致 `nebula-starter-task` 不包含 `nebula-foundation` 和 `nebula-autoconfigure`，使用时必须手动添加。 |
+| 2 | [中] | `nebula-starter-task` / `nebula-starter-mcp` | 这两个 Starter **缺少 `nebula-defaults.properties`** 文件，意味着 `NebulaStarterDefaultsPostProcessor` 不会为它们自动注入 `enabled=true` 的默认值。用户使用时必须手动在 `application.yml` 中设置 `nebula.task.enabled=true`。 |
+| 3 | [低] | `nebula-starter-all` | 默认启用了几乎所有模块（persistence, cache, rpc, discovery, lock, ai），但缺少 messaging、storage、search 的 defaults。对于 "all-in-one" 定位来说不够完整。 |
+| 4 | [建议] | Starter 整体 | 9 个 Starter 之间的继承关系（minimal -> web -> service -> all）清晰，但缺少一个整体的依赖关系图文档。 |
+
+### 11.19 G1: nebula-example（4 示例 + scripts + README）
+
+**审查范围**：示例项目结构和可运行性
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [已修复] | 示例位置 | 示例项目已统一迁移至 `nebula/examples/`，与 `CLAUDE.md` 一致。 |
+| 2 | [已修复] | 示例覆盖 | 已补充 starter-web/service/ai/minimal/all/api、gateway、rpc-async、microservice、fullstack、oauth 共 11 种示例。 |
+| 3 | [建议] | 示例维护 | 示例项目应确保与框架版本同步，建议加入 CI 流程定期编译验证。 |
+
+### 11.20 H1: docs/*.md（13 文件）
+
+**审查范围**：框架文档完整性和准确性
+
+| # | 严重级别 | 文件 | 问题描述 |
+|---|---------|------|---------|
+| 1 | [已修复] | `CLAUDE.md` | 示例目录已统一为 `examples/*-example`，与 `CLAUDE.md` 引用一致。关键实现引用中的行号可能已因代码修改而偏移。 |
+| 2 | [中] | `Nebula框架使用指南.md` | WebSocket 章节描述的配置属性和使用方式需要与最新实现核对一致性。 |
+| 3 | [低] | `INDEX.md` | 文档索引存在但部分链接可能指向不存在的文件或章节。 |
+| 4 | [低] | `GLOSSARY.md` | 术语表应包含框架特有概念（如 `NebulaStarterDefaultsPostProcessor`、三级 matchIfMissing 策略），目前可能不完整。 |
+| 5 | [建议] | 文档整体 | `docs/framework/` 子目录下有 `ARCHITECTURE.md`、`AUTO_CONFIGURATION_GUIDE.md`、`OVERVIEW.md`、`QUICK_START.md`，与 `docs/` 根目录下的 `Nebula框架使用指南.md`、`Nebula框架配置说明.md` 存在一定的内容重叠，建议整合或明确分工。 |
+
+---
+
+## 12. 审查统计汇总
+
+| 模块 | 文件数 | 高 | 中 | 低 | 建议 | 总计 |
+|------|-------|---|---|---|-----|------|
+| A1: core/foundation | 19 | 0 | 4 | 3 | 1 | 8 |
+| A2: core/security | 14 | 1 | 3 | 2 | 1 | 7 |
+| B1: infra/data | 32 | 0 | 3 | 2 | 1 | 6 |
+| B2: infra/messaging | 46 | 1 | 6 | 4 | 2 | 13 |
+| B3: infra/rpc | 43 | 1 | 5 | 3 | 2 | 11 |
+| B4: infra/discovery | 13 | 0 | 5 | 5 | 3 | 13 |
+| B5: infra/websocket | 25 | 0 | 4 | 3 | 2 | 9 |
+| B6: infra/lock | 18 | 2 | 2 | 2 | 1 | 7 |
+| B7: infra/storage | 15 | 0 | 2 | 2 | 1 | 5 |
+| B8: infra/search | 46 | 0 | 3 | 2 | 1 | 6 |
+| B9: infra/gateway | 6 | 0 | 3 | 2 | 1 | 6 |
+| B10: infra/ai | 35 | 2 | 4 | 2 | 1 | 9 |
+| B11: infra/crawler | 72 | 1 | 3 | 2 | 1 | 7 |
+| C1: app/web | 53 | 1 | 4 | 2 | 0 | 7 |
+| C2: app/task | 27 | 0 | 2 | 2 | 1 | 5 |
+| D1: integration | 25 | 0 | 2 | 2 | 1 | 5 |
+| E1: autoconfigure | 40 | 1 | 3 | 1 | 1 | 6 |
+| F1: starter | 9 | 0 | 2 | 1 | 1 | 4 |
+| G1: examples | 4 | 0 | 1 | 1 | 1 | 3 |
+| H1: docs | 13 | 0 | 2 | 2 | 1 | 5 |
+| **总计** | **555** | **10** | **63** | **42** | **22** | **137** |
+
+## 13. 优先修复建议
+
+### P0 - 紧急（高严重级别，影响正确性/安全性）
+
+1. **B6-1**: `RedisLock.lock()` 看门狗逻辑 bug，导致 Redisson 自动续期失效
+2. **B10-1**: `SpringAIChatService.chatStream()` 多消息版本丢弃对话上下文
+3. **B10-2**: `isAvailable()` 发送真实 API 请求消耗 token
+4. **A2-1**: `JwtService` 硬编码默认 secret，生产环境安全隐患
+5. **E1-1**: Crawler 模块 `matchIfMissing` 违反三级策略
+
+### P1 - 重要（中严重级别，影响可维护性/一致性）
+
+6. **C1-1**: `WebAutoConfiguration` 超过 430 行，需拆分
+7. **B2-1**: `@MessageHandler` 注解与 `MessageHandler` 接口命名冲突
+8. **B3-1**: `@RpcClient` 注解与 `RpcClient` 接口命名冲突
+9. **B6-2**: `RedisLock.tryLock()` 参数覆盖 bug
+10. **C1-2 / C2-1**: `ObjectMapper` Bean 冲突
+
+### P2 - 改善（低/建议级别，提升代码质量）
+
+11. 多个模块缺少测试覆盖（websocket/ai/task/integration/autoconfigure）
+12. 统一 CORS 默认值为安全配置
+13. 示例项目补齐和目录修正
+14. 文档索引和术语表更新

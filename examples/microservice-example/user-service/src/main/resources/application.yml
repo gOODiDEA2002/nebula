@@ -1,0 +1,76 @@
+server:
+  port: 1001
+
+spring:
+  application:
+    name: nebula-example-user-service
+
+# gRPC配置
+grpc:
+  server:
+    port: 2001  # gRPC端口（独立于HTTP端口）
+
+# Nebula配置
+nebula:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:nebula-user-service-dev-secret-key-at-least-32-bytes}
+  # 服务发现配置
+  discovery:
+    enabled: true
+    load-balance-strategy: round_robin
+
+    # Nacos服务发现配置
+    nacos:
+      enabled: true
+      server-addr: localhost:8848
+      namespace: ${NACOS_NAMESPACE:public}
+      username: nacos
+      password: nacos
+      group-name: DEFAULT_GROUP
+      cluster-name: DEFAULT
+      auto-register: true
+      weight: 1.0
+      healthy: true
+      instance-enabled: true
+      preferred-networks:
+        - 192.168.2
+        - 10.0
+      ignored-interfaces:
+        - docker0
+        - veth
+      metadata:
+        version: 1.0.0
+        env: dev
+      
+  # RPC配置
+  rpc:
+    # HTTP RPC 配置
+    http:
+      enabled: true
+      # 服务端配置（对外提供服务）
+      server:
+        enabled: true
+        port: ${server.port}  # 引用 Spring Boot 的 server.port
+        context-path: /rpc
+      # 客户端配置（调用其他服务）
+      client:
+        enabled: true  # 服务端也可能需要调用其他服务
+        connect-timeout: 30000
+        read-timeout: 60000
+    # gRPC RPC 配置
+    grpc:
+      enabled: true  # 启用 Nebula gRPC RPC（关键配置）
+      server:
+        enabled: true
+        port: ${grpc.server.port}  # 引用 Spring Boot gRPC Starter 的端口
+
+
+# 日志配置
+logging:
+  level:
+    io.nebula: DEBUG
+    io.nebula.example.service: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+

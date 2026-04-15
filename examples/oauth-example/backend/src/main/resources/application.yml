@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: oauth-client-backend
+
+  datasource:
+    url: jdbc:mysql://192.168.2.130:3306/oauth_client_demo?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: lilishop
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8081
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# Vocoor OAuth 配置
+vocoor:
+  oauth:
+    # Vocoor OAuth 服务器地址
+    server-url: http://localhost:8080
+    # 客户端ID（从 Vocoor 平台获取）
+    client-id: test_client_001
+    # 客户端密钥（从 Vocoor 平台获取，保密）
+    client-secret: sec_7a388bd56d3944fda34d33c9243368d6
+    # 授权回调地址（必须与 Vocoor 平台配置一致）
+    redirect-uri: http://localhost:8081/api/oauth/callback
+    # 默认请求的权限范围
+    default-scope: profile phone company
+    # 前端应用地址（用于回调重定向）
+    frontend-url: http://localhost:4010
+
+# JWT 配置
+jwt:
+  secret: oauth-client-secret-key-must-be-at-least-32-characters-long
+  expiration: 7200
+
+# Nebula 配置
+nebula:
+  web:
+    performance:
+      enabled: true
+  security:
+    jwt:
+      secret: ${jwt.secret}
+      expiration: ${jwt.expiration}
+
+# 日志配置
+logging:
+  level:
+    io.nebula.examples.oauth: DEBUG
+    org.springframework.web: INFO
+

@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: starter-minimal-example
+logging:
+  level:
+    io.nebula: INFO

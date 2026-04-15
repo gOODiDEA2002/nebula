@@ -1,0 +1,85 @@
+# 读写分离配置示例
+# 使用方式：spring.profiles.active=dev,readwrite
+
+spring:
+  config:
+    activate:
+      on-profile: readwrite
+
+nebula:
+  data:
+    persistence:
+      enabled: true
+      # 数据源配置 - 配置主从数据源
+      sources:
+        # 主数据源（写库）
+        primary:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: root
+          password: root
+          pool:
+            min-size: 5
+            max-size: 20
+            connection-timeout: 30s
+            idle-timeout: 10m
+            max-lifetime: 30m
+        
+        # 从数据源（读库）- 演示用，指向同一数据库
+        slave01:
+          type: mysql
+          url: jdbc:mysql://localhost:3306/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: root
+          password: root
+          pool:
+            min-size: 5
+            max-size: 20
+            connection-timeout: 30s
+
+    # 读写分离配置
+    read-write-separation:
+      enabled: true
+      # 动态路由模式
+      dynamic-routing: true
+      # 启用切面
+      aspect-enabled: true
+      
+      # 集群配置
+      clusters:
+        # 默认集群
+        default:
+          enabled: true
+          master: primary        # 主库数据源名称
+          slaves: [slave01]      # 从库数据源名称列表
+          load-balance-strategy: ROUND_ROBIN  # 负载均衡策略: ROUND_ROBIN, RANDOM
+          force-write-on-master: true         # 是否强制在主库上执行写操作
+
+# MyBatis-Plus 配置（读写分离模式）
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+      table-underline: true
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: io.nebula.example.modules.data.entity.dos
+
+# 日志配置 - 读写分离调试
+logging:
+  level:
+    io.nebula.data.persistence.readwrite: DEBUG
+    io.nebula.data.persistence.datasource: DEBUG
+    io.nebula.data.persistence.readwrite.aspect: DEBUG
+    io.nebula.data.persistence.readwrite.DataSourceContextHolder: DEBUG
+    io.nebula.data.persistence.readwrite.DynamicDataSource: DEBUG
+    
+    # Spring 数据源相关日志
+    org.springframework.jdbc.datasource: DEBUG
+    
+    # 事务相关日志
+    org.springframework.transaction: DEBUG

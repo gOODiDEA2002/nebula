@@ -222,10 +222,11 @@
 
 ## 🌟 示例项目
 
-- [示例项目总览](../example/README.md) - 所有示例项目概述
-- [nebula-example](../example/nebula-example/README.md) - 主示例项目
-- [nebula-example-user-service](../example/nebula-example-user-service/README.md) - 用户服务实现
-- [nebula-example-order-service](../example/nebula-example-order-service/README.md) - 订单服务实现
+- [示例项目总览](../examples/README.md) - 所有示例项目概述
+- [fullstack-example](../examples/fullstack-example/README.md) - 全功能综合示例
+- [microservice-example](../examples/microservice-example/) - 微服务示例（user/order）
+- [gateway-example](../examples/gateway-example/README.md) - API 网关示例
+- [rpc-async-example](../examples/rpc-async-example/README.md) - 异步 RPC 示例
 
 ## 📖 术语表
 

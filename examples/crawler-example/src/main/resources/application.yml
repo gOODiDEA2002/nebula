@@ -1,0 +1,55 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: nebula-crawler-example
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+      - io.nebula.crawler.browser.captcha.BrowserCaptchaAutoConfiguration
+
+nebula:
+  security:
+    enabled: false
+  crawler:
+    enabled: true
+    http:
+      enabled: true
+      connect-timeout: 30000
+      read-timeout: 60000
+      max-connections: 50
+      max-connections-per-host: 10
+      retry-count: 2
+      default-qps: 5.0
+      follow-redirects: true
+    browser:
+      enabled: ${BROWSER_CRAWLER_ENABLED:false}
+      mode: REMOTE
+      browser-type: chromium
+      headless: true
+      pool-size: 3
+      page-timeout: 30000
+      navigation-timeout: 30000
+      screenshot-on-error: true
+      disable-images: false
+      disable-css: false
+      stealth:
+        enabled: true
+      remote:
+        endpoints:
+          - ws://${PLAYWRIGHT_SERVER:localhost}:9222
+        use-cdp: ${PLAYWRIGHT_USE_CDP:false}
+        connections-per-endpoint: ${PLAYWRIGHT_CONNECTIONS:1}
+        max-retries: 3
+        retry-interval: 1000
+  web:
+    auth:
+      enabled: false
+
+logging:
+  level:
+    io.nebula: DEBUG
+    io.nebula.example: DEBUG
+    io.nebula.crawler: DEBUG
