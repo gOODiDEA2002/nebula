@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration(after = Neo4jAutoConfiguration.class)
 @ConditionalOnClass({Driver.class, HealthIndicator.class})
 @ConditionalOnProperty(prefix = "nebula.data.neo4j", name = "health-check-enabled",
-        havingValue = "true", matchIfMissing = true)
+        havingValue = "true", matchIfMissing = false)
 public class Neo4jHealthAutoConfiguration {
 
     @Bean

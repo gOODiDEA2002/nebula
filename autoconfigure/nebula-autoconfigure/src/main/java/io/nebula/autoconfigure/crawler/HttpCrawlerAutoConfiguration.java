@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 import java.util.Optional;
 
@@ -22,7 +23,7 @@ import java.util.Optional;
 @Slf4j
 @Configuration
 @ConditionalOnClass(HttpCrawlerEngine.class)
-@ConditionalOnProperty(prefix = "nebula.crawler.http", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.crawler.http", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(HttpCrawlerProperties.class)
 public class HttpCrawlerAutoConfiguration {
     
@@ -30,8 +31,9 @@ public class HttpCrawlerAutoConfiguration {
     @ConditionalOnMissingBean
     public HttpCrawlerEngine httpCrawlerEngine(
             HttpCrawlerProperties httpCrawlerProperties,
-            Optional<ProxyProvider> proxyProvider) {
+            Optional<ProxyProvider> proxyProvider,
+            Environment environment) {
         log.info("初始化HTTP爬虫引擎");
-        return new HttpCrawlerEngine(httpCrawlerProperties, proxyProvider.orElse(null));
+        return new HttpCrawlerEngine(httpCrawlerProperties, proxyProvider.orElse(null), environment);
     }
 }

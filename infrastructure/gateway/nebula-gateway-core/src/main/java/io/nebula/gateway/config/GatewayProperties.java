@@ -269,9 +269,9 @@ public class GatewayProperties {
         private boolean enabled = true;
         
         /**
-         * 允许的来源
+         * 允许的来源（生产环境应显式配置，避免使用 "*"）
          */
-        private List<String> allowedOrigins = List.of("*");
+        private List<String> allowedOrigins = List.of();
         
         /**
          * 允许的方法

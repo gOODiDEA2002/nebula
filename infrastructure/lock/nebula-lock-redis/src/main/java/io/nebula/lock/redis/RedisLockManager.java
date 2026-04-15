@@ -79,7 +79,10 @@ public class RedisLockManager implements LockManager {
     
     @Override
     public void releaseAllLocks() {
-        log.info("releaseAllLocks 被调用，Redisson 管理的锁由各持有者自行释放");
+        log.warn("releaseAllLocks: Redisson 不支持全局批量释放锁，各锁由持有线程自行释放或到期自动过期");
+        throw new UnsupportedOperationException(
+                "Redisson does not support releasing all locks globally. " +
+                "Each lock should be released by its holding thread or will expire automatically.");
     }
     
     @Override
@@ -103,9 +106,13 @@ public class RedisLockManager implements LockManager {
         try {
             lock.lock();
             return callback.execute();
+        } catch (LockException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             log.error("执行锁回调失败: key={}", key, e);
-            throw new RuntimeException("Failed to execute with lock: " + key, e);
+            throw new LockException("Failed to execute with lock: " + key, e);
         } finally {
             lock.unlock();
         }

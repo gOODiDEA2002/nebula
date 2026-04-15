@@ -6,29 +6,13 @@ import java.lang.annotation.*;
 
 /**
  * 消息处理器注解
- * 用于标注消息处理方法，自动注册到消息管理器
  * 
- * <p>使用示例：</p>
- * <pre>
- * &#64;Component
- * public class OrderNotificationHandler {
- *     
- *     &#64;MessageHandler("order.created")
- *     public void handleOrderCreated(Message&lt;OrderEvent&gt; message) {
- *         // 处理订单创建通知
- *         log.info("收到订单创建通知: {}", message.getPayload());
- *     }
- *     
- *     &#64;MessageHandler(topic = "order.updated", queue = "order-update-queue")
- *     public void handleOrderUpdated(Message&lt;OrderEvent&gt; message) {
- *         // 处理订单更新通知
- *         log.info("收到订单更新通知: {}", message.getPayload());
- *     }
- * }
- * </pre>
- * 
+ * @deprecated 请使用 {@link MessageListener}，避免与 {@link io.nebula.messaging.core.consumer.MessageHandler} 接口命名冲突。
+ *             将在 3.0.0 版本移除。
+ *
  * @author nebula
  */
+@Deprecated(since = "2.0.1", forRemoval = true)
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

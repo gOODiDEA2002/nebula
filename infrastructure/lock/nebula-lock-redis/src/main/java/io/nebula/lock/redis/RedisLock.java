@@ -36,13 +36,13 @@ public class RedisLock implements Lock {
     public void lock() throws LockException {
         try {
             if (config.isEnableWatchdog()) {
-                // 启用看门狗,锁会自动续期
-                rLock.lock(config.getLeaseTime().toMillis(), TimeUnit.MILLISECONDS);
+                // 不传 leaseTime（传 -1），让 Redisson 启动看门狗自动续期
+                rLock.lock(-1, TimeUnit.MILLISECONDS);
             } else {
-                // 不启用看门狗,锁到期自动释放
+                // 指定 leaseTime，锁到期自动释放，不启用看门狗
                 rLock.lock(config.getLeaseTime().toMillis(), TimeUnit.MILLISECONDS);
             }
-            log.debug("成功获取锁: key={}, thread={}", key, Thread.currentThread().getName());
+            log.debug("成功获取锁: key={}, watchdog={}, thread={}", key, config.isEnableWatchdog(), Thread.currentThread().getName());
         } catch (Exception e) {
             log.error("获取锁失败: key={}, thread={}", key, Thread.currentThread().getName(), e);
             throw new LockAcquisitionException("Failed to acquire lock: " + key, e);
@@ -52,7 +52,8 @@ public class RedisLock implements Lock {
     @Override
     public void lockInterruptibly() throws LockException, InterruptedException {
         try {
-            rLock.lockInterruptibly(config.getLeaseTime().toMillis(), TimeUnit.MILLISECONDS);
+            long leaseTimeMs = config.isEnableWatchdog() ? -1 : config.getLeaseTime().toMillis();
+            rLock.lockInterruptibly(leaseTimeMs, TimeUnit.MILLISECONDS);
             log.debug("成功获取锁(可中断): key={}, thread={}", key, Thread.currentThread().getName());
         } catch (InterruptedException e) {
             log.warn("获取锁被中断: key={}, thread={}", key, Thread.currentThread().getName());
@@ -82,20 +83,10 @@ public class RedisLock implements Lock {
     @Override
     public boolean tryLock(long timeout, TimeUnit unit) throws InterruptedException {
         try {
-            long waitTime = timeout;
-            TimeUnit waitUnit = unit;
+            // 调用方显式传入的 timeout 优先；leaseTime 始终使用 config
+            long leaseTimeMs = config.isEnableWatchdog() ? -1 : config.getLeaseTime().toMillis();
             
-            // 如果配置了等待时间,使用配置的等待时间
-            if (config.getWaitTime() != null && config.getWaitTime().toMillis() > 0) {
-                waitTime = config.getWaitTime().toMillis();
-                waitUnit = TimeUnit.MILLISECONDS;
-            }
-            
-            boolean acquired = rLock.tryLock(
-                    waitTime,
-                    config.getLeaseTime().toMillis(),
-                    waitUnit
-            );
+            boolean acquired = rLock.tryLock(timeout, leaseTimeMs, unit);
             
             if (acquired) {
                 log.debug("成功尝试获取锁(超时): key={}, waitTime={}ms, thread={}",

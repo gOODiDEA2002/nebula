@@ -10,7 +10,7 @@ import io.nebula.storage.core.model.StorageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -24,7 +24,6 @@ import java.util.List;
 /**
  * 阿里云OSS存储服务实现
  */
-@Service
 public class AliyunOSSStorageService implements StorageService {
     
     private static final Logger log = LoggerFactory.getLogger(AliyunOSSStorageService.class);

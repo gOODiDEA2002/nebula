@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
  *
  * @author nebula
  */
-@Service
 public class ElasticsearchSearchService implements SearchService {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSearchService.class);

@@ -40,11 +40,20 @@ public class DefaultJwtService implements JwtService {
     private final SecurityProperties properties;
     private final SecretKey signingKey;
     
+    private static final int MIN_SECRET_LENGTH = 32;
+    
     public DefaultJwtService(SecurityProperties properties) {
         this.properties = properties;
-        this.signingKey = Keys.hmacShaKeyFor(
-            properties.getJwt().getSecret().getBytes(StandardCharsets.UTF_8)
-        );
+        String secret = properties.getJwt().getSecret();
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "nebula.security.jwt.secret 未配置，请在 application.yml 中设置至少 " + MIN_SECRET_LENGTH + " 字符的密钥");
+        }
+        if (secret.length() < MIN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                    "nebula.security.jwt.secret 长度不足（当前 " + secret.length() + " 字符），至少需要 " + MIN_SECRET_LENGTH + " 字符");
+        }
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         log.info("JWT服务初始化完成");
     }
     

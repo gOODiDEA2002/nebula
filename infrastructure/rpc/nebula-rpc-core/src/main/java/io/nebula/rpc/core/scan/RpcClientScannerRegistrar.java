@@ -141,8 +141,8 @@ public class RpcClientScannerRegistrar implements ImportBeanDefinitionRegistrar,
             scanner.setResourceLoader(resourceLoader);
         }
         
-        // 添加 @RpcClient 注解过滤器
         scanner.addIncludeFilter(new AnnotationTypeFilter(RpcClient.class));
+        scanner.addIncludeFilter(new AnnotationTypeFilter(io.nebula.rpc.core.annotation.RemoteService.class));
         
         for (String basePackage : basePackages) {
             Set<BeanDefinition> candidates = scanner.findCandidateComponents(basePackage);

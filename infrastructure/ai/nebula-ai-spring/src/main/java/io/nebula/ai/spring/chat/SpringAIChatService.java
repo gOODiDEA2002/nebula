@@ -6,14 +6,13 @@ import io.nebula.ai.core.model.ChatMessage;
 import io.nebula.ai.core.model.ChatRequest;
 import io.nebula.ai.core.model.ChatResponse;
 
+import io.nebula.ai.spring.config.AIProperties;
+
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,16 +23,18 @@ import lombok.extern.slf4j.Slf4j;
  * 基于Spring AI的聊天服务实现
  */
 @Slf4j
-@Service
 public class SpringAIChatService implements ChatService {
 
     private final ChatClient chatClient;
     private final ChatModel chatModel;
+    private final AIProperties aiProperties;
 
     @Autowired
-    public SpringAIChatService(ChatClient.Builder chatClientBuilder, ChatModel chatModel) {
+    public SpringAIChatService(ChatClient.Builder chatClientBuilder, ChatModel chatModel,
+                                AIProperties aiProperties) {
         this.chatClient = chatClientBuilder.build();
         this.chatModel = chatModel;
+        this.aiProperties = aiProperties;
     }
 
     @Override
@@ -171,37 +172,75 @@ public class SpringAIChatService implements ChatService {
 
     @Override
     public void chatStream(List<ChatMessage> messages, ChatStreamCallback callback) {
-        // 简化实现：转换为字符串形式
-        String combinedMessage = messages.stream()
-                .filter(msg -> msg.getRole() == ChatMessage.MessageRole.USER)
-                .map(ChatMessage::getContent)
-                .collect(Collectors.joining("\n"));
-        
-        chatStream(combinedMessage, callback);
+        try {
+            log.debug("开始流式聊天(多消息): {} 条消息", messages.size());
+
+            List<org.springframework.ai.chat.messages.Message> springAiMessages = messages.stream()
+                    .map(this::convertToSpringAiMessage)
+                    .collect(Collectors.toList());
+
+            Prompt prompt = new Prompt(springAiMessages);
+            streamWithPrompt(prompt, callback);
+
+        } catch (Exception e) {
+            log.error("流式聊天调用失败: {}", e.getMessage(), e);
+            callback.onError(new ChatException("流式聊天调用失败: " + e.getMessage(), e));
+        }
     }
 
     @Override
     public void chatStream(ChatRequest request, ChatStreamCallback callback) {
-        // 简化实现：使用第一个用户消息
-        String userMessage = request.getMessages().stream()
-                .filter(msg -> msg.getRole() == ChatMessage.MessageRole.USER)
-                .map(ChatMessage::getContent)
-                .findFirst()
-                .orElse("Hello");
-        
-        chatStream(userMessage, callback);
+        try {
+            log.debug("开始流式聊天(请求): {} 条消息, model={}", request.getMessages().size(), request.getModel());
+
+            List<org.springframework.ai.chat.messages.Message> springAiMessages = request.getMessages().stream()
+                    .map(this::convertToSpringAiMessage)
+                    .collect(Collectors.toList());
+
+            Prompt prompt;
+            if (request.getModel() != null && !request.getModel().isBlank()) {
+                prompt = new Prompt(springAiMessages,
+                        OpenAiChatOptions.builder().model(request.getModel()).build());
+            } else {
+                prompt = new Prompt(springAiMessages);
+            }
+            streamWithPrompt(prompt, callback);
+
+        } catch (Exception e) {
+            log.error("流式聊天调用失败: {}", e.getMessage(), e);
+            callback.onError(new ChatException("流式聊天调用失败: " + e.getMessage(), e));
+        }
+    }
+
+    private void streamWithPrompt(Prompt prompt, ChatStreamCallback callback) {
+        chatModel.stream(prompt)
+                .doOnNext(response -> {
+                    String chunk = response.getResult() != null && response.getResult().getOutput() != null
+                            ? response.getResult().getOutput().getText() : "";
+                    if (chunk != null) {
+                        callback.onChunk(chunk);
+                    }
+                })
+                .reduce("", (accumulator, response) -> {
+                    String text = response.getResult() != null && response.getResult().getOutput() != null
+                            ? response.getResult().getOutput().getText() : "";
+                    return accumulator + (text != null ? text : "");
+                })
+                .doOnSuccess(fullResponse -> {
+                    ChatResponse chatResponse = ChatResponse.builder()
+                            .content(fullResponse)
+                            .timestamp(LocalDateTime.now())
+                            .model(getCurrentModel())
+                            .build();
+                    callback.onComplete(chatResponse);
+                })
+                .doOnError(callback::onError)
+                .subscribe();
     }
 
     @Override
     public boolean isAvailable() {
-        try {
-            // 发送简单的测试消息
-            chat("test");
-            return true;
-        } catch (Exception e) {
-            log.warn("聊天服务不可用: {}", e.getMessage());
-            return false;
-        }
+        return chatModel != null && aiProperties.isEnabled();
     }
 
     @Override
@@ -219,9 +258,7 @@ public class SpringAIChatService implements ChatService {
 
     @Override
     public String getCurrentModel() {
-        // 从Spring AI ChatModel获取当前模型
-        // 这是一个简化的实现，实际可能需要根据具体的ChatModel实现来获取
-        return "gpt-3.5-turbo"; // 默认值
+        return aiProperties.getOpenai().getChat().getOptions().getModel();
     }
 
     /**

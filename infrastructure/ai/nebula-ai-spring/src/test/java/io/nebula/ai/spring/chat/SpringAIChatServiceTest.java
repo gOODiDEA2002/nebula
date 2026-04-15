@@ -60,7 +60,8 @@ class SpringAIChatServiceTest {
         // 配置 ChatClient.Builder 的链式调用
         when(chatClientBuilder.build()).thenReturn(chatClient);
         
-        chatService = new SpringAIChatService(chatClientBuilder, chatModel);
+        io.nebula.ai.spring.config.AIProperties aiProperties = new io.nebula.ai.spring.config.AIProperties();
+        chatService = new SpringAIChatService(chatClientBuilder, chatModel, aiProperties);
     }
 
     /**

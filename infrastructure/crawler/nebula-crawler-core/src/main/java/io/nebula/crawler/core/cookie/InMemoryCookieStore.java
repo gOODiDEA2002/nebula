@@ -4,12 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
  * 内存Cookie存储实现
  * <p>
- * 使用ConcurrentHashMap存储Cookie，线程安全
+ * 使用ConcurrentHashMap存储Cookie，线程安全。
+ * 内置惰性清理机制：每 CLEANUP_THRESHOLD 次 add 操作自动清理过期条目。
  * </p>
  *
  * @author Nebula Team
@@ -18,10 +20,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class InMemoryCookieStore implements CookieStore {
 
-    /**
-     * 存储结构: domain -> (name -> cookie)
-     */
+    private static final int CLEANUP_THRESHOLD = 100;
+    
     private final ConcurrentHashMap<String, Map<String, Cookie>> cookies = new ConcurrentHashMap<>();
+    private final AtomicInteger addCounter = new AtomicInteger(0);
 
     @Override
     public void add(Cookie cookie) {
@@ -32,6 +34,10 @@ public class InMemoryCookieStore implements CookieStore {
         String domain = normalizeDomain(cookie.getDomain());
         cookies.computeIfAbsent(domain, k -> new ConcurrentHashMap<>())
                .put(cookie.getName(), cookie);
+        
+        if (addCounter.incrementAndGet() % CLEANUP_THRESHOLD == 0) {
+            cleanExpired();
+        }
         
         log.debug("添加Cookie: domain={}, name={}", domain, cookie.getName());
     }

@@ -4,12 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 基于内存的限流器实现
- * 使用滑动窗口算法
+ * 使用滑动窗口算法，CAS 无锁化设计
  */
 public class MemoryRateLimiter implements RateLimiter {
     
@@ -18,10 +21,19 @@ public class MemoryRateLimiter implements RateLimiter {
     private final int maxRequestsPerWindow;
     private final long windowSizeInMillis;
     private final ConcurrentHashMap<String, WindowData> windows = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService cleanupScheduler;
     
     public MemoryRateLimiter(int maxRequestsPerWindow, long windowSizeInMillis) {
         this.maxRequestsPerWindow = maxRequestsPerWindow;
         this.windowSizeInMillis = windowSizeInMillis;
+        
+        this.cleanupScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "rate-limiter-cleanup");
+            t.setDaemon(true);
+            return t;
+        });
+        long cleanupIntervalMs = Math.max(windowSizeInMillis * 2, 60_000);
+        this.cleanupScheduler.scheduleAtFixedRate(this::cleanup, cleanupIntervalMs, cleanupIntervalMs, TimeUnit.MILLISECONDS);
     }
     
     @Override
@@ -31,24 +43,29 @@ public class MemoryRateLimiter implements RateLimiter {
         }
         
         long currentTime = System.currentTimeMillis();
-        WindowData window = windows.computeIfAbsent(key, k -> new WindowData());
+        WindowData window = windows.computeIfAbsent(key, k -> new WindowData(currentTime));
         
-        synchronized (window) {
-            // 清理过期的窗口数据
-            if (currentTime - window.getWindowStart() >= windowSizeInMillis) {
-                window.reset(currentTime);
+        // CAS 方式重置过期窗口
+        long windowStart = window.getWindowStart();
+        if (currentTime - windowStart >= windowSizeInMillis) {
+            if (window.compareAndResetWindow(windowStart, currentTime)) {
+                // 当前线程成功重置窗口
             }
-            
-            // 检查是否超过限制
-            if (window.getRequestCount() + permits > maxRequestsPerWindow) {
-                logger.debug("Rate limit exceeded for key: {}, current count: {}, requested: {}, limit: {}", 
-                    key, window.getRequestCount(), permits, maxRequestsPerWindow);
+            // 无论是否重置成功，都继续使用最新状态
+        }
+        
+        // CAS 方式尝试增加计数
+        while (true) {
+            int current = window.getRequestCount();
+            if (current + permits > maxRequestsPerWindow) {
+                logger.debug("Rate limit exceeded for key: {}, current: {}, requested: {}, limit: {}",
+                        key, current, permits, maxRequestsPerWindow);
                 return false;
             }
-            
-            // 增加请求计数
-            window.addRequests(permits);
-            return true;
+            if (window.compareAndAddRequests(current, current + permits)) {
+                return true;
+            }
+            // CAS 失败，自旋重试
         }
     }
     
@@ -61,14 +78,11 @@ public class MemoryRateLimiter implements RateLimiter {
             return maxRequestsPerWindow;
         }
         
-        synchronized (window) {
-            // 检查窗口是否过期
-            if (currentTime - window.getWindowStart() >= windowSizeInMillis) {
-                return maxRequestsPerWindow;
-            }
-            
-            return Math.max(0, maxRequestsPerWindow - window.getRequestCount());
+        if (currentTime - window.getWindowStart() >= windowSizeInMillis) {
+            return maxRequestsPerWindow;
         }
+        
+        return Math.max(0, maxRequestsPerWindow - window.getRequestCount());
     }
     
     @Override
@@ -78,47 +92,59 @@ public class MemoryRateLimiter implements RateLimiter {
     }
     
     /**
-     * 清理过期的窗口数据
+     * 清理过期的窗口数据，由定时任务自动调用
      */
     public void cleanup() {
         long currentTime = System.currentTimeMillis();
-        windows.entrySet().removeIf(entry -> {
-            WindowData window = entry.getValue();
-            synchronized (window) {
-                return currentTime - window.getWindowStart() >= windowSizeInMillis * 2;
+        long threshold = windowSizeInMillis * 2;
+        int removed = 0;
+        var it = windows.entrySet().iterator();
+        while (it.hasNext()) {
+            var entry = it.next();
+            if (currentTime - entry.getValue().getWindowStart() >= threshold) {
+                it.remove();
+                removed++;
             }
-        });
+        }
+        if (removed > 0) {
+            logger.debug("Rate limiter cleanup: removed {} expired entries, active: {}", removed, windows.size());
+        }
     }
     
-    /**
-     * 获取当前活跃的限流键数量
-     */
     public int getActiveKeysCount() {
         return windows.size();
     }
     
-    /**
-     * 窗口数据
-     */
+    public void shutdown() {
+        cleanupScheduler.shutdown();
+    }
+    
     private static class WindowData {
-        private final AtomicLong windowStart = new AtomicLong(System.currentTimeMillis());
+        private final AtomicLong windowStart;
         private final AtomicInteger requestCount = new AtomicInteger(0);
         
-        public long getWindowStart() {
+        WindowData(long startTime) {
+            this.windowStart = new AtomicLong(startTime);
+        }
+        
+        long getWindowStart() {
             return windowStart.get();
         }
         
-        public int getRequestCount() {
+        int getRequestCount() {
             return requestCount.get();
         }
         
-        public void addRequests(int count) {
-            requestCount.addAndGet(count);
+        boolean compareAndAddRequests(int expect, int update) {
+            return requestCount.compareAndSet(expect, update);
         }
         
-        public void reset(long newWindowStart) {
-            windowStart.set(newWindowStart);
-            requestCount.set(0);
+        boolean compareAndResetWindow(long expectStart, long newStart) {
+            if (windowStart.compareAndSet(expectStart, newStart)) {
+                requestCount.set(0);
+                return true;
+            }
+            return false;
         }
     }
 }

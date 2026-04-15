@@ -278,9 +278,9 @@ public class WebProperties {
         private boolean enabled = false;
         
         /**
-         * 允许的源地址
+         * 允许的源地址（生产环境应显式配置，避免使用 "*"）
          */
-        private String[] allowedOrigins = {"*"};
+        private String[] allowedOrigins = {};
         
         /**
          * 允许的请求方法

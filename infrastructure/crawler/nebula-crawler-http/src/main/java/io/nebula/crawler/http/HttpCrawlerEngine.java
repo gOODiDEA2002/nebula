@@ -7,6 +7,7 @@ import io.nebula.crawler.core.ratelimit.CrawlerRateLimiter;
 import io.nebula.crawler.http.config.HttpCrawlerProperties;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.springframework.core.env.Environment;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -40,26 +41,34 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HttpCrawlerEngine implements CrawlerEngine {
 
+    private static final java.util.Set<String> SAFE_PROFILES = java.util.Set.of("dev", "test", "local");
+
     private final HttpCrawlerProperties properties;
     private final ProxyProvider proxyProvider;
+    private final Environment environment;
     private final OkHttpClient httpClient;
     private final CrawlerRateLimiter rateLimiter;
     private volatile boolean shutdown = false;
 
     /**
-     * 构造函数
-     *
      * @param properties    HTTP爬虫配置
      * @param proxyProvider 代理提供者（可为null）
+     * @param environment   Spring 环境（可为null，用于校验 trustAllCerts 的安全性）
      */
-    public HttpCrawlerEngine(HttpCrawlerProperties properties, ProxyProvider proxyProvider) {
+    public HttpCrawlerEngine(HttpCrawlerProperties properties, ProxyProvider proxyProvider,
+                              Environment environment) {
         this.properties = properties;
         this.proxyProvider = proxyProvider;
+        this.environment = environment;
         this.httpClient = buildHttpClient();
         this.rateLimiter = new CrawlerRateLimiter(properties.getDefaultQps());
 
         log.info("HttpCrawlerEngine初始化完成: connectTimeout={}ms, readTimeout={}ms, maxConnections={}",
                 properties.getConnectTimeout(), properties.getReadTimeout(), properties.getMaxConnections());
+    }
+
+    public HttpCrawlerEngine(HttpCrawlerProperties properties, ProxyProvider proxyProvider) {
+        this(properties, proxyProvider, null);
     }
 
     /**
@@ -80,10 +89,14 @@ public class HttpCrawlerEngine implements CrawlerEngine {
                 .followSslRedirects(properties.isFollowRedirects())
                 .retryOnConnectionFailure(true);
 
-        // 如果配置了信任所有证书，则忽略SSL验证（仅限测试环境）
         if (properties.isTrustAllCerts()) {
-            log.warn("SSL证书验证已禁用，仅限测试环境使用！");
-            configureUnsafeSsl(builder);
+            if (isProductionProfile()) {
+                log.error("生产环境禁止使用 trustAllCerts=true，已忽略该配置");
+            } else {
+                log.warn("SSL证书验证已禁用，当前环境: {}，仅限非生产环境使用",
+                        environment != null ? String.join(",", environment.getActiveProfiles()) : "unknown");
+                configureUnsafeSsl(builder);
+            }
         }
 
         return builder.build();
@@ -401,6 +414,22 @@ public class HttpCrawlerEngine implements CrawlerEngine {
         return new ConnectionPoolStats(
                 pool.connectionCount(),
                 pool.idleConnectionCount());
+    }
+
+    private boolean isProductionProfile() {
+        if (environment == null) {
+            return false;
+        }
+        String[] activeProfiles = environment.getActiveProfiles();
+        if (activeProfiles.length == 0) {
+            return false;
+        }
+        for (String profile : activeProfiles) {
+            if (SAFE_PROFILES.contains(profile.toLowerCase())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -272,7 +272,7 @@ public class NotificationService {
         messageManager.getProducer().send("user-notifications", msg);
     }
     
-    @MessageHandler("user-notifications")
+    @MessageListener("user-notifications")  // 替代已废弃的 @MessageHandler
     public void handleNotification(Message<String> message) {
         // 处理通知消息
         log.info("处理通知: {}", message.getPayload());
@@ -306,7 +306,7 @@ nebula:
  * - 不使用 HTTP 路径注解（框架自动处理）
  * - 错误通过 BusinessException 抛出
  */
-@RpcClient("user-service")
+@RemoteService("user-service")  // 替代已废弃的 @RpcClient
 public interface UserRpcClient {
     
     @RpcCall
@@ -363,7 +363,7 @@ public interface DataProcessService {
 }
 
 // 2. 客户端RPC接口（继承 + 异步增强）
-@RpcClient("data-service")
+@RemoteService("data-service")
 public interface DataProcessRpcClient extends DataProcessService {
     
     // 继承同步方法：processData()
@@ -1171,13 +1171,13 @@ public interface UserRepository extends BaseRepository<User, Long> {
 @Component
 public class OrderEventHandler {
     
-    @MessageHandler("order.created")
+    @MessageListener("order.created")
     public void handleOrderCreated(Message<Order> message) {
         Order order = message.getPayload();
         // 处理订单创建事件
     }
     
-    @MessageHandler("order.cancelled") 
+    @MessageListener("order.cancelled") 
     public void handleOrderCancelled(Message<String> message) {
         String orderId = message.getPayload();
         // 处理订单取消事件

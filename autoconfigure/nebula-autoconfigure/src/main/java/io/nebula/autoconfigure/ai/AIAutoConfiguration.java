@@ -203,9 +203,10 @@ public class AIAutoConfiguration {
     @Bean
     @ConditionalOnClass(ChatModel.class)
     @ConditionalOnMissingBean(ChatService.class)
-    public ChatService chatService(ChatClient.Builder chatClientBuilder, ChatModel chatModel) {
+    public ChatService chatService(ChatClient.Builder chatClientBuilder, ChatModel chatModel,
+                                   AIProperties aiProperties) {
         log.info("配置 Nebula ChatService");
-        return new SpringAIChatService(chatClientBuilder, chatModel);
+        return new SpringAIChatService(chatClientBuilder, chatModel, aiProperties);
     }
 
     /**

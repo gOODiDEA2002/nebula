@@ -35,7 +35,7 @@ import java.util.Optional;
 @Slf4j
 @Configuration
 @ConditionalOnClass(CaptchaManager.class)
-@ConditionalOnProperty(prefix = "nebula.crawler.captcha", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "nebula.crawler.captcha", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(CaptchaProperties.class)
 public class CaptchaCrawlerAutoConfiguration {
 

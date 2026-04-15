@@ -48,9 +48,9 @@ public class SecurityProperties {
         private boolean enabled = true;
         
         /**
-         * JWT密钥
+         * JWT密钥（必须配置，长度不少于 32 字符）
          */
-        private String secret = "nebula-default-secret-key-please-change-in-production";
+        private String secret;
         
         /**
          * Token过期时间

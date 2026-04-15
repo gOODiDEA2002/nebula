@@ -1,8 +1,5 @@
 package io.nebula.task.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.task.core.TaskExecutor;
@@ -53,18 +50,6 @@ public class TaskAutoConfiguration {
     @ConditionalOnMissingBean
     public TaskEngine taskEngine() {
         return new TaskEngine();
-    }
-
-    /**
-     * ObjectMapper
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return mapper;
     }
 
     /**

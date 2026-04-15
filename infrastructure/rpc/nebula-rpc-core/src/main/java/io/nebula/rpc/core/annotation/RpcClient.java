@@ -4,11 +4,14 @@ import java.lang.annotation.*;
 
 /**
  * RPC客户端注解
- * 用于标记RPC客户端接口，支持声明式服务调用
+ * 
+ * @deprecated 请使用 {@link RemoteService}，避免与 {@link io.nebula.rpc.core.client.RpcClient} 接口命名冲突。
+ *             将在 3.0.0 版本移除。
  * 
  * @author Nebula Framework
  * @since 2.0.0
  */
+@Deprecated(since = "2.0.1", forRemoval = true)
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

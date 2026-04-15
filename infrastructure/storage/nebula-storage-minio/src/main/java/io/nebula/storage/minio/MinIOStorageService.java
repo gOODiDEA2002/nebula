@@ -13,7 +13,6 @@ import io.nebula.storage.core.model.StorageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -28,16 +27,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * MinIO存储服务实现
  */
-@Service
 public class MinIOStorageService implements StorageService {
     
     private static final Logger log = LoggerFactory.getLogger(MinIOStorageService.class);
     
     private final MinioClient minioClient;
+    private final Set<String> knownBuckets = ConcurrentHashMap.newKeySet();
     
     /**
      * 用于生成文件访问URL的基础地址
@@ -78,10 +78,7 @@ public class MinIOStorageService implements StorageService {
     @Override
     public StorageResult upload(String bucket, String key, InputStream inputStream, ObjectMetadata metadata) {
         try {
-            // 确保bucket存在
-            if (!bucketExists(bucket)) {
-                createBucket(bucket);
-            }
+            ensureBucket(bucket);
             
             // 构建上传参数
             PutObjectArgs.Builder builder = PutObjectArgs.builder()
@@ -201,10 +198,7 @@ public class MinIOStorageService implements StorageService {
     @Override
     public StorageResult copy(String sourceBucket, String sourceKey, String targetBucket, String targetKey) {
         try {
-            // 确保目标bucket存在
-            if (!bucketExists(targetBucket)) {
-                createBucket(targetBucket);
-            }
+            ensureBucket(targetBucket);
             
             CopySource source = CopySource.builder()
                     .bucket(sourceBucket)
@@ -322,12 +316,27 @@ public class MinIOStorageService implements StorageService {
                     .build();
             
             minioClient.makeBucket(args);
+            knownBuckets.add(bucket);
             
             log.info("创建bucket成功: bucket={}", bucket);
             
         } catch (Exception e) {
             log.error("创建bucket失败: bucket={}", bucket, e);
             throw new StorageException("创建bucket失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 确保 bucket 存在，使用本地缓存跳过已确认的重复检查
+     */
+    private void ensureBucket(String bucket) {
+        if (knownBuckets.contains(bucket)) {
+            return;
+        }
+        if (!bucketExists(bucket)) {
+            createBucket(bucket);
+        } else {
+            knownBuckets.add(bucket);
         }
     }
     
@@ -339,6 +348,7 @@ public class MinIOStorageService implements StorageService {
                     .build();
             
             minioClient.removeBucket(args);
+            knownBuckets.remove(bucket);
             
             log.info("删除bucket成功: bucket={}", bucket);
             

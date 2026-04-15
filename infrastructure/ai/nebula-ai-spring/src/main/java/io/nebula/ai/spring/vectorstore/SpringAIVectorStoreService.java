@@ -166,9 +166,9 @@ public class SpringAIVectorStoreService implements VectorStoreService {
                 long attemptElapsedTime = System.currentTimeMillis() - attemptStartTime;
                 if (attempt > 1) {
                     long overallElapsedTime = System.currentTimeMillis() - overallStartTime;
-                    log.info("✅ 重试成功 (第 {} 次尝试)", attempt);
-                    log.info("- 本次尝试耗时: {} ms", attemptElapsedTime);
-                    log.info("- 总耗时（含重试）: {} ms", overallElapsedTime);
+                    log.info("重试成功 (第 {} 次尝试)", attempt);
+                    log.info("  本次尝试耗时: {} ms", attemptElapsedTime);
+                    log.info("  总耗时（含重试）: {} ms", overallElapsedTime);
                 } else {
                     log.debug("首次尝试成功，耗时: {} ms", attemptElapsedTime);
                 }
@@ -233,11 +233,12 @@ public class SpringAIVectorStoreService implements VectorStoreService {
             
             // Spring AI VectorStore 没有直接的get方法
             // 这里通过搜索ID来实现（需要将ID作为元数据存储）
+            String sanitizedId = id.replace("'", "\\'");
             org.springframework.ai.vectorstore.SearchRequest springRequest =
                 org.springframework.ai.vectorstore.SearchRequest.builder()
                     .query("dummy")
                     .topK(1)
-                    .filterExpression("id == '" + id + "'")
+                    .filterExpression("id == '" + sanitizedId + "'")
                     .build();
             
             List<org.springframework.ai.document.Document> results = vectorStore.similaritySearch(springRequest);
@@ -417,15 +418,12 @@ public class SpringAIVectorStoreService implements VectorStoreService {
 
     @Override
     public long count() {
-        // Spring AI VectorStore 没有直接的count方法
-        // 这里返回一个占位值
-        return -1; // 表示不支持
+        throw new UnsupportedOperationException("Spring AI VectorStore does not support count operation");
     }
 
     @Override
     public long count(Map<String, Object> filter) {
-        // Spring AI VectorStore 没有直接的count方法
-        return -1; // 表示不支持
+        throw new UnsupportedOperationException("Spring AI VectorStore does not support count with filter");
     }
 
     @Override
@@ -551,7 +549,10 @@ public class SpringAIVectorStoreService implements VectorStoreService {
      */
     private String buildFilterExpression(Map<String, Object> filter) {
         return filter.entrySet().stream()
-                .map(entry -> entry.getKey() + " == '" + entry.getValue() + "'")
+                .map(entry -> {
+                    String value = String.valueOf(entry.getValue()).replace("'", "\\'");
+                    return entry.getKey() + " == '" + value + "'";
+                })
                 .collect(Collectors.joining(" AND "));
     }
     

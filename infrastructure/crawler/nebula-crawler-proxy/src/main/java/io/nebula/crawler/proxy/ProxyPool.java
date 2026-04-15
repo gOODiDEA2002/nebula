@@ -35,7 +35,7 @@ public class ProxyPool implements ProxyProvider {
     private final List<ProxySource> proxySources;
     private final ProxyChecker proxyChecker;
     private final ScheduledExecutorService scheduler;
-    private final Random random = new Random();
+    private static final ThreadLocalRandom random() { return ThreadLocalRandom.current(); }
     
     /**
      * 构造函数
@@ -122,7 +122,7 @@ public class ProxyPool implements ProxyProvider {
         }
         
         // 随机选择一个代理
-        Proxy proxy = proxies.get(random.nextInt(proxies.size()));
+        Proxy proxy = proxies.get(random().nextInt(proxies.size()));
         proxy.setLastUseTime(System.currentTimeMillis());
         return proxy;
     }
