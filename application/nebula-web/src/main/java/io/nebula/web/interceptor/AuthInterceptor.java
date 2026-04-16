@@ -45,6 +45,11 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
         
+        // CORS 预检请求直接放行
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+        
         String requestURI = request.getRequestURI();
         
         // 检查是否为忽略路径
