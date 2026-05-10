@@ -25,7 +25,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @Slf4j
 @Configuration
 @ConditionalOnClass({ RedissonClient.class, LockManager.class })
-@ConditionalOnProperty(prefix = "nebula.lock", name = "enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(prefix = "nebula.lock", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(RedisLockProperties.class)
 @EnableAspectJAutoProxy
 public class RedisLockAutoConfiguration {
@@ -36,7 +36,6 @@ public class RedisLockAutoConfiguration {
      * 否则依赖 Spring Boot 自动配置的 RedissonClient
      */
     @Bean("nebulaLockRedissonClient")
-    @ConditionalOnProperty(prefix = "nebula.lock.redis", name = "host")
     @ConditionalOnMissingBean(RedissonClient.class)
     public RedissonClient nebulaLockRedissonClient(RedisLockProperties properties) {
         RedisLockProperties.RedisConfig redisConfig = properties.getRedis();

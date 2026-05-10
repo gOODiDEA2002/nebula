@@ -227,6 +227,13 @@
                 <artifactId>redisson-spring-boot-starter</artifactId>
                 <version>${redisson.version}</version>
             </dependency>
+            <!-- Redisson 核心包：仅使用 RedissonClient API，不引入 Spring Boot Starter 的自动装配，
+                 避免与 Nebula 自身的 RedisLockAutoConfiguration 冲突 -->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid</artifactId>

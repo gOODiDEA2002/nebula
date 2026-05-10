@@ -29,11 +29,13 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- Redisson (用于高级锁功能) -->
+        <!-- Redisson 核心包（用于高级锁功能）。
+             不使用 redisson-spring-boot-starter，避免引入其 RedissonAutoConfigurationV2，
+             该自动装配只读 spring.data.redis.* 或默认 localhost:6379，会与 Nebula 自身
+             的 RedisLockAutoConfiguration（基于 nebula.lock.redis.* 配置）冲突。 -->
         <dependency>
             <groupId>org.redisson</groupId>
-            <artifactId>redisson-spring-boot-starter</artifactId>
-            <version>3.24.3</version>
+            <artifactId>redisson</artifactId>
         </dependency>
 
         <!-- Spring Boot Starter -->
