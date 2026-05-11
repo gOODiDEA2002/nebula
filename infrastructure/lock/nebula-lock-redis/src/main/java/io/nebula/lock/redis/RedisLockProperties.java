@@ -61,10 +61,10 @@ public class RedisLockProperties {
     
     /**
      * Redis连接配置
-     * 如果配置了此项，将使用独立的 RedissonClient
-     * 如果未配置，将使用 Spring Boot 自动配置的 RedissonClient
+     * 未在 nebula.lock.redis.* 显式配置时, 使用 RedisConfig 内部字段的默认值
+     * (localhost:6379, 无密码), 等价于本地开发场景。
      */
-    private RedisConfig redis;
+    private RedisConfig redis = new RedisConfig();
     
     /**
      * Redlock配置(用于多Redis实例)
