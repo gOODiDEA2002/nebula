@@ -166,11 +166,28 @@ class RedisLockManagerTest {
         String lockKey = "test:execute:exception";
         
         when(rLock.isHeldByCurrentThread()).thenReturn(true);
-        doThrow(new RuntimeException("Business error")).when(rLock).lock(anyLong(), any(TimeUnit.class));
+        doThrow(new RuntimeException("Redis error")).when(rLock).lock(anyLong(), any(TimeUnit.class));
         
         assertThatThrownBy(() -> lockManager.execute(lockKey, () -> "should not execute"))
+                .isInstanceOf(LockAcquisitionException.class)
+                .hasMessageContaining("Failed to acquire lock");
+
+        verify(rLock).unlock();
+    }
+
+    @Test
+    void testExecuteEnsuresUnlockOnCallbackException() {
+        String lockKey = "test:execute:callback-exception";
+
+        when(rLock.isHeldByCurrentThread()).thenReturn(true);
+
+        assertThatThrownBy(() -> lockManager.execute(lockKey, () -> {
+            throw new RuntimeException("Business error");
+        }))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to execute with lock");
+                .hasMessageContaining("Business error");
+
+        verify(rLock).unlock();
     }
     
     @Test
@@ -214,10 +231,9 @@ class RedisLockManagerTest {
     
     @Test
     void testReleaseAllLocks() {
-        lockManager.releaseAllLocks();
-        
-        // 应该执行但不会抛出异常
-        assertThat(lockManager).isNotNull();
+        assertThatThrownBy(() -> lockManager.releaseAllLocks())
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("does not support releasing all locks globally");
     }
     
     @Test

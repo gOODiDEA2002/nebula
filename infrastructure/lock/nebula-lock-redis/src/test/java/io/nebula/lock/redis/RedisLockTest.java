@@ -43,6 +43,19 @@ class RedisLockTest {
         
         lock.lock();
         
+        verify(rLock).lock(eq(-1L), eq(TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    void testLockWithoutWatchdogUsesLeaseTime() {
+        LockConfig noWatchdogConfig = LockConfig.builder()
+                .leaseTime(Duration.ofSeconds(30))
+                .enableWatchdog(false)
+                .build();
+        RedisLock lock = new RedisLock(rLock, lockKey, noWatchdogConfig);
+
+        lock.lock();
+
         verify(rLock).lock(eq(30000L), eq(TimeUnit.MILLISECONDS));
     }
     
@@ -63,7 +76,7 @@ class RedisLockTest {
         
         lock.lockInterruptibly();
         
-        verify(rLock).lockInterruptibly(eq(30000L), eq(TimeUnit.MILLISECONDS));
+        verify(rLock).lockInterruptibly(eq(-1L), eq(TimeUnit.MILLISECONDS));
     }
     
     @Test
@@ -105,7 +118,22 @@ class RedisLockTest {
         boolean acquired = lock.tryLock(5, TimeUnit.SECONDS);
         
         assertThat(acquired).isTrue();
-        verify(rLock).tryLock(anyLong(), eq(30000L), any(TimeUnit.class));
+        verify(rLock).tryLock(anyLong(), eq(-1L), any(TimeUnit.class));
+    }
+
+    @Test
+    void testTryLockWithTimeoutWithoutWatchdogUsesLeaseTime() throws InterruptedException {
+        when(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        LockConfig noWatchdogConfig = LockConfig.builder()
+                .leaseTime(Duration.ofSeconds(30))
+                .enableWatchdog(false)
+                .build();
+
+        RedisLock lock = new RedisLock(rLock, lockKey, noWatchdogConfig);
+        boolean acquired = lock.tryLock(5, TimeUnit.SECONDS);
+
+        assertThat(acquired).isTrue();
+        verify(rLock).tryLock(eq(5L), eq(30000L), eq(TimeUnit.SECONDS));
     }
     
     @Test
