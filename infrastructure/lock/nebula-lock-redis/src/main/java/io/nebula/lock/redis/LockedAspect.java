@@ -7,7 +7,11 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.annotation.Order;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -31,6 +35,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Aspect
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RequiredArgsConstructor
 public class LockedAspect {
     
@@ -41,8 +46,10 @@ public class LockedAspect {
     /**
      * 拦截@Locked注解标记的方法
      */
-    @Around("@annotation(locked)")
-    public Object around(ProceedingJoinPoint joinPoint, Locked locked) throws Throwable {
+    @Around("@annotation(io.nebula.lock.Locked)")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        Locked locked = resolveLockedAnnotation(joinPoint);
+
         // 解析锁key
         String lockKey = parseLockKey(locked.key(), joinPoint);
         
@@ -100,6 +107,23 @@ public class LockedAspect {
                 }
             }
         }
+    }
+
+    private Locked resolveLockedAnnotation(ProceedingJoinPoint joinPoint) {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Method method = signature.getMethod();
+
+        Locked locked = AnnotationUtils.findAnnotation(method, Locked.class);
+        Object target = joinPoint.getTarget();
+        if (locked == null && target != null) {
+            Method specificMethod = AopUtils.getMostSpecificMethod(method, target.getClass());
+            locked = AnnotationUtils.findAnnotation(specificMethod, Locked.class);
+        }
+
+        if (locked == null) {
+            throw new IllegalStateException("@Locked annotation not found on method: " + method);
+        }
+        return locked;
     }
     
     /**
@@ -254,4 +278,3 @@ public class LockedAspect {
         }
     }
 }
-
