@@ -1,18 +1,22 @@
 package io.nebula.messaging.core.message;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
  * 统一消息对象
- * 
+ *
  * @param <T> 消息载荷类型
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Message<T> {
     
     /**

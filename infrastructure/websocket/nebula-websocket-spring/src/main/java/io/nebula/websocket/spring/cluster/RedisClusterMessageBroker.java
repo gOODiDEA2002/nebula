@@ -1,5 +1,6 @@
 package io.nebula.websocket.spring.cluster;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.messaging.redis.RedisMessageManager;
 import io.nebula.websocket.core.cluster.ClusterMessageBroker;
 import io.nebula.websocket.core.message.WebSocketMessage;
@@ -78,6 +79,11 @@ public class RedisClusterMessageBroker implements ClusterMessageBroker {
         log.debug("发布集群消息: channel={}", fullChannel);
     }
 
+    /** 用于把反序列化得到的 LinkedHashMap payload 重新映射为 WebSocketMessage */
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
     @Override
     @SuppressWarnings("unchecked")
     public <T> void subscribe(String channel, Consumer<WebSocketMessage<T>> handler) {
@@ -87,13 +93,25 @@ public class RedisClusterMessageBroker implements ClusterMessageBroker {
         }
         String fullChannel = buildChannel(channel);
         redisMessageManager.subscribe(fullChannel, msg -> {
-            // Redis 消息载荷就是 WebSocketMessage
+            // Why: 跨网络反序列化丢失泛型 → Message.payload 是 LinkedHashMap，
+            // 直接 instanceof WebSocketMessage 永远 false。这里显式 convertValue 还原。
             Object payload = msg.getPayload();
-            if (payload instanceof WebSocketMessage) {
-                handler.accept((WebSocketMessage<T>) payload);
-            } else {
-                log.warn("收到非 WebSocketMessage 类型的消息: {}", payload.getClass());
+            if (payload == null) {
+                return;
             }
+            WebSocketMessage<T> wsMessage;
+            if (payload instanceof WebSocketMessage) {
+                wsMessage = (WebSocketMessage<T>) payload;
+            } else {
+                try {
+                    wsMessage = MAPPER.convertValue(payload, WebSocketMessage.class);
+                } catch (Exception e) {
+                    log.warn("Pub/Sub payload 还原 WebSocketMessage 失败: {} -> {}",
+                            payload.getClass(), e.getMessage());
+                    return;
+                }
+            }
+            handler.accept(wsMessage);
         });
         subscriptions.put(channel, true);
         log.info("订阅集群频道: {}", fullChannel);
