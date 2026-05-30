@@ -180,39 +180,58 @@ public class LockedAspect {
      */
     private Object handleLockFailure(Locked locked, ProceedingJoinPoint joinPoint, String lockKey) throws Throwable {
         String failMessage = parseFailMessage(locked.failMessage(), joinPoint, lockKey);
-        
-        log.warn("获取锁失败: lockKey={}, method={}, strategy={}, message={}",
-                lockKey,
-                joinPoint.getSignature().toShortString(),
-                locked.failStrategy(),
-                failMessage);
-        
+        logLockAcquisitionFailure(locked.failStrategy(), lockKey, joinPoint, failMessage);
+
         switch (locked.failStrategy()) {
             case THROW_EXCEPTION:
                 throw new LockAcquisitionException(failMessage);
-            
+
             case RETURN_NULL:
                 return null;
-            
+
             case RETURN_FALSE:
-                // 仅适用于boolean返回值
                 MethodSignature signature = (MethodSignature) joinPoint.getSignature();
                 if (signature.getReturnType() == boolean.class || signature.getReturnType() == Boolean.class) {
                     return false;
-                } else {
-                    log.warn("RETURN_FALSE策略只适用于boolean返回值,实际返回类型: {}",
-                            signature.getReturnType().getName());
-                    return null;
                 }
-            
+                log.warn("RETURN_FALSE策略只适用于boolean返回值,实际返回类型: {}",
+                        signature.getReturnType().getName());
+                return null;
+
             case SKIP:
-                // 跳过锁,直接执行方法
-                log.warn("跳过锁,直接执行方法: lockKey={}", lockKey);
+                // 无锁执行：多实例下会导致重复执行，仅适合单实例或已确认无并发风险的场景
                 return joinPoint.proceed();
-            
+
             default:
                 throw new LockAcquisitionException("Unknown fail strategy: " + locked.failStrategy());
         }
+    }
+
+    /**
+     * 未抢到锁时的日志级别：
+     * <ul>
+     *   <li>RETURN_NULL / RETURN_FALSE：预期内的「本实例跳过」，降为 DEBUG，避免多副本定时任务刷屏</li>
+     *   <li>SKIP / THROW_EXCEPTION：可能重复执行或抛错，保持 WARN</li>
+     * </ul>
+     */
+    private void logLockAcquisitionFailure(
+            Locked.FailStrategy strategy,
+            String lockKey,
+            ProceedingJoinPoint joinPoint,
+            String failMessage) {
+        String method = joinPoint.getSignature().toShortString();
+        if (strategy == Locked.FailStrategy.RETURN_NULL || strategy == Locked.FailStrategy.RETURN_FALSE) {
+            log.debug("获取锁失败(跳过执行): lockKey={}, method={}, strategy={}, message={}",
+                    lockKey, method, strategy, failMessage);
+            return;
+        }
+        if (strategy == Locked.FailStrategy.SKIP) {
+            log.warn("获取锁失败(将无锁执行): lockKey={}, method={}, strategy={}, message={}",
+                    lockKey, method, strategy, failMessage);
+            return;
+        }
+        log.warn("获取锁失败: lockKey={}, method={}, strategy={}, message={}",
+                lockKey, method, strategy, failMessage);
     }
     
     /**

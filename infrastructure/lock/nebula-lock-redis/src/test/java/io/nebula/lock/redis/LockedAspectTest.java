@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,11 +45,47 @@ class LockedAspectTest {
         verify(lock).unlock();
     }
 
+    @Test
+    void returnNullSkipsMethodBodyWhenLockNotAcquired() throws Throwable {
+        LockManager lockManager = mock(LockManager.class);
+        Lock lock = mock(Lock.class);
+        when(lockManager.getLock(eq("scheduled:task"), any(LockConfig.class))).thenReturn(lock);
+        when(lock.tryLock()).thenReturn(false);
+
+        ScheduledTaskService target = new ScheduledTaskService();
+        AspectJProxyFactory proxyFactory = new AspectJProxyFactory(target);
+        proxyFactory.addAspect(new LockedAspect(lockManager));
+        ScheduledTaskService proxy = proxyFactory.getProxy();
+
+        proxy.runOnce();
+        assertThat(target.invocationCount()).isZero();
+        verify(lock, never()).unlock();
+    }
+
     static class LockedService {
 
         @Locked(key = "'test:service'", waitTime = 1, leaseTime = 5)
         String execute() {
             return "ok";
+        }
+    }
+
+    static class ScheduledTaskService {
+
+        private int invocations;
+
+        @Locked(
+                key = "'scheduled:task'",
+                waitTime = 0,
+                leaseTime = 15,
+                failStrategy = Locked.FailStrategy.RETURN_NULL
+        )
+        void runOnce() {
+            invocations++;
+        }
+
+        int invocationCount() {
+            return invocations;
         }
     }
 }

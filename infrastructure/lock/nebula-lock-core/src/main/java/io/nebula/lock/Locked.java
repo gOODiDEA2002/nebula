@@ -68,10 +68,12 @@ public @interface Locked {
     
     /**
      * 获取锁失败时的处理策略
-     * - THROW_EXCEPTION: 抛出异常(默认)
-     * - RETURN_NULL: 返回null
-     * - RETURN_FALSE: 返回false(仅适用于boolean返回值)
-     * - SKIP: 跳过锁,直接执行方法
+     * <ul>
+     *   <li>THROW_EXCEPTION: 抛出异常(默认)</li>
+     *   <li>RETURN_NULL: 不执行方法体并返回 null（void 定时任务=本实例跳过；多副本抢锁时其余实例预期失败，日志为 DEBUG）</li>
+     *   <li>RETURN_FALSE: 返回 false（仅适用于 boolean 返回值）</li>
+     *   <li>SKIP: 不抢锁仍执行方法体——多实例会重复执行，勿用于集群定时任务；仅单实例或已确认无并发场景</li>
+     * </ul>
      */
     FailStrategy failStrategy() default FailStrategy.THROW_EXCEPTION;
     
@@ -101,7 +103,7 @@ public @interface Locked {
         RETURN_FALSE,
         
         /**
-         * 跳过锁,直接执行方法
+         * 抢锁失败仍执行方法（不加锁）。多实例部署时会导致重复执行。
          */
         SKIP
     }
