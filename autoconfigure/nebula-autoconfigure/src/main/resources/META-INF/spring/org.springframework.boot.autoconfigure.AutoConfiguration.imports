@@ -42,10 +42,11 @@ io.nebula.lock.redis.RedisLockAutoConfiguration
 
 # ========================================
 # Messaging Layer - 消息层
-# 注意: RabbitMQ 配置在 nebula-autoconfigure 中定义
+# 注意: RabbitMQ/RocketMQ 配置在 nebula-autoconfigure 中定义
 # 注意: Redis Messaging 配置在 nebula-messaging-redis 模块中自动注册
 # ========================================
 io.nebula.autoconfigure.messaging.RabbitMQAutoConfiguration
+io.nebula.autoconfigure.messaging.RocketMQAutoConfiguration
 
 # ========================================
 # WebSocket Layer - WebSocket层

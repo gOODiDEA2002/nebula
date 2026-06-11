@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.nebula</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>nebula-messaging-rocketmq</artifactId>
+    <name>Nebula Messaging RocketMQ</name>
+    <description>Nebula framework RocketMQ messaging implementation</description>
+
+    <dependencies>
+        <!-- Messaging Core -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- RocketMQ Client (经典 remoting 协议客户端，兼容 4.x / 5.x Broker) -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+        </dependency>
+
+        <!-- RocketMQ ACL (开启 ACL 鉴权时提供 AclClientRPCHook) -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-acl</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

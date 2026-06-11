@@ -143,6 +143,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Messaging RocketMQ (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-messaging-rocketmq</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Messaging Redis (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>
