@@ -27,18 +27,22 @@ verify:
       -Dmaven.wagon.rto=60000
       -pl '!examples'
       verify
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
 
 publish:
   stage: publish
-  needs:
-    - verify
   script:
     - >
       mvn --settings "$MAVEN_DEPLOY_SETTINGS_XML"
       -B
       -U
       -fae
-      -DskipTests
       -DdeployAtEnd=true
       -Dmaven.wagon.http.pool=false
       -Dmaven.wagon.http.retryHandler.count=5
