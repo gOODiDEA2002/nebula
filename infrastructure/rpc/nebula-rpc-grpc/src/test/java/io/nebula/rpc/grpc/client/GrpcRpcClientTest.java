@@ -57,6 +57,7 @@ class GrpcRpcClientTest {
         
         // Mock channel 行为
         lenient().when(mockChannel.isShutdown()).thenReturn(false);
+        lenient().when(mockStub.withDeadlineAfter(anyLong(), any())).thenReturn(mockStub);
     }
 
     /**
@@ -186,7 +187,7 @@ class GrpcRpcClientTest {
         grpcRpcClient.setTargetAddress("http://192.168.1.100:9082");
         
         // 验证 channel 的 shutdown 被调用（因为要重新创建）
-        verify(mockChannel, times(1)).shutdown();
+        verify(mockChannel, timeout(1000).times(1)).shutdown();
     }
 
     /**
@@ -467,4 +468,3 @@ class GrpcRpcClientTest {
         verify(mockStub, times(1)).call(any(RpcRequest.class));
     }
 }
-

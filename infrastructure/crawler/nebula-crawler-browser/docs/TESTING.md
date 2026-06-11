@@ -14,3 +14,12 @@
 ## 集成测试建议
 
 使用固定的测试页面，验证 DOM 渲染与元素提取逻辑。
+
+`StealthIntegrationTest` 需要 Playwright Driver 和 Chromium，默认不在普通 `mvn test`
+中执行。准备好浏览器运行环境后，通过以下命令显式启用：
+
+```bash
+RUN_BROWSER_INTEGRATION_TESTS=true \
+  mvn test -pl infrastructure/crawler/nebula-crawler-browser \
+  -Dtest=StealthIntegrationTest
+```

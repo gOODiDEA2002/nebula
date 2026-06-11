@@ -4,6 +4,7 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.WaitUntilState;
 import io.github.kihdev.playwright.stealth4j.Stealth4j;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Stealth4j 集成测试")
+@EnabledIfEnvironmentVariable(named = "RUN_BROWSER_INTEGRATION_TESTS", matches = "(?i)true")
 class StealthIntegrationTest {
 
     private static final boolean HEADLESS = !"false".equalsIgnoreCase(System.getenv("HEADLESS"));
