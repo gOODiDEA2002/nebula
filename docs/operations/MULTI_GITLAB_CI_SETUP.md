@@ -45,6 +45,7 @@ flowchart LR
 | 变量名 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `NEBULA_CI_IMAGE` | Variable | 是 | 完整的 Maven + Java 21 构建镜像地址 |
+| `NEBULA_RUNNER_TAG` | Variable | 是 | 当前环境用于 Java 构建的 GitLab Runner Tag |
 | `MAVEN_VERIFY_SETTINGS_XML` | File | 是 | 用于所有分支构建的 Maven 只读配置 |
 | `MAVEN_DEPLOY_SETTINGS_XML` | File | 是 | 用于默认分支和 Tag 发布的 Maven 配置 |
 | `MAVEN_RELEASE_REPOSITORY_URL` | Variable | 是 | 当前环境 Maven Release 仓库部署地址 |
@@ -79,6 +80,8 @@ mvn --settings "$MAVEN_DEPLOY_SETTINGS_XML" deploy
   `echo` 或 `tee` 输出其内容。
 - Maven 仓库用户名和密码只写入对应的 File 变量，不要单独提交到仓库。
 - `NEBULA_CI_IMAGE` 必须在对应环境中存在，不能使用另一个隔离环境的镜像地址。
+- `NEBULA_RUNNER_TAG` 必须指向支持容器镜像运行方式的 Java 构建 Runner，避免任务被
+  Shell Runner 接走后忽略 `NEBULA_CI_IMAGE`。
 
 ## Maven Settings 配置
 
@@ -148,6 +151,7 @@ Merge Request 使用，因此不能包含发布权限。
 | 变量名 | 示例值 |
 | --- | --- |
 | `NEBULA_CI_IMAGE` | `registry.gitlab.xtech.fun/devops/java-build:21` |
+| `NEBULA_RUNNER_TAG` | `java-build` |
 | `MAVEN_RELEASE_REPOSITORY_URL` | `https://nexus.xtech.example/repository/maven-releases/` |
 | `MAVEN_SNAPSHOT_REPOSITORY_URL` | `https://nexus.xtech.example/repository/maven-snapshots/` |
 | `MAVEN_VERIFY_SETTINGS_XML` | XTech Maven 仓库只读配置 |
@@ -158,6 +162,7 @@ Merge Request 使用，因此不能包含发布权限。
 | 变量名 | 示例值 |
 | --- | --- |
 | `NEBULA_CI_IMAGE` | `registry.gitlab.vocoor.com/devops/java-build:21` |
+| `NEBULA_RUNNER_TAG` | `java-build` |
 | `MAVEN_RELEASE_REPOSITORY_URL` | `https://nexus.vocoor.example/repository/maven-releases/` |
 | `MAVEN_SNAPSHOT_REPOSITORY_URL` | `https://nexus.vocoor.example/repository/maven-snapshots/` |
 | `MAVEN_VERIFY_SETTINGS_XML` | Vocoor Maven 仓库只读配置 |
@@ -202,6 +207,11 @@ git ls-remote vocoor refs/heads/main
 ### Pipeline 创建后提示构建镜像为空
 
 检查当前 GitLab 项目是否已配置 `NEBULA_CI_IMAGE`，并确认 Runner 可以访问该镜像仓库。
+
+### Pipeline 使用 Shell Runner，未使用构建镜像
+
+检查当前 GitLab 项目是否已配置 `NEBULA_RUNNER_TAG`，并确认该 Tag 对应支持容器镜像的
+Java 构建 Runner。
 
 ### Maven 提示 settings.xml 不存在
 

@@ -4,6 +4,8 @@ stages:
 
 default:
   image: $NEBULA_CI_IMAGE
+  tags:
+    - $NEBULA_RUNNER_TAG
   cache:
     key: maven-$CI_PROJECT_ID
     paths:
