@@ -465,17 +465,17 @@
             </plugin>
         </plugins>
     </build>
-
     <distributionManagement>
         <repository>
-            <id>nexus</id>
-            <url>${env.NEXUS_RELEASE_URL}</url>
+            <id>nebula-release</id>
+            <url>${env.MAVEN_RELEASE_REPOSITORY_URL}</url>
         </repository>
         <snapshotRepository>
-            <id>nexus</id>
-            <url>${env.NEXUS_SNAPSHOT_URL}</url>
+            <id>nebula-snapshot</id>
+            <url>${env.MAVEN_SNAPSHOT_REPOSITORY_URL}</url>
         </snapshotRepository>
     </distributionManagement>
+
 
     <profiles>
         <profile>

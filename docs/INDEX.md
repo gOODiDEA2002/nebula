@@ -212,6 +212,7 @@
 
 ## 🛠 运维文档
 
+- [多 GitLab 隔离环境 CI/CD 设置指南](operations/MULTI_GITLAB_CI_SETUP.md)
 - 运维专题文档待补齐，建议先阅读 [使用指南](Nebula框架使用指南.md) 与 [常见问题](FAQ.md)
 
 ## 📚 开发文档
