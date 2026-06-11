@@ -20,6 +20,7 @@ verify:
     - >
       mvn --settings "$MAVEN_VERIFY_SETTINGS_XML"
       -B
+      -U
       -fae
       -Dmaven.wagon.http.pool=false
       -Dmaven.wagon.http.retryHandler.count=5
@@ -35,6 +36,7 @@ publish:
     - >
       mvn --settings "$MAVEN_DEPLOY_SETTINGS_XML"
       -B
+      -U
       -fae
       -DskipTests
       -DdeployAtEnd=true
