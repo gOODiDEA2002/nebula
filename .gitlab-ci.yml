@@ -43,7 +43,7 @@ publish:
       -B
       -U
       -fae
-      -DdeployAtEnd=true
+      -Dspring-boot.repackage.skip=true
       -Dmaven.wagon.http.pool=false
       -Dmaven.wagon.http.retryHandler.count=5
       -Dmaven.wagon.rto=60000
