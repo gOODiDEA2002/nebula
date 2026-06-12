@@ -50,6 +50,8 @@ flowchart LR
 | `MAVEN_DEPLOY_SETTINGS_XML` | File | 是 | 用于默认分支和 Tag 发布的 Maven 配置 |
 | `MAVEN_RELEASE_REPOSITORY_URL` | Variable | 是 | 当前环境 Maven Release 仓库部署地址 |
 | `MAVEN_SNAPSHOT_REPOSITORY_URL` | Variable | 是 | 当前环境 Maven Snapshot 仓库部署地址 |
+| `MAVEN_RELEASE_REPOSITORY_ID` | Variable | 否 | 与发布 settings 中 `<server><id>` 一致的 Release 仓库 ID |
+| `MAVEN_SNAPSHOT_REPOSITORY_ID` | Variable | 否 | 与发布 settings 中 `<server><id>` 一致的 Snapshot 仓库 ID |
 
 ### File 类型变量如何工作
 
