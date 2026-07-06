@@ -174,7 +174,15 @@ public class CacheProperties {
          * 键前缀
          */
         private String keyPrefix = "nebula:cache:";
-        
+
+        /**
+         * 多态反序列化白名单包前缀。
+         * 缓存以 JSON + 类型信息存储对象，为防 Jackson gadget 反序列化 RCE，
+         * 仅允许 java.util / java.time / io.nebula 及此处声明的业务包(如 com.myapp)参与多态反序列化。
+         * 缓存自定义模型对象的应用必须在此声明其包前缀，否则反序列化会被拒绝。
+         */
+        private java.util.List<String> trustedPackages = new java.util.ArrayList<>();
+
         /**
          * 序列化类型
          */

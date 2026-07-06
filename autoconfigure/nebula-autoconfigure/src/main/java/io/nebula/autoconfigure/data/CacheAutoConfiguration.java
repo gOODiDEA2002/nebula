@@ -110,7 +110,8 @@ public class CacheAutoConfiguration {
     @ConditionalOnClass(RedisTemplate.class)
     @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "redis")
     @ConditionalOnMissingBean(name = "redisTemplate")
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory,
+                                                       CacheProperties properties) {
         log.info("Configuring RedisTemplate with JSR310 support");
 
         RedisTemplate<String, Object> template = new RedisTemplate<>();
@@ -120,15 +121,8 @@ public class CacheAutoConfiguration {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
 
-        // 创建支持 Java 8 日期时间类型并启用类型信息的 ObjectMapper
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.activateDefaultTyping(
-                BasicPolymorphicTypeValidator.builder()
-                        .allowIfBaseType(Object.class)
-                        .build(),
-                ObjectMapper.DefaultTyping.NON_FINAL);
+        // 创建支持 Java 8 日期时间类型并启用类型信息的 ObjectMapper(带多态白名单)
+        ObjectMapper objectMapper = buildRedisValueObjectMapper(properties.getRedis().getTrustedPackages());
 
         // 设置value序列化器（支持 LocalDateTime 等 Java 8 时间类型，保留类型信息）
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
@@ -140,14 +134,39 @@ public class CacheAutoConfiguration {
     }
 
     /**
+     * 构建 Redis 值序列化用的 ObjectMapper：启用类型信息(保留多态)，但用白名单限定可反序列化的类型，
+     * 仅允许 java.util / java.time / io.nebula 及应用声明的业务包，防止 Jackson gadget 反序列化 RCE。
+     * 提取为包级静态方法以便直接测试白名单行为。
+     */
+    public static ObjectMapper buildRedisValueObjectMapper(java.util.List<String> trustedPackages) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        BasicPolymorphicTypeValidator.Builder ptvBuilder = BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("java.util.")
+                .allowIfSubType("java.time.")
+                .allowIfSubType("io.nebula.");
+        if (trustedPackages != null) {
+            for (String pkg : trustedPackages) {
+                if (pkg != null && !pkg.isBlank()) {
+                    ptvBuilder.allowIfSubType(pkg.trim());
+                }
+            }
+        }
+        objectMapper.activateDefaultTyping(ptvBuilder.build(), ObjectMapper.DefaultTyping.NON_FINAL);
+        return objectMapper;
+    }
+
+    /**
      * RedisTemplate配置（多级缓存）
      */
     @Bean("multiLevelRedisTemplate")
     @ConditionalOnClass(RedisTemplate.class)
     @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "multi-level")
     @ConditionalOnMissingBean(name = "redisTemplate")
-    public RedisTemplate<String, Object> multiLevelRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
-        return redisTemplate(redisConnectionFactory);
+    public RedisTemplate<String, Object> multiLevelRedisTemplate(RedisConnectionFactory redisConnectionFactory,
+                                                                 CacheProperties properties) {
+        return redisTemplate(redisConnectionFactory, properties);
     }
 
     /**

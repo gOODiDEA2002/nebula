@@ -66,6 +66,12 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - **框架侧新增持久化工作**（见 tasks 阶段 A4）：mapper 扫描可配置 / 数据源防御性共存 / 数据源配置契约 / 修 ServiceImpl 假实现与读写分离。
 - **sequencing 风险**：proud-day 吃 `2.0.1-SNAPSHOT`，框架发布后它一构建就吃到新行为，proud-day 迁移必须在其重新构建前落地。
 
+## 对外行为变更 / 迁移说明（发布时汇总到 release notes）
+
+- **T-A2-1 OPTIONS**：非预检 OPTIONS 不再免认证。若有依赖"OPTIONS 直接放行"的客户端行为需调整。
+- **T-A2-8 缓存多态白名单（破坏性）**：Redis 缓存值反序列化改为白名单（默认仅 java.util/java.time/io.nebula）。**缓存自定义模型对象(如 com.myapp.*)的应用必须配置** `nebula.data.cache.redis.trusted-packages: [com.myapp]`，否则缓存读取反序列化失败。此为关闭 Jackson gadget RCE 的必要收紧。
+- **T-A1-3 RBAC Filter**：默认关闭，需要 Nebula RBAC 的应用设 `nebula.security.jwt.filter.enabled=true`。
+
 ## 待补验证（环境受限）
 
 - **T-A0-3 RabbitMQ live 收发**：本地无 Docker/RabbitMQ，只验证了版本对齐(spring-rabbit 3.1.0→3.2.8, 与 spring-amqp 3.2.8 一致)与编译；收发端到端需在带 broker 的 CI/环境补跑。同类:凡验证需要 Redis/MQ/Nacos/ES 外部服务的 task, 本地只做编译级验证, 行为级验证转 CI。

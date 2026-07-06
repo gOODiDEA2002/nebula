@@ -105,10 +105,11 @@
   - 验证：`mvn -q -pl infrastructure/search/nebula-search-elasticsearch -am test`
   - 完成：2026-07-06。三次调用合并为单个 callback（凭据→连接池→SSL），编译通过。**遗留**：Basic 认证真正生效需 ES 服务端验证，转 CI（同 T-A0-3 模式）
 
-- [ ] **T-A2-8｜Redis 缓存多态反序列化 RCE（F-A11）**
-  - 文件：`autoconfigure/.../data/CacheAutoConfiguration.java`（`activateDefaultTyping` 改 `allowIfSubType` 白名单限定业务包）
+- [x] **T-A2-8｜Redis 缓存多态反序列化 RCE（F-A11）**
+  - 文件：`autoconfigure/.../data/CacheAutoConfiguration.java`（`activateDefaultTyping` 改 `allowIfSubType` 白名单限定业务包）、`CacheProperties.RedisCache`（新增 `trustedPackages`）
   - 验收：仅白名单类型可多态反序列化
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-cache -am test`
+  - 完成：2026-07-06。`allowIfBaseType(Object.class)` → 白名单 `allowIfSubType`（默认 java.util/java.time/io.nebula + 可配 `nebula.data.cache.redis.trusted-packages`）；抽 `buildRedisValueObjectMapper` 静态方法便于测试。`CacheRedisTypingWhitelistTest` 3 用例（信任类型往返 / 未信任被拒 / 配置放行）全绿。**破坏性变更**：缓存自定义模型的应用必须声明 trusted-packages，见 log 迁移说明
 
 ## 阶段 A3：正确性硬伤
 
