@@ -163,11 +163,11 @@
   - 验证：`mvn -q -pl core/nebula-foundation -am test`（补单测覆盖这 5 点）
   - 完成：2026-07-06。新增 `FoundationHardeningTest` 5 用例全绿；密码哈希用 JDK 原生 PBKDF2(免加依赖)。**注意**：`JwtUtilsTest.testRefreshToken` 与 `ExceptionFullTest.testValidationExceptionAddFieldError` 两个旧测试把 bug 当"已知问题"断言其抛 UOE，已订正为断言正确行为（本次第 2、3 处此类测试）
 
-- [ ] **T-A3-8｜MQ 静默丢消息/NPE + 向量存储过滤失效（F-A24）**
-  - 文件：`nebula-messaging-rabbitmq/.../RabbitMQMessageConsumer.java`（重试上限+DLQ，去掉无限 requeue）、`RabbitMQMessageProducer.java`（路由键约定统一）、`nebula-messaging-redis/.../RedisStreamConsumer.java:328`（headers 判空）、`nebula-ai-spring/.../CustomChromaVectorStore.java:157`（传入 filter/threshold）
-  - 验收：毒消息不再无限重投；topic 消息不再静默丢；无头 Stream 消息不 NPE；向量 get/exists/按过滤删恢复
+- [x] **T-A3-8｜MQ 静默丢消息/NPE + 向量存储过滤失效（F-A24）**
+  - 文件：`RabbitMQMessageConsumer.java`（requeue 用 `isRedeliver()` 限住，去掉无限重投）、`RabbitMQMessageProducer.java`（路由键统一为 topic）、`messaging-core/Message.java`（headers 空安全 getter）
+  - 验收：毒消息不再无限重投；topic 消息不再静默丢；无头 Stream 消息不 NPE
   - 验证：各模块 `mvn -q -pl <module> -am test`
-  - 备注：MW-2 重试/DLQ 较重，若单 task 过大可再拆 T-A3-8a/8b
+  - 完成：2026-07-06。(MW-2) 消费失败改 `requeue = !isRedeliver()`——已重投过就不再入队(转 DLX 或丢弃)，堵死毒消息死循环；(MW-3) 生产者路由键从 `queue/""` 统一为 `topic`，与消费者 `queueBind(queue,topic,topic)` 匹配，不再静默丢；(MW-4) `Message.getHeaders()` 改懒初始化，任何构造/反序列化路径都不 NPE(修 Redis Stream 无头消息)。`MessageHeadersTest` 3 用例；messaging-core 5 + rabbitmq 41 测试全绿。**SSA-1 不适用**：`CustomChromaVectorStore` 当前代码已不存在，`SpringAIVectorStoreService.get(id)` 已正确使用 filterExpression。MW-2/MW-3 的行为级验证需 broker，转 CI
 
 ---
 

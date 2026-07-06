@@ -85,8 +85,9 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
             // 构建消息属性
             AMQP.BasicProperties properties = buildMessageProperties(messageId, headers);
             
-            // 发送消息
-            String routingKey = queue != null ? queue : "";
+            // 发送消息。topic 交换机下消费者以 queueBind(queue, topic, topic) 绑定(路由键=topic)，
+            // 故发送方路由键统一用 topic；此前用 queue/"" 与消费端绑定不匹配，消息会被静默丢弃。
+            String routingKey = topic;
             channel.basicPublish(topic, routingKey, properties, messageBody);
             
             long elapsedTime = System.currentTimeMillis() - startTime;
@@ -253,7 +254,8 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
     }
 
     private void bindQueueToExchange(Channel channel, String queueName, String exchangeName) throws IOException {
-        channel.queueBind(queueName, exchangeName, queueName);
+        // 路由键统一用交换机名(=topic)，与消费端 queueBind(queue, topic, topic) 及发送路由键保持一致
+        channel.queueBind(queueName, exchangeName, exchangeName);
     }
 
     private AMQP.BasicProperties buildMessageProperties(String messageId, Map<String, String> headers) {

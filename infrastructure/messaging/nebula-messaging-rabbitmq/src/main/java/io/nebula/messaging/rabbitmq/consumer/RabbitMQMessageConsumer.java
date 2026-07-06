@@ -115,8 +115,13 @@ public class RabbitMQMessageConsumer implements MessageConsumer<Object> {
                     log.error("消息处理失败: topic={}, queue={}", topic, queue, e);
                     
                     try {
-                        // 拒绝消息并重新入队
-                        channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, true);
+                        // 已重投过的消息不再无限 requeue，改为不重入队(有 DLX 则转死信，否则丢弃)，
+                        // 避免毒消息 requeue -> 再失败 -> requeue 的死循环耗尽消费者。
+                        boolean requeue = !delivery.getEnvelope().isRedeliver();
+                        channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
+                        if (!requeue) {
+                            log.warn("消息重投后仍失败，不再重入队(转 DLX 或丢弃): topic={}, queue={}", topic, queue);
+                        }
                     } catch (IOException ioException) {
                         log.error("消息拒绝失败", ioException);
                     }

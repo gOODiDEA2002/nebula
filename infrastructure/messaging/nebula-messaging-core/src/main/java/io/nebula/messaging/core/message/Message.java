@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -47,7 +48,19 @@ public class Message<T> {
     /**
      * 消息头部信息
      */
-    private Map<String, String> headers;
+    @Builder.Default
+    private Map<String, String> headers = new HashMap<>();
+
+    /**
+     * 空安全的头部访问：任何构造路径(Builder / 反序列化 / 无参构造)下都返回可变 Map，
+     * 避免消费端 {@code getHeaders().put/get} 在 headers 为 null 时抛 NPE(尤其无头 Redis Stream 消息)。
+     */
+    public Map<String, String> getHeaders() {
+        if (headers == null) {
+            headers = new HashMap<>();
+        }
+        return headers;
+    }
     
     /**
      * 创建时间
