@@ -14,6 +14,28 @@
 
 - **2026-07-06｜Spring Boot 3.5 的 `.imports` 只服务 AutoConfiguration**：反编译 spring-boot-3.5.8.jar 确认，`EnvironmentPostProcessor` 与 `AutoConfigurationImportFilter` 均只经 `SpringFactoriesLoader`（spring.factories）加载；`ImportCandidates.load`（读 `META-INF/spring/%s.imports`）全框架仅被 `AutoConfigurationImportSelector` 以 `AutoConfiguration.class` 调用。自建框架用 `.imports` 注册这两类处理器会静默失效。→ 值得沉淀到团队知识库。
 
+## T-A0-1 执行记录（2026-07-06）
+
+Spring Boot 3.5.8 → 3.5.16，`mvn clean compile` **BUILD SUCCESS**（69 模块全过）。弃用告警清单（去重）：
+
+**A. 框架自有 @Deprecated API 的内部自用（属兼容期代码，由后续 task 消除，非升级阻塞）**
+- `MessageHandler`（23 处）@ MessageHandlerProcessor.java → 由 T-A1-2（F-A2）消除
+- `RpcClient` 注解（20 处）@ RpcClientFactoryBean/ScannerRegistrar/ServiceDiscoveryRpcClient/GrpcRpcServer/RpcServiceRegistrationProcessor → 过渡期兼容，属设计选择
+- `JwtUtils`（21 处）@ WebAuthAutoConfiguration.java + DefaultAuthService.java → web 认证链仍用废弃类，随安全修复收敛
+
+**B. 第三方弃用 API（与 SB4 升级相关，工作流 B 处理）**
+- `JsonNode.fields()`（JsonUtils.java:459）→ Jackson 3 改 `properties()`（升级设计 §6.2 已列）
+- `BaseMapper.selectBatchIds()`（示例 2 处）→ MyBatis-Plus 新 API
+- `RedissonClient.getRedLock()`（RedisLockManager.java）→ Redisson 新 API
+- `DefaultMQProducer.createTopic()`（RocketMQMessageManager.java）→ RocketMQ 4.x 弃用（迁 5.x 时处理）
+- `okhttp3.RequestBody.create(MediaType,String)`（XxlJobHttpClient.java）→ OkHttp 新签名
+
+**C. JDK 弃用（治理阶段/工作流 C 顺手清理）**
+- `new URL(String)`（TencentCaptchaHandler.java、DefaultCookieManager.java）→ `URI.create(...).toURL()`
+- `Thread.getId()`（TaskEngine.java、RabbitMQMessageProducer.java）→ `Thread.threadId()`
+
+结论：A 类是我们自己的过渡代码，不构成升级阻塞；升级前需重点处理的是 B 类。**preview 相关告警为 0**，佐证代码未使用任何预览语法，为 T-A0-2 移除 `--enable-preview` 扫清前提。
+
 ## 踩坑记录
 
 - **2026-07-06｜验证 task 的模块作用域是陷阱（来自 Codex 对抗性审查）**：T-A1-3 原把 RBAC 验证写成 `-pl core/nebula-security -am test`，但 Filter 的真实注册点 `SecurityAutoConfiguration` 在 `autoconfigure/nebula-autoconfigure`（imports:36），core 模块单测过了、Bean 却可能没被 starter 装配，链路照样断。已修正为 starter 级 Web 集成测试，并在阶段 A1 加了共用的"验证纪律"。教训：机制性失效的验证必须走 autoconfigure/starter 路径，不能停在拥有实现类的模块。

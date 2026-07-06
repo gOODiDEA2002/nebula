@@ -11,10 +11,11 @@
 
 ## 阶段 A0：升级到 3.5.16 + 前置清理（低风险、先做，解耦后续）
 
-- [ ] **T-A0-1｜升 3.5.16 并消除 deprecation 告警**
+- [x] **T-A0-1｜升 3.5.16 并消除 deprecation 告警**
   - 文件：根 `pom.xml`（`spring-boot.version` 3.5.8→3.5.16）
   - 验收：全量编译通过；收集并记录 deprecation 告警清单到 log
   - 验证：`mvn -q clean compile`
+  - 完成：2026-07-06，BUILD SUCCESS（69 模块），告警清单见 log.md「T-A0-1 执行记录」（A 类框架自有过渡代码 / B 类第三方待升级 / C 类 JDK 顺手清理；preview 告警为 0）
 
 - [ ] **T-A0-2｜移除全局 --enable-preview（F-A12）**
   - 文件：根 `pom.xml`（compiler 插件配置，改 `<release>21`，去掉 `--enable-preview` 及 surefire/failsafe 的 argLine）
