@@ -48,6 +48,15 @@ Spring Boot 3.5.8 → 3.5.16，`mvn clean compile` **BUILD SUCCESS**（69 模块
 
 审查报告头号事故（Starter 开箱即用机制从未生效）已修复：`NebulaStarterDefaultsPostProcessor` 迁到 spring.factories 注册。关键在于**用反向对照证明测试真的有效**——移除 EPP 注册后，`NebulaStarterDefaultsIntegrationTest` 的 sentinel 断言立即失败（Failures 1）；恢复后通过。这正面回应了本次审查反复强调的"没有一个测试去启动最小应用验证机制真生效"。此测试模式（@SpringBootTest 最小上下文 + 反向对照）作为后续 A1 机制性 task 的模板。
 
+## 里程碑：A1 三个机制性事故全部修复（2026-07-06，T-A1-1/2/3）
+
+审查报告第 1 节列的三大"整条链路静默失效"全部修复并带证明性测试：
+1. Starter 开箱即用（EPP 注册）— T-A1-1
+2. `@MessageListener` 静默不消费（扫描）— T-A1-2
+3. RBAC 链路断裂（SecurityContext 填充 + 类级注解）— T-A1-3
+
+T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认关闭 opt-in**——这是权衡存量项目（如 proud-day 用自有认证）后的选择：默认注册会给每个消费者塞一个额外 Filter（类似持久化默认开的隐患）。需要 Nebula RBAC 的项目显式开 `nebula.security.jwt.filter.enabled=true`。切面用 `@within` + 反射解析支持类级注解。三个机制修复统一采用"@SpringBootTest/AspectJ 装配级测试 + 反向对照证明测试有效"的模式。
+
 ## 决策：老项目 proud-day 与持久化默认值（2026-07-06）
 
 - **背景**：审查发现 T-A1-1（Starter 默认值机制修好）会让 `nebula.data.persistence.enabled=true` 真正注入，打开 Nebula 持久化自动配置，与 proud-day（生产项目，用标准 Spring Boot MyBatis-Plus、自建 `spring.datasource` + `@MapperScan("com.proudday.**.mapper")`、33 个 mapper 全继承 MyBatis-Plus 原生 BaseMapper）冲突。

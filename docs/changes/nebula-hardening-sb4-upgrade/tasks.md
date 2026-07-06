@@ -64,6 +64,7 @@
   - 验收：**新增 starter 级 Web 集成测试**——发一个真实 HTTP 请求，断言：Filter Bean 存在且顺序正确、处理期间 SecurityContext 被填充、请求完成后被清理、类级 `@RequirePermission` 生效、未认证 401 / 无权限 403。core 的 SecurityAspect 单测仅覆盖切点解析，不作为链路生效证据
   - 验证：`mvn -q -pl autoconfigure/nebula-autoconfigure -am test`（含上述集成测试）；辅以 `mvn -q -pl core/nebula-security -am test`
   - 备注：本条修正自 Codex 对抗性审查——原验证仅 `-pl core/nebula-security` 会漏掉真实装配点（SecurityAutoConfiguration 在 autoconfigure 模块）
+  - 完成：2026-07-06。新增 `JwtAuthenticationFilter`（populate-only、finally 清理、roles/permissions 沿用既有 claim 约定、**默认关闭 opt-in** 以不影响存量应用如 proud-day）；`SecurityAspect` 切点加 `@within` + advice 反射解析（方法优先再类），修复类级注解静默失效；`SecurityAutoConfiguration`（autoconfigure）按 `nebula.security.jwt.filter.enabled` 注册。测试：Filter 单测 3、类级切面 3（反向对照去 @within → Failures 2 证明有效）、autoconfigure 装配 2（默认不注册/开启后注册，覆盖 Codex 指出的生产路径）。nebula-security 30 测试 / autoconfigure 4 测试全绿
 
 ## 阶段 A2：安全绕过 / 数据泄漏
 

@@ -2,6 +2,7 @@ package io.nebula.autoconfigure.security;
 
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
+import io.nebula.security.authentication.JwtAuthenticationFilter;
 import io.nebula.security.authorization.SecurityAspect;
 import io.nebula.security.config.SecurityProperties;
 import io.nebula.security.jwt.DefaultJwtService;
@@ -56,6 +57,22 @@ public class SecurityAutoConfiguration {
     public JwtService jwtService(SecurityProperties properties) {
         log.info("初始化JWT服务");
         return new DefaultJwtService(properties);
+    }
+
+    /**
+     * JWT 认证过滤器（默认关闭，opt-in）。
+     * <p>
+     * 解析请求头 JWT 并填充 {@link io.nebula.security.authentication.SecurityContext}，
+     * 使 {@code @RequiresAuthentication/@RequiresRole/@RequiresPermission} 链路真正生效。
+     * 默认不注册，避免影响使用自有认证的存量应用；需要 Nebula RBAC 的应用设
+     * {@code nebula.security.jwt.filter.enabled=true} 开启。
+     */
+    @Bean
+    @ConditionalOnMissingBean(JwtAuthenticationFilter.class)
+    @ConditionalOnProperty(prefix = "nebula.security.jwt.filter", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, SecurityProperties properties) {
+        log.info("初始化 JWT 认证过滤器 (nebula.security.jwt.filter.enabled=true)");
+        return new JwtAuthenticationFilter(jwtService, properties.getJwt());
     }
 
     /**
