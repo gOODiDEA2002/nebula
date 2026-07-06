@@ -190,8 +190,9 @@
 - [ ] **T-A4-3｜数据源配置契约文档化**
   - 文件：文档/示例——`nebula.data.persistence.datasource.*` 结构与迁移指引（供 proud-day 照填）
 
-- [ ] **T-A4-4｜ServiceImpl 假实现修复（F-A17/CD-2）**（并入原 T-A3-2，改在此统一做）
+- [x] **T-A4-4｜ServiceImpl 假实现修复（F-A17/CD-2）**（并入原 T-A3-2，改在此统一做）
   - 文件：`nebula-data-persistence/.../service/impl/ServiceImpl.java`
+  - 完成：2026-07-06。`findByField`(原返回全表)、`findOneByField`(原把字段值当主键 selectById)、`findByFields`(原全表)、`findTopN`(原不限数量)、`findRandomN`(原全表)全部用 `QueryWrapper` 真实现(findOneByField 走条件查询取一条；findTopN 用分页限数；findRandomN 用 ORDER BY RAND() LIMIT)。零调用方但属 IService 公共 API，故真实现而非删除。`ServiceImplQueryTest` 2 用例(findByField 建条件查询/findOneByField 不当主键)。注：`saveBatchIgnore`/`removeByIdPhysical`/`removePhysical` 语义误导(非错数据)留治理阶段
 
 - [ ] **T-A4-5｜读写分离动态路由修复（CD-3）**（framework 质量，proud-day 暂不用）
   - 文件：`autoconfigure/.../data/*ReadWrite*`、`ReadWriteDataSourceManager.java`

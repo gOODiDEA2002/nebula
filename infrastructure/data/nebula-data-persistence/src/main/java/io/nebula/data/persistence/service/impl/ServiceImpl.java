@@ -41,20 +41,24 @@ public class ServiceImpl<M extends BaseMapper<T>, T>
     
     @Override
     public List<T> findByField(String field, Object value) {
-        // 简化实现，使用标准查询
-        return list();  // 临时实现，实际应该根据字段查询
+        return list(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<T>().eq(field, value));
     }
-    
+
     @Override
     public Optional<T> findOneByField(String field, Object value) {
-        // 简化实现
-        return findById((Serializable) value);  // 临时实现
+        // 按字段等值查询取一条(false=命中多条不抛异常)，而非把字段值当主键
+        return Optional.ofNullable(
+                getOne(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<T>().eq(field, value), false));
     }
-    
+
     @Override
     public List<T> findByFields(java.util.Map<String, Object> fieldValues) {
-        // 简化实现
-        return list();  // 临时实现
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<T> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        if (fieldValues != null) {
+            fieldValues.forEach(wrapper::eq);
+        }
+        return list(wrapper);
     }
     
     @Override
@@ -70,14 +74,18 @@ public class ServiceImpl<M extends BaseMapper<T>, T>
     
     @Override
     public List<T> findTopN(Wrapper<T> queryWrapper, int limit) {
-        // 简化实现
-        return list(queryWrapper);  // 临时实现，不限制数量
+        // 用分页限制返回条数(取第一页 limit 条)
+        Page<T> page = new Page<>(1, Math.max(limit, 0));
+        return findPage(page, queryWrapper).getRecords();
     }
-    
+
     @Override
     public List<T> findRandomN(int limit) {
-        // 简化实现
-        return list();  // 临时实现，返回所有记录
+        // MySQL: ORDER BY RAND() 随机取 N 条; limit 为 int, 无注入风险
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<T> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        wrapper.last("ORDER BY RAND() LIMIT " + Math.max(limit, 0));
+        return list(wrapper);
     }
     
     @Override
