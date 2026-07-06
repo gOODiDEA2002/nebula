@@ -126,9 +126,7 @@
         <redisson.version>3.39.0</redisson.version>
 
         
-        <!-- 消息队列 -->
-        <rabbitmq.version>5.20.0</rabbitmq.version>
-        <spring-rabbit.version>3.1.0</spring-rabbit.version>
+        <!-- 消息队列 (spring-rabbit/amqp-client 交由 Spring Boot BOM 托管, 避免与 spring-amqp 版本错配) -->
         <rocketmq.version>4.9.8</rocketmq.version>
         
         <!-- 搜索引擎 -->
@@ -242,17 +240,7 @@
                 <version>${druid.version}</version>
             </dependency>
             
-            <!-- 消息队列 -->
-            <dependency>
-                <groupId>com.rabbitmq</groupId>
-                <artifactId>amqp-client</artifactId>
-                <version>${rabbitmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.amqp</groupId>
-                <artifactId>spring-rabbit</artifactId>
-                <version>${spring-rabbit.version}</version>
-            </dependency>
+            <!-- 消息队列 (RabbitMQ: amqp-client/spring-rabbit 由 Spring Boot BOM 托管) -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client</artifactId>

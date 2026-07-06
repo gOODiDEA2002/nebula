@@ -44,6 +44,10 @@ Spring Boot 3.5.8 → 3.5.16，`mvn clean compile` **BUILD SUCCESS**（69 模块
 
 - **2026-07-06｜Codex "版本不可解析" [critical] 质疑不成立**：Codex 称 Maven Central 无 3.5.16 / 4.1.0 GA / spring-cloud 2025.1.2（其执行日志无任何网络请求，系凭训练数据）。对照权威 `maven-metadata.xml` 核实：`spring-boot-starter-parent` release=4.1.0（3.5.16、4.0.7 均在列），`spring-cloud-dependencies` release=2025.1.2。目标版本均可直接消费。已在升级设计报告 §1 补版本复核声明。
 
+## 待补验证（环境受限）
+
+- **T-A0-3 RabbitMQ live 收发**：本地无 Docker/RabbitMQ，只验证了版本对齐(spring-rabbit 3.1.0→3.2.8, 与 spring-amqp 3.2.8 一致)与编译；收发端到端需在带 broker 的 CI/环境补跑。同类:凡验证需要 Redis/MQ/Nacos/ES 外部服务的 task, 本地只做编译级验证, 行为级验证转 CI。
+
 ## Spec-Code 偏差
 
 _（开发中追加：实现与 Spec 不一致时，先更新 Spec 再改代码，并在此记录）_

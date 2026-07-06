@@ -24,10 +24,11 @@
   - 前置确认：先 grep 是否真的用到预览语法（`grep -rn "preview" --include=*.java`）；用到则先替换语法
   - 完成：2026-07-06。compiler 改 `<release>21` 并删除两处 preview 参数；`mvn clean test-compile` BUILD SUCCESS（主+测试代码均编译通过，证实无预览语法）；`javap` 确认产物 minor version=0 / major=65（标准 Java 21）
 
-- [ ] **T-A0-3｜spring-rabbit/amqp-client 交还 BOM（F-A13）**
+- [x] **T-A0-3｜spring-rabbit/amqp-client 交还 BOM（F-A13）**
   - 文件：根 `pom.xml`（删 `spring-rabbit.version`/`amqp-client` 版本锁定）、`nebula-messaging-rabbitmq/pom.xml`
   - 验收：版本由 Boot BOM 托管；RabbitMQ 收发端到端验证正常（用 testcontainers 或本地 MQ）
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`
+  - 完成：2026-07-06。删除根 pom 的 `rabbitmq.version`/`spring-rabbit.version` 属性及对应 dependencyManagement；现解析为 spring-rabbit **3.2.8** + spring-amqp **3.2.8**（版本对齐，消除 3.1.0/3.2.8 错配）、amqp-client 5.25.0，编译通过。**遗留**：live 收发端到端测试需真实 broker，本地无 Docker/RabbitMQ 未跑，转 CI/带 broker 环境验证（见风险登记）
 
 - [ ] **T-A0-4｜删除框架 JAR 内 application.yml（F-A14）**
   - 文件：`autoconfigure/.../resources/application.yml`（删除）；Gateway gRPC 禁用与 Spring AI 排除改为 Filter/代码
