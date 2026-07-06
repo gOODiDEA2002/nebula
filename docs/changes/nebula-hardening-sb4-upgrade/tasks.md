@@ -79,10 +79,11 @@
   - 验收：带 Authorization/Cookie 的请求默认不缓存；缓存改为注解白名单显式声明
   - 验证：`mvn -q -pl application/nebula-web -am test`
 
-- [ ] **T-A2-3｜@SensitiveData 挂主 ObjectMapper（F-A6）**
-  - 文件：`nebula-web/.../config/JacksonConfig.java`、`autoconfigure/WebAuthAutoConfiguration.java`（用 `Jackson2ObjectMapperBuilderCustomizer` 挂 introspector）
+- [x] **T-A2-3｜@SensitiveData 挂主 ObjectMapper（F-A6）**
+  - 文件：`autoconfigure/WebAuthAutoConfiguration.java`（用 `Jackson2ObjectMapperBuilderCustomizer` + `AnnotationIntrospectorPair` 把 introspector 挂到主 ObjectMapper）
   - 验收：控制器正常返回时敏感字段被脱敏
   - 验证：`mvn -q -pl application/nebula-web -am test`
+  - 完成：2026-07-06。删除无用的独立 `dataMaskingObjectMapper`，改为 customizer 用 `AnnotationIntrospectorPair.pair(脱敏, 默认)` 挂到主 mapper（脱敏优先、其余回退默认，不丢默认注解处理）。`SensitiveDataMaskingCustomizerTest` 验证手机号脱敏生效且非敏感字段保留
 
 - [ ] **T-A2-4｜/rpc 与 gRPC 端点鉴权 + 禁 Class.forName（F-A7）**
   - 文件：`nebula-rpc-http/.../server/HttpRpcController.java`、`nebula-rpc-grpc/.../server/GrpcRpcServer.java`（共享密钥/token 校验；参数类型白名单匹配，限定目标接口声明类型）
