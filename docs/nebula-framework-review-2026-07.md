@@ -79,7 +79,7 @@ Nebula 是一个"接口设计能力强、工程收尾能力弱"的自研框架�
 | MW-2 | `nebula-messaging-rabbitmq/.../RabbitMQMessageConsumer.java:119,187` | 消费失败一律 `basicNack(requeue=true)`，无重试上限无 DLQ——毒消息无限重投死循环。 |
 | MW-3 | `RabbitMQMessageProducer.java:89` vs `Consumer.java:79` | 生产端 `send(topic,payload)` 发 routingKey=""，消费端队列按 topic 绑定，topic 交换机上 "" 不匹配任何绑定且未设 mandatory → 消息静默丢弃。 |
 | MW-4 | `nebula-messaging-redis/.../RedisStreamConsumer.java:328` | `Message.headers` 为 null 时 NPE：不带 headers 的 Stream 消息消费端必抛，永不 ack。 |
-| SSA-1 | `nebula-ai-spring/.../CustomChromaVectorStore.java:157-186` | `similaritySearch` 忽略 `filterExpression` 与 `similarityThreshold`，导致向量存储的 get(id)/exists/deleteByFilter/带过滤搜索全部失效。 |
+| SSA-1 | `autoconfigure/nebula-autoconfigure/.../ai/CustomChromaVectorStore.java:157-186` | `similaritySearch` 忽略 `filterExpression` 与 `similarityThreshold`（仅传 query+topK），`delete(Filter.Expression)` 直接抛 `UnsupportedOperationException`，带过滤搜索/按过滤删全部失效。注意：此类在 `autoconfigure` 模块（非 `nebula-ai-spring`）；`nebula-ai-spring` 的 `SpringAIVectorStoreService` 反而正确处理了 filter/threshold。 |
 | CF-1 | `nebula-foundation/.../util/IdGenerator.java:32` | `DEFAULT_SNOWFLAKE = new SnowflakeIdGenerator(1,1)` 写死 workerId/datacenterId，集群多实例同毫秒必然生成重复 ID。 |
 | CF-2 | `nebula-foundation/.../util/JwtUtils.java:276` | `refreshToken()` 对 jjwt 0.12 的不可变 Claims 调 `remove()`，运行时 100% 抛 UOE，方法完全不可用。 |
 | CF-3 | `nebula-foundation/.../exception/ValidationException.java:38` | 构造器用 `List.of()` 不可变列表，随后 `addFieldError().add()` 必抛 UOE。 |

@@ -135,11 +135,9 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
                 throw new IllegalStateException("服务未找到: " + request.getServiceName());
             }
 
-            // 解析参数类型
-            Class<?>[] parameterTypes = parseParameterTypes(request.getParameterTypesList());
-
-            // 查找方法
-            Method method = findMethod(serviceInstance.getClass(), request.getMethodName(), parameterTypes);
+            // 查找方法（参数类型仅以类型名字符串参与匹配，不做 Class.forName，杜绝任意类加载）
+            Method method = findMethod(serviceInstance.getClass(), request.getMethodName(),
+                    request.getParameterTypesList());
             if (method == null) {
                 throw new NoSuchMethodException(
                         String.format("方法未找到: %s.%s", request.getServiceName(), request.getMethodName()));
@@ -188,96 +186,67 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
     }
     
     /**
-     * 解析参数类型
+     * 查找方法。
+     * <p>
+     * 参数类型仅以"全限定类名字符串"参与匹配（比对目标类已声明方法的参数类型名），
+     * 不对请求携带的类名做 {@code Class.forName}，杜绝任意类加载（与 HTTP 侧 HttpRpcController 策略一致）。
+     * <p>
+     * 1. 名称 + 参数数量 + 声明参数类型名精确匹配；
+     * 2. 名称 + 参数数量匹配（客户端发送运行时具体类型如 ArrayList 而声明为 List、null 参数占位 java.lang.Object 等场景兜底）。
      */
-    private Class<?>[] parseParameterTypes(java.util.List<String> typeNames) throws ClassNotFoundException {
-        Class<?>[] types = new Class<?>[typeNames.size()];
-        for (int i = 0; i < typeNames.size(); i++) {
-            types[i] = Class.forName(typeNames.get(i));
-        }
-        return types;
-    }
+    Method findMethod(Class<?> clazz, String methodName, java.util.List<String> parameterTypeNames) {
+        int paramCount = parameterTypeNames != null ? parameterTypeNames.size() : -1;
 
-    /**
-     * 查找方法
-     */
-    private Method findMethod(Class<?> clazz, String methodName, Class<?>[] parameterTypes) {
-        // 尝试精确匹配
-        try {
-            return clazz.getMethod(methodName, parameterTypes);
-        } catch (NoSuchMethodException e) {
-            // 尝试在接口中精确匹配
-            for (Class<?> interfaceClass : clazz.getInterfaces()) {
-                try {
-                    return interfaceClass.getMethod(methodName, parameterTypes);
-                } catch (NoSuchMethodException ignored) {
+        // 策略1: 方法名 + 参数数量 + 声明参数类型名逐一精确匹配（仅按名字比对，不加载类）
+        if (parameterTypeNames != null) {
+            for (Method m : clazz.getMethods()) {
+                if (!m.getName().equals(methodName)) {
+                    continue;
                 }
-            }
-        }
-        
-        // 尝试模糊匹配（处理 null 参数类型为 Object.class 的情况）
-        for (Method method : clazz.getMethods()) {
-            if (method.getName().equals(methodName) && 
-                method.getParameterCount() == parameterTypes.length) {
-                
-                Class<?>[] methodParams = method.getParameterTypes();
-                boolean compatible = true;
-                for (int i = 0; i < parameterTypes.length; i++) {
-                    if (!isCompatible(parameterTypes[i], methodParams[i])) {
-                        compatible = false;
+                Class<?>[] declaredTypes = m.getParameterTypes();
+                if (declaredTypes.length != paramCount) {
+                    continue;
+                }
+                boolean allMatch = true;
+                for (int i = 0; i < declaredTypes.length; i++) {
+                    if (!declaredTypes[i].getName().equals(parameterTypeNames.get(i))) {
+                        allMatch = false;
                         break;
                     }
                 }
-                
-                if (compatible) {
-                    return method;
+                if (allMatch) {
+                    log.debug("类型名精确匹配: method={}", methodName);
+                    return m;
                 }
             }
         }
-        
+
+        // 策略2: 名称 + 参数数量匹配（类型名对不上或缺失时兜底）
+        Method candidate = null;
+        int count = 0;
+        for (Method m : clazz.getMethods()) {
+            if (!m.getName().equals(methodName)) {
+                continue;
+            }
+            if (paramCount >= 0 && m.getParameterCount() != paramCount) {
+                continue;
+            }
+            candidate = m;
+            count++;
+        }
+
+        if (count == 1) {
+            log.debug("名称匹配成功: method={}", methodName);
+            return candidate;
+        } else if (count > 1) {
+            log.warn("名称匹配到多个同名方法，返回最后一个: method={}, count={}", methodName, count);
+            return candidate;
+        }
+
+        log.warn("方法未找到: class={}, method={}", clazz.getSimpleName(), methodName);
         return null;
     }
-    
-    /**
-     * 检查类型是否兼容
-     */
-    private boolean isCompatible(Class<?> argType, Class<?> paramType) {
-        if (paramType.isAssignableFrom(argType)) {
-            return true;
-        }
-        
-        // 当参数为 null 时，argType 为 Object.class，此时与任何非基本类型参数兼容
-        if (argType == Object.class && !paramType.isPrimitive()) {
-            return true;
-        }
-        
-        // 处理基本类型和包装类型
-        if (paramType.isPrimitive()) {
-            if (paramType == int.class && argType == Integer.class) return true;
-            if (paramType == long.class && argType == Long.class) return true;
-            if (paramType == double.class && argType == Double.class) return true;
-            if (paramType == float.class && argType == Float.class) return true;
-            if (paramType == boolean.class && argType == Boolean.class) return true;
-            if (paramType == byte.class && argType == Byte.class) return true;
-            if (paramType == short.class && argType == Short.class) return true;
-            if (paramType == char.class && argType == Character.class) return true;
-        }
-        
-        return false;
-    }
 
-    /**
-     * 解析参数值
-     */
-    private Object[] parseParameters(java.util.List<String> parameterJsonList, Class<?>[] parameterTypes) 
-            throws Exception {
-        Object[] parameters = new Object[parameterJsonList.size()];
-        for (int i = 0; i < parameterJsonList.size(); i++) {
-            String parameterJson = parameterJsonList.get(i);
-            parameters[i] = objectMapper.readValue(parameterJson, parameterTypes[i]);
-        }
-        return parameters;
-    }
     
     /**
      * 使用泛型类型解析参数值
