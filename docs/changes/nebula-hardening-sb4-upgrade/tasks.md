@@ -53,10 +53,11 @@
   - 依赖：无（优先做，后续安全/正确性修复的验证都依赖 starter 能真正生效）
   - 完成：2026-07-06。`NebulaStarterDefaultsPostProcessor` 追加注册到 spring.factories 的 EnvironmentPostProcessor 键；删除两个不生效的 `.imports`（EnvironmentPostProcessor + AutoConfigurationImportFilter）及 `NebulaAutoConfigurationImportFilter` 类（Q1，无别处引用）。新增 `NebulaStarterDefaultsIntegrationTest`（@SpringBootTest 最小上下文 + test 资源 nebula-defaults.properties）：Tests run 2 / Failures 0，且**反向对照**（移除 EPP 注册后测试 Failures 1）证明测试有效。同时验证用户 application.properties 可覆盖默认值
 
-- [ ] **T-A1-2｜@MessageListener 扫描（F-A2）**
+- [x] **T-A1-2｜@MessageListener 扫描（F-A2）**
   - 文件：`nebula-messaging-core/.../MessageHandlerProcessor.java`（同时扫 `@MessageListener` 与 `@MessageHandler`，新优先）
   - 验收：**新增集成测试**——用 `@MessageListener` 写的消费者能被注册并收到消息
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`
+  - 完成：2026-07-06。`resolveAttributes` 优先解析 `@MessageListener`、回退 `@MessageHandler`，归一化为 `HandlerAttributes` record 共用注册逻辑（两注解属性一致，@MessageHandler 行为不变）。新增 `MessageHandlerProcessorTest`（mock MessageManager/Consumer，验证 subscribe 被调用，无需 broker）：Tests run 2 / Failures 0，反向对照（忽略 @MessageListener 分支→Failures 1）证明有效
 
 - [ ] **T-A1-3｜RBAC 链路：SecurityContext 填充 + 类级注解生效（F-A3）**
   - 文件：新建 `core/nebula-security/.../authentication/JwtAuthenticationFilter.java`（解析 header→校验→写入/finally 清理 SecurityContext）；在 **`autoconfigure/nebula-autoconfigure/.../security/SecurityAutoConfiguration.java`**（Filter 的真实注册点，已在 `AutoConfiguration.imports:36` 注册）注册该 Filter Bean 并定序；`core/nebula-security/.../authorization/SecurityAspect.java` 切点补 `@within(...)`

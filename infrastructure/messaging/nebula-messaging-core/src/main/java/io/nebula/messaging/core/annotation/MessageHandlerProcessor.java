@@ -17,45 +17,74 @@ import java.time.Duration;
 
 /**
  * 消息处理器注解处理器
- * 扫描并注册带有 @MessageHandler 注解的方法
- * 
+ * 扫描并注册带有 {@link MessageListener} 注解的方法(优先)，
+ * 并兼容已废弃的 {@link MessageHandler} 注解。
+ *
  * @author nebula
  */
 @Slf4j
 @Component
 public class MessageHandlerProcessor implements BeanPostProcessor {
-    
+
     private final MessageManager messageManager;
-    
+
     public MessageHandlerProcessor(MessageManager messageManager) {
         this.messageManager = messageManager;
     }
-    
+
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         Class<?> targetClass = AopUtils.getTargetClass(bean);
-        
+
         ReflectionUtils.doWithMethods(targetClass, method -> {
-            MessageHandler annotation = AnnotationUtils.findAnnotation(method, MessageHandler.class);
-            if (annotation != null) {
-                registerMessageHandler(bean, method, annotation);
+            HandlerAttributes attributes = resolveAttributes(method);
+            if (attributes != null) {
+                registerMessageHandler(bean, method, attributes);
             }
         }, this::isHandlerMethod);
-        
+
         return bean;
     }
-    
+
     /**
-     * 判断是否是处理器方法
+     * 判断是否是处理器方法(@MessageListener 优先，兼容已废弃的 @MessageHandler)
      */
     private boolean isHandlerMethod(Method method) {
-        return AnnotationUtils.findAnnotation(method, MessageHandler.class) != null;
+        return resolveAttributes(method) != null;
     }
-    
+
+    /**
+     * 解析方法上的消息监听注解：优先 {@link MessageListener}，回退到已废弃的 {@link MessageHandler}。
+     * 两注解属性一致，统一归一化为 {@link HandlerAttributes}。
+     */
+    @SuppressWarnings("deprecation")
+    private HandlerAttributes resolveAttributes(Method method) {
+        MessageListener listener = AnnotationUtils.findAnnotation(method, MessageListener.class);
+        if (listener != null) {
+            return new HandlerAttributes(listener.value(), listener.topic(), listener.queue(),
+                    listener.tag(), listener.consumerGroup(), listener.concurrency(),
+                    listener.autoAck(), listener.maxRetries());
+        }
+        MessageHandler handler = AnnotationUtils.findAnnotation(method, MessageHandler.class);
+        if (handler != null) {
+            return new HandlerAttributes(handler.value(), handler.topic(), handler.queue(),
+                    handler.tag(), handler.consumerGroup(), handler.concurrency(),
+                    handler.autoAck(), handler.maxRetries());
+        }
+        return null;
+    }
+
+    /**
+     * 归一化后的注解属性(兼容 @MessageListener 与 @MessageHandler)
+     */
+    private record HandlerAttributes(String value, String topic, String queue, String tag,
+                                     String consumerGroup, int concurrency, boolean autoAck, int maxRetries) {
+    }
+
     /**
      * 注册消息处理器
      */
-    private void registerMessageHandler(Object bean, Method method, MessageHandler annotation) {
+    private void registerMessageHandler(Object bean, Method method, HandlerAttributes annotation) {
         // 获取主题名称
         String topic = determineTopic(annotation, method);
         
@@ -92,7 +121,7 @@ public class MessageHandlerProcessor implements BeanPostProcessor {
     /**
      * 确定主题名称
      */
-    private String determineTopic(MessageHandler annotation, Method method) {
+    private String determineTopic(HandlerAttributes annotation, Method method) {
         // 优先使用 value
         if (StringUtils.hasText(annotation.value())) {
             return annotation.value();
@@ -110,7 +139,7 @@ public class MessageHandlerProcessor implements BeanPostProcessor {
     /**
      * 确定队列名称
      */
-    private String determineQueue(MessageHandler annotation, String topic) {
+    private String determineQueue(HandlerAttributes annotation, String topic) {
         if (StringUtils.hasText(annotation.queue())) {
             return annotation.queue();
         }
@@ -199,7 +228,7 @@ public class MessageHandlerProcessor implements BeanPostProcessor {
     /**
      * 配置消费者
      */
-    private void configureConsumer(MessageHandler annotation) {
+    private void configureConsumer(HandlerAttributes annotation) {
         MessageConsumer<?> consumer = messageManager.getConsumer();
         
         if (consumer.getConfig() == null) {
