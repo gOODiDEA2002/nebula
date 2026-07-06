@@ -176,10 +176,11 @@
 > 目标：让标准 MyBatis-Plus 消费者(如 proud-day)能无痛接入 Nebula 持久化，同时修掉已知正确性 bug。
 > 决策见 log「决策：老项目 proud-day 与持久化默认值」。
 
-- [ ] **T-A4-1｜Nebula 持久化 mapper 扫描可配置**
-  - 文件：`autoconfigure/.../data/DataPersistenceAutoConfiguration.java`（`@MapperScan` basePackages 从属性读，默认 `io.nebula.**.mapper` 保持兼容；放开/可选 `markerInterface`，兼容标准 MyBatis-Plus BaseMapper 的 mapper）、`MybatisPlusProperties`
+- [x] **T-A4-1｜Nebula 持久化 mapper 扫描可配置**
+  - 文件：`autoconfigure/.../data/DataPersistenceAutoConfiguration.java`（移除静态 `@MapperScan`，改编程式 `MapperScannerConfigurer`）
   - 验收：集成测试——配置自定义 mapper 包后，标准 MyBatis-Plus BaseMapper 的 mapper 能被扫到注册
   - 依赖：这是 proud-day B 迁移无需改 33 个 mapper 的关键
+  - 完成：2026-07-06。静态 `@MapperScan(io.nebula.**.mapper, marker=nebula BaseMapper)` 换成编程式 `MapperScannerConfigurer`：basePackage 由 `nebula.data.persistence.mapper-packages`(默认 io.nebula)配置、markerInterface 改用 MyBatis-Plus 原生 BaseMapper(nebula BaseMapper 亦继承它)。`MapperScannerConfigurableTest` 验证标准 MP BaseMapper 的 mapper 在配置包内被扫描注册。proud-day 只需设该配置指向自己的包，33 个 mapper 一行不改
 
 - [ ] **T-A4-2｜数据源防御性共存 + fail-fast（CD-13/14）**
   - 文件：`DataPersistenceAutoConfiguration.java`、`DataSourceManager.java`（用户已有 DataSource 时让路；主数据源建不出直接抛异常终止启动，不再 fail-slow；启动连接不泄漏）

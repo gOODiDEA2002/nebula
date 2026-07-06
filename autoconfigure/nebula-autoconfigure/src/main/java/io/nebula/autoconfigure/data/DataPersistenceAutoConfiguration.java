@@ -16,7 +16,6 @@ import io.nebula.data.persistence.transaction.DefaultTransactionManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -57,10 +56,24 @@ import java.util.concurrent.Executors;
         ReadWriteDataSourceAutoConfiguration.class,
         ShardingSphereAutoConfiguration.class
 })
-@MapperScan(basePackages = {
-        "io.nebula.**.mapper"
-}, markerInterface = io.nebula.data.persistence.mapper.BaseMapper.class)
 public class DataPersistenceAutoConfiguration {
+
+    /**
+     * Mapper 扫描器（替代静态 @MapperScan，使扫描包可配置）。
+     * <p>
+     * 通过 {@code nebula.data.persistence.mapper-packages}(逗号分隔，默认 io.nebula)配置扫描包，
+     * markerInterface 用 MyBatis-Plus 原生 BaseMapper（nebula BaseMapper 亦继承它），
+     * 因此标准 MyBatis-Plus 的 Mapper 无需改继承即可被扫描——业务应用只需把该配置指向自己的 mapper 包，
+     * 不必再自建 @MapperScan、也不必让 mapper 继承 nebula 的 BaseMapper。
+     */
+    @Bean
+    public static org.mybatis.spring.mapper.MapperScannerConfigurer nebulaMapperScannerConfigurer() {
+        org.mybatis.spring.mapper.MapperScannerConfigurer configurer =
+                new org.mybatis.spring.mapper.MapperScannerConfigurer();
+        configurer.setBasePackage("${nebula.data.persistence.mapper-packages:io.nebula}");
+        configurer.setMarkerInterface(com.baomidou.mybatisplus.core.mapper.BaseMapper.class);
+        return configurer;
+    }
 
     @Autowired(required = false)
     private DataSourceManager dataSourceManager;
