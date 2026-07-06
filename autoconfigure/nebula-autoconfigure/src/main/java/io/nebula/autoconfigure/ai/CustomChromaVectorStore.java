@@ -3,11 +3,13 @@ package io.nebula.autoconfigure.ai;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chroma.vectorstore.ChromaApi;
+import org.springframework.ai.chroma.vectorstore.ChromaFilterExpressionConverter;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionConverter;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,6 +29,10 @@ public class CustomChromaVectorStore implements VectorStore {
     private final EmbeddingModel embeddingModel;
     private final String collectionName;
     private final boolean initializeSchema;
+    /**
+     * Filter.Expression 到 Chroma where 子句的转换器（与官方 ChromaVectorStore 一致）
+     */
+    private final FilterExpressionConverter filterExpressionConverter = new ChromaFilterExpressionConverter();
     private String collectionId;
 
     public CustomChromaVectorStore(
@@ -149,8 +155,26 @@ public class CustomChromaVectorStore implements VectorStore {
 
     @Override
     public void delete(Filter.Expression filterExpression) {
-        log.warn("Filter.Expression delete 方法未实现");
-        throw new UnsupportedOperationException("Filter-based delete not yet implemented");
+        Objects.requireNonNull(filterExpression, "filterExpression 不能为空");
+        try {
+            if (collectionId == null) {
+                initializeCollection();
+            }
+
+            // Filter.Expression -> Chroma where 子句（JSON 文本 -> Map），与官方 ChromaVectorStore 行为一致
+            String nativeFilter = filterExpressionConverter.convertExpression(filterExpression);
+            Map<String, Object> where = chromaApi.where(nativeFilter);
+
+            ChromaApi.DeleteEmbeddingsRequest request = new ChromaApi.DeleteEmbeddingsRequest(null, where);
+            int status = chromaApi.deleteEmbeddings(DEFAULT_TENANT, DEFAULT_DATABASE, collectionId, request);
+            if (status != 200) {
+                throw new IllegalStateException("Chroma 按过滤条件删除返回非 200 状态码: " + status);
+            }
+
+        } catch (Exception e) {
+            log.error("按过滤条件删除文档失败", e);
+            throw new RuntimeException("按过滤条件删除文档失败", e);
+        }
     }
 
     @Override
@@ -161,12 +185,18 @@ public class CustomChromaVectorStore implements VectorStore {
             }
 
             // 生成查询文本的embedding
-            List<float[]> queryEmbeddings = embeddingModel.embed(List.of(request.getQuery()));
+            float[] queryEmbedding = embeddingModel.embed(request.getQuery());
 
-            // 调用Chroma查询API
+            // Filter.Expression -> Chroma where 子句（无过滤条件时传 null）
+            Map<String, Object> where = request.getFilterExpression() != null
+                    ? chromaApi.where(filterExpressionConverter.convertExpression(request.getFilterExpression()))
+                    : null;
+
+            // 调用Chroma查询API（携带元数据过滤条件）
             ChromaApi.QueryRequest queryRequest = new ChromaApi.QueryRequest(
-                    queryEmbeddings.get(0),
-                    request.getTopK()
+                    queryEmbedding,
+                    request.getTopK(),
+                    where
             );
 
             ChromaApi.QueryResponse response = chromaApi.queryCollection(
@@ -176,8 +206,11 @@ public class CustomChromaVectorStore implements VectorStore {
                     queryRequest
             );
 
-            // 转换响应为Document列表
-            return convertQueryResponse(response);
+            // 转换响应为Document列表，并按相似度阈值过滤（score = 1 - distance，与官方实现一致）
+            double threshold = request.getSimilarityThreshold();
+            return convertQueryResponse(response).stream()
+                    .filter(doc -> doc.getScore() == null || doc.getScore() >= threshold)
+                    .toList();
 
         } catch (Exception e) {
             log.error("相似度搜索失败", e);
@@ -222,11 +255,17 @@ public class CustomChromaVectorStore implements VectorStore {
                         Map<String, Object> metadata = metaList != null && j < metaList.size() ? new HashMap<>(metaList.get(j)) : new HashMap<>();
                         Double distance = distList != null && j < distList.size() ? distList.get(j) : 0.0;
 
-                        // 计算相似度分数 (1 - distance)
+                        // 计算相似度分数 (1 - distance)，同时写入 Document.score 供阈值过滤使用
+                        double score = 1.0 - distance;
                         metadata.put("distance", distance);
-                        metadata.put("score", 1.0 - distance);
+                        metadata.put("score", score);
 
-                        Document document = new Document(id, text, metadata);
+                        Document document = Document.builder()
+                                .id(id)
+                                .text(text)
+                                .metadata(metadata)
+                                .score(score)
+                                .build();
                         documents.add(document);
                     }
                 }
