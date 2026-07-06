@@ -68,10 +68,11 @@
 
 ## 阶段 A2：安全绕过 / 数据泄漏
 
-- [ ] **T-A2-1｜AuthInterceptor OPTIONS 绕过（F-A4）**
+- [x] **T-A2-1｜AuthInterceptor OPTIONS 绕过（F-A4）**
   - 文件：`nebula-web/.../interceptor/AuthInterceptor.java`（`CorsUtils.isPreFlightRequest` 替代无条件放行 OPTIONS）
   - 验收：非预检的 `OPTIONS /api/xxx` 不再免认证；真预检仍放行
   - 验证：`mvn -q -pl application/nebula-web -am test`
+  - 完成：2026-07-06。改用 `CorsUtils.isPreFlightRequest`（要求 OPTIONS + Origin + Access-Control-Request-Method）。AuthInterceptorTest 加 2 用例（真预检放行 / 普通 OPTIONS 无 token 被拒），8 测试全绿
 
 - [ ] **T-A2-2｜响应缓存跨用户串数据（F-A5，采用 Q2=双管）**
   - 文件：`nebula-web/.../cache/DefaultCacheKeyGenerator.java`、`interceptor/ResponseCacheInterceptor.java`、`autoconfigure/WebCacheAutoConfiguration.java`（默认关闭）、新增可缓存注解

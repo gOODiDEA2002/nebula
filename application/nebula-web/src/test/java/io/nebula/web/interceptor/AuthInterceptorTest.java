@@ -159,5 +159,34 @@ class AuthInterceptorTest {
         assertThat(result).isTrue();
         verify(authService, never()).getUser(anyString());
     }
+
+    @Test
+    void testCorsPreflightAllowed() throws Exception {
+        // 真正的 CORS 预检: OPTIONS + Origin + Access-Control-Request-Method 三者齐全
+        when(request.getMethod()).thenReturn("OPTIONS");
+        when(request.getHeader("Origin")).thenReturn("http://example.com");
+        when(request.getHeader("Access-Control-Request-Method")).thenReturn("POST");
+
+        boolean result = authInterceptor.preHandle(request, response, null);
+
+        // 预检放行, 不走认证
+        assertThat(result).isTrue();
+        verify(authService, never()).getUser(anyString());
+    }
+
+    @Test
+    void testPlainOptionsNotBypassed() throws Exception {
+        // 非预检的 OPTIONS(无 Origin/ACRM 头)不应被无条件放行, 无 token 时须拒绝
+        StringWriter responseWriter = new StringWriter();
+        when(request.getMethod()).thenReturn("OPTIONS");
+        when(request.getRequestURI()).thenReturn("/api/users");
+        when(response.getWriter()).thenReturn(new PrintWriter(responseWriter));
+
+        boolean result = authInterceptor.preHandle(request, response, null);
+
+        // 未绕过: 走到认证并因缺 token 被拒
+        assertThat(result).isFalse();
+        verify(response).setStatus(HttpStatus.UNAUTHORIZED.value());
+    }
 }
 

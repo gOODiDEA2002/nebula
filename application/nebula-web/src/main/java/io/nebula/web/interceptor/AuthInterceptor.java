@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.nio.charset.StandardCharsets;
@@ -45,8 +46,9 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
         
-        // CORS 预检请求直接放行
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        // 仅放行真正的 CORS 预检请求(OPTIONS + Origin + Access-Control-Request-Method 三者齐全);
+        // 不再无条件放行所有 OPTIONS, 避免未限定 method 的业务接口被 OPTIONS 无认证触发
+        if (CorsUtils.isPreFlightRequest(request)) {
             return true;
         }
         
