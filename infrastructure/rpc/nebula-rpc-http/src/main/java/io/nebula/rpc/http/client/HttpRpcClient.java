@@ -239,7 +239,7 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                 .serviceName(serviceName)
                 .methodName(methodName)
                 .parameters(args)
-                .parameterTypes(getParameterTypes(args))
+                .parameterTypes(toTypeNames(getParameterTypes(args)))
                 .timestamp(System.currentTimeMillis())
                 .timeout(30000)
                 .version("1.0")
@@ -256,7 +256,7 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                 .serviceName(serviceName)
                 .methodName(method.getName())
                 .parameters(args)
-                .parameterTypes(method.getParameterTypes())
+                .parameterTypes(toTypeNames(method.getParameterTypes()))
                 .timestamp(System.currentTimeMillis())
                 .timeout(30000)
                 .version("1.0")
@@ -272,6 +272,17 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
             types[i] = args[i] != null ? args[i].getClass() : Object.class;
         }
         return types;
+    }
+
+    private String[] toTypeNames(Class<?>[] types) {
+        if (types == null) {
+            return new String[0];
+        }
+        String[] names = new String[types.length];
+        for (int i = 0; i < types.length; i++) {
+            names[i] = types[i].getName();
+        }
+        return names;
     }
     
     private RpcResponse sendRequest(RpcRequest request) {

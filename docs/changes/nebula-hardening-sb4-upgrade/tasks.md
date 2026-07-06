@@ -86,10 +86,14 @@
   - 验证：`mvn -q -pl application/nebula-web -am test`
   - 完成：2026-07-06。删除无用的独立 `dataMaskingObjectMapper`，改为 customizer 用 `AnnotationIntrospectorPair.pair(脱敏, 默认)` 挂到主 mapper（脱敏优先、其余回退默认，不丢默认注解处理）。`SensitiveDataMaskingCustomizerTest` 验证手机号脱敏生效且非敏感字段保留
 
-- [ ] **T-A2-4｜/rpc 与 gRPC 端点鉴权 + 禁 Class.forName（F-A7）**
-  - 文件：`nebula-rpc-http/.../server/HttpRpcController.java`、`nebula-rpc-grpc/.../server/GrpcRpcServer.java`（共享密钥/token 校验；参数类型白名单匹配，限定目标接口声明类型）
-  - 验收：无 token 调用被拒；不再 `Class.forName` 任意类
-  - 验证：`mvn -q -pl infrastructure/rpc/nebula-rpc-http -am test`；`-pl .../nebula-rpc-grpc -am test`
+- [x] **T-A2-4a｜禁 Class.forName 任意类加载（F-A7 之一）**
+  - 文件：`nebula-rpc-core/.../message/RpcRequest.java`（`parameterTypes` `Class<?>[]`→`String[]`）、`HttpRpcClient.java`（构建请求时转类型名）、`HttpRpcController.java`（findMethod 按类型名字符串匹配，不 Class.forName）
+  - 验收：不再 `Class.forName` 任意类；合法调用仍正确解析
+  - 完成：2026-07-06。`parameterTypes` 改 `String[]`（线格式不变，Jackson 本就把 Class 序列化为类名字符串），服务端仅按名字比对已声明方法的参数类型名。`HttpRpcControllerFindMethodTest` 3 用例（类型名匹配 / 运行时具体类型兜底 / 恶意类名不加载类且仍解析）全绿；rpc-http 5 测试全绿
+- [ ] **T-A2-4b｜/rpc 与 gRPC 端点可选鉴权（F-A7 之二，用户已同意：共享 token 默认关）**
+  - 文件：`HttpRpcController.java`（HTTP 请求头 token 校验）、`GrpcRpcServer.java`（metadata token 拦截器）、新增 `nebula.rpc.auth.token` 配置
+  - 验收：配置 token 后无 token/错 token 调用被拒（401/UNAUTHENTICATED）；未配置保持开放（默认关，不影响纯内网 RPC）
+  - 状态：待做
 
 - [x] **T-A2-5｜xxl-job 遗留 REST 端点裁撤（F-A8，采用 Q3=裁撤）**
   - 文件：删除 `XxlJobTaskService.java`（手搓 `/beat /idleBeat /run /log /kill` 端点）+ `XxlJobAutoConfiguration` 的 bean 注册 + 对应测试

@@ -35,9 +35,11 @@ public class RpcRequest implements Serializable {
     private String methodName;
     
     /**
-     * 参数类型
+     * 参数类型的全限定类名（仅用于服务端方法匹配，按名字比对，不做 Class.forName）。
+     * 用字符串而非 {@code Class<?>[]}：避免 Jackson 反序列化时对请求携带的任意类名调用 Class.forName
+     * 造成任意类加载。线格式与原来一致（Jackson 本就把 Class 序列化为类名字符串）。
      */
-    private Class<?>[] parameterTypes;
+    private String[] parameterTypes;
     
     /**
      * 参数值

@@ -75,47 +75,39 @@ public class HttpRpcController {
     }
 
     /**
-     * 查找方法（三级 fallback 策略）
+     * 查找方法。
      * <p>
-     * 1. 精确匹配 - 使用 getMethod(name, parameterTypes)
-     * 2. 兼容匹配 - 方法名 + 参数数量 + isAssignableFrom（处理 ArrayList vs List 等）
-     * 3. 名称匹配 - 仅方法名 + 参数数量（parameterTypes 为 null 或反序列化丢失时）
+     * 参数类型仅以"全限定类名字符串"参与匹配（比对目标类已声明方法的参数类型名），
+     * 不对请求携带的类名做 {@code Class.forName}，杜绝任意类加载。
+     * <p>
+     * 1. 名称 + 参数数量 + 声明参数类型名精确匹配；
+     * 2. 名称 + 参数数量匹配（类型名对不上或缺失时兜底）。
      */
-    private Method findMethod(Class<?> clazz, String methodName, Class<?>[] parameterTypes) {
-        // 策略1: 精确匹配
-        if (parameterTypes != null) {
-            try {
-                return clazz.getMethod(methodName, parameterTypes);
-            } catch (NoSuchMethodException e) {
-                log.debug("精确匹配失败，尝试兼容匹配: method={}", methodName);
-            }
-        }
-
+    Method findMethod(Class<?> clazz, String methodName, String[] parameterTypes) {
         int paramCount = parameterTypes != null ? parameterTypes.length : -1;
 
-        // 策略2: 兼容匹配（isAssignableFrom）
+        // 策略1: 方法名 + 参数数量 + 声明参数类型名逐一精确匹配（仅按名字比对，不加载类）
         if (parameterTypes != null) {
             for (Method m : clazz.getMethods()) {
                 if (!m.getName().equals(methodName)) continue;
                 Class<?>[] declaredTypes = m.getParameterTypes();
                 if (declaredTypes.length != paramCount) continue;
 
-                boolean compatible = true;
+                boolean allMatch = true;
                 for (int i = 0; i < declaredTypes.length; i++) {
-                    if (!declaredTypes[i].isAssignableFrom(parameterTypes[i])
-                            && !parameterTypes[i].isAssignableFrom(declaredTypes[i])) {
-                        compatible = false;
+                    if (!declaredTypes[i].getName().equals(parameterTypes[i])) {
+                        allMatch = false;
                         break;
                     }
                 }
-                if (compatible) {
-                    log.debug("兼容匹配成功: method={}", methodName);
+                if (allMatch) {
+                    log.debug("类型名精确匹配: method={}", methodName);
                     return m;
                 }
             }
         }
 
-        // 策略3: 名称 + 参数数量匹配（最宽松，处理 parameterTypes 为 null 的情况）
+        // 策略2: 名称 + 参数数量匹配（类型名对不上，如客户端发送运行时具体类型 ArrayList 而声明为 List，或类型名缺失）
         Method candidate = null;
         int count = 0;
         for (Method m : clazz.getMethods()) {
