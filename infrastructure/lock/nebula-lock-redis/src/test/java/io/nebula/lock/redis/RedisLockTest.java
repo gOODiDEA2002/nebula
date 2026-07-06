@@ -40,7 +40,7 @@ class RedisLockTest {
     @Test
     void testLock() {
         RedisLock lock = new RedisLock(rLock, lockKey, config);
-        
+
         lock.lock();
         
         verify(rLock).lock(eq(-1L), eq(TimeUnit.MILLISECONDS));
@@ -133,7 +133,9 @@ class RedisLockTest {
         boolean acquired = lock.tryLock(5, TimeUnit.SECONDS);
 
         assertThat(acquired).isTrue();
-        verify(rLock).tryLock(eq(5L), eq(30000L), eq(TimeUnit.SECONDS));
+        // 修复后统一毫秒: waitTime=5s->5000ms, leaseTime=30s->30000ms, unit=MILLISECONDS
+        // (修复前误传 (5, 30000, SECONDS), 使租约≈30000 秒)
+        verify(rLock).tryLock(eq(5000L), eq(30000L), eq(TimeUnit.MILLISECONDS));
     }
     
     @Test

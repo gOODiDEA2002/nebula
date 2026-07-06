@@ -126,20 +126,30 @@ public class RedisLockManager implements LockManager {
     @Override
     public <T> T tryExecute(String key, LockConfig config, LockCallback<T> callback) {
         Lock lock = getLock(key, config);
+
+        boolean acquired;
         try {
-            if (lock.tryLock(config.getWaitTime())) {
-                try {
-                    return callback.execute();
-                } finally {
-                    lock.unlock();
-                }
-            } else {
-                log.debug("获取锁失败,跳过执行: key={}", key);
-                return null;
-            }
+            acquired = lock.tryLock(config.getWaitTime());
         } catch (Exception e) {
-            log.error("尝试执行锁回调失败: key={}", key, e);
+            // 仅"获取锁"阶段的异常在此吞掉并返回 null(表示业务未执行)
+            log.error("尝试获取锁失败,跳过执行: key={}", key, e);
             return null;
+        }
+
+        if (!acquired) {
+            log.debug("获取锁失败,跳过执行: key={}", key);
+            return null;
+        }
+
+        try {
+            return callback.execute();
+        } catch (RuntimeException e) {
+            // 运行时异常(含 LockException)原样向上抛，不吞：否则调用方无法区分"没抢到锁(null)"与"业务失败"
+            throw e;
+        } catch (Exception e) {
+            throw new LockException("Failed to execute with lock: " + key, e);
+        } finally {
+            lock.unlock();
         }
     }
     

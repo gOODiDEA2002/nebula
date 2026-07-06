@@ -85,8 +85,11 @@ public class RedisLock implements Lock {
         try {
             // 调用方显式传入的 timeout 优先；leaseTime 始终使用 config
             long leaseTimeMs = config.isEnableWatchdog() ? -1 : config.getLeaseTime().toMillis();
-            
-            boolean acquired = rLock.tryLock(timeout, leaseTimeMs, unit);
+
+            // Redisson 用同一个 unit 解释 waitTime 与 leaseTime；leaseTimeMs 已是毫秒，
+            // 必须把 waitTime 也转成毫秒并统一用 MILLISECONDS，否则 leaseTime 会被按调用方 unit 放大
+            // (如 unit=SECONDS 时 60000ms 会被当成 60000 秒 ≈ 16.7 小时，锁几乎永不过期)。
+            boolean acquired = rLock.tryLock(unit.toMillis(timeout), leaseTimeMs, TimeUnit.MILLISECONDS);
             
             if (acquired) {
                 log.debug("成功尝试获取锁(超时): key={}, waitTime={}ms, thread={}",

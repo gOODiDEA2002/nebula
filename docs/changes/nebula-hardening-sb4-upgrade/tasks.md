@@ -121,10 +121,11 @@
 
 ## 阶段 A3：正确性硬伤
 
-- [ ] **T-A3-1｜锁 tryLock 单位 bug + tryExecute 吞异常（F-A16）**
-  - 文件：`nebula-lock-redis/.../RedisLock.java:87-89`（`unit.toMillis(timeout)` + leaseTimeMs + MILLISECONDS）、`RedisLockManager.java:140`（回调异常上抛，仅锁异常捕获）
+- [x] **T-A3-1｜锁 tryLock 单位 bug + tryExecute 吞异常（F-A16）**
+  - 文件：`nebula-lock-redis/.../RedisLock.java:89`（`unit.toMillis(timeout)` + leaseTimeMs + MILLISECONDS）、`RedisLockManager.java`（回调异常上抛，仅锁异常捕获）
   - 验收：`@Locked(timeUnit=SECONDS, leaseTime=60)` 实际租约 60 秒；业务异常不再被吞成 null
   - 验证：`mvn -q -pl infrastructure/lock/nebula-lock-redis -am test`
+  - 完成：2026-07-06。tryLock 统一毫秒 `tryLock(unit.toMillis(timeout), leaseTimeMs, MILLISECONDS)`；tryExecute 只吞获取锁阶段异常、业务回调 RuntimeException 原样上抛、checked 包 LockException。**注意**：旧测试 `testTryLockWithTimeoutWithoutWatchdogUsesLeaseTime` 竟断言 buggy 行为 `(5,30000,SECONDS)`——已订正为 `(5000,30000,MILLISECONDS)`（这正是 bug 长期潜伏的原因）；新增 tryExecute 异常传播测试。lock 模块 46 测试全绿
 
 - [ ] **T-A3-2｜ServiceImpl 假实现（F-A17，采用 Q4）**
   - 前置：`grep -rn "findByField\|findOneByField\|findTopN\|findRandomN\|saveBatchIgnore\|removeByIdPhysical" --include=*.java` 确认调用方

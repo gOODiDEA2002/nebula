@@ -49,6 +49,21 @@ class RedisLockManagerTest {
     }
     
     @Test
+    void tryExecutePropagatesBusinessException() throws Exception {
+        // 成功获取锁
+        lenient().when(rLock.tryLock(anyLong(), anyLong(), any())).thenReturn(true);
+        lenient().when(rLock.isHeldByCurrentThread()).thenReturn(true);
+
+        // 业务回调异常必须向上抛，不能被吞成 null(否则无法区分"没抢到锁"与"业务失败")
+        assertThatThrownBy(() ->
+                lockManager.tryExecute("biz:key", () -> {
+                    throw new IllegalStateException("boom");
+                }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("boom");
+    }
+
+    @Test
     void testGetLock() {
         String lockKey = "test:lock";
         
