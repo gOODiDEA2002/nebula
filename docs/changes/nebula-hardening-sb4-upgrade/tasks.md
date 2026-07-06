@@ -99,10 +99,11 @@
   - 验收：`/performance/*` 需认证；reset 真实生效或移除
   - 验证：`mvn -q -pl application/nebula-web -am test`
 
-- [ ] **T-A2-7｜ES 认证回调覆盖（F-A10）**
+- [x] **T-A2-7｜ES 认证回调覆盖（F-A10）**
   - 文件：`autoconfigure/.../search/ElasticsearchAutoConfiguration.java`（合并三次 `setHttpClientConfigCallback` 为单回调，依次设凭证/连接池/SSL）
   - 验收：配置 username/password 后 Basic 认证生效；连接池与 SSL 不互相覆盖
   - 验证：`mvn -q -pl infrastructure/search/nebula-search-elasticsearch -am test`
+  - 完成：2026-07-06。三次调用合并为单个 callback（凭据→连接池→SSL），编译通过。**遗留**：Basic 认证真正生效需 ES 服务端验证，转 CI（同 T-A0-3 模式）
 
 - [ ] **T-A2-8｜Redis 缓存多态反序列化 RCE（F-A11）**
   - 文件：`autoconfigure/.../data/CacheAutoConfiguration.java`（`activateDefaultTyping` 改 `allowIfSubType` 白名单限定业务包）

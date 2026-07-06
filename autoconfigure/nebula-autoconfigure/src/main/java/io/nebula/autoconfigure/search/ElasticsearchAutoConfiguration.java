@@ -92,39 +92,40 @@ public class ElasticsearchAutoConfiguration {
 
             RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[0]));
 
-            // 配置认证
+            // 认证凭据(可选)
+            final CredentialsProvider credentialsProvider;
             if (properties.getUsername() != null && properties.getPassword() != null) {
-                CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider = new BasicCredentialsProvider();
                 credentialsProvider.setCredentials(
                         AuthScope.ANY,
                         new UsernamePasswordCredentials(properties.getUsername(), properties.getPassword()));
-
-                builder.setHttpClientConfigCallback(
-                        httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+            } else {
+                credentialsProvider = null;
             }
 
-            // 配置连接
+            // 配置请求超时
             builder.setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                     .setConnectTimeout((int) properties.getConnectionTimeout().toMillis())
                     .setSocketTimeout((int) properties.getReadTimeout().toMillis()));
 
-            // 配置连接池
-            builder.setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder
-                    .setMaxConnTotal(properties.getMaxConnections())
-                    .setMaxConnPerRoute(properties.getMaxConnectionsPerRoute()));
-
-            // 配置 SSL
-            if (properties.isSslEnabled()) {
-                builder.setHttpClientConfigCallback(httpClientBuilder -> {
+            // 合并为单个 httpClientConfigCallback: 依次设置凭据/连接池/SSL。
+            // 此前分三次调用 setHttpClientConfigCallback 会后者覆盖前者, 导致认证凭据永远丢失。
+            builder.setHttpClientConfigCallback(httpClientBuilder -> {
+                if (credentialsProvider != null) {
+                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                }
+                httpClientBuilder.setMaxConnTotal(properties.getMaxConnections());
+                httpClientBuilder.setMaxConnPerRoute(properties.getMaxConnectionsPerRoute());
+                if (properties.isSslEnabled()) {
                     try {
-                        SSLContext sslContext = createSSLContext();
-                        return httpClientBuilder.setSSLContext(sslContext);
+                        httpClientBuilder.setSSLContext(createSSLContext());
                     } catch (Exception e) {
                         logger.error("Failed to configure SSL for Elasticsearch client", e);
                         throw new RuntimeException("Failed to configure SSL", e);
                     }
-                });
-            }
+                }
+                return httpClientBuilder;
+            });
 
             RestClient client = builder.build();
             logger.info("Elasticsearch REST client configured successfully");
