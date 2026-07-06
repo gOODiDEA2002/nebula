@@ -46,11 +46,12 @@
 
 > **验证纪律（三个 task 共用）**：这三处的"真实注册点"都在 `autoconfigure/nebula-autoconfigure`（或由其装配），核心/实现模块的单测**不能**作为"生产链路生效"的证据——单测过了、Bean 没被 starter 装配的情况正是我们要防的。因此每个 task 的验收都必须包含一个 **starter/最小 Web 应用级集成测试**，跑在 `autoconfigure` 或专门的 starter 测试模块里。
 
-- [ ] **T-A1-1｜EPP/ImportFilter 注册迁回 spring.factories（F-A1，采用 Q1=删除 ImportFilter）**
+- [x] **T-A1-1｜EPP/ImportFilter 注册迁回 spring.factories（F-A1，采用 Q1=删除 ImportFilter）**
   - 文件：新建/改 `autoconfigure/.../META-INF/spring.factories`（注册 `NebulaStarterDefaultsPostProcessor` 于 EnvironmentPostProcessor 键）；删除 `EnvironmentPostProcessor.imports`；删除 `NebulaAutoConfigurationImportFilter` 类及其 `.imports`
   - 验收：**新增集成测试**——最小应用只引入某 starter、不写任何 enabled，断言默认模块 Bean 存在
   - 验证：`mvn -q -pl autoconfigure/nebula-autoconfigure -am test`
   - 依赖：无（优先做，后续安全/正确性修复的验证都依赖 starter 能真正生效）
+  - 完成：2026-07-06。`NebulaStarterDefaultsPostProcessor` 追加注册到 spring.factories 的 EnvironmentPostProcessor 键；删除两个不生效的 `.imports`（EnvironmentPostProcessor + AutoConfigurationImportFilter）及 `NebulaAutoConfigurationImportFilter` 类（Q1，无别处引用）。新增 `NebulaStarterDefaultsIntegrationTest`（@SpringBootTest 最小上下文 + test 资源 nebula-defaults.properties）：Tests run 2 / Failures 0，且**反向对照**（移除 EPP 注册后测试 Failures 1）证明测试有效。同时验证用户 application.properties 可覆盖默认值
 
 - [ ] **T-A1-2｜@MessageListener 扫描（F-A2）**
   - 文件：`nebula-messaging-core/.../MessageHandlerProcessor.java`（同时扫 `@MessageListener` 与 `@MessageHandler`，新优先）

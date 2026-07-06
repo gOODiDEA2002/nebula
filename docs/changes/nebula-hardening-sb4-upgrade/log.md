@@ -44,6 +44,10 @@ Spring Boot 3.5.8 → 3.5.16，`mvn clean compile` **BUILD SUCCESS**（69 模块
 
 - **2026-07-06｜Codex "版本不可解析" [critical] 质疑不成立**：Codex 称 Maven Central 无 3.5.16 / 4.1.0 GA / spring-cloud 2025.1.2（其执行日志无任何网络请求，系凭训练数据）。对照权威 `maven-metadata.xml` 核实：`spring-boot-starter-parent` release=4.1.0（3.5.16、4.0.7 均在列），`spring-cloud-dependencies` release=2025.1.2。目标版本均可直接消费。已在升级设计报告 §1 补版本复核声明。
 
+## 里程碑：机制性失效 #1 修复并验证（2026-07-06，T-A1-1）
+
+审查报告头号事故（Starter 开箱即用机制从未生效）已修复：`NebulaStarterDefaultsPostProcessor` 迁到 spring.factories 注册。关键在于**用反向对照证明测试真的有效**——移除 EPP 注册后，`NebulaStarterDefaultsIntegrationTest` 的 sentinel 断言立即失败（Failures 1）；恢复后通过。这正面回应了本次审查反复强调的"没有一个测试去启动最小应用验证机制真生效"。此测试模式（@SpringBootTest 最小上下文 + 反向对照）作为后续 A1 机制性 task 的模板。
+
 ## 待补验证（环境受限）
 
 - **T-A0-3 RabbitMQ live 收发**：本地无 Docker/RabbitMQ，只验证了版本对齐(spring-rabbit 3.1.0→3.2.8, 与 spring-amqp 3.2.8 一致)与编译；收发端到端需在带 broker 的 CI/环境补跑。同类:凡验证需要 Redis/MQ/Nacos/ES 外部服务的 task, 本地只做编译级验证, 行为级验证转 CI。
