@@ -25,19 +25,40 @@ import java.lang.reflect.Type;
 @RequestMapping("/rpc")
 public class HttpRpcController {
 
+    /** RPC 端点访问 token 的请求头名。 */
+    public static final String AUTH_TOKEN_HEADER = "X-Nebula-Rpc-Token";
+
     private final HttpRpcServer rpcServer;
     private final ObjectMapper objectMapper;
+    private final String authToken;
 
     public HttpRpcController(HttpRpcServer rpcServer, ObjectMapper objectMapper) {
+        this(rpcServer, objectMapper, "");
+    }
+
+    public HttpRpcController(HttpRpcServer rpcServer, ObjectMapper objectMapper, String authToken) {
         this.rpcServer = rpcServer;
         this.objectMapper = objectMapper;
+        this.authToken = authToken == null ? "" : authToken;
     }
 
     /**
      * 处理RPC请求
      */
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<RpcResponse> handleRpcRequest(@RequestBody RpcRequest request) {
+    public ResponseEntity<RpcResponse> handleRpcRequest(@RequestBody RpcRequest request,
+                                                        jakarta.servlet.http.HttpServletRequest httpRequest) {
+        // 可选 token 鉴权(配置了才校验): /rpc 端点无鉴权时任何人可按方法名调用所有已注册服务
+        if (!authToken.isEmpty()) {
+            String provided = httpRequest.getHeader(AUTH_TOKEN_HEADER);
+            if (!authToken.equals(provided)) {
+                log.warn("RPC 请求 token 校验失败: requestId={}, service={}",
+                        request.getRequestId(), request.getServiceName());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(RpcResponse.error(request.getRequestId(), "RPC 鉴权失败"));
+            }
+        }
+
         log.debug("收到RPC请求: requestId={}, service={}, method={}",
                 request.getRequestId(), request.getServiceName(), request.getMethodName());
 

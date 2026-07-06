@@ -71,6 +71,13 @@ public class HttpRpcProperties {
         private String contextPath = "/rpc";
 
         /**
+         * RPC 端点访问 token(可选，默认空=不鉴权)。
+         * 配置后，/rpc 请求须携带请求头 {@code X-Nebula-Rpc-Token: <token>}，否则返回 401；
+         * 默认关闭以不影响纯内网调用。
+         */
+        private String authToken = "";
+
+        /**
          * 最大请求大小（字节）
          * 范围: 1KB - 100MB
          */

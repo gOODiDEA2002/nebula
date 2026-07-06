@@ -136,9 +136,10 @@ public class HttpRpcAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(HttpRpcController.class)
     @ConditionalOnProperty(prefix = "nebula.rpc.http.server", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public HttpRpcController httpRpcController(HttpRpcServer httpRpcServer, ObjectMapper objectMapper) {
+    public HttpRpcController httpRpcController(HttpRpcServer httpRpcServer, ObjectMapper objectMapper,
+                                              HttpRpcProperties properties) {
         log.info("配置HTTP RPC控制器");
-        return new HttpRpcController(httpRpcServer, objectMapper);
+        return new HttpRpcController(httpRpcServer, objectMapper, properties.getServer().getAuthToken());
     }
 
     /**
