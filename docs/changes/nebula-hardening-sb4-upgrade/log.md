@@ -48,6 +48,15 @@ Spring Boot 3.5.8 → 3.5.16，`mvn clean compile` **BUILD SUCCESS**（69 模块
 
 审查报告头号事故（Starter 开箱即用机制从未生效）已修复：`NebulaStarterDefaultsPostProcessor` 迁到 spring.factories 注册。关键在于**用反向对照证明测试真的有效**——移除 EPP 注册后，`NebulaStarterDefaultsIntegrationTest` 的 sentinel 断言立即失败（Failures 1）；恢复后通过。这正面回应了本次审查反复强调的"没有一个测试去启动最小应用验证机制真生效"。此测试模式（@SpringBootTest 最小上下文 + 反向对照）作为后续 A1 机制性 task 的模板。
 
+## 决策：老项目 proud-day 与持久化默认值（2026-07-06）
+
+- **背景**：审查发现 T-A1-1（Starter 默认值机制修好）会让 `nebula.data.persistence.enabled=true` 真正注入，打开 Nebula 持久化自动配置，与 proud-day（生产项目，用标准 Spring Boot MyBatis-Plus、自建 `spring.datasource` + `@MapperScan("com.proudday.**.mapper")`、33 个 mapper 全继承 MyBatis-Plus 原生 BaseMapper）冲突。
+- **核实**：proud-day 未使用 Nebula 持久化任何特性（0 读写分离/0 分库分表/0 Nebula ServiceImpl）；Nebula 的 `@MapperScan` 写死 `basePackages={"io.nebula.**.mapper"}` + `markerInterface=Nebula BaseMapper`，根本扫不到 proud-day 的 mapper。
+- **决策（用户拍板）**：proud-day 走 **B（正式接入 Nebula 持久化）**，且**先改好框架再迁 proud-day**。
+- **关键洞察**：正因为"先改框架"，把 Nebula 的 mapper 扫描从写死改为可配置（包路径可配 + 放开强制 Nebula BaseMapper 标记），proud-day 的 33 个 mapper 无需改代码，B 迁移退化为配置级操作。
+- **框架侧新增持久化工作**（见 tasks 阶段 A4）：mapper 扫描可配置 / 数据源防御性共存 / 数据源配置契约 / 修 ServiceImpl 假实现与读写分离。
+- **sequencing 风险**：proud-day 吃 `2.0.1-SNAPSHOT`，框架发布后它一构建就吃到新行为，proud-day 迁移必须在其重新构建前落地。
+
 ## 待补验证（环境受限）
 
 - **T-A0-3 RabbitMQ live 收发**：本地无 Docker/RabbitMQ，只验证了版本对齐(spring-rabbit 3.1.0→3.2.8, 与 spring-amqp 3.2.8 一致)与编译；收发端到端需在带 broker 的 CI/环境补跑。同类:凡验证需要 Redis/MQ/Nacos/ES 外部服务的 task, 本地只做编译级验证, 行为级验证转 CI。

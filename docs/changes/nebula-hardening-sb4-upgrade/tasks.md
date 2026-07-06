@@ -153,6 +153,35 @@
 
 ---
 
+## 阶段 A4：持久化可用性与正确性（proud-day B 接入的前置，"先改好框架")
+
+> 目标：让标准 MyBatis-Plus 消费者(如 proud-day)能无痛接入 Nebula 持久化，同时修掉已知正确性 bug。
+> 决策见 log「决策：老项目 proud-day 与持久化默认值」。
+
+- [ ] **T-A4-1｜Nebula 持久化 mapper 扫描可配置**
+  - 文件：`autoconfigure/.../data/DataPersistenceAutoConfiguration.java`（`@MapperScan` basePackages 从属性读，默认 `io.nebula.**.mapper` 保持兼容；放开/可选 `markerInterface`，兼容标准 MyBatis-Plus BaseMapper 的 mapper）、`MybatisPlusProperties`
+  - 验收：集成测试——配置自定义 mapper 包后，标准 MyBatis-Plus BaseMapper 的 mapper 能被扫到注册
+  - 依赖：这是 proud-day B 迁移无需改 33 个 mapper 的关键
+
+- [ ] **T-A4-2｜数据源防御性共存 + fail-fast（CD-13/14）**
+  - 文件：`DataPersistenceAutoConfiguration.java`、`DataSourceManager.java`（用户已有 DataSource 时让路；主数据源建不出直接抛异常终止启动，不再 fail-slow；启动连接不泄漏）
+  - 验收：无 nebula 数据源配置时启动明确报错；有用户 DataSource 时不硬抢
+
+- [ ] **T-A4-3｜数据源配置契约文档化**
+  - 文件：文档/示例——`nebula.data.persistence.datasource.*` 结构与迁移指引（供 proud-day 照填）
+
+- [ ] **T-A4-4｜ServiceImpl 假实现修复（F-A17/CD-2）**（并入原 T-A3-2，改在此统一做）
+  - 文件：`nebula-data-persistence/.../service/impl/ServiceImpl.java`
+
+- [ ] **T-A4-5｜读写分离动态路由修复（CD-3）**（framework 质量，proud-day 暂不用）
+  - 文件：`autoconfigure/.../data/*ReadWrite*`、`ReadWriteDataSourceManager.java`
+
+## 阶段 D：proud-day B 迁移（下游、框架发布后，独立回归）
+
+- [ ] **T-D-1｜proud-day 接入 Nebula 持久化**（在 proud-day 仓库）
+  - 数据源 `spring.datasource.*` → `nebula.data.persistence.datasource.*`；设 `nebula.data.persistence.enabled=true` + 配 mapper 包；移除自建 `@MapperScan`（改由 Nebula 扫描）；生产数据层全回归
+  - 前置：阶段 A4 完成并发布快照；**必须在 proud-day 重新构建吃到新快照前落地**（sequencing 风险）
+
 ## 工作流 B / C（epic 占位，待 A 收敛后拆）
 
 - [ ] **EPIC-B｜升级 Spring Boot 4.1**（升级设计第 8 节阶段 1-3）
