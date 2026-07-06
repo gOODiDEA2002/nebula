@@ -59,7 +59,7 @@
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`
   - 完成：2026-07-06。`resolveAttributes` 优先解析 `@MessageListener`、回退 `@MessageHandler`，归一化为 `HandlerAttributes` record 共用注册逻辑（两注解属性一致，@MessageHandler 行为不变）。新增 `MessageHandlerProcessorTest`（mock MessageManager/Consumer，验证 subscribe 被调用，无需 broker）：Tests run 2 / Failures 0，反向对照（忽略 @MessageListener 分支→Failures 1）证明有效
 
-- [ ] **T-A1-3｜RBAC 链路：SecurityContext 填充 + 类级注解生效（F-A3）**
+- [x] **T-A1-3｜RBAC 链路：SecurityContext 填充 + 类级注解生效（F-A3）**
   - 文件：新建 `core/nebula-security/.../authentication/JwtAuthenticationFilter.java`（解析 header→校验→写入/finally 清理 SecurityContext）；在 **`autoconfigure/nebula-autoconfigure/.../security/SecurityAutoConfiguration.java`**（Filter 的真实注册点，已在 `AutoConfiguration.imports:36` 注册）注册该 Filter Bean 并定序；`core/nebula-security/.../authorization/SecurityAspect.java` 切点补 `@within(...)`
   - 验收：**新增 starter 级 Web 集成测试**——发一个真实 HTTP 请求，断言：Filter Bean 存在且顺序正确、处理期间 SecurityContext 被填充、请求完成后被清理、类级 `@RequirePermission` 生效、未认证 401 / 无权限 403。core 的 SecurityAspect 单测仅覆盖切点解析，不作为链路生效证据
   - 验证：`mvn -q -pl autoconfigure/nebula-autoconfigure -am test`（含上述集成测试）；辅以 `mvn -q -pl core/nebula-security -am test`
@@ -90,6 +90,7 @@
   - 文件：`nebula-rpc-core/.../message/RpcRequest.java`（`parameterTypes` `Class<?>[]`→`String[]`）、`HttpRpcClient.java`（构建请求时转类型名）、`HttpRpcController.java`（findMethod 按类型名字符串匹配，不 Class.forName）
   - 验收：不再 `Class.forName` 任意类；合法调用仍正确解析
   - 完成：2026-07-06。`parameterTypes` 改 `String[]`（线格式不变，Jackson 本就把 Class 序列化为类名字符串），服务端仅按名字比对已声明方法的参数类型名。`HttpRpcControllerFindMethodTest` 3 用例（类型名匹配 / 运行时具体类型兜底 / 恶意类名不加载类且仍解析）全绿；rpc-http 5 测试全绿
+  - 补漏：2026-07-06（hardening-b 审查发现）。gRPC 侧 `GrpcRpcServer.parseParameterTypes` 仍对请求类名逐一 `Class.forName`（F-A7 同源遗漏，原完成记录只覆盖 HTTP 侧）。已改为与 HTTP 侧一致的类型名字符串匹配：删除 `parseParameterTypes`/`isCompatible`/`parseParameters`，`findMethod` 按"名称+数量+声明参数类型名"精确匹配、失败则"名称+数量"兜底（覆盖客户端发运行时具体类型 ArrayList/Integer 对 List/int 声明、null 参数占位 java.lang.Object）。`GrpcRpcServerFindMethodTest` 6 用例（含恶意类名不触发类加载）全绿；gRPC 模块 51 测试全绿
 - [x] **T-A2-4b｜/rpc 与 gRPC 端点可选鉴权（F-A7 之二，用户已同意：共享 token 默认关）**
   - 文件：`HttpRpcProperties.java`（`server.authToken`）、`HttpRpcController.java`（请求头 `X-Nebula-Rpc-Token` 校验）、`HttpRpcAutoConfiguration.java`（注入 token）
   - 验收：配置 token 后无 token/错 token 调用被拒（401）；未配置保持开放（默认关，不影响纯内网 RPC）
@@ -127,11 +128,12 @@
   - 验证：`mvn -q -pl infrastructure/lock/nebula-lock-redis -am test`
   - 完成：2026-07-06。tryLock 统一毫秒 `tryLock(unit.toMillis(timeout), leaseTimeMs, MILLISECONDS)`；tryExecute 只吞获取锁阶段异常、业务回调 RuntimeException 原样上抛、checked 包 LockException。**注意**：旧测试 `testTryLockWithTimeoutWithoutWatchdogUsesLeaseTime` 竟断言 buggy 行为 `(5,30000,SECONDS)`——已订正为 `(5000,30000,MILLISECONDS)`（这正是 bug 长期潜伏的原因）；新增 tryExecute 异常传播测试。lock 模块 46 测试全绿
 
-- [ ] **T-A3-2｜ServiceImpl 假实现（F-A17，采用 Q4）**
+- [x] **T-A3-2｜ServiceImpl 假实现（F-A17，采用 Q4）**（已并入 T-A4-4 完成，见阶段 A4）
   - 前置：`grep -rn "findByField\|findOneByField\|findTopN\|findRandomN\|saveBatchIgnore\|removeByIdPhysical" --include=*.java` 确认调用方
   - 文件：`nebula-data-persistence/.../service/impl/ServiceImpl.java`（有用的用 QueryWrapper 真实现，无用的删）
   - 验收：`findByField` 按条件查询而非全表；`findOneByField` 不再当主键查；语义误导方法清理
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-persistence -am test`
+  - 完成：2026-07-06，实现与验证记录见 T-A4-4（唯一实现处，此处仅状态同步）
 
 - [x] **T-A3-3｜缓存 clear()/stats KEYS *（F-A18）**
   - 文件：`nebula-data-cache/.../DefaultCacheManager.java`（引入 `keyPrefix` 命名空间 + 全部 key 操作加前缀 + SCAN 游标）、`autoconfigure/.../CacheAutoConfiguration.java`（注入配置的 keyPrefix）
@@ -167,7 +169,8 @@
   - 文件：`RabbitMQMessageConsumer.java`（requeue 用 `isRedeliver()` 限住，去掉无限重投）、`RabbitMQMessageProducer.java`（路由键统一为 topic）、`messaging-core/Message.java`（headers 空安全 getter）
   - 验收：毒消息不再无限重投；topic 消息不再静默丢；无头 Stream 消息不 NPE
   - 验证：各模块 `mvn -q -pl <module> -am test`
-  - 完成：2026-07-06。(MW-2) 消费失败改 `requeue = !isRedeliver()`——已重投过就不再入队(转 DLX 或丢弃)，堵死毒消息死循环；(MW-3) 生产者路由键从 `queue/""` 统一为 `topic`，与消费者 `queueBind(queue,topic,topic)` 匹配，不再静默丢；(MW-4) `Message.getHeaders()` 改懒初始化，任何构造/反序列化路径都不 NPE(修 Redis Stream 无头消息)。`MessageHeadersTest` 3 用例；messaging-core 5 + rabbitmq 41 测试全绿。**SSA-1 不适用**：`CustomChromaVectorStore` 当前代码已不存在，`SpringAIVectorStoreService.get(id)` 已正确使用 filterExpression。MW-2/MW-3 的行为级验证需 broker，转 CI
+  - 完成：2026-07-06。(MW-2) 消费失败改 `requeue = !isRedeliver()`——已重投过就不再入队(转 DLX 或丢弃)，堵死毒消息死循环；(MW-3) 生产者路由键从 `queue/""` 统一为 `topic`，与消费者 `queueBind(queue,topic,topic)` 匹配，不再静默丢；(MW-4) `Message.getHeaders()` 改懒初始化，任何构造/反序列化路径都不 NPE(修 Redis Stream 无头消息)。`MessageHeadersTest` 3 用例；messaging-core 5 + rabbitmq 41 测试全绿。MW-2/MW-3 的行为级验证需 broker，转 CI
+  - 勘误：2026-07-06（hardening-b 审查发现）。原完成记录称"SSA-1 不适用：CustomChromaVectorStore 当前代码已不存在"——**事实错误**。该类一直存在，位于 `autoconfigure/nebula-autoconfigure/.../ai/CustomChromaVectorStore.java`（审查报告最初误标在 nebula-ai-spring，路径勘误后被误读为类已删除）。SSA-1 已在 hardening-b 修复：`similaritySearch` 经 `ChromaFilterExpressionConverter` 把 filterExpression 转为 Chroma where 子句随查询下发、按 `similarityThreshold` 过滤结果（score=1-distance，写入 `Document.score`）；`delete(Filter.Expression)` 从抛 `UnsupportedOperationException` 改为真实调用 `deleteEmbeddings(where)` 并校验状态码。`CustomChromaVectorStoreTest` 4 用例全绿，反向对照（回退主类→4 用例全错）证明有效
 
 ---
 
@@ -208,7 +211,7 @@
 ## 工作流 B / C（epic 占位，待 A 收敛后拆）
 
 - [ ] **EPIC-B｜升级 Spring Boot 4.1**（升级设计第 8 节阶段 1-3）
-- [ ] **EPIC-C1｜P1 可靠性**（拦截器顺序、XFF、双 MQ、读写分离、多级缓存失效、RocketMQ 停机、Netty 握手）
+- [ ] **EPIC-C1｜P1 可靠性**（拦截器顺序、XFF、双 MQ、读写分离、多级缓存失效、RocketMQ 停机、Netty 握手、RabbitMQ tag 订阅与发送路由键不匹配<hardening-b 审查发现：`subscribeWithTag` 以 tag 绑定队列但生产者恒以 topic 为路由键，tagged 队列永远收不到消息，需给发送侧补 tag 路由约定>）
 - [ ] **EPIC-C2｜治理**（补自动装配集成测试<横切最高优先>、清死配置、移除残留 stereotype、收紧默认值、收敛并行实现）
 - [ ] **EPIC-C3｜删除 `nebula-example/` 空壳目录**（零风险清理）
 

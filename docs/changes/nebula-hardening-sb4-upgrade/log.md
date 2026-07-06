@@ -8,7 +8,7 @@
 
 - **2026-07-06｜先修后升，全模块在范围**：用户确认新项目依赖全部模块，故按严重级别全局排序修复；先在 3.5.16 上做工作流 A（阻断级）再升 4.1，避免带未修的机制性失效跨版本。
 - **2026-07-06｜ImportFilter 直接删除（Spec Q1）**：`NebulaAutoConfigurationImportFilter` 当前经 `.imports` 注册本就不生效（字节码已证），且其无条件排除 DataSource/MyBatis-Plus 行为过激，删除零风险。
-- **2026-07-06｜密码哈希新增而非改旧（Spec Q6）**：`CryptoUtils.encrypt` 保留并 `@Deprecated`，新增 `hashPassword`(BCrypt)，避免破坏已落库的旧哈希。
+- **2026-07-06｜密码哈希新增而非改旧（Spec Q6）**：`CryptoUtils.encrypt` 保留并 `@Deprecated`，新增 `hashPassword`(PBKDF2WithHmacSHA256, JDK 原生免加依赖)，避免破坏已落库的旧哈希。（勘误：本条原误写 BCrypt，实际实现为 PBKDF2，与 T-A3-7 完成记录一致）
 
 ## 知识发现
 
@@ -96,5 +96,9 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - **T-A0-3 RabbitMQ live 收发**：本地无 Docker/RabbitMQ，只验证了版本对齐(spring-rabbit 3.1.0→3.2.8, 与 spring-amqp 3.2.8 一致)与编译；收发端到端需在带 broker 的 CI/环境补跑。同类:凡验证需要 Redis/MQ/Nacos/ES 外部服务的 task, 本地只做编译级验证, 行为级验证转 CI。
 
 ## Spec-Code 偏差
+
+- **2026-07-06｜SSA-1 事实源路径勘误（main 审查阶段核验发现，随 hardening-b 合入）**：审查报告 SSA-1 与 tasks T-A3-8 原将 `CustomChromaVectorStore` 标注在 `nebula-ai-spring` 模块，逐源码核对后确认该类实际位于 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/ai/CustomChromaVectorStore.java`（问题成立、行号 157 精确：`similaritySearch` 仅传 query+topK、`delete(Filter.Expression)` 抛 UOE）。关键区别：`nebula-ai-spring` 的 `SpringAIVectorStoreService` 反而正确处理了 filter/threshold（其 :361-370 构建 filterExpression 与 similarityThreshold）。已同步修正报告 SSA-1 与 tasks T-A3-8 的路径标注，避免修复时改错文件。
+- **2026-07-06｜升级目标版本联网复核通过**：对照 Maven 中央仓库 `maven-metadata.xml` 确认 `spring-boot-starter-parent` latest/release=4.1.0（3.5.16、4.0.7 在列）、`spring-cloud-dependencies` latest/release=2025.1.2、`spring-ai-bom` latest/release=2.0.0，升级设计 §1 版本断言成立。另全仓库 grep 无任何预览语法（`STR.`/`ScopedValue`/`StructuredTaskScope` 等），F-A12 移除 `--enable-preview` 确认零风险。
+- **2026-07-06｜hardening-a 全量审查结论（28 提交逐一核对，hardening-b 修复）**：两处"已完成"记录与代码不符——(1) T-A3-8 称 SSA-1 不适用（"CustomChromaVectorStore 已不存在"），实际该类存在于 autoconfigure 模块且缺陷原样保留，根因是路径勘误被误读为类已删除，已在 hardening-b 修复并补 `CustomChromaVectorStoreTest`；(2) T-A2-4a 只修了 HTTP 侧 `Class.forName`，gRPC 侧 `GrpcRpcServer.parseParameterTypes` 同源漏洞被遗漏（tasks 文件清单本就未列 gRPC 文件，属 Spec 缺口而非实现走样），已在 hardening-b 以同一策略修复并补 `GrpcRpcServerFindMethodTest`。另发现 1 处 P2 行为缺口：MW-3 修复把发送路由键统一为 topic 后，`subscribeWithTag`（按 tag 绑定）永远收不到消息且生产者无发 tag 的 API——已登记进 EPIC-C1 待修。其余 26 项完成记录与代码逐一相符。
 
 _（开发中追加：实现与 Spec 不一致时，先更新 Spec 再改代码，并在此记录）_
