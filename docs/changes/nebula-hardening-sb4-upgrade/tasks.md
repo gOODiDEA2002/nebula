@@ -182,9 +182,10 @@
   - 依赖：这是 proud-day B 迁移无需改 33 个 mapper 的关键
   - 完成：2026-07-06。静态 `@MapperScan(io.nebula.**.mapper, marker=nebula BaseMapper)` 换成编程式 `MapperScannerConfigurer`：basePackage 由 `nebula.data.persistence.mapper-packages`(默认 io.nebula)配置、markerInterface 改用 MyBatis-Plus 原生 BaseMapper(nebula BaseMapper 亦继承它)。`MapperScannerConfigurableTest` 验证标准 MP BaseMapper 的 mapper 在配置包内被扫描注册。proud-day 只需设该配置指向自己的包，33 个 mapper 一行不改
 
-- [ ] **T-A4-2｜数据源防御性共存 + fail-fast（CD-13/14）**
-  - 文件：`DataPersistenceAutoConfiguration.java`、`DataSourceManager.java`（用户已有 DataSource 时让路；主数据源建不出直接抛异常终止启动，不再 fail-slow；启动连接不泄漏）
+- [x] **T-A4-2｜数据源防御性共存 + fail-fast（CD-13/14）**
+  - 文件：`DataPersistenceAutoConfiguration.java`（primaryDataSource fail-fast；persistenceSummary 连接 try-with-resources）
   - 验收：无 nebula 数据源配置时启动明确报错；有用户 DataSource 时不硬抢
+  - 完成：2026-07-06。`primaryDataSource()` 由返回 null 改为抛 `IllegalStateException`(带明确原因)，避免下游报与根因脱节的错；`persistenceSummary` 诊断连接改 try-with-resources 不再泄漏。`@ConditionalOnMissingBean(DataSource.class)` 已在(用户已有 DataSource 时让路)。`DataPersistenceFailFastTest` 2 用例。注：nebula 持久化默认关闭(matchIfMissing=false)，仅显式启用时才建数据源
 
 - [ ] **T-A4-3｜数据源配置契约文档化**
   - 文件：文档/示例——`nebula.data.persistence.datasource.*` 结构与迁移指引（供 proud-day 照填）

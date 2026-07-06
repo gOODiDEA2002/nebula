@@ -95,18 +95,19 @@ public class DataPersistenceAutoConfiguration {
     @ConditionalOnExpression("'${nebula.data.persistence.enabled:false}' == 'true' && '${nebula.data.sharding.enabled:false}' != 'true'")
     @ConditionalOnMissingBean(DataSource.class)
     public DataSource primaryDataSource() {
+        // fail-fast: 返回 null 会让下游 sqlSessionFactory 注入报出与根因脱节的错误，
+        // 直接抛异常终止启动并给出明确原因。
         if (dataSourceManager == null) {
-            log.warn("DataSourceManager 未初始化，无法提供主数据源");
-            return null;
+            throw new IllegalStateException(
+                    "nebula.data.persistence.enabled=true 但 DataSourceManager 未初始化，" +
+                    "请检查 nebula.data.persistence.datasource.* 数据源配置");
         }
-
         try {
             DataSource primaryDataSource = dataSourceManager.getPrimaryDataSource();
             log.info("成功使用 Nebula DataSourceManager 的主数据源作为 Spring 的 DataSource Bean（普通数据访问模式）");
             return primaryDataSource;
         } catch (Exception e) {
-            log.error("无法获取 Nebula 主数据源", e);
-            return null;
+            throw new IllegalStateException("无法获取 Nebula 主数据源，启动终止：" + e.getMessage(), e);
         }
     }
 
@@ -246,13 +247,13 @@ public class DataPersistenceAutoConfiguration {
         if (primaryDataSource != null) {
             details.put("DataSource", primaryDataSource.getClass().getName());
             details.put("Driver Class Name", primaryDataSource.getClass().getName());
-            try {
-                Connection connection = primaryDataSource.getConnection();
+            // try-with-resources 确保诊断用连接被归还，避免长期泄漏一个池连接
+            try (Connection connection = primaryDataSource.getConnection()) {
                 DatabaseMetaData metaData = connection.getMetaData();
                 details.put("URL", metaData.getURL());
                 details.put("Username", metaData.getUserName());
             } catch (Exception e) {
-                log.error( e.getMessage() );
+                log.error(e.getMessage());
             }
         }
         if (mybatisPlusProperties != null) {
