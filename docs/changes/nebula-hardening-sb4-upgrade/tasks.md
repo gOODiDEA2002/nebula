@@ -17,11 +17,12 @@
   - 验证：`mvn -q clean compile`
   - 完成：2026-07-06，BUILD SUCCESS（69 模块），告警清单见 log.md「T-A0-1 执行记录」（A 类框架自有过渡代码 / B 类第三方待升级 / C 类 JDK 顺手清理；preview 告警为 0）
 
-- [ ] **T-A0-2｜移除全局 --enable-preview（F-A12）**
+- [x] **T-A0-2｜移除全局 --enable-preview（F-A12）**
   - 文件：根 `pom.xml`（compiler 插件配置，改 `<release>21`，去掉 `--enable-preview` 及 surefire/failsafe 的 argLine）
   - 验收：产物字节码非预览版本；全模块编译+测试通过
   - 验证：`mvn -q clean test`；抽查 `javap -v` 某 class 的 minor version 非 65535
   - 前置确认：先 grep 是否真的用到预览语法（`grep -rn "preview" --include=*.java`）；用到则先替换语法
+  - 完成：2026-07-06。compiler 改 `<release>21` 并删除两处 preview 参数；`mvn clean test-compile` BUILD SUCCESS（主+测试代码均编译通过，证实无预览语法）；`javap` 确认产物 minor version=0 / major=65（标准 Java 21）
 
 - [ ] **T-A0-3｜spring-rabbit/amqp-client 交还 BOM（F-A13）**
   - 文件：根 `pom.xml`（删 `spring-rabbit.version`/`amqp-client` 版本锁定）、`nebula-messaging-rabbitmq/pom.xml`
