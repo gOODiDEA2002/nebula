@@ -74,10 +74,11 @@
   - 验证：`mvn -q -pl application/nebula-web -am test`
   - 完成：2026-07-06。改用 `CorsUtils.isPreFlightRequest`（要求 OPTIONS + Origin + Access-Control-Request-Method）。AuthInterceptorTest 加 2 用例（真预检放行 / 普通 OPTIONS 无 token 被拒），8 测试全绿
 
-- [ ] **T-A2-2｜响应缓存跨用户串数据（F-A5，采用 Q2=双管）**
-  - 文件：`nebula-web/.../cache/DefaultCacheKeyGenerator.java`、`interceptor/ResponseCacheInterceptor.java`、`autoconfigure/WebCacheAutoConfiguration.java`（默认关闭）、新增可缓存注解
+- [x] **T-A2-2｜响应缓存跨用户串数据（F-A5，采用 Q2=双管）**
+  - 文件：新增 `cache/ResponseCacheable.java` 注解、`interceptor/ResponseCacheInterceptor.java`（isCacheable 排除认证请求 + 要求注解）、`autoconfigure/WebCacheAutoConfiguration.java`（matchIfMissing=false 默认关）
   - 验收：带 Authorization/Cookie 的请求默认不缓存；缓存改为注解白名单显式声明
   - 验证：`mvn -q -pl application/nebula-web -am test`
+  - 完成：2026-07-06。双管：(1) `isCacheable` 排除带 `Authorization`/`Cookie` 的请求（杜绝跨用户串号）+ 仅缓存标注 `@ResponseCacheable` 的接口；(2) 响应缓存默认关闭。`ResponseCacheInterceptorTest` 5 用例（注解+无凭据可缓存 / 带 Authorization 不缓存 / 带 Cookie 不缓存 / 无注解不缓存 / 非 GET 不缓存）全绿
 
 - [x] **T-A2-3｜@SensitiveData 挂主 ObjectMapper（F-A6）**
   - 文件：`autoconfigure/WebAuthAutoConfiguration.java`（用 `Jackson2ObjectMapperBuilderCustomizer` + `AnnotationIntrospectorPair` 把 introspector 挂到主 ObjectMapper）

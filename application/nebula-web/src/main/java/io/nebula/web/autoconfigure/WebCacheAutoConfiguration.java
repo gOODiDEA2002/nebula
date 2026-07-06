@@ -19,7 +19,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Web 响应缓存自动配置
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "nebula.web.cache.enabled", havingValue = "true", matchIfMissing = false)
 class WebCacheAutoConfiguration {
 
     @Bean

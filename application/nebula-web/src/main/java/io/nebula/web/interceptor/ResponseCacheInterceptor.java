@@ -4,10 +4,13 @@ import io.nebula.web.autoconfigure.WebProperties;
 import io.nebula.web.cache.CacheKeyGenerator;
 import io.nebula.web.cache.CachedResponse;
 import io.nebula.web.cache.ResponseCache;
+import io.nebula.web.cache.ResponseCacheable;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
@@ -40,7 +43,7 @@ public class ResponseCacheInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) 
             throws Exception {
         
-        if (!config.isEnabled() || !isCacheable(request)) {
+        if (!config.isEnabled() || !isCacheable(request, handler)) {
             return true;
         }
         
@@ -81,21 +84,37 @@ public class ResponseCacheInterceptor implements HandlerInterceptor {
     }
     
     /**
-     * 判断请求是否可缓存
+     * 判断请求是否可缓存。
+     * <p>
+     * 除 GET + 无 no-cache 外，额外要求：
+     * (1) 请求不带认证凭据(Authorization/Cookie)——避免把某用户的响应缓存后返给其他用户；
+     * (2) 目标接口显式标注 {@link io.nebula.web.cache.ResponseCacheable}(白名单 opt-in)。
      */
-    private boolean isCacheable(HttpServletRequest request) {
+    boolean isCacheable(HttpServletRequest request, Object handler) {
         // 只缓存GET请求
         if (!"GET".equalsIgnoreCase(request.getMethod())) {
             return false;
         }
-        
+
         // 检查是否有No-Cache头
         String cacheControl = request.getHeader("Cache-Control");
-        if (cacheControl != null && 
+        if (cacheControl != null &&
             (cacheControl.contains("no-cache") || cacheControl.contains("no-store"))) {
             return false;
         }
-        
+
+        // 带认证凭据的请求一律不缓存(响应可能因用户而异，缓存键不含身份会串号)
+        if (StringUtils.hasText(request.getHeader("Authorization"))
+                || StringUtils.hasText(request.getHeader("Cookie"))) {
+            return false;
+        }
+
+        // 仅缓存显式标注 @ResponseCacheable 的接口
+        if (!(handler instanceof HandlerMethod handlerMethod)
+                || handlerMethod.getMethodAnnotation(ResponseCacheable.class) == null) {
+            return false;
+        }
+
         return true;
     }
     
