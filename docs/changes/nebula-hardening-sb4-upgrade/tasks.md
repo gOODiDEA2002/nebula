@@ -90,10 +90,11 @@
   - 验收：无 token 调用被拒；不再 `Class.forName` 任意类
   - 验证：`mvn -q -pl infrastructure/rpc/nebula-rpc-http -am test`；`-pl .../nebula-rpc-grpc -am test`
 
-- [ ] **T-A2-5｜xxl-job 遗留 REST 端点裁撤（F-A8，采用 Q3=裁撤）**
-  - 文件：`nebula-task/.../xxljob/service/XxlJobTaskService.java`（移除 `/run` `/kill` `/log` 映射或加鉴权）、token 不进日志
+- [x] **T-A2-5｜xxl-job 遗留 REST 端点裁撤（F-A8，采用 Q3=裁撤）**
+  - 文件：删除 `XxlJobTaskService.java`（手搓 `/beat /idleBeat /run /log /kill` 端点）+ `XxlJobAutoConfiguration` 的 bean 注册 + 对应测试
   - 验收：业务端口不再暴露无鉴权任务触发；token 不出现在日志
   - 验证：`mvn -q -pl application/nebula-task -am test`；`grep -n accessToken` 确认无 INFO 打印
+  - 完成：2026-07-06。官方 `XxlJobSpringExecutor`(EmbedServer, 独立端口, d2a0132e 已注册)已接管执行器协议; 手搓的 `XxlJobTaskService`(无条件注册在业务 web 端口、读 token 不校验、token 进 INFO 日志)纯冗余+攻击面, 整类删除。nebula-task 47 测试全绿（相关测试随类删除）。遗留 DTO 已成孤儿, 留治理阶段清理
 
 - [x] **T-A2-6｜性能端点鉴权 + resetMetrics（F-A9）**
   - 文件：`PerformanceController.java`（类级 `@ConditionalOnProperty(nebula.web.performance.enabled)` 默认关，端点默认不暴露）、`PerformanceMetrics.java`（新增 `reset()`）、`DefaultPerformanceMonitor.java`（`resetMetrics` 调用真实 reset）

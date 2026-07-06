@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xxl.job.core.executor.impl.XxlJobSpringExecutor;
 import io.nebula.task.scheduled.TimedTaskJobHandler;
 import io.nebula.task.xxljob.service.XxlJobRegistryService;
-import io.nebula.task.xxljob.service.XxlJobTaskService;
 import io.nebula.task.xxljob.util.XxlJobHttpClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -70,15 +69,6 @@ public class XxlJobAutoConfiguration {
         return new TimedTaskJobHandler();
     }
 
-    /**
-     * XXL-JOB 任务服务
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public XxlJobTaskService xxlJobTaskService() {
-        return new XxlJobTaskService();
-    }
-    
     /**
      * XXL-JOB 注册服务（仅在无官方执行器时兜底）
      *
