@@ -33,14 +33,38 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     private volatile String baseUrl;
     private final Executor executor;
     private final ObjectMapper objectMapper;
-    
+
+    /** 本次请求的目标地址覆盖(per-thread)，避免并发调不同实例时改写共享 baseUrl 造成串地址。 */
+    private final ThreadLocal<String> targetOverride = new ThreadLocal<>();
+
     private final ConcurrentHashMap<MethodCacheKey, Method> methodCache = new ConcurrentHashMap<>();
-    
+
     public HttpRpcClient(RestClient restClient, String baseUrl, Executor executor, ObjectMapper objectMapper) {
         this.restClient = restClient;
         this.baseUrl = baseUrl;
         this.executor = executor;
         this.objectMapper = objectMapper;
+    }
+
+    /** 本次调用生效的 baseUrl：优先 per-request 覆盖，否则用配置的默认 baseUrl。 */
+    String effectiveBaseUrl() {
+        String override = targetOverride.get();
+        return override != null ? override : baseUrl;
+    }
+
+    /** 在当前线程内以指定目标地址执行 action，结束后清理覆盖。无锁、无跨线程共享状态。 */
+    <T> T runWithTarget(String targetAddress, java.util.function.Supplier<T> action) {
+        targetOverride.set(targetAddress);
+        try {
+            return action.get();
+        } finally {
+            targetOverride.remove();
+        }
+    }
+
+    @Override
+    public <T> T callWithTarget(String targetAddress, Class<T> serviceClass, String methodName, Object... args) {
+        return runWithTarget(targetAddress, () -> call(serviceClass, methodName, args));
     }
     
     @Override
@@ -216,7 +240,7 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     
     @Override
     public String getServiceAddress(String serviceName) {
-        return baseUrl + "/" + serviceName;
+        return effectiveBaseUrl() + "/" + serviceName;
     }
     
     @Override
@@ -287,7 +311,7 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     
     private RpcResponse sendRequest(RpcRequest request) {
         try {
-            String url = baseUrl + "/rpc";
+            String url = effectiveBaseUrl() + "/rpc";
             
             String jsonBody = objectMapper.writeValueAsString(request);
             log.debug("RPC请求序列化: url={}, bodyLength={}, service={}, method={}",

@@ -139,10 +139,11 @@
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-cache -am test`
   - 完成：2026-07-06。启用此前完全未用的 `CacheProperties.redis.keyPrefix`(默认 `nebula:cache:`)：全部 41 处 key 操作(string/hash/list/set/zset)统一加前缀；`clear()`/`getSize()`/`keys()`/`scan()` 改用 SCAN 游标并按前缀圈定，`clear()` 绝不 `KEYS "*"`，无前缀时拒绝执行。`DefaultCacheManagerKeyPrefixTest` 3 用例；cache 模块 11 测试全绿。**破坏性**：缓存 key 现带前缀存储，旧的无前缀缓存数据将 miss(会自动重建)，见 log 迁移说明
 
-- [ ] **T-A3-4｜RPC 共享单例客户端并发串地址（F-A19）**
-  - 文件：`nebula-rpc-core/.../discovery/ServiceDiscoveryRpcClient.java`、`nebula-rpc-http/.../client/HttpRpcClient.java`、`nebula-rpc-grpc/.../client/GrpcRpcClient.java`（目标地址随请求传递；gRPC 按 target 维护 Channel Map 复用）
-  - 验收：并发调不同服务不再互相覆盖目标；gRPC 不再每次重建 Channel
+- [x] **T-A3-4｜RPC 共享单例客户端并发串地址（F-A19）**
+  - 文件：`ServiceDiscoveryRpcClient.java`（目标地址随请求传递，不改写共享 delegate；`ConfigurableRpcClient` 加默认 `callWithTarget`）、`HttpRpcClient.java`（per-thread ThreadLocal 目标覆盖，无锁）
+  - 验收：并发调不同服务不再互相覆盖目标
   - 验证：`mvn -q -pl infrastructure/rpc/nebula-rpc-core -am test`；grpc/http 各自测试
+  - 完成：2026-07-06。`ServiceDiscoveryRpcClient.call` 改为 `configurable.callWithTarget(target, ...)`，不再 `setTargetAddress + call` 两步改共享状态；`ConfigurableRpcClient.callWithTarget` 默认实现同步 setTarget+call(gRPC 等自动获得，消除竞态)；`HttpRpcClient` 重写为 per-thread ThreadLocal 目标覆盖(无锁、无跨线程共享)。`HttpRpcClientTargetIsolationTest` 2 用例(per-request 清理 + 并发不串号)；rpc-http 7 测试全绿。**遗留(RDG-2)**：gRPC 走默认同步兜底(正确但串行)，其按 target 维护 Channel Map 复用的优化留后续
 
 - [ ] **T-A3-5｜加权 LB 配置即崩 + Nacos Reactive 不注册（F-A20、F-A21）**
   - 文件：`RpcDiscoveryAutoConfiguration.java:313`（weighted→WEIGHTED_RANDOM 映射）、`NacosServiceAutoRegistrar.java:54`（改判 `WebServerInitializedEvent` 覆盖 Reactive；非 Web/gRPC 加独立注册钩子）

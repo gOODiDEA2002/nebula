@@ -72,12 +72,14 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
         }
         
         try {
-            // 设置目标服务地址
-            setTargetAddress(delegateClient, instance);
-            
-            // 执行RPC调用
+            // 目标地址随本次请求传递，不改写共享 delegate 的状态，避免并发串地址
+            if (delegateClient instanceof ConfigurableRpcClient configurable) {
+                String target = resolveTargetAddress(delegateClient, instance);
+                return configurable.callWithTarget(target, serviceClass, methodName, args);
+            }
+            // 非可配置客户端：无目标寻址能力，直接调用
             return delegateClient.call(serviceClass, methodName, args);
-            
+
         } catch (Exception e) {
             log.error("RPC调用失败: serviceName={}, instance={}, method={}", 
                     serviceName, instance.getAddress(), methodName, e);
@@ -182,26 +184,20 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
      * @param client RPC客户端
      * @param instance 服务实例
      */
-    private void setTargetAddress(io.nebula.rpc.core.client.RpcClient client, ServiceInstance instance) {
-        // ✅ GrpcRpcClient 从元数据获取 gRPC 端口
+    private String resolveTargetAddress(io.nebula.rpc.core.client.RpcClient client, ServiceInstance instance) {
+        // GrpcRpcClient 从元数据获取 gRPC 端口
         try {
             Class<?> grpcClientClass = Class.forName("io.nebula.rpc.grpc.client.GrpcRpcClient");
             if (grpcClientClass.isInstance(client)) {
                 String grpcAddress = buildGrpcAddress(instance);
                 log.debug("gRPC 目标地址: {}", grpcAddress);
-                if (client instanceof ConfigurableRpcClient) {
-                    ((ConfigurableRpcClient) client).setTargetAddress(grpcAddress);
-                }
-                return;
+                return grpcAddress;
             }
         } catch (ClassNotFoundException e) {
             // gRPC 模块未引入，忽略
         }
-        
-        // 对于其他类型的客户端，使用HTTP地址
-        if (client instanceof ConfigurableRpcClient) {
-            ((ConfigurableRpcClient) client).setTargetAddress(instance.getAddress());
-        }
+        // 其他类型客户端使用 HTTP 地址
+        return instance.getAddress();
     }
     
     /**
@@ -266,10 +262,23 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     public interface ConfigurableRpcClient extends io.nebula.rpc.core.client.RpcClient {
         /**
          * 设置目标地址
-         * 
+         *
          * @param address 目标地址
          */
         void setTargetAddress(String address);
+
+        /**
+         * 面向指定目标地址发起一次调用。
+         * <p>
+         * 默认实现同步 {@code setTargetAddress + call}，避免并发调用不同实例时共享可变 target 被互相覆盖
+         * (导致请求打到错误实例)。无共享可变状态的实现(如 HTTP 用 per-request ThreadLocal)应重写为无锁版本。
+         */
+        default <T> T callWithTarget(String targetAddress, Class<T> serviceClass, String methodName, Object... args) {
+            synchronized (this) {
+                setTargetAddress(targetAddress);
+                return call(serviceClass, methodName, args);
+            }
+        }
     }
     
     /**
