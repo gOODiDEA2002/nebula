@@ -1,0 +1,30 @@
+# proxy-pool 公共代理池服务
+# 用于 SIA (source-insight-ai) 等爬虫项目的代理池
+services:
+  sia-proxy-pool:
+    image: harbor.vocoor.com/ci/proxy-pool:latest
+    container_name: sia-proxy-pool
+    ports:
+      # 仅绑定宿主机 localhost, 避免代理池管理接口暴露到公网;
+      # 同一 sia-net 上的消费者(爬虫)可直接通过 sia-proxy-pool:5010 访问, 无需经宿主机端口
+      - "127.0.0.1:5010:5010"
+    environment:
+      # Redis 连接字符串, 从 .env 或部署侧环境注入(禁止提交真实口令), 参见 .env.example
+      DB_CONN: "${DB_CONN:?DB_CONN 未设置: 请在 .env 中配置 Redis 连接串, 参见 .env.example}"
+      # 可选: 设置后所有非健康检查接口需携带该 token(X-API-Token 头或 ?token= 参数)
+      API_TOKEN: "${API_TOKEN:-}"
+      TZ: Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5010/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - sia-net
+
+networks:
+  sia-net:
+    name: sia-net
+    external: true
