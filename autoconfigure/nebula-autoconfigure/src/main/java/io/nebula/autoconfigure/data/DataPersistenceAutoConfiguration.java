@@ -92,7 +92,9 @@ public class DataPersistenceAutoConfiguration {
      */
     @Bean("dataSource")
     @Primary
-    @ConditionalOnExpression("'${nebula.data.persistence.enabled:false}' == 'true' && '${nebula.data.sharding.enabled:false}' != 'true'")
+    @ConditionalOnExpression("'${nebula.data.persistence.enabled:false}' == 'true'"
+            + " && '${nebula.data.sharding.enabled:false}' != 'true'"
+            + " && '${nebula.data.read-write-separation.dynamic-routing:false}' != 'true'")
     @ConditionalOnMissingBean(DataSource.class)
     public DataSource primaryDataSource() {
         // fail-fast: 返回 null 会让下游 sqlSessionFactory 注入报出与根因脱节的错误，

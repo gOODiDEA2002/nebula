@@ -187,15 +187,17 @@
   - 验收：无 nebula 数据源配置时启动明确报错；有用户 DataSource 时不硬抢
   - 完成：2026-07-06。`primaryDataSource()` 由返回 null 改为抛 `IllegalStateException`(带明确原因)，避免下游报与根因脱节的错；`persistenceSummary` 诊断连接改 try-with-resources 不再泄漏。`@ConditionalOnMissingBean(DataSource.class)` 已在(用户已有 DataSource 时让路)。`DataPersistenceFailFastTest` 2 用例。注：nebula 持久化默认关闭(matchIfMissing=false)，仅显式启用时才建数据源
 
-- [ ] **T-A4-3｜数据源配置契约文档化**
-  - 文件：文档/示例——`nebula.data.persistence.datasource.*` 结构与迁移指引（供 proud-day 照填）
+- [x] **T-A4-3｜数据源配置契约文档化**
+  - 文件：`docs/nebula-persistence-adoption.md`
+  - 完成：2026-07-06。写了持久化接入指南：最小配置(`nebula.data.persistence.sources.<name>.*` + `mapper-packages` + `primary`)、从标准 Spring Boot MyBatis-Plus 迁移的 proud-day B 步骤(迁数据源配置、去自建 @MapperScan、33 个 mapper 不改)、可选读写分离/分库分表、注意事项
 
 - [x] **T-A4-4｜ServiceImpl 假实现修复（F-A17/CD-2）**（并入原 T-A3-2，改在此统一做）
   - 文件：`nebula-data-persistence/.../service/impl/ServiceImpl.java`
   - 完成：2026-07-06。`findByField`(原返回全表)、`findOneByField`(原把字段值当主键 selectById)、`findByFields`(原全表)、`findTopN`(原不限数量)、`findRandomN`(原全表)全部用 `QueryWrapper` 真实现(findOneByField 走条件查询取一条；findTopN 用分页限数；findRandomN 用 ORDER BY RAND() LIMIT)。零调用方但属 IService 公共 API，故真实现而非删除。`ServiceImplQueryTest` 2 用例(findByField 建条件查询/findOneByField 不当主键)。注：`saveBatchIgnore`/`removeByIdPhysical`/`removePhysical` 语义误导(非错数据)留治理阶段
 
-- [ ] **T-A4-5｜读写分离动态路由修复（CD-3）**（framework 质量，proud-day 暂不用）
-  - 文件：`autoconfigure/.../data/*ReadWrite*`、`ReadWriteDataSourceManager.java`
+- [x] **T-A4-5｜读写分离动态路由修复（CD-3）**（framework 质量，proud-day 暂不用）
+  - 文件：`autoconfigure/.../data/DataPersistenceAutoConfiguration.java`（primaryDataSource 条件补排除 dynamic-routing）
+  - 完成：2026-07-06。`dynamic-routing=true` 时 primaryDataSource 与 dynamicDataSource 条件都成立、primaryDataSource 先注册占了 @Primary DataSource，导致 dynamicDataSource 的 `@ConditionalOnMissingBean` 永不成立(动态路由不可达)。给 primaryDataSource 的 `@ConditionalOnExpression` 补上 `&& dynamic-routing != true`(与注释声明的"读写分离优先"一致)。行为级(多库路由)验证需读写分离环境，转 CI
 
 ## 阶段 D：proud-day B 迁移（下游、框架发布后，独立回归）
 
