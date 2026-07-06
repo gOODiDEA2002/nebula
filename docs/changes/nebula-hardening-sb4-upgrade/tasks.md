@@ -95,10 +95,11 @@
   - 验收：业务端口不再暴露无鉴权任务触发；token 不出现在日志
   - 验证：`mvn -q -pl application/nebula-task -am test`；`grep -n accessToken` 确认无 INFO 打印
 
-- [ ] **T-A2-6｜性能端点鉴权 + resetMetrics（F-A9）**
-  - 文件：`nebula-web/.../controller/PerformanceController.java`、`performance/DefaultPerformanceMonitor.java`（端点纳入认证；实现真正 reset 或删端点）
+- [x] **T-A2-6｜性能端点鉴权 + resetMetrics（F-A9）**
+  - 文件：`PerformanceController.java`（类级 `@ConditionalOnProperty(nebula.web.performance.enabled)` 默认关，端点默认不暴露）、`PerformanceMetrics.java`（新增 `reset()`）、`DefaultPerformanceMonitor.java`（`resetMetrics` 调用真实 reset）
   - 验收：`/performance/*` 需认证；reset 真实生效或移除
   - 验证：`mvn -q -pl application/nebula-web -am test`
+  - 完成：2026-07-06。端点改 opt-in（默认关闭，消除 /system 信息泄漏与 /reset 无鉴权的默认暴露；启用后由应用 AuthInterceptor 保护，这些路径不在 ignore-paths）；`resetMetrics` 由空实现改为 `metrics.reset()` 真实清零。`PerformanceMetricsResetTest` 2 用例验证清零与委托
 
 - [x] **T-A2-7｜ES 认证回调覆盖（F-A10）**
   - 文件：`autoconfigure/.../search/ElasticsearchAutoConfiguration.java`（合并三次 `setHttpClientConfigCallback` 为单回调，依次设凭证/连接池/SSL）

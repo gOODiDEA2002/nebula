@@ -23,6 +23,7 @@ import io.nebula.core.common.result.Result;
  */
 @RestController
 @RequestMapping("/performance")
+@ConditionalOnProperty(prefix = "nebula.web.performance", name = "enabled", havingValue = "true")
 public class PerformanceController {
     
     @Autowired(required = false)

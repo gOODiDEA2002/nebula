@@ -113,6 +113,23 @@ public class PerformanceMetrics {
     public synchronized void updateLastUpdateTime() {
         lastUpdateTime = LocalDateTime.now();
     }
+
+    /**
+     * 重置全部指标（供 /performance/reset 端点真实生效）。
+     */
+    public synchronized void reset() {
+        totalRequests = 0;
+        successfulRequests = 0;
+        failedRequests = 0;
+        totalResponseTime = 0;
+        minResponseTime = Long.MAX_VALUE;
+        maxResponseTime = 0;
+        slowRequestCount = 0;
+        activeRequests = 0;
+        statusCounts.clear();
+        pathCounts.clear();
+        lastUpdateTime = LocalDateTime.now();
+    }
     
     /**
      * 获取平均响应时间

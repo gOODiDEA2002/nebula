@@ -94,10 +94,8 @@ public class DefaultPerformanceMonitor implements PerformanceMonitor {
     
     @Override
     public void resetMetrics() {
-        synchronized (metrics) {
-            // 这里可以实现指标重置逻辑
-            logger.info("Performance metrics reset");
-        }
+        metrics.reset();
+        logger.info("Performance metrics reset");
     }
     
     @Override

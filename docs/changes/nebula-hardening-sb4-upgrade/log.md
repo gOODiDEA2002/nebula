@@ -71,6 +71,7 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - **T-A2-1 OPTIONS**：非预检 OPTIONS 不再免认证。若有依赖"OPTIONS 直接放行"的客户端行为需调整。
 - **T-A2-8 缓存多态白名单（破坏性）**：Redis 缓存值反序列化改为白名单（默认仅 java.util/java.time/io.nebula）。**缓存自定义模型对象(如 com.myapp.*)的应用必须配置** `nebula.data.cache.redis.trusted-packages: [com.myapp]`，否则缓存读取反序列化失败。此为关闭 Jackson gadget RCE 的必要收紧。
 - **T-A1-3 RBAC Filter**：默认关闭，需要 Nebula RBAC 的应用设 `nebula.security.jwt.filter.enabled=true`。
+- **T-A2-6 性能端点**：`/performance/*` 改为默认不暴露，需 `nebula.web.performance.enabled=true` 开启（开启后由应用认证保护）。依赖这些端点的应用需显式启用。
 
 ## 待补验证（环境受限）
 
