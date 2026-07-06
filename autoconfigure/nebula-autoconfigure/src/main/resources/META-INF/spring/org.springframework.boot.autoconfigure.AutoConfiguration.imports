@@ -84,6 +84,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
 
 # ========================================
 # Task Layer - 任务调度层
-# 注意: TaskAutoConfiguration 由 nebula-task 模块自身的 spring.factories 注册
+# 注意: TaskAutoConfiguration 由 nebula-task 模块自身的 AutoConfiguration.imports 注册
+# (Spring Boot 3 已忽略 spring.factories 的 EnableAutoConfiguration 键)
 # 不在此处引用，避免 nebula-task 不在 classpath 时报 ClassNotFoundException
 # ========================================

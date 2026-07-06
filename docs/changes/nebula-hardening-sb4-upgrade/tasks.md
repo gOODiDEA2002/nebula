@@ -36,10 +36,11 @@
   - 验证：`mvn -q -pl autoconfigure/nebula-autoconfigure -am test`
   - 完成：2026-07-06。核实两块内容均已有代码兜底、无需迁移即可删：(1) Spring AI 排除的 9 个类与 `SpringAIAutoConfigurationFilter`(注册于 spring.factories) 完全一致；(2) `spring.cloud.gateway.grpc.enabled` 在 SCG 4.1.5 中并非真实属性(死配置)，真实排除由 gateway starter 的 `GatewayGrpcServerExcludeConfiguration`(EPP, 已注册) 承担。删除后 autoconfigure 编译通过
 
-- [ ] **T-A0-5｜删除 task 的 spring.factories 死文件（F-A15）**
+- [x] **T-A0-5｜删除 task 的 spring.factories 死文件（F-A15）**
   - 文件：`application/nebula-task/.../META-INF/spring.factories`（删除）、主 imports 尾部注释订正
   - 验收：task 自动配置仍由 `.imports` 正常注册
   - 验证：`mvn -q -pl application/nebula-task -am test`
+  - 完成：2026-07-06。删除用 `EnableAutoConfiguration` 键的死文件（SB3 已忽略该键）；订正主 imports 第 87 行注释（"由 spring.factories 注册" → "由 AutoConfiguration.imports 注册"）；task 模块 `.imports` 仍注册 TaskAutoConfiguration，编译通过
 
 ## 阶段 A1：机制性失效（最高优先，解锁"能验证"）
 
