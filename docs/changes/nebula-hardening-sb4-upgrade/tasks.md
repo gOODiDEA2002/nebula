@@ -30,10 +30,11 @@
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`
   - 完成：2026-07-06。删除根 pom 的 `rabbitmq.version`/`spring-rabbit.version` 属性及对应 dependencyManagement；现解析为 spring-rabbit **3.2.8** + spring-amqp **3.2.8**（版本对齐，消除 3.1.0/3.2.8 错配）、amqp-client 5.25.0，编译通过。**遗留**：live 收发端到端测试需真实 broker，本地无 Docker/RabbitMQ 未跑，转 CI/带 broker 环境验证（见风险登记）
 
-- [ ] **T-A0-4｜删除框架 JAR 内 application.yml（F-A14）**
+- [x] **T-A0-4｜删除框架 JAR 内 application.yml（F-A14）**
   - 文件：`autoconfigure/.../resources/application.yml`（删除）；Gateway gRPC 禁用与 Spring AI 排除改为 Filter/代码
   - 验收：应用不再被框架 yml 覆盖；Spring AI 默认排除仍生效
   - 验证：`mvn -q -pl autoconfigure/nebula-autoconfigure -am test`
+  - 完成：2026-07-06。核实两块内容均已有代码兜底、无需迁移即可删：(1) Spring AI 排除的 9 个类与 `SpringAIAutoConfigurationFilter`(注册于 spring.factories) 完全一致；(2) `spring.cloud.gateway.grpc.enabled` 在 SCG 4.1.5 中并非真实属性(死配置)，真实排除由 gateway starter 的 `GatewayGrpcServerExcludeConfiguration`(EPP, 已注册) 承担。删除后 autoconfigure 编译通过
 
 - [ ] **T-A0-5｜删除 task 的 spring.factories 死文件（F-A15）**
   - 文件：`application/nebula-task/.../META-INF/spring.factories`（删除）、主 imports 尾部注释订正
