@@ -6,7 +6,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.nebula.data.cache.manager.CacheManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -37,11 +39,44 @@ public class DefaultCacheManager implements CacheManager {
     private volatile long hitCount = 0;
     private volatile long missCount = 0;
     private volatile long evictionCount = 0;
+
+    /**
+     * 缓存 key 前缀(命名空间)。所有 key 统一加此前缀存储，使 clear()/getSize() 能按前缀圈定范围，
+     * 避免 KEYS "*" 误删/统计同库其他业务数据。由 CacheProperties.redis.keyPrefix 注入。
+     */
+    private String keyPrefix = "nebula:cache:";
+    private static final long SCAN_COUNT = 500;
+
+    public void setKeyPrefix(String keyPrefix) {
+        if (keyPrefix != null) {
+            this.keyPrefix = keyPrefix;
+        }
+    }
+
+    private String buildKey(String key) {
+        return keyPrefix + key;
+    }
+
+    /**
+     * 用 SCAN 游标(非阻塞)收集匹配 pattern 的 key，替代阻塞且危险的 KEYS。
+     */
+    private Set<String> scanKeys(String pattern) {
+        Set<String> result = new HashSet<>();
+        ScanOptions options = ScanOptions.scanOptions().match(pattern).count(SCAN_COUNT).build();
+        try (Cursor<String> cursor = redisTemplate.scan(options)) {
+            while (cursor.hasNext()) {
+                result.add(cursor.next());
+            }
+        } catch (Exception e) {
+            log.error("SCAN 失败: pattern={}", pattern, e);
+        }
+        return result;
+    }
     
     @Override
     public void set(String key, Object value) {
         try {
-            redisTemplate.opsForValue().set(key, value);
+            redisTemplate.opsForValue().set(buildKey(key), value);
             log.debug("设置缓存: key={}", key);
         } catch (Exception e) {
             log.error("设置缓存失败: key={}", key, e);
@@ -51,7 +86,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public void set(String key, Object value, Duration duration) {
         try {
-            redisTemplate.opsForValue().set(key, value, duration);
+            redisTemplate.opsForValue().set(buildKey(key), value, duration);
             log.debug("设置缓存（带过期时间）: key={}, duration={}", key, duration);
         } catch (Exception e) {
             log.error("设置缓存失败: key={}, duration={}", key, duration, e);
@@ -60,7 +95,7 @@ public class DefaultCacheManager implements CacheManager {
     
     public void set(String key, Object value, long timeout, TimeUnit unit) {
         try {
-            redisTemplate.opsForValue().set(key, value, timeout, unit);
+            redisTemplate.opsForValue().set(buildKey(key), value, timeout, unit);
             log.debug("设置缓存（带过期时间）: key={}, timeout={}, unit={}", key, timeout, unit);
         } catch (Exception e) {
             log.error("设置缓存失败: key={}, timeout={}, unit={}", key, timeout, unit, e);
@@ -71,7 +106,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> Optional<T> get(String key, Class<T> type) {
         try {
-            Object value = redisTemplate.opsForValue().get(key);
+            Object value = redisTemplate.opsForValue().get(buildKey(key));
             if (value != null) {
                 hitCount++;
                 log.debug("缓存命中: key={}", key);
@@ -100,7 +135,7 @@ public class DefaultCacheManager implements CacheManager {
             missCount++;
             try {
                 StringRedisSerializer keySerializer = (StringRedisSerializer) redisTemplate.getKeySerializer();
-                byte[] rawKey = keySerializer.serialize(key);
+                byte[] rawKey = keySerializer.serialize(buildKey(key));
                 byte[] rawValue = redisTemplate.execute((RedisCallback<byte[]>) connection -> connection.stringCommands().get(rawKey));
                 if (rawValue != null) {
                     T converted = objectMapper.readValue(rawValue, type);
@@ -150,7 +185,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean delete(String key) {
         try {
-            Boolean result = redisTemplate.delete(key);
+            Boolean result = redisTemplate.delete(buildKey(key));
             boolean deleted = Boolean.TRUE.equals(result);
             if (deleted) {
                 evictionCount++;
@@ -170,7 +205,8 @@ public class DefaultCacheManager implements CacheManager {
         }
         
         try {
-            Long result = redisTemplate.delete(keys);
+            List<String> prefixed = keys.stream().map(this::buildKey).collect(Collectors.toList());
+            Long result = redisTemplate.delete(prefixed);
             long deleted = result != null ? result : 0;
             if (deleted > 0) {
                 evictionCount += deleted;
@@ -186,7 +222,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean exists(String key) {
         try {
-            Boolean result = redisTemplate.hasKey(key);
+            Boolean result = redisTemplate.hasKey(buildKey(key));
             return Boolean.TRUE.equals(result);
         } catch (Exception e) {
             log.error("检查缓存存在性失败: key={}", key, e);
@@ -197,7 +233,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean expire(String key, Duration duration) {
         try {
-            Boolean result = redisTemplate.expire(key, duration);
+            Boolean result = redisTemplate.expire(buildKey(key), duration);
             return Boolean.TRUE.equals(result);
         } catch (Exception e) {
             log.error("设置缓存过期时间失败: key={}, duration={}", key, duration, e);
@@ -208,7 +244,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public Duration getExpire(String key) {
         try {
-            Long seconds = redisTemplate.getExpire(key);
+            Long seconds = redisTemplate.getExpire(buildKey(key));
             if (seconds != null) {
                 return Duration.ofSeconds(seconds);
             }
@@ -222,7 +258,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean persist(String key) {
         try {
-            Boolean result = redisTemplate.persist(key);
+            Boolean result = redisTemplate.persist(buildKey(key));
             return Boolean.TRUE.equals(result);
         } catch (Exception e) {
             log.error("移除缓存过期时间失败: key={}", key, e);
@@ -238,7 +274,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long increment(String key, long delta) {
         try {
-            Long result = redisTemplate.opsForValue().increment(key, delta);
+            Long result = redisTemplate.opsForValue().increment(buildKey(key), delta);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("递增操作失败: key={}, delta={}", key, delta, e);
@@ -254,7 +290,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long decrement(String key, long delta) {
         try {
-            Long result = redisTemplate.opsForValue().decrement(key, delta);
+            Long result = redisTemplate.opsForValue().decrement(buildKey(key), delta);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("递减操作失败: key={}, delta={}", key, delta, e);
@@ -265,7 +301,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public void hSet(String key, String field, Object value) {
         try {
-            redisTemplate.opsForHash().put(key, field, value);
+            redisTemplate.opsForHash().put(buildKey(key), field, value);
             log.debug("设置Hash缓存: key={}, field={}", key, field);
         } catch (Exception e) {
             log.error("设置Hash缓存失败: key={}, field={}", key, field, e);
@@ -275,7 +311,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public void hMSet(String key, Map<String, Object> fields) {
         try {
-            redisTemplate.opsForHash().putAll(key, fields);
+            redisTemplate.opsForHash().putAll(buildKey(key), fields);
             log.debug("批量设置Hash缓存: key={}, fields={}", key, fields.size());
         } catch (Exception e) {
             log.error("批量设置Hash缓存失败: key={}, fields={}", key, fields.size(), e);
@@ -286,7 +322,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> Optional<T> hGet(String key, String field, Class<T> type) {
         try {
-            Object value = redisTemplate.opsForHash().get(key, field);
+            Object value = redisTemplate.opsForHash().get(buildKey(key), field);
             if (value != null && type.isInstance(value)) {
                 return Optional.of((T) value);
             }
@@ -300,7 +336,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public Map<String, Object> hGetAll(String key) {
         try {
-            Map<Object, Object> result = redisTemplate.opsForHash().entries(key);
+            Map<Object, Object> result = redisTemplate.opsForHash().entries(buildKey(key));
             return result.entrySet().stream()
                     .collect(Collectors.toMap(
                             entry -> entry.getKey().toString(),
@@ -315,7 +351,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long hDelete(String key, String... fields) {
         try {
-            Long result = redisTemplate.opsForHash().delete(key, (Object[]) fields);
+            Long result = redisTemplate.opsForHash().delete(buildKey(key), (Object[]) fields);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("删除Hash字段失败: key={}, fields={}", key, Arrays.toString(fields), e);
@@ -326,7 +362,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean hExists(String key, String field) {
         try {
-            Boolean result = redisTemplate.opsForHash().hasKey(key, field);
+            Boolean result = redisTemplate.opsForHash().hasKey(buildKey(key), field);
             return Boolean.TRUE.equals(result);
         } catch (Exception e) {
             log.error("检查Hash字段存在性失败: key={}, field={}", key, field, e);
@@ -337,7 +373,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long hLen(String key) {
         try {
-            Long result = redisTemplate.opsForHash().size(key);
+            Long result = redisTemplate.opsForHash().size(buildKey(key));
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("获取Hash长度失败: key={}", key, e);
@@ -348,7 +384,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public Set<String> hKeys(String key) {
         try {
-            Set<Object> keys = redisTemplate.opsForHash().keys(key);
+            Set<Object> keys = redisTemplate.opsForHash().keys(buildKey(key));
             return keys.stream()
                     .map(Object::toString)
                     .collect(Collectors.toSet());
@@ -361,7 +397,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long hIncrement(String key, String field, long delta) {
         try {
-            Long result = redisTemplate.opsForHash().increment(key, field, delta);
+            Long result = redisTemplate.opsForHash().increment(buildKey(key), field, delta);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("Hash字段递增失败: key={}, field={}, delta={}", key, field, delta, e);
@@ -372,7 +408,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long lPush(String key, Object... values) {
         try {
-            Long result = redisTemplate.opsForList().leftPushAll(key, values);
+            Long result = redisTemplate.opsForList().leftPushAll(buildKey(key), values);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("List左推入失败: key={}, count={}", key, values.length, e);
@@ -383,7 +419,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long rPush(String key, Object... values) {
         try {
-            Long result = redisTemplate.opsForList().rightPushAll(key, values);
+            Long result = redisTemplate.opsForList().rightPushAll(buildKey(key), values);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("List右推入失败: key={}, count={}", key, values.length, e);
@@ -395,7 +431,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> Optional<T> lPop(String key, Class<T> type) {
         try {
-            Object value = redisTemplate.opsForList().leftPop(key);
+            Object value = redisTemplate.opsForList().leftPop(buildKey(key));
             if (value != null && type.isInstance(value)) {
                 return Optional.of((T) value);
             }
@@ -410,7 +446,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> Optional<T> rPop(String key, Class<T> type) {
         try {
-            Object value = redisTemplate.opsForList().rightPop(key);
+            Object value = redisTemplate.opsForList().rightPop(buildKey(key));
             if (value != null && type.isInstance(value)) {
                 return Optional.of((T) value);
             }
@@ -425,7 +461,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> List<T> lRange(String key, long start, long end, Class<T> type) {
         try {
-            List<Object> values = redisTemplate.opsForList().range(key, start, end);
+            List<Object> values = redisTemplate.opsForList().range(buildKey(key), start, end);
             if (values != null) {
                 return values.stream()
                         .filter(type::isInstance)
@@ -442,7 +478,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long lLen(String key) {
         try {
-            Long result = redisTemplate.opsForList().size(key);
+            Long result = redisTemplate.opsForList().size(buildKey(key));
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("获取List长度失败: key={}", key, e);
@@ -453,7 +489,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long sAdd(String key, Object... values) {
         try {
-            Long result = redisTemplate.opsForSet().add(key, values);
+            Long result = redisTemplate.opsForSet().add(buildKey(key), values);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("Set添加元素失败: key={}, count={}", key, values.length, e);
@@ -464,7 +500,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long sRem(String key, Object... values) {
         try {
-            Long result = redisTemplate.opsForSet().remove(key, values);
+            Long result = redisTemplate.opsForSet().remove(buildKey(key), values);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("Set移除元素失败: key={}, count={}", key, values.length, e);
@@ -475,7 +511,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean sIsMember(String key, Object value) {
         try {
-            Boolean result = redisTemplate.opsForSet().isMember(key, value);
+            Boolean result = redisTemplate.opsForSet().isMember(buildKey(key), value);
             return Boolean.TRUE.equals(result);
         } catch (Exception e) {
             log.error("检查Set成员失败: key={}", key, e);
@@ -487,7 +523,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> Set<T> sMembers(String key, Class<T> type) {
         try {
-            Set<Object> members = redisTemplate.opsForSet().members(key);
+            Set<Object> members = redisTemplate.opsForSet().members(buildKey(key));
             if (members != null) {
                 return members.stream()
                         .filter(type::isInstance)
@@ -504,7 +540,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long sCard(String key) {
         try {
-            Long result = redisTemplate.opsForSet().size(key);
+            Long result = redisTemplate.opsForSet().size(buildKey(key));
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("获取Set大小失败: key={}", key, e);
@@ -515,7 +551,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean zAdd(String key, Object value, double score) {
         try {
-            Boolean result = redisTemplate.opsForZSet().add(key, value, score);
+            Boolean result = redisTemplate.opsForZSet().add(buildKey(key), value, score);
             return Boolean.TRUE.equals(result);
         } catch (Exception e) {
             log.error("ZSet添加元素失败: key={}, value={}, score={}", key, value, score, e);
@@ -531,7 +567,7 @@ public class DefaultCacheManager implements CacheManager {
                             .map(entry -> new org.springframework.data.redis.core.DefaultTypedTuple<>(
                                     entry.getKey(), entry.getValue()))
                             .collect(Collectors.toSet());
-            Long result = redisTemplate.opsForZSet().add(key, tuples);
+            Long result = redisTemplate.opsForZSet().add(buildKey(key), tuples);
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("ZSet批量添加元素失败: key={}, count={}", key, values.size(), e);
@@ -543,7 +579,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> List<T> zRange(String key, long start, long end, Class<T> type) {
         try {
-            Set<Object> values = redisTemplate.opsForZSet().range(key, start, end);
+            Set<Object> values = redisTemplate.opsForZSet().range(buildKey(key), start, end);
             if (values != null) {
                 return values.stream()
                         .filter(type::isInstance)
@@ -561,7 +597,7 @@ public class DefaultCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     public <T> List<T> zRangeByScore(String key, double minScore, double maxScore, Class<T> type) {
         try {
-            Set<Object> values = redisTemplate.opsForZSet().rangeByScore(key, minScore, maxScore);
+            Set<Object> values = redisTemplate.opsForZSet().rangeByScore(buildKey(key), minScore, maxScore);
             if (values != null) {
                 return values.stream()
                         .filter(type::isInstance)
@@ -578,7 +614,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public Long zRank(String key, Object value) {
         try {
-            return redisTemplate.opsForZSet().rank(key, value);
+            return redisTemplate.opsForZSet().rank(buildKey(key), value);
         } catch (Exception e) {
             log.error("获取ZSet排名失败: key={}, value={}", key, value, e);
             return null;
@@ -588,7 +624,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public Double zScore(String key, Object value) {
         try {
-            return redisTemplate.opsForZSet().score(key, value);
+            return redisTemplate.opsForZSet().score(buildKey(key), value);
         } catch (Exception e) {
             log.error("获取ZSet分数失败: key={}, value={}", key, value, e);
             return null;
@@ -598,7 +634,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public long zCard(String key) {
         try {
-            Long result = redisTemplate.opsForZSet().size(key);
+            Long result = redisTemplate.opsForZSet().size(buildKey(key));
             return result != null ? result : 0;
         } catch (Exception e) {
             log.error("获取ZSet大小失败: key={}", key, e);
@@ -608,18 +644,18 @@ public class DefaultCacheManager implements CacheManager {
     
     @Override
     public Set<String> keys(String pattern) {
-        try {
-            Set<String> keys = redisTemplate.keys(pattern);
-            return keys != null ? keys : new HashSet<>();
-        } catch (Exception e) {
-            log.error("模式匹配失败: pattern={}", pattern, e);
-            return new HashSet<>();
+        // 用 SCAN 游标替代阻塞的 KEYS；在缓存前缀命名空间内匹配调用方 pattern
+        Set<String> raw = scanKeys(buildKey(pattern));
+        // 返回给调用方时剥去前缀，保持对外 key 视图一致
+        Set<String> result = new HashSet<>(raw.size());
+        for (String k : raw) {
+            result.add(k.startsWith(keyPrefix) ? k.substring(keyPrefix.length()) : k);
         }
+        return result;
     }
-    
+
     @Override
     public Set<String> scan(String pattern, long count) {
-        // 简化实现，生产环境应该使用更复杂的扫描逻辑
         return keys(pattern);
     }
     
@@ -640,12 +676,18 @@ public class DefaultCacheManager implements CacheManager {
     
     @Override
     public void clear() {
+        if (keyPrefix == null || keyPrefix.isBlank()) {
+            // 无前缀无法安全区分缓存 key 与业务 key，拒绝执行以免误删同库数据
+            log.error("未配置缓存 key 前缀，clear() 拒绝执行以避免误删同库其他业务数据");
+            return;
+        }
         try {
-            Set<String> keys = redisTemplate.keys("*");
-            if (keys != null && !keys.isEmpty()) {
+            // 仅 SCAN + 删除本前缀命名空间下的 key，绝不 KEYS "*" 清全库
+            Set<String> keys = scanKeys(keyPrefix + "*");
+            if (!keys.isEmpty()) {
                 redisTemplate.delete(keys);
                 evictionCount += keys.size();
-                log.info("清空所有缓存: count={}", keys.size());
+                log.info("清空缓存(前缀 {}): count={}", keyPrefix, keys.size());
             }
         } catch (Exception e) {
             log.error("清空缓存失败", e);
@@ -697,8 +739,8 @@ public class DefaultCacheManager implements CacheManager {
         @Override
         public long getSize() {
             try {
-                Set<String> keys = redisTemplate.keys("*");
-                return keys != null ? keys.size() : 0;
+                // 仅统计本缓存前缀命名空间, 用 SCAN 而非阻塞 KEYS
+                return scanKeys(keyPrefix + "*").size();
             } catch (Exception e) {
                 log.error("获取缓存大小失败", e);
                 return 0;

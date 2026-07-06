@@ -133,10 +133,11 @@
   - 验收：`findByField` 按条件查询而非全表；`findOneByField` 不再当主键查；语义误导方法清理
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-persistence -am test`
 
-- [ ] **T-A3-3｜缓存 clear()/stats KEYS *（F-A18）**
-  - 文件：`nebula-data-cache/.../DefaultCacheManager.java`（SCAN 游标 + `keyPrefix` 圈定，启用当前未用的 `CacheProperties.redis.keyPrefix`）
+- [x] **T-A3-3｜缓存 clear()/stats KEYS *（F-A18）**
+  - 文件：`nebula-data-cache/.../DefaultCacheManager.java`（引入 `keyPrefix` 命名空间 + 全部 key 操作加前缀 + SCAN 游标）、`autoconfigure/.../CacheAutoConfiguration.java`（注入配置的 keyPrefix）
   - 验收：`clear()` 只删本前缀键，不再 `KEYS *` 全库
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-cache -am test`
+  - 完成：2026-07-06。启用此前完全未用的 `CacheProperties.redis.keyPrefix`(默认 `nebula:cache:`)：全部 41 处 key 操作(string/hash/list/set/zset)统一加前缀；`clear()`/`getSize()`/`keys()`/`scan()` 改用 SCAN 游标并按前缀圈定，`clear()` 绝不 `KEYS "*"`，无前缀时拒绝执行。`DefaultCacheManagerKeyPrefixTest` 3 用例；cache 模块 11 测试全绿。**破坏性**：缓存 key 现带前缀存储，旧的无前缀缓存数据将 miss(会自动重建)，见 log 迁移说明
 
 - [ ] **T-A3-4｜RPC 共享单例客户端并发串地址（F-A19）**
   - 文件：`nebula-rpc-core/.../discovery/ServiceDiscoveryRpcClient.java`、`nebula-rpc-http/.../client/HttpRpcClient.java`、`nebula-rpc-grpc/.../client/GrpcRpcClient.java`（目标地址随请求传递；gRPC 按 target 维护 Channel Map 复用）

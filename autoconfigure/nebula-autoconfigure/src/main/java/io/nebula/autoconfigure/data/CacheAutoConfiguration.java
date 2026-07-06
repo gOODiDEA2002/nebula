@@ -215,9 +215,11 @@ public class CacheAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "redis")
     @ConditionalOnClass(RedisTemplate.class)
     @ConditionalOnMissingBean(name = "redisCacheManager")
-    public CacheManager redisCacheManager(RedisTemplate<String, Object> redisTemplate) {
+    public CacheManager redisCacheManager(CacheProperties properties, RedisTemplate<String, Object> redisTemplate) {
         log.info("Configuring Redis Cache Manager");
-        return new DefaultCacheManager(redisTemplate);
+        DefaultCacheManager manager = new DefaultCacheManager(redisTemplate);
+        manager.setKeyPrefix(properties.getRedis().getKeyPrefix());
+        return manager;
     }
 
     /**
@@ -245,7 +247,8 @@ public class CacheAutoConfiguration {
         CacheManager l1Cache = new LocalCacheManager(l1Config);
 
         // 创建L2远程缓存
-        CacheManager l2Cache = new DefaultCacheManager(redisTemplate);
+        DefaultCacheManager l2Cache = new DefaultCacheManager(redisTemplate);
+        l2Cache.setKeyPrefix(properties.getRedis().getKeyPrefix());
 
         // 创建多级缓存配置
         CacheProperties.MultiLevel multiConfig = properties.getMultiLevel();

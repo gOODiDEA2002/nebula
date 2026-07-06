@@ -87,6 +87,10 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - **T-A2-4a RPC**：`RpcRequest.parameterTypes` `Class<?>[]`→`String[]`（线格式不变）。若有第三方直接构造 RpcRequest 需改类型。
 - **T-A3-7 密码哈希**：`CryptoUtils.encrypt` 已 `@Deprecated`，新密码存储改用 `hashPassword`/`matchesPassword`(PBKDF2)。雪花默认 workerId/datacenterId 改为环境变量 `NEBULA_SNOWFLAKE_WORKER_ID`/`_DATACENTER_ID` 或本机派生，生产建议显式配置。
 
+## 对外行为变更补充（T-A3-3）
+
+- **缓存 key 命名空间化（破坏性）**：`DefaultCacheManager` 此前 key 不带前缀存储，`clear()` 用 `KEYS "*"` 会清整个 Redis 库（误删同库业务数据）。修复后所有 key 统一加 `nebula.data.cache.redis.key-prefix`(默认 `nebula:cache:`) 前缀，`clear()`/统计按前缀 SCAN 圈定。**影响**：升级后旧的无前缀缓存条目读取会 miss（缓存自动重建，无数据丢失风险）；与其他系统共用 Redis 库的部署终于安全。proud-day 已配 `pd:cache:`，升级后其 key 前缀才真正生效（符合其配置本意）。
+
 ## 待补验证（环境受限）
 
 - **T-A0-3 RabbitMQ live 收发**：本地无 Docker/RabbitMQ，只验证了版本对齐(spring-rabbit 3.1.0→3.2.8, 与 spring-amqp 3.2.8 一致)与编译；收发端到端需在带 broker 的 CI/环境补跑。同类:凡验证需要 Redis/MQ/Nacos/ES 外部服务的 task, 本地只做编译级验证, 行为级验证转 CI。
