@@ -49,13 +49,38 @@ public class RpcDiscoveryAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public LoadBalancer loadBalancer(RpcDiscoveryProperties properties) {
-        LoadBalanceStrategy strategy = LoadBalanceStrategy.valueOf(
-                properties.getLoadBalanceStrategy().toUpperCase());
-        
+        LoadBalanceStrategy strategy = resolveStrategy(properties.getLoadBalanceStrategy());
+
         LoadBalancer loadBalancer = LoadBalancerFactory.getLoadBalancer(strategy);
-        
+
         log.info("配置负载均衡器: strategy={}", strategy);
         return loadBalancer;
+    }
+
+    /**
+     * 将配置值映射为枚举，容错处理别名。
+     * <p>
+     * 原实现直接 {@code valueOf(value.toUpperCase())}：配置 {@code weighted} 时得到 "WEIGHTED"，
+     * 而枚举只有 WEIGHTED_RANDOM/WEIGHTED_ROUND_ROBIN，导致启动即抛 IllegalArgumentException 崩溃。
+     */
+    LoadBalanceStrategy resolveStrategy(String value) {
+        if (value == null || value.isBlank()) {
+            return LoadBalanceStrategy.ROUND_ROBIN;
+        }
+        switch (value.trim().toLowerCase()) {
+            case "weighted":
+            case "weighted_random":
+                return LoadBalanceStrategy.WEIGHTED_RANDOM;
+            case "weighted_round_robin":
+                return LoadBalanceStrategy.WEIGHTED_ROUND_ROBIN;
+            case "random":
+                return LoadBalanceStrategy.RANDOM;
+            case "round_robin":
+                return LoadBalanceStrategy.ROUND_ROBIN;
+            default:
+                log.warn("未知负载均衡策略 '{}'，回退到 ROUND_ROBIN", value);
+                return LoadBalanceStrategy.ROUND_ROBIN;
+        }
     }
     
     /**

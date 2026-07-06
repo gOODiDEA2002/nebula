@@ -145,10 +145,11 @@
   - 验证：`mvn -q -pl infrastructure/rpc/nebula-rpc-core -am test`；grpc/http 各自测试
   - 完成：2026-07-06。`ServiceDiscoveryRpcClient.call` 改为 `configurable.callWithTarget(target, ...)`，不再 `setTargetAddress + call` 两步改共享状态；`ConfigurableRpcClient.callWithTarget` 默认实现同步 setTarget+call(gRPC 等自动获得，消除竞态)；`HttpRpcClient` 重写为 per-thread ThreadLocal 目标覆盖(无锁、无跨线程共享)。`HttpRpcClientTargetIsolationTest` 2 用例(per-request 清理 + 并发不串号)；rpc-http 7 测试全绿。**遗留(RDG-2)**：gRPC 走默认同步兜底(正确但串行)，其按 target 维护 Channel Map 复用的优化留后续
 
-- [ ] **T-A3-5｜加权 LB 配置即崩 + Nacos Reactive 不注册（F-A20、F-A21）**
-  - 文件：`RpcDiscoveryAutoConfiguration.java:313`（weighted→WEIGHTED_RANDOM 映射）、`NacosServiceAutoRegistrar.java:54`（改判 `WebServerInitializedEvent` 覆盖 Reactive；非 Web/gRPC 加独立注册钩子）
+- [x] **T-A3-5｜加权 LB 配置即崩 + Nacos Reactive 不注册（F-A20、F-A21）**
+  - 文件：`RpcDiscoveryAutoConfiguration.java`（`resolveStrategy` 别名映射，weighted→WEIGHTED_RANDOM）、`RpcDiscoveryProperties.java`（校验正则扩展）、`NacosServiceAutoRegistrar.java`（改判父类 `WebServerInitializedEvent` 覆盖 Servlet+Reactive）
   - 验收：配 `weighted` 不再启动崩溃；Reactive（网关）应用能自动注册
   - 验证：`mvn -q -pl infrastructure/discovery/nebula-discovery-nacos -am test`
+  - 完成：2026-07-06。加权 LB：`valueOf("WEIGHTED")` 崩溃改为 `resolveStrategy` 容错映射(weighted/weighted_random→WEIGHTED_RANDOM、weighted_round_robin、未知回退 ROUND_ROBIN)，校验正则同步扩展。Nacos：`instanceof ServletWebServerInitializedEvent` 改父类 `WebServerInitializedEvent`(同覆盖 Reactive/网关)。`RpcLoadBalanceStrategyTest` 3 + `NacosServiceAutoRegistrarReactiveTest` 1；nacos 40 测试全绿
 
 - [ ] **T-A3-6｜Neo4j 自动配置注册进 imports（F-A22）**
   - 文件：`autoconfigure/.../META-INF/spring/...AutoConfiguration.imports`（补 `Neo4jAutoConfiguration`、`Neo4jHealthAutoConfiguration`）

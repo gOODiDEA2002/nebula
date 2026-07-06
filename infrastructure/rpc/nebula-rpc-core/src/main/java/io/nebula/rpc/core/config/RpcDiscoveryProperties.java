@@ -33,11 +33,11 @@ public class RpcDiscoveryProperties {
     
     /**
      * 负载均衡策略
-     * 可选值: round_robin, random, weighted
+     * 可选值: round_robin, random, weighted(=weighted_random), weighted_random, weighted_round_robin
      */
     @NotBlank(message = "负载均衡策略不能为空")
-    @Pattern(regexp = "^(round_robin|random|weighted)$", 
-             message = "负载均衡策略必须是: round_robin, random, weighted 之一")
+    @Pattern(regexp = "^(round_robin|random|weighted|weighted_random|weighted_round_robin)$",
+             message = "负载均衡策略必须是: round_robin, random, weighted, weighted_random, weighted_round_robin 之一")
     private String loadBalanceStrategy = "round_robin";
     
     /**

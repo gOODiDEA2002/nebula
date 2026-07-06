@@ -7,7 +7,6 @@ import io.nebula.discovery.nacos.config.NacosProperties;
 import io.nebula.discovery.nacos.util.NetworkUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
-import org.springframework.boot.web.servlet.context.ServletWebServerInitializedEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
@@ -51,8 +50,9 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
 
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
-        if (event instanceof ServletWebServerInitializedEvent) {
-            ServletWebServerInitializedEvent serverEvent = (ServletWebServerInitializedEvent) event;
+        // 用父类 WebServerInitializedEvent 同时覆盖 Servlet 与 Reactive(如网关)应用；
+        // 原来只判 ServletWebServerInitializedEvent 会导致 Reactive 应用永远不触发自动注册
+        if (event instanceof WebServerInitializedEvent serverEvent) {
             registerService(serverEvent.getWebServer().getPort());
         } else if (event instanceof ContextClosedEvent) {
             deregisterService();
