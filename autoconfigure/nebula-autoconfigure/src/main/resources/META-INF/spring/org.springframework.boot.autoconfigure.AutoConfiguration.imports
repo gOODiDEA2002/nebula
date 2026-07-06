@@ -28,6 +28,9 @@ io.nebula.autoconfigure.data.ReadWriteDataSourceAutoConfiguration
 io.nebula.autoconfigure.data.ShardingSphereAutoConfiguration
 # 缓存配置
 io.nebula.autoconfigure.data.CacheAutoConfiguration
+# Neo4j 图数据库配置(默认关闭, 需 nebula.data.neo4j.enabled=true)
+io.nebula.autoconfigure.data.Neo4jAutoConfiguration
+io.nebula.autoconfigure.data.Neo4jHealthAutoConfiguration
 
 # ========================================
 # Security Layer - 安全层（JWT、RBAC）

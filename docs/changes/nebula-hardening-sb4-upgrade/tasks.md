@@ -151,10 +151,11 @@
   - 验证：`mvn -q -pl infrastructure/discovery/nebula-discovery-nacos -am test`
   - 完成：2026-07-06。加权 LB：`valueOf("WEIGHTED")` 崩溃改为 `resolveStrategy` 容错映射(weighted/weighted_random→WEIGHTED_RANDOM、weighted_round_robin、未知回退 ROUND_ROBIN)，校验正则同步扩展。Nacos：`instanceof ServletWebServerInitializedEvent` 改父类 `WebServerInitializedEvent`(同覆盖 Reactive/网关)。`RpcLoadBalanceStrategyTest` 3 + `NacosServiceAutoRegistrarReactiveTest` 1；nacos 40 测试全绿
 
-- [ ] **T-A3-6｜Neo4j 自动配置注册进 imports（F-A22）**
+- [x] **T-A3-6｜Neo4j 自动配置注册进 imports（F-A22）**
   - 文件：`autoconfigure/.../META-INF/spring/...AutoConfiguration.imports`（补 `Neo4jAutoConfiguration`、`Neo4jHealthAutoConfiguration`）
   - 验收：配 `nebula.data.neo4j.enabled=true` 后 Neo4j 支持生效
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-neo4j -am test`
+  - 完成：2026-07-06。两个带 `@AutoConfiguration` 却未注册的 Neo4j 类补入主 imports（Data Layer 段，默认关闭）。`Neo4jAutoConfigurationRegistrationTest` 用 `ImportCandidates.load` 断言两类进入候选清单
 
 - [x] **T-A3-7｜Foundation 五个必炸缺陷（F-A23，采用 Q6）**
   - 文件：`security/JwtUtils.java`（refreshToken 拷贝 claims 到可变 Map）、`exception/ValidationException.java`（构造器防御性拷贝）、`util/IdGenerator.java`（雪花默认从环境变量/本机地址派生 + SequenceGenerator getAndUpdate 原子回绕）、`security/CryptoUtils.java`（新增 `hashPassword`/`matchesPassword` PBKDF2，旧 `encrypt` @Deprecated）
