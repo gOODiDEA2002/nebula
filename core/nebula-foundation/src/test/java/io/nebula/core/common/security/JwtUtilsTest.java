@@ -223,13 +223,14 @@ class JwtUtilsTest {
         claims.put("role", "admin");
         
         String originalToken = JwtUtils.generateToken("user-123", claims, Duration.ofHours(1), testKey);
-        
-        // 注意：refreshToken方法由于Claims不可变性问题，当前实现会抛出异常
-        // 这是一个已知问题，需要在源代码中重写refreshToken方法
-        // 这里测试异常情况
-        assertThatThrownBy(() -> JwtUtils.refreshToken(originalToken, testKey, Duration.ofHours(2)))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining("immutable");
+
+        // 已修复(T-A3-7)：refreshToken 先把不可变 Claims 拷贝到可变 Map，不再抛 UnsupportedOperationException
+        String refreshed = JwtUtils.refreshToken(originalToken, testKey, Duration.ofHours(2));
+
+        assertThat(refreshed).isNotNull();
+        JwtUtils.JwtParseResult parsed = JwtUtils.parseToken(refreshed, testKey);
+        assertThat(parsed.isValid()).isTrue();
+        assertThat(parsed.getSubject()).isEqualTo("user-123");
     }
     
     @Test

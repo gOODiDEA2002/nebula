@@ -24,7 +24,9 @@ public class ValidationException extends NebulaException {
      */
     public ValidationException(List<FieldError> fieldErrors) {
         super("VALIDATION_FAILED", "数据验证失败");
-        this.fieldErrors = fieldErrors != null ? fieldErrors : new ArrayList<>();
+        // 防御性拷贝为可变列表：入参可能是 List.of(...) 等不可变列表，
+        // 否则后续 addFieldError() 会抛 UnsupportedOperationException。
+        this.fieldErrors = fieldErrors != null ? new ArrayList<>(fieldErrors) : new ArrayList<>();
     }
     
     /**

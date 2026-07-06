@@ -153,10 +153,11 @@
   - 验收：配 `nebula.data.neo4j.enabled=true` 后 Neo4j 支持生效
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-neo4j -am test`
 
-- [ ] **T-A3-7｜Foundation 五个必炸缺陷（F-A23，采用 Q6）**
-  - 文件：`foundation/.../util/JwtUtils.java:276`（refreshToken 拷贝 claims）、`exception/ValidationException.java:38`（可变 list）、`util/IdGenerator.java:32,470`（workerId 从环境派生 + SequenceGenerator updateAndGet）、`security/CryptoUtils.java:383`（新增 `hashPassword` BCrypt，旧 `encrypt` @Deprecated）
+- [x] **T-A3-7｜Foundation 五个必炸缺陷（F-A23，采用 Q6）**
+  - 文件：`security/JwtUtils.java`（refreshToken 拷贝 claims 到可变 Map）、`exception/ValidationException.java`（构造器防御性拷贝）、`util/IdGenerator.java`（雪花默认从环境变量/本机地址派生 + SequenceGenerator getAndUpdate 原子回绕）、`security/CryptoUtils.java`（新增 `hashPassword`/`matchesPassword` PBKDF2，旧 `encrypt` @Deprecated）
   - 验收：refreshToken/addFieldError 不再抛 UOE；雪花默认实例不撞号；序列不重号；提供强密码哈希
   - 验证：`mvn -q -pl core/nebula-foundation -am test`（补单测覆盖这 5 点）
+  - 完成：2026-07-06。新增 `FoundationHardeningTest` 5 用例全绿；密码哈希用 JDK 原生 PBKDF2(免加依赖)。**注意**：`JwtUtilsTest.testRefreshToken` 与 `ExceptionFullTest.testValidationExceptionAddFieldError` 两个旧测试把 bug 当"已知问题"断言其抛 UOE，已订正为断言正确行为（本次第 2、3 处此类测试）
 
 - [ ] **T-A3-8｜MQ 静默丢消息/NPE + 向量存储过滤失效（F-A24）**
   - 文件：`nebula-messaging-rabbitmq/.../RabbitMQMessageConsumer.java`（重试上限+DLQ，去掉无限 requeue）、`RabbitMQMessageProducer.java`（路由键约定统一）、`nebula-messaging-redis/.../RedisStreamConsumer.java:328`（headers 判空）、`nebula-ai-spring/.../CustomChromaVectorStore.java:157`（传入 filter/threshold）

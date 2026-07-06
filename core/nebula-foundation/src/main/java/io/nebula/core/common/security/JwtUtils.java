@@ -271,14 +271,16 @@ public final class JwtUtils {
             return null;
         }
         
-        // 移除系统声明，保留自定义声明
-        Claims claims = result.getClaims();
-        claims.remove(Claims.SUBJECT);
-        claims.remove(Claims.ISSUER);
-        claims.remove(Claims.ISSUED_AT);
-        claims.remove(Claims.EXPIRATION);
-        
-        return generateToken(result.getSubject(), claims, expiration, key, result.getIssuer());
+        // 移除系统声明，保留自定义声明。
+        // 注意: jjwt 0.12 的 Claims 是不可变的，直接 remove 会抛 UnsupportedOperationException，
+        // 必须先拷贝到可变 Map。
+        java.util.Map<String, Object> customClaims = new java.util.HashMap<>(result.getClaims());
+        customClaims.remove(Claims.SUBJECT);
+        customClaims.remove(Claims.ISSUER);
+        customClaims.remove(Claims.ISSUED_AT);
+        customClaims.remove(Claims.EXPIRATION);
+
+        return generateToken(result.getSubject(), customClaims, expiration, key, result.getIssuer());
     }
     
     /**

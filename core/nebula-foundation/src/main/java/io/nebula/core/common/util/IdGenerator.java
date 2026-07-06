@@ -27,9 +27,36 @@ public final class IdGenerator {
     private static final long TIMESTAMP_LEFT_SHIFT = SEQUENCE_BITS + WORKER_ID_BITS + DATACENTER_ID_BITS;
     
     /**
-     * 默认雪花算法实例
+     * 默认雪花算法实例。
+     * <p>
+     * workerId/datacenterId 优先取环境变量 NEBULA_SNOWFLAKE_WORKER_ID / NEBULA_SNOWFLAKE_DATACENTER_ID，
+     * 否则从本机地址派生，使不同节点默认取到不同值——避免此前硬编码 (1,1) 在集群多实例下同毫秒生成重复 ID。
+     * 生产环境仍建议显式配置以彻底避免派生哈希碰撞。
      */
-    private static final SnowflakeIdGenerator DEFAULT_SNOWFLAKE = new SnowflakeIdGenerator(1, 1);
+    private static final SnowflakeIdGenerator DEFAULT_SNOWFLAKE = new SnowflakeIdGenerator(
+            resolveSnowflakeId("NEBULA_SNOWFLAKE_WORKER_ID", 0),
+            resolveSnowflakeId("NEBULA_SNOWFLAKE_DATACENTER_ID", 1));
+
+    /**
+     * 解析雪花 workerId/datacenterId：环境变量优先，其次本机地址派生，最后随机兜底。取值范围 [0,31]。
+     */
+    private static long resolveSnowflakeId(String envName, int seed) {
+        String env = System.getenv(envName);
+        if (env != null && !env.isBlank()) {
+            try {
+                return Long.parseLong(env.trim()) & 0x1FL;
+            } catch (NumberFormatException ignored) {
+                // 环境变量非法时回退到派生
+            }
+        }
+        try {
+            byte[] addr = java.net.InetAddress.getLocalHost().getAddress();
+            int hash = java.util.Arrays.hashCode(addr) + seed * 131;
+            return (hash & 0x7fffffff) & 0x1FL;
+        } catch (Exception e) {
+            return java.util.concurrent.ThreadLocalRandom.current().nextInt(32);
+        }
+    }
     
     /**
      * 随机数生成器
@@ -468,17 +495,9 @@ public final class IdGenerator {
          * @return 序列号
          */
         public long nextValue() {
-            long current = sequence.getAndIncrement();
-            if (current >= max) {
-                // 重置序列号
-                if (sequence.compareAndSet(current + 1, start)) {
-                    return start;
-                } else {
-                    // 并发情况下可能已经被其他线程重置，直接返回当前值
-                    return sequence.get();
-                }
-            }
-            return current;
+            // 原子地取当前值并推进，环形回绕到 start。
+            // 原实现是 check-then-CAS，并发下 CAS 失败分支会返回竞态读到的值(可能重号或越界)。
+            return sequence.getAndUpdate(v -> (v + 1 >= max) ? start : v + 1);
         }
         
         /**

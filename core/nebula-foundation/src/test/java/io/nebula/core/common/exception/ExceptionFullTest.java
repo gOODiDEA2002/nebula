@@ -203,13 +203,12 @@ class ExceptionFullTest {
     
     @Test
     void testValidationExceptionAddFieldError() {
-        // 注意：由于ValidationException使用了List.of()创建不可变列表，addFieldError方法会抛出异常
-        // 这是一个已知问题，应该在源代码中修改为使用可变列表
-        // 这里测试异常情况
+        // 已修复(T-A3-7)：构造器防御性拷贝为可变列表，addFieldError 不再抛 UnsupportedOperationException
         ValidationException exception = ValidationException.of("username", "用户名不能为空");
-        
-        assertThatThrownBy(() -> exception.addFieldError("email", "邮箱不能为空", null))
-                .isInstanceOf(UnsupportedOperationException.class);
+
+        exception.addFieldError("email", "邮箱不能为空", null);
+
+        assertThat(exception.getFieldErrors()).hasSize(2);
     }
     
     @Test

@@ -6,7 +6,9 @@ import org.apache.commons.codec.digest.DigestUtils;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -376,10 +378,13 @@ public final class CryptoUtils {
     
     /**
      * 密码加密（使用SHA256加盐）
-     * 
+     *
      * @param password 原始密码
      * @return 加密后的密码
+     * @deprecated 单轮 SHA-256 加盐对抗 GPU 暴力破解强度不足。请改用 {@link #hashPassword(String)}
+     * （PBKDF2，加盐+多轮迭代）。本方法仅为兼容历史哈希保留，切勿用于新的密码存储。
      */
+    @Deprecated
     public static String encrypt(String password) {
         if (password == null) {
             return null;
@@ -387,6 +392,65 @@ public final class CryptoUtils {
         String salt = generateSalt(16);
         String hashedPassword = sha256WithSalt(password, salt);
         return salt + ":" + hashedPassword;
+    }
+
+    private static final int PBKDF2_ITERATIONS = 120_000;
+    private static final int PBKDF2_KEY_BITS = 256;
+    private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
+    private static final String PBKDF2_PREFIX = "pbkdf2";
+
+    /**
+     * 使用 PBKDF2(HmacSHA256, 加盐 + 多轮迭代) 计算密码哈希，用于安全存储密码。
+     * 返回格式: {@code pbkdf2$<iterations>$<base64Salt>$<base64Hash>}。
+     *
+     * @param password 原始密码
+     * @return 可存储的哈希字符串；password 为 null 时返回 null
+     */
+    public static String hashPassword(String password) {
+        if (password == null) {
+            return null;
+        }
+        byte[] salt = new byte[16];
+        new java.security.SecureRandom().nextBytes(salt);
+        byte[] hash = pbkdf2(password.toCharArray(), salt, PBKDF2_ITERATIONS, PBKDF2_KEY_BITS);
+        return PBKDF2_PREFIX + "$" + PBKDF2_ITERATIONS + "$"
+                + Base64.encodeBase64String(salt) + "$" + Base64.encodeBase64String(hash);
+    }
+
+    /**
+     * 校验密码是否与 {@link #hashPassword(String)} 产生的哈希匹配（恒定时间比较）。
+     *
+     * @param password    原始密码
+     * @param storedHash  存储的哈希字符串
+     * @return 是否匹配
+     */
+    public static boolean matchesPassword(String password, String storedHash) {
+        if (password == null || storedHash == null) {
+            return false;
+        }
+        String[] parts = storedHash.split("\\$");
+        if (parts.length != 4 || !PBKDF2_PREFIX.equals(parts[0])) {
+            return false;
+        }
+        try {
+            int iterations = Integer.parseInt(parts[1]);
+            byte[] salt = Base64.decodeBase64(parts[2]);
+            byte[] expected = Base64.decodeBase64(parts[3]);
+            byte[] actual = pbkdf2(password.toCharArray(), salt, iterations, expected.length * 8);
+            return MessageDigest.isEqual(expected, actual);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static byte[] pbkdf2(char[] password, byte[] salt, int iterations, int keyBits) {
+        try {
+            PBEKeySpec spec = new PBEKeySpec(password, salt, iterations, keyBits);
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
+            return factory.generateSecret(spec).getEncoded();
+        } catch (Exception e) {
+            throw new IllegalStateException("PBKDF2 密码哈希计算失败", e);
+        }
     }
     
     /**
