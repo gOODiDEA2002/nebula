@@ -208,12 +208,58 @@
   - 数据源 `spring.datasource.*` → `nebula.data.persistence.datasource.*`；设 `nebula.data.persistence.enabled=true` + 配 mapper 包；移除自建 `@MapperScan`（改由 Nebula 扫描）；生产数据层全回归
   - 前置：阶段 A4 完成并发布快照；**必须在 proud-day 重新构建吃到新快照前落地**（sequencing 风险）
 
-## 工作流 B / C（epic 占位，待 A 收敛后拆）
+## 工作流 B / C（用户拍板：B+C+D 全做；顺序 = C 前置批 → B 三阶段 → C 收尾，D 穿插）
 
-- [ ] **EPIC-B｜升级 Spring Boot 4.1**（升级设计第 8 节阶段 1-3）
-- [ ] **EPIC-C1｜P1 可靠性**（拦截器顺序、XFF、双 MQ、读写分离、多级缓存失效、RocketMQ 停机、Netty 握手、RabbitMQ tag 订阅与发送路由键不匹配<hardening-b 审查发现：`subscribeWithTag` 以 tag 绑定队列但生产者恒以 topic 为路由键，tagged 队列永远收不到消息，需给发送侧补 tag 路由约定>）
-- [ ] **EPIC-C2｜治理**（补自动装配集成测试<横切最高优先>、清死配置、移除残留 stereotype、收紧默认值、收敛并行实现）
-- [ ] **EPIC-C3｜删除 `nebula-example/` 空壳目录**（零风险清理）
+> 排序原则（2026-07-06 用户确认）：C 里与"B 要大拆的模块"无关的修复先做（升级后不会被推翻）；
+> 与重灾模块（Gateway 路由、gRPC net.devh、ES RestClient、RocketMQ 4.x 内部 API）耦合的项并入 B 阶段 2 一起做，避免返工。
+> `nebula-example/` 空壳目录经核实当前工作区已不存在，原 EPIC-C3 撤销。
+
+### 阶段 C-pre：C 前置批（在 3.5.16 上先做，升级不推翻）
+
+- [ ] **T-C1-1｜拦截器顺序显式化（CWT-18）**
+  - 文件：`nebula-web/.../interceptor/InterceptorOrders.java`（新增常量）、5 个 `Web*AutoConfiguration` 注册点补 `.order(...)`
+  - 顺序：Logging(100) < RateLimit(200) < Auth(300) < Cache(400) < Perf(500)——限流先于认证挡匿名洪水，缓存命中不绕过限流计数
+  - 验证：`mvn -q -pl application/nebula-web -am test`
+- [ ] **T-C1-2｜Web 侧 XFF 可信代理解析（CWT-28）**
+  - 文件：新增 `nebula-web/.../util/ClientIpResolver.java`；`RequestLoggingInterceptor`、`DefaultRateLimitKeyGenerator` 改用之；`WebProperties` 加 `trustedProxies`
+  - 语义：默认不信任 XFF（直接用 remoteAddr）；仅当 remoteAddr 命中可信代理列表才解析 XFF。**破坏性**：依赖 XFF 的部署需显式配置
+  - 验证：`mvn -q -pl application/nebula-web -am test`
+- [ ] **T-C1-3｜双 MQ 并存冲突（MW-20）**
+  - 文件：`RabbitMQAutoConfiguration` / `RocketMQAutoConfiguration`（@Primary MessageManager 按 `nebula.messaging.primary` 条件化，默认 rabbitmq）；`MessageHandlerProcessor` 注册挪到共享配置、注入 @Primary MessageManager
+  - 验收：双 MQ 同时启用不再崩溃；@MessageListener 注册到 primary MQ（语义明确）
+  - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq,infrastructure/messaging/nebula-messaging-rocketmq -am test`
+- [ ] **T-C1-4｜读写分离切面 vs 事务（CD-9）**
+  - 文件：`ReadWriteDataSourceAspect`（检测目标方法/类 @Transactional：非 readOnly 拒绝切读库 + warn；readOnly=true 放行）
+  - 背景：现有 isActualTransactionActive 检查对"同方法 @ReadDataSource+@Transactional"失效（切面先于事务执行）
+  - 验证：`mvn -q -pl infrastructure/data/nebula-data-persistence -am test`
+- [ ] **T-C1-5｜Netty WebSocket 握手时机 + 空闲清理（MW-5）**
+  - 文件：`WebSocketFrameHandler`（会话注册从 channelActive 移到 HandshakeComplete 事件；userEventTriggered 消费 IdleStateEvent 关闭空闲连接）
+  - 验收：非 WebSocket 的 HTTP 请求不再产生幽灵会话；空闲连接被清理
+  - 验证：`mvn -q -pl infrastructure/websocket/nebula-websocket-netty -am test`
+- [ ] **T-C1-6｜RabbitMQ tag 发送路由 + tagged 消费毒消息防护**
+  - 文件：`RabbitMQMessageProducer`（send 时 message.tag 非空则 routingKey=tag，匹配 tagged 绑定）、`RabbitMQMessageConsumer.subscribeWithTag`（补 requeue=!isRedeliver，与 subscribe 路径一致）
+  - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`
+- [ ] **T-C1-7｜多级缓存跨节点失效 + 击穿/穿透防护（CD-10）**
+  - 文件：`MultiLevelCacheManager`（getOrSet single-flight per-key 锁；可配置空值哨兵缓存）、新增 `CacheInvalidationBroadcaster` 接口 + Redis pub/sub 实现、`CacheAutoConfiguration` 装配（multi-level + Redis 时启用广播）
+  - 验收：节点 A delete 后节点 B 的 L1 被驱逐；并发同 key miss 只回源一次；null 结果可选缓存
+  - 验证：`mvn -q -pl infrastructure/data/nebula-data-cache -am test`
+- [ ] **T-C1-8｜移除实现类残留 stereotype 注解**
+  - 范围（已核实由 AutoConfiguration @Bean 管理或不应被组件扫描）：ReadWriteDataSourceAspect、DefaultCacheManager、RabbitMQ 一族（Producer/Consumer/ExchangeManager/Manager 等）、SpringAIEmbeddingService、MongoTemplate、DataSourceManager、ShardingConfig、ShardingSphereManager、DefaultTransactionManager、ReadWriteDataSourceManager、LockedAspect、RedisLockManager、AsyncRpcExecutionManager、TimedTaskJobHandler
+  - 保留：注解定义的元注解 @Component（@MessageListener/@MessageHandler/@RpcService 设计如此）
+  - 验证：`mvn -q clean compile` + 相关模块测试
+- [ ] **T-C1-9｜收紧不安全默认值**
+  - 文件：`NacosProperties`（username/password 默认 "nacos"→空）、`TaskProperties`（accessToken 默认 "xxl-job"→空）、`WebSocketProperties`（allowedOrigins {"*"}→{}）、`WebProperties.Cors`（allowCredentials true→false）
+  - **破坏性**：依赖默认值的部署需显式配置，记 log 迁移说明
+  - 验证：`mvn -q clean compile` + 相关模块测试
+- [ ] **T-C1-10｜TimedTaskJobHandler 吞异常谎报成功**
+  - 文件：`nebula-task/.../scheduled/TimedTaskJobHandler.java`（子任务失败计数，任何失败返回 FAIL 并列出失败任务）
+  - 验证：`mvn -q -pl application/nebula-task -am test`
+
+### 阶段 B / C 收尾 / D（C-pre 完成后拆）
+
+- [ ] **EPIC-B｜升级 Spring Boot 4.1**（升级设计第 8 节阶段 1-3；C 中与重灾模块耦合的项——Gateway XFF/路由钉死、gRPC Channel 生命周期(RDG-2)、RocketMQ 停机钩子/事务表、gRPC token 鉴权——并入阶段 2 一起做）
+- [ ] **EPIC-C2｜C 收尾（B 后）**（死配置全量清理、错误码三套体系收敛、web/security 认证两套收敛、xxl-job 孤儿 DTO 清理、补更多自动装配集成测试）
+- [ ] **T-D-1｜proud-day 接入 Nebula 持久化**（见阶段 D，仓库位置待用户提供时再启动）
 
 ---
 
