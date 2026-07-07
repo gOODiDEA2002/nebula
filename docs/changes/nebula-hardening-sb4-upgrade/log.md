@@ -101,4 +101,11 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - **2026-07-06｜升级目标版本联网复核通过**：对照 Maven 中央仓库 `maven-metadata.xml` 确认 `spring-boot-starter-parent` latest/release=4.1.0（3.5.16、4.0.7 在列）、`spring-cloud-dependencies` latest/release=2025.1.2、`spring-ai-bom` latest/release=2.0.0，升级设计 §1 版本断言成立。另全仓库 grep 无任何预览语法（`STR.`/`ScopedValue`/`StructuredTaskScope` 等），F-A12 移除 `--enable-preview` 确认零风险。
 - **2026-07-06｜hardening-a 全量审查结论（28 提交逐一核对，hardening-b 修复）**：两处"已完成"记录与代码不符——(1) T-A3-8 称 SSA-1 不适用（"CustomChromaVectorStore 已不存在"），实际该类存在于 autoconfigure 模块且缺陷原样保留，根因是路径勘误被误读为类已删除，已在 hardening-b 修复并补 `CustomChromaVectorStoreTest`；(2) T-A2-4a 只修了 HTTP 侧 `Class.forName`，gRPC 侧 `GrpcRpcServer.parseParameterTypes` 同源漏洞被遗漏（tasks 文件清单本就未列 gRPC 文件，属 Spec 缺口而非实现走样），已在 hardening-b 以同一策略修复并补 `GrpcRpcServerFindMethodTest`。另发现 1 处 P2 行为缺口：MW-3 修复把发送路由键统一为 topic 后，`subscribeWithTag`（按 tag 绑定）永远收不到消息且生产者无发 tag 的 API——已登记进 EPIC-C1 待修。其余 26 项完成记录与代码逐一相符。
 
+## 里程碑：工作流 A 收官（2026-07-06，全量回归通过）
+
+- `mvn clean install` **BUILD SUCCESS**：69 模块全过，Total time 01:40。
+- 测试合计 **750 run / 0 failures / 0 errors / 3 skipped**。3 个 skipped 均为 `nebula-crawler-browser` 的 `StealthIntegrationTest`（需真实 Playwright 浏览器环境，历史遗留的条件跳过，与本工作流改动无关）。
+- 变更规模：87 文件（+2792 / -1239），32 个原子提交。变更摘要已回填 tasks.md 末尾。
+- 待办出口：行为级验证清单转 CI（见「待补验证」）；下一步方向 B（升 SB4.1）/ C（P1 可靠性+治理）/ D（proud-day 迁移）待用户拍板。
+
 _（开发中追加：实现与 Spec 不一致时，先更新 Spec 再改代码，并在此记录）_

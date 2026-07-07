@@ -217,8 +217,18 @@
 
 ---
 
-## 变更摘要（工作流 A 全部完成后填写）
+## 变更摘要（工作流 A 已全部完成，2026-07-06 收尾）
 
-- 总文件数：_待填_
-- Spec-Plan 偏差：_待填_
-- 遗留问题：_待填_
+- **总规模**：相对 main 共 87 文件（+2792 / -1239），新增 29 / 删除 7 / 修改 51；32 个原子提交，任务与提交一一对应。
+- **全量回归**：`mvn clean install` BUILD SUCCESS（69 模块，01:40）；测试 750 run / 0 failures / 0 errors / 3 skipped（skipped 均为 `nebula-crawler-browser` 的 `StealthIntegrationTest`，需真实浏览器环境，属历史遗留跳过，与本工作流无关）。
+- **Spec-Plan 偏差**（详见 log.md）：
+  1. 新增阶段 A4（持久化可用性）——原 spec 无，源自 proud-day 走 B 方案的决策；T-A3-2 并入 T-A4-4 统一实现。
+  2. T-A2-4b 的 gRPC token 鉴权移入工作流 B——net.devh 将迁 spring-grpc，现写专用拦截器属注定丢弃的返工。
+  3. hardening-a 两处完成记录与代码不符（SSA-1 被误判"类已删除"、gRPC 侧 Class.forName 遗漏），已在 hardening-b 审查发现并补修（本文件 T-A2-4a 补漏、T-A3-8 勘误两条记录）。
+- **破坏性变更**（发布时须随 release notes，详见 log「对外行为变更/迁移说明」）：缓存多态白名单（trusted-packages）、缓存 key 前缀化、响应缓存默认关+注解白名单、非预检 OPTIONS 不再免认证、性能端点默认关、RBAC Filter 默认关、`RpcRequest.parameterTypes` 改 `String[]`。
+- **遗留问题**：
+  1. 行为级验证转 CI（本地无外部服务）：RabbitMQ live 收发（T-A0-3）、ES Basic 认证（T-A2-7）、毒消息重投/topic 路由（T-A3-8）、读写分离多库路由（T-A4-5）。
+  2. RDG-2：gRPC `callWithTarget` 走默认同步兜底（正确但串行），按 target 维护 Channel Map 的优化留后续。
+  3. `subscribeWithTag` 与发送路由键不匹配（tag 队列收不到消息）——已登记 EPIC-C1。
+  4. T-A2-5 删除 `XxlJobTaskService` 后的孤儿 DTO——留治理阶段（EPIC-C2）。
+  5. 阶段 D（proud-day 迁移）未启动，须在 proud-day 重新构建吃到新快照前落地。
