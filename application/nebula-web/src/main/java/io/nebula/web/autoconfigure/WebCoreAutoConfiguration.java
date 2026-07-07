@@ -2,6 +2,7 @@ package io.nebula.web.autoconfigure;
 
 import io.nebula.web.exception.GlobalExceptionHandler;
 import io.nebula.web.filter.RequestLoggingFilter;
+import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.interceptor.RequestLoggingInterceptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -97,7 +98,8 @@ class WebCoreAutoConfiguration {
                 WebProperties.RequestLogging requestLoggingConfig = webProperties.getRequestLogging();
                 if (requestLoggingConfig.isEnabled()) {
                     registry.addInterceptor(new RequestLoggingInterceptor(requestLoggingConfig))
-                           .addPathPatterns("/**");
+                           .addPathPatterns("/**")
+                           .order(InterceptorOrders.REQUEST_LOGGING);
                 }
             }
 

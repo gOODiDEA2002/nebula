@@ -216,10 +216,11 @@
 
 ### 阶段 C-pre：C 前置批（在 3.5.16 上先做，升级不推翻）
 
-- [ ] **T-C1-1｜拦截器顺序显式化（CWT-18）**
+- [x] **T-C1-1｜拦截器顺序显式化（CWT-18）**
   - 文件：`nebula-web/.../interceptor/InterceptorOrders.java`（新增常量）、5 个 `Web*AutoConfiguration` 注册点补 `.order(...)`
   - 顺序：Logging(100) < RateLimit(200) < Auth(300) < Cache(400) < Perf(500)——限流先于认证挡匿名洪水，缓存命中不绕过限流计数
   - 验证：`mvn -q -pl application/nebula-web -am test`
+  - 完成：2026-07-06。此前 Auth=-1、Perf=0、其余默认 0（按装配顺序），限流实际排在认证之后。统一改常量并全部显式注册；间隔 100 便于应用插入自定义拦截器。`InterceptorOrdersTest` 3 用例固化顺序契约；nebula-web 75 测试全绿
 - [ ] **T-C1-2｜Web 侧 XFF 可信代理解析（CWT-28）**
   - 文件：新增 `nebula-web/.../util/ClientIpResolver.java`；`RequestLoggingInterceptor`、`DefaultRateLimitKeyGenerator` 改用之；`WebProperties` 加 `trustedProxies`
   - 语义：默认不信任 XFF（直接用 remoteAddr）；仅当 remoteAddr 命中可信代理列表才解析 XFF。**破坏性**：依赖 XFF 的部署需显式配置

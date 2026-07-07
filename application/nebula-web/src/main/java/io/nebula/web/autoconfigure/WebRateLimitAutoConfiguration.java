@@ -1,6 +1,7 @@
 package io.nebula.web.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.interceptor.RateLimitInterceptor;
 import io.nebula.web.ratelimit.DefaultRateLimitKeyGenerator;
 import io.nebula.web.ratelimit.MemoryRateLimiter;
@@ -47,7 +48,8 @@ class WebRateLimitAutoConfiguration {
             public void addInterceptors(InterceptorRegistry registry) {
                 WebProperties.RateLimit config = webProperties.getRateLimit();
                 registry.addInterceptor(new RateLimitInterceptor(rateLimiter, keyGenerator, config, objectMapper))
-                       .addPathPatterns("/**");
+                       .addPathPatterns("/**")
+                       .order(InterceptorOrders.RATE_LIMIT);
             }
         };
     }

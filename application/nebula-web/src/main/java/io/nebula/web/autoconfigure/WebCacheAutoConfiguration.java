@@ -5,6 +5,7 @@ import io.nebula.web.cache.DefaultCacheKeyGenerator;
 import io.nebula.web.cache.MemoryResponseCache;
 import io.nebula.web.cache.ResponseCache;
 import io.nebula.web.filter.ResponseCacheFilter;
+import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.interceptor.ResponseCacheInterceptor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -57,7 +58,8 @@ class WebCacheAutoConfiguration {
             public void addInterceptors(InterceptorRegistry registry) {
                 WebProperties.Cache config = webProperties.getCache();
                 registry.addInterceptor(new ResponseCacheInterceptor(responseCache, cacheKeyGenerator, config))
-                       .addPathPatterns("/**");
+                       .addPathPatterns("/**")
+                       .order(InterceptorOrders.RESPONSE_CACHE);
             }
         };
     }

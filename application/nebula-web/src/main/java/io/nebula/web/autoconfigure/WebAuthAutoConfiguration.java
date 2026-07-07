@@ -7,6 +7,7 @@ import io.nebula.web.auth.AuthService;
 import io.nebula.web.auth.DefaultAuthService;
 import io.nebula.web.auth.JwtUtils;
 import io.nebula.web.interceptor.AuthInterceptor;
+import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.mask.DataMaskingStrategyManager;
 import io.nebula.web.mask.SensitiveDataAnnotationIntrospector;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -50,7 +51,7 @@ class WebAuthAutoConfiguration {
                 WebProperties.Auth config = webProperties.getAuth();
                 registry.addInterceptor(new AuthInterceptor(authService, config, objectMapper))
                        .addPathPatterns("/**")
-                       .order(-1);
+                       .order(InterceptorOrders.AUTH);
             }
         };
     }

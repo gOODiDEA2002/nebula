@@ -7,6 +7,7 @@ import io.nebula.web.health.HealthChecker;
 import io.nebula.web.health.checkers.ApplicationHealthChecker;
 import io.nebula.web.health.checkers.DiskSpaceHealthChecker;
 import io.nebula.web.health.checkers.MemoryHealthChecker;
+import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.interceptor.PerformanceMonitorInterceptor;
 import io.nebula.web.performance.DefaultPerformanceMonitor;
 import io.nebula.web.performance.PerformanceMonitor;
@@ -47,7 +48,7 @@ class WebMonitorAutoConfiguration {
                 String[] ignorePaths = {"/performance/**", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**"};
                 registry.addInterceptor(new PerformanceMonitorInterceptor(performanceMonitor, ignorePaths))
                        .addPathPatterns("/**")
-                       .order(0);
+                       .order(InterceptorOrders.PERFORMANCE_MONITOR);
             }
         };
     }
