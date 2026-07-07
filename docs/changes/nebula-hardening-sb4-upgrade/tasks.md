@@ -236,10 +236,11 @@
   - 背景：现有 isActualTransactionActive 检查对"同方法 @ReadDataSource+@Transactional"失效（切面先于事务执行）
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-persistence -am test`
   - 完成：2026-07-06。`shouldSwitchDataSource` 增加静态 @Transactional 检测（方法优先、类回退，AnnotationUtils 含接口/元注解）：非 readOnly 写事务拒绝切读库并 warn（force=true 也不放行——写事务里强制读会让写入打到从库，比一致性问题更严重）；readOnly=true 放行（只读事务走从库是合法组合）。原有"运行时活动事务 + force"语义保留（覆盖事务方法内部再调读方法的场景）。新增 `ReadWriteDataSourceAspectTest` 6 用例（AspectJProxyFactory 真实织入）。persistence 24 测试全绿
-- [ ] **T-C1-5｜Netty WebSocket 握手时机 + 空闲清理（MW-5）**
+- [x] **T-C1-5｜Netty WebSocket 握手时机 + 空闲清理（MW-5）**
   - 文件：`WebSocketFrameHandler`（会话注册从 channelActive 移到 HandshakeComplete 事件；userEventTriggered 消费 IdleStateEvent 关闭空闲连接）
   - 验收：非 WebSocket 的 HTTP 请求不再产生幽灵会话；空闲连接被清理
   - 验证：`mvn -q -pl infrastructure/websocket/nebula-websocket-netty -am test`
+  - 完成：2026-07-06。因服务端用手工 `WebSocketServerHandshaker`（非 WebSocketServerProtocolHandler），无内置 HandshakeComplete 事件——新增 `WebSocketHandshakeCompletedEvent` record，`HttpRequestHandler` 在握手响应写出成功后 fireUserEventTriggered（失败则关连接）；`WebSocketFrameHandler.userEventTriggered` 收到后才注册会话+发 CONNECTED 帧，收到 IdleStateEvent 直接关闭。顺带修复 `NettyWebSocketSession.getRemoteAddress()` 对非 INET 通道（EmbeddedChannel 等）的盲转型 CCE。新增 `WebSocketFrameHandlerTest` 4 用例（EmbeddedChannel 全链路：TCP 建连不注册/普通 HTTP 不注册/升级请求注册+101+CONNECTED/空闲关闭）。websocket-netty 4 测试全绿
 - [ ] **T-C1-6｜RabbitMQ tag 发送路由 + tagged 消费毒消息防护**
   - 文件：`RabbitMQMessageProducer`（send 时 message.tag 非空则 routingKey=tag，匹配 tagged 绑定）、`RabbitMQMessageConsumer.subscribeWithTag`（补 requeue=!isRedeliver，与 subscribe 路径一致）
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`

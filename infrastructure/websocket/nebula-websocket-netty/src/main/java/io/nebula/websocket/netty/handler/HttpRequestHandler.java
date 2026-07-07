@@ -71,8 +71,18 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         if (handshaker == null) {
             WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
         } else {
-            handshaker.handshake(ctx.channel(), request);
-            log.debug("WebSocket 握手成功: {}", ctx.channel().remoteAddress());
+            // MW-5: 握手响应写出成功后才沿 pipeline 通知帧处理器注册会话,
+            // 避免 TCP 建连即注册产生幽灵会话
+            String requestUri = request.uri();
+            handshaker.handshake(ctx.channel(), request).addListener(future -> {
+                if (future.isSuccess()) {
+                    log.debug("WebSocket 握手成功: {}", ctx.channel().remoteAddress());
+                    ctx.fireUserEventTriggered(new WebSocketHandshakeCompletedEvent(requestUri));
+                } else {
+                    log.warn("WebSocket 握手失败: {}", ctx.channel().remoteAddress(), future.cause());
+                    ctx.close();
+                }
+            });
         }
     }
 

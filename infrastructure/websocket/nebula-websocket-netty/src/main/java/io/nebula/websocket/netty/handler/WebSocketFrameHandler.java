@@ -10,6 +10,7 @@ import io.nebula.websocket.netty.session.NettyWebSocketSession;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.*;
+import io.netty.handler.timeout.IdleStateEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,9 +37,30 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
      */
     public static final String SESSION_ATTRIBUTE = "websocket.session";
 
+    /**
+     * MW-5: 会话注册从 channelActive(TCP 建连)移到 WebSocket 握手完成之后。
+     * 此前任何 HTTP 请求(健康检查/端口扫描/404)都会注册幽灵会话且发出协议违规的
+     * CONNECTED 帧; 空闲连接(IdleStateEvent)此前无人消费, 半死连接永不清理。
+     */
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        // 创建会话
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof WebSocketHandshakeCompletedEvent) {
+            registerSession(ctx);
+        } else if (evt instanceof IdleStateEvent idleEvent) {
+            NettyWebSocketSession session = getSession(ctx);
+            log.info("连接空闲超时, 主动关闭: sessionId={}, state={}, remoteAddress={}",
+                    session != null ? session.getId() : "N/A(未完成握手)",
+                    idleEvent.state(), ctx.channel().remoteAddress());
+            ctx.close();
+        } else {
+            super.userEventTriggered(ctx, evt);
+        }
+    }
+
+    /**
+     * 握手完成后注册会话并通知事件处理器
+     */
+    private void registerSession(ChannelHandlerContext ctx) {
         NettyWebSocketSession session = new NettyWebSocketSession(ctx.channel(), objectMapper);
         ctx.channel().attr(io.netty.util.AttributeKey.<NettyWebSocketSession>valueOf(SESSION_ATTRIBUTE)).set(session);
         sessionRegistry.register(session);
@@ -60,8 +82,6 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
                 "sessionId", session.getId(),
                 "message", "连接成功"
         )));
-
-        super.channelActive(ctx);
     }
 
     @Override

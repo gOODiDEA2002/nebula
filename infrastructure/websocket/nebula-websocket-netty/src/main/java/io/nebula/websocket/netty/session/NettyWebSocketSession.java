@@ -155,11 +155,11 @@ public class NettyWebSocketSession implements WebSocketSession {
 
     @Override
     public String getRemoteAddress() {
-        InetSocketAddress address = (InetSocketAddress) channel.remoteAddress();
-        if (address != null) {
+        // 非 INET 通道(如测试用 EmbeddedChannel/Unix Domain Socket)不能盲转 InetSocketAddress
+        if (channel.remoteAddress() instanceof InetSocketAddress address) {
             return address.getHostString() + ":" + address.getPort();
         }
-        return null;
+        return channel.remoteAddress() != null ? String.valueOf(channel.remoteAddress()) : null;
     }
 
     @Override
