@@ -231,10 +231,11 @@
   - 验收：双 MQ 同时启用不再崩溃；@MessageListener 注册到 primary MQ（语义明确）
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq,infrastructure/messaging/nebula-messaging-rocketmq -am test`
   - 完成：2026-07-06。实现与计划的偏差（更优方案）：不用"@Primary 按属性条件化拆双 @Bean 方法"（配置值非法时 Bean 静默消失），改为新增 `MessagingCoreAutoConfiguration`：(1) `BeanFactoryPostProcessor` 在多 Manager 并存时按 `nebula.messaging.primary`（bean 名称包含匹配，默认 rabbitmq）动态设唯一 primary，无匹配快速失败并列出候选；(2) `MessageHandlerProcessor` 只注册一份（@ConditionalOnBean(MessageManager)），注入 primary Manager；(3) 两 MQ 配置删除全部 @Primary（含 serializer/router 上冗余的）与各自的 processor 注册。单 MQ 行为完全不变。新增 `MessagingCoreAutoConfigurationTest` 5 用例（双 MQ 默认/显式选主/非法值快速失败/单 MQ/无 MQ）。messaging-core 5 + rabbitmq 41 + rocketmq 15 + autoconfigure 23 测试全绿
-- [ ] **T-C1-4｜读写分离切面 vs 事务（CD-9）**
+- [x] **T-C1-4｜读写分离切面 vs 事务（CD-9）**
   - 文件：`ReadWriteDataSourceAspect`（检测目标方法/类 @Transactional：非 readOnly 拒绝切读库 + warn；readOnly=true 放行）
   - 背景：现有 isActualTransactionActive 检查对"同方法 @ReadDataSource+@Transactional"失效（切面先于事务执行）
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-persistence -am test`
+  - 完成：2026-07-06。`shouldSwitchDataSource` 增加静态 @Transactional 检测（方法优先、类回退，AnnotationUtils 含接口/元注解）：非 readOnly 写事务拒绝切读库并 warn（force=true 也不放行——写事务里强制读会让写入打到从库，比一致性问题更严重）；readOnly=true 放行（只读事务走从库是合法组合）。原有"运行时活动事务 + force"语义保留（覆盖事务方法内部再调读方法的场景）。新增 `ReadWriteDataSourceAspectTest` 6 用例（AspectJProxyFactory 真实织入）。persistence 24 测试全绿
 - [ ] **T-C1-5｜Netty WebSocket 握手时机 + 空闲清理（MW-5）**
   - 文件：`WebSocketFrameHandler`（会话注册从 channelActive 移到 HandshakeComplete 事件；userEventTriggered 消费 IdleStateEvent 关闭空闲连接）
   - 验收：非 WebSocket 的 HTTP 请求不再产生幽灵会话；空闲连接被清理

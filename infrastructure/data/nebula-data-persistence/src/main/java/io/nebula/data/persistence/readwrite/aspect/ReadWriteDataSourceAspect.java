@@ -13,6 +13,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.lang.reflect.Method;
@@ -75,7 +76,7 @@ public class ReadWriteDataSourceAspect {
         DataSourceAnnotationInfo annotationInfo = getDataSourceAnnotationInfo(method, targetClass, targetType);
         
         // 检查是否需要切换数据源
-        if (!shouldSwitchDataSource(annotationInfo, targetType)) {
+        if (!shouldSwitchDataSource(annotationInfo, targetType, method, targetClass)) {
             log.debug("Skipping data source switch for method: {}", method.getName());
             return joinPoint.proceed();
         }
@@ -156,9 +157,27 @@ public class ReadWriteDataSourceAspect {
     /**
      * 判断是否需要切换数据源
      */
-    private boolean shouldSwitchDataSource(DataSourceAnnotationInfo annotationInfo, DataSourceType targetType) {
-        // 如果是读操作且在事务中，需要检查force标志
-        if (targetType == DataSourceType.READ && TransactionSynchronizationManager.isActualTransactionActive()) {
+    private boolean shouldSwitchDataSource(DataSourceAnnotationInfo annotationInfo, DataSourceType targetType,
+                                           Method method, Class<?> targetClass) {
+        if (targetType != DataSourceType.READ) {
+            return true;
+        }
+        
+        // CD-9: 本切面 @Order(1) 先于事务切面执行, 同方法 @ReadDataSource+@Transactional 时
+        // isActualTransactionActive 恒为 false(事务尚未开启), 若此时切到读库, 随后开启的
+        // "写事务"会绑定只读库连接, 写操作静默走从库/报错。故静态检测目标上声明的 @Transactional:
+        // 非 readOnly 的写事务一律拒绝切读库(force 也不放行, 那会直接破坏写入)。
+        Transactional declaredTx = findTransactional(method, targetClass);
+        if (declaredTx != null && !declaredTx.readOnly()) {
+            log.warn("Method {}.{} declares @Transactional(readOnly=false) with @ReadDataSource, " +
+                            "refusing to switch to READ data source (writes would hit the read replica). " +
+                            "Use @Transactional(readOnly=true) or remove @ReadDataSource.",
+                    targetClass.getSimpleName(), method.getName());
+            return false;
+        }
+        
+        // 外层已有活动事务(事务方法内部再调读方法): 保持原有 force 语义
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
             if (!annotationInfo.force) {
                 log.debug("In transaction, skipping read data source switch (force=false)");
                 return false;
@@ -168,6 +187,17 @@ public class ReadWriteDataSourceAspect {
         }
         
         return true;
+    }
+    
+    /**
+     * 查找目标方法/类上声明的 @Transactional(方法优先, 含接口与元注解)
+     */
+    private Transactional findTransactional(Method method, Class<?> targetClass) {
+        Transactional tx = AnnotationUtils.findAnnotation(method, Transactional.class);
+        if (tx == null) {
+            tx = AnnotationUtils.findAnnotation(targetClass, Transactional.class);
+        }
+        return tx;
     }
     
     /**
