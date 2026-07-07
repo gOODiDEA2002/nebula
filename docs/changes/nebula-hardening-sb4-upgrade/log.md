@@ -92,6 +92,7 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - **T-C1-3 双 MQ 选主**：RabbitMQ 与 RocketMQ 同时启用不再启动崩溃（此前双 @Primary MessageManager 冲突）。`@MessageListener` 注册到 `nebula.messaging.primary` 指定的 MQ（默认 rabbitmq）；配置值无匹配时启动快速失败并列出候选 Bean。单 MQ 部署行为不变，无需任何配置。
 - **T-C1-7 多级缓存（增强，非破坏）**：multi-level 模式新增 Redis pub/sub 失效广播（频道 `{keyPrefix}invalidation`，自动装配 `RedisMessageListenerContainer`），节点间 L1 旧副本在写后被驱逐而非等 TTL；`getOrSet` 增加 single-flight 击穿防护（无需配置）；新增可选穿透防护 `nebula.data.cache.multi-level.null-caching-enabled=true` + `null-value-ttl`（默认关闭，开启后回源 null 写 60s 哨兵，业务创建数据后主动 set 或等哨兵过期）。
 - **T-C1-6 RabbitMQ tag 路由（修复即变更）**：带 tag 的消息路由键从 topic 改为 tag——`subscribeWithTag` 的队列此前永远收不到消息（绑定键=tag 与发送键=topic 不匹配），修复后 tagged 队列开始真实收到消息；同时普通订阅队列（绑定键=topic）不再收到带 tag 的消息。依赖"tagged 消息也进普通队列"旧行为的应用需改用无 tag 发送。
+- **T-C1-10 定时任务失败上报**：`TimedTaskJobHandler` 四个入口（everyMinute/FiveMinute/Hour/Day）子任务抛异常时该轮调度改为返回 FAIL（此前恒报 SUCCESS）。XXL-JOB 调度中心配置了失败告警/重试的任务将开始真实收到失败通知；单个子任务失败仍不中断同批其余任务。
 - **T-C1-9 不安全默认值收紧（破坏性，共四处）**：
   1. `nebula.discovery.nacos.username/password` 默认 "nacos"/"nacos" → 空（不发送认证）。开鉴权的 Nacos 集群必须显式配置凭据；未开鉴权的集群无影响。
   2. `nebula.task.xxl-job.access-token` 默认 "xxl-job" → 空（不发送令牌头）。开启令牌校验的 XXL-JOB 调度中心必须显式配置；未开校验无影响。

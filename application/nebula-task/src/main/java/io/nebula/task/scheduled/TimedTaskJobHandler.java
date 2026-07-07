@@ -1,17 +1,21 @@
 package io.nebula.task.scheduled;
 
 import com.xxl.job.core.biz.model.ReturnT;
-import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Timed Task Job Handler
  * 
  * This class serves as the unified task handler for XXL-JOB.
+ *
+ * <p>失败上报语义: 任一子任务抛异常, 该轮调度返回 FAIL 并在消息中列出失败任务
+ * (此前吞异常恒报 SUCCESS, 调度中心的失败告警/重试策略形同虚设)。
+ * 单个子任务失败不中断同批其余任务的执行。</p>
  *
  * @author Nebula Framework
  */
@@ -35,20 +39,7 @@ public class TimedTaskJobHandler {
      */
     @XxlJob("everyMinuteExecuteJobHandler")
     public ReturnT<String> everyMinuteExecuteJobHandler(String param) {
-        log.info("Every minute task started");
-        if (everyMinuteExecutes == null || everyMinuteExecutes.isEmpty()) {
-            log.info("No every minute tasks registered");
-            return new ReturnT<>(200, "SUCCESS");
-        }
-        for (EveryMinuteExecute task : everyMinuteExecutes) {
-            try {
-                task.execute();
-            } catch (Exception e) {
-                log.error("Error executing every minute task: {}", task.getClass().getSimpleName(), e);
-            }
-        }
-        log.info("Every minute task completed");
-        return new ReturnT<>(200, "SUCCESS");
+        return executeAll("every minute", everyMinuteExecutes, EveryMinuteExecute::execute);
     }
 
     /**
@@ -56,22 +47,7 @@ public class TimedTaskJobHandler {
      */
     @XxlJob("everyFiveMinuteExecuteJobHandler")
     public ReturnT<String> everyFiveMinuteExecuteJobHandler(String param) {
-        log.info("Every 5 minutes task started");
-
-        if (everyFiveMinuteExecutes == null || everyFiveMinuteExecutes.isEmpty()) {
-            log.info("No every 5 minutes tasks registered");
-            return new ReturnT<>(200, "SUCCESS");
-        }
-
-        for (EveryFiveMinuteExecute task : everyFiveMinuteExecutes) {
-            try {
-                task.execute();
-            } catch (Exception e) {
-                log.error("Error executing every 5 minutes task: {}", task.getClass().getSimpleName(), e);
-            }
-        }
-        log.info("Every 5 minutes task completed");
-        return new ReturnT<>(200, "SUCCESS");
+        return executeAll("every 5 minutes", everyFiveMinuteExecutes, EveryFiveMinuteExecute::execute);
     }
 
     /**
@@ -79,20 +55,7 @@ public class TimedTaskJobHandler {
      */
     @XxlJob("everyHourExecuteJobHandler")
     public ReturnT<String> everyHourExecuteJobHandler(String param) {
-        log.info("Every hour task started");
-        if (everyHourExecutes == null || everyHourExecutes.isEmpty()) {
-            log.info("No every hour tasks registered");
-            return new ReturnT<>(200, "SUCCESS");
-        }
-        for (EveryHourExecute task : everyHourExecutes) {
-            try {
-                task.execute();
-            } catch (Exception e) {
-                log.error("Error executing every hour task: {}", task.getClass().getSimpleName(), e);
-            }
-        }
-        log.info("Every hour task completed");
-        return new ReturnT<>(200, "SUCCESS");
+        return executeAll("every hour", everyHourExecutes, EveryHourExecute::execute);
     }
 
     /**
@@ -100,19 +63,46 @@ public class TimedTaskJobHandler {
      */
     @XxlJob("everyDayExecuteJobHandler")
     public ReturnT<String> everyDayExecuteJobHandler(String param) {
-        log.info("Every day task started");
-        if (everyDayExecutes == null || everyDayExecutes.isEmpty()) {
-            log.info("No every day tasks registered");
-            return new ReturnT<>(200, "SUCCESS");
+        return executeAll("every day", everyDayExecutes, EveryDayExecute::execute);
+    }
+
+    /**
+     * 逐个执行子任务并汇总结果: 全部成功返回 SUCCESS;
+     * 任一失败继续执行剩余任务, 最终返回 FAIL 并列出失败任务类名
+     */
+    private <T> ReturnT<String> executeAll(String jobName, List<T> tasks, TaskInvoker<T> invoker) {
+        log.info("{} task started", jobName);
+        if (tasks == null || tasks.isEmpty()) {
+            log.info("No {} tasks registered", jobName);
+            return new ReturnT<>(ReturnT.SUCCESS_CODE, "SUCCESS");
         }
-        for (EveryDayExecute task : everyDayExecutes) {
+
+        List<String> failedTasks = new ArrayList<>();
+        for (T task : tasks) {
             try {
-                task.execute();
+                invoker.invoke(task);
             } catch (Exception e) {
-                log.error("Error executing every day task: {}", task.getClass().getSimpleName(), e);
+                failedTasks.add(task.getClass().getSimpleName());
+                log.error("Error executing {} task: {}", jobName, task.getClass().getSimpleName(), e);
             }
         }
-        log.info("Every day task completed");
-        return new ReturnT<>(200, "SUCCESS");
+
+        if (!failedTasks.isEmpty()) {
+            String message = String.format("%d/%d tasks failed: %s",
+                    failedTasks.size(), tasks.size(), String.join(", ", failedTasks));
+            log.warn("{} task completed with failures: {}", jobName, message);
+            return new ReturnT<>(ReturnT.FAIL_CODE, message);
+        }
+
+        log.info("{} task completed", jobName);
+        return new ReturnT<>(ReturnT.SUCCESS_CODE, "SUCCESS");
+    }
+
+    /**
+     * 子任务调用函数式接口（各 Every*Execute 无公共父接口, 以方法引用适配）
+     */
+    @FunctionalInterface
+    private interface TaskInvoker<T> {
+        void invoke(T task) throws Exception;
     }
 }

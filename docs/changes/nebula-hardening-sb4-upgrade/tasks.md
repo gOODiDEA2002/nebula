@@ -260,9 +260,10 @@
   - **破坏性**：依赖默认值的部署需显式配置，记 log 迁移说明
   - 验证：`mvn -q clean compile` + 相关模块测试
   - 完成：2026-07-06。四处全改并核实消费端对空值的容错：`NacosServiceDiscovery` 仅在 username/password 非空时注入认证属性（空=不发送认证）；`XxlJobHttpClient` 仅在 accessToken 非空时加 XXL-JOB-ACCESS-TOKEN 头；WebSocket allowedOrigins 空数组=仅同源；CORS allowCredentials=false 阻断"凭据跨域+宽来源"的 CSRF 放大组合。examples 均已显式配置不受影响，无测试固化旧默认值。四模块（nacos/task/websocket-spring/web）测试全绿。迁移说明已记 log.md
-- [ ] **T-C1-10｜TimedTaskJobHandler 吞异常谎报成功**
+- [x] **T-C1-10｜TimedTaskJobHandler 吞异常谎报成功**
   - 文件：`nebula-task/.../scheduled/TimedTaskJobHandler.java`（子任务失败计数，任何失败返回 FAIL 并列出失败任务）
   - 验证：`mvn -q -pl application/nebula-task -am test`
+  - 完成：2026-07-06。四个 handler（minute/5min/hour/day）的重复吞异常逻辑收敛为泛型 `executeAll(jobName, tasks, invoker)`（Every*Execute 无公共父接口，用 @FunctionalInterface TaskInvoker 方法引用适配）：单任务失败不中断同批其余任务，收尾任一失败返回 `ReturnT.FAIL_CODE` 且消息含 "N/M tasks failed: 类名列表"——调度中心的失败告警/重试策略自此真实生效。改写原"失败仍断言 200"的旧用例为断言 FAIL，新增部分失败用例（失败者之后的任务仍执行 + 1/2 failed 上报）。task 48 测试全绿
 
 ### 阶段 B / C 收尾 / D（C-pre 完成后拆）
 

@@ -81,7 +81,7 @@ class ScheduledTaskInterfaceTest {
     }
 
     /**
-     * 测试每分钟执行任务（异常处理）
+     * 测试每分钟执行任务（异常处理: 失败必须如实上报 FAIL, 不得谎报成功）
      */
     @Test
     void testEveryMinuteExecuteWithException() {
@@ -90,16 +90,36 @@ class ScheduledTaskInterfaceTest {
         doThrow(new RuntimeException("任务执行失败")).when(task1).execute();
         everyMinuteExecutes.add(task1);
         
-        // 执行任务处理器（异常应该被捕获，不影响整体执行）
         ReturnT<String> result = timedTaskJobHandler.everyMinuteExecuteJobHandler(null);
         
         // 验证任务被执行
         verify(task1, times(1)).execute();
         
-        // 验证结果（即使任务失败，整体也应该返回成功）
+        // 子任务失败时返回 FAIL 并列出失败任务, 调度中心据此触发告警/重试
         assertThat(result).isNotNull();
-        assertThat(result.getCode()).isEqualTo(200);
-        assertThat(result.getMsg()).isEqualTo("SUCCESS");
+        assertThat(result.getCode()).isEqualTo(ReturnT.FAIL_CODE);
+        assertThat(result.getMsg()).contains("1/1 tasks failed");
+    }
+
+    /**
+     * 测试部分失败: 失败任务不中断其余任务, 最终仍上报 FAIL 并列出失败者
+     */
+    @Test
+    void testPartialFailureStillRunsRemainingTasksAndReportsFail() {
+        EveryMinuteExecute failing = mock(EveryMinuteExecute.class);
+        EveryMinuteExecute healthy = mock(EveryMinuteExecute.class);
+        doThrow(new RuntimeException("boom")).when(failing).execute();
+        everyMinuteExecutes.add(failing);
+        everyMinuteExecutes.add(healthy);
+        
+        ReturnT<String> result = timedTaskJobHandler.everyMinuteExecuteJobHandler(null);
+        
+        // 失败任务之后的任务仍被执行
+        verify(failing, times(1)).execute();
+        verify(healthy, times(1)).execute();
+        
+        assertThat(result.getCode()).isEqualTo(ReturnT.FAIL_CODE);
+        assertThat(result.getMsg()).contains("1/2 tasks failed");
     }
 
     /**
