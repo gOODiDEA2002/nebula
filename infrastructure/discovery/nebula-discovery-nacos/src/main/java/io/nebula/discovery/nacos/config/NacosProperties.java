@@ -63,15 +63,16 @@ public class NacosProperties {
     
     /**
      * 用户名
-     * 默认值: nacos
+     * 默认值: 空（不发送认证信息）。开启了鉴权的 Nacos 集群须显式配置，
+     * 不再默认使用出厂账号 nacos/nacos——避免生产误用默认弱凭据
      */
-    private String username = "nacos";
+    private String username = "";
     
     /**
      * 密码
-     * 默认值: nacos
+     * 默认值: 空（不发送认证信息），须与 username 一起显式配置
      */
-    private String password = "nacos";
+    private String password = "";
     
     /**
      * 访问密钥

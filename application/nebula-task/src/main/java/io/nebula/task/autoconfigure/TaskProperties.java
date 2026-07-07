@@ -162,8 +162,10 @@ public class TaskProperties {
         
     /**
      * 访问令牌
+     * 默认值: 空（不发送 XXL-JOB-ACCESS-TOKEN 头）。开启了令牌校验的调度中心须显式配置，
+     * 不再默认使用可猜测的固定令牌
      */
-    private String accessToken = "xxl-job";
+    private String accessToken = "";
     
     /**
      * 心跳注册间隔（秒）

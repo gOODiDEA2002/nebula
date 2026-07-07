@@ -22,8 +22,10 @@ public class WebSocketProperties {
 
     /**
      * 允许的来源（CORS）
+     * 默认值: 空数组（同源之外一律拒绝握手）。跨域接入 WebSocket 的部署须显式配置来源，
+     * 不再默认放开 "*"——与 Web 层 CORS allowedOrigins 的收紧策略一致
      */
-    private String[] allowedOrigins = {"*"};
+    private String[] allowedOrigins = {};
 
     /**
      * 是否允许使用 SockJS

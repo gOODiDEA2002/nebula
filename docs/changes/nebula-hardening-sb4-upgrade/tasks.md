@@ -255,10 +255,11 @@
   - 保留：注解定义的元注解 @Component（@MessageListener/@MessageHandler/@RpcService 设计如此）
   - 验证：`mvn -q clean compile` + 相关模块测试
   - 完成：2026-07-06。实际清理 25 个类（比计划多出逐一核实的同类项）：RabbitMQ 六件套（Producer/Consumer/ExchangeManager/Manager/DelayProducer/DelayConsumer，均 RabbitMQAutoConfiguration @Bean）、MessageHandlerProcessor（T-C1-3 起由 MessagingCoreAutoConfiguration 管理）、持久化五件（DataSourceManager 走 @Import、ShardingConfig 走 @EnableConfigurationProperties、ShardingSphereManager/DefaultTransactionManager/ReadWriteDataSourceManager/ReadWriteDataSourceAspect 均 @Bean）、DefaultCacheManager、AsyncRpcExecutionManager、MongoTemplate（泛型类无法被扫描实例化，本就设计为应用手动 new）、AI 两件（EmbeddingService/VectorStoreService，AIAutoConfiguration @Bean）、task 五件（TaskEngine/TaskRegistry/XxlJobRegistryService/XxlJobHttpClient/TimedTaskJobHandler，Task/XxlJobAutoConfiguration @Bean）、SecurityAspect（autoconfigure SecurityAutoConfiguration @Bean）、MockPaymentService（PaymentAutoConfiguration @Bean）。LockedAspect/RedisLockManager 核实本无注解（注释已声明）。保留注解定义元注解：@TaskHandler/@MessageListener/@MessageHandler/@RpcService。全量 `mvn clean install` BUILD SUCCESS：791 测试 0 失败 0 错误 3 跳过（跳过均为历史遗留 StealthIntegrationTest）
-- [ ] **T-C1-9｜收紧不安全默认值**
+- [x] **T-C1-9｜收紧不安全默认值**
   - 文件：`NacosProperties`（username/password 默认 "nacos"→空）、`TaskProperties`（accessToken 默认 "xxl-job"→空）、`WebSocketProperties`（allowedOrigins {"*"}→{}）、`WebProperties.Cors`（allowCredentials true→false）
   - **破坏性**：依赖默认值的部署需显式配置，记 log 迁移说明
   - 验证：`mvn -q clean compile` + 相关模块测试
+  - 完成：2026-07-06。四处全改并核实消费端对空值的容错：`NacosServiceDiscovery` 仅在 username/password 非空时注入认证属性（空=不发送认证）；`XxlJobHttpClient` 仅在 accessToken 非空时加 XXL-JOB-ACCESS-TOKEN 头；WebSocket allowedOrigins 空数组=仅同源；CORS allowCredentials=false 阻断"凭据跨域+宽来源"的 CSRF 放大组合。examples 均已显式配置不受影响，无测试固化旧默认值。四模块（nacos/task/websocket-spring/web）测试全绿。迁移说明已记 log.md
 - [ ] **T-C1-10｜TimedTaskJobHandler 吞异常谎报成功**
   - 文件：`nebula-task/.../scheduled/TimedTaskJobHandler.java`（子任务失败计数，任何失败返回 FAIL 并列出失败任务）
   - 验证：`mvn -q -pl application/nebula-task -am test`

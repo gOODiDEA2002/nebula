@@ -309,8 +309,10 @@ public class WebProperties {
         
         /**
          * 是否允许发送凭据
+         * 默认值: false。凭据模式（Cookie/Authorization 随跨域请求发送）配合宽松来源
+         * 极易变成 CSRF 放大器，需要跨域携带凭据的应用须显式开启并精确配置 allowedOrigins
          */
-        private boolean allowCredentials = true;
+        private boolean allowCredentials = false;
         
         /**
          * 预检请求的缓存时间（秒）

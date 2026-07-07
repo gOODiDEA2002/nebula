@@ -92,6 +92,11 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - **T-C1-3 双 MQ 选主**：RabbitMQ 与 RocketMQ 同时启用不再启动崩溃（此前双 @Primary MessageManager 冲突）。`@MessageListener` 注册到 `nebula.messaging.primary` 指定的 MQ（默认 rabbitmq）；配置值无匹配时启动快速失败并列出候选 Bean。单 MQ 部署行为不变，无需任何配置。
 - **T-C1-7 多级缓存（增强，非破坏）**：multi-level 模式新增 Redis pub/sub 失效广播（频道 `{keyPrefix}invalidation`，自动装配 `RedisMessageListenerContainer`），节点间 L1 旧副本在写后被驱逐而非等 TTL；`getOrSet` 增加 single-flight 击穿防护（无需配置）；新增可选穿透防护 `nebula.data.cache.multi-level.null-caching-enabled=true` + `null-value-ttl`（默认关闭，开启后回源 null 写 60s 哨兵，业务创建数据后主动 set 或等哨兵过期）。
 - **T-C1-6 RabbitMQ tag 路由（修复即变更）**：带 tag 的消息路由键从 topic 改为 tag——`subscribeWithTag` 的队列此前永远收不到消息（绑定键=tag 与发送键=topic 不匹配），修复后 tagged 队列开始真实收到消息；同时普通订阅队列（绑定键=topic）不再收到带 tag 的消息。依赖"tagged 消息也进普通队列"旧行为的应用需改用无 tag 发送。
+- **T-C1-9 不安全默认值收紧（破坏性，共四处）**：
+  1. `nebula.discovery.nacos.username/password` 默认 "nacos"/"nacos" → 空（不发送认证）。开鉴权的 Nacos 集群必须显式配置凭据；未开鉴权的集群无影响。
+  2. `nebula.task.xxl-job.access-token` 默认 "xxl-job" → 空（不发送令牌头）。开启令牌校验的 XXL-JOB 调度中心必须显式配置；未开校验无影响。
+  3. `nebula.websocket.allowed-origins` 默认 {"*"} → {}（仅同源可握手）。跨域接入 WebSocket 的前端部署必须显式配置来源。
+  4. `nebula.web.cors.allow-credentials` 默认 true → false。需要跨域携带 Cookie/Authorization 的应用须显式开启，并同时精确配置 `allowed-origins`（浏览器规范禁止 credentials + 通配来源组合）。
 - **T-C1-2 XFF 可信代理（破坏性）**：限流键与请求日志的客户端 IP 此前直接信任 `X-Forwarded-For` 首段（客户端每请求伪造新 IP 即绕过 IP 限流）。修复后**默认完全不读转发头**，一律使用 remoteAddr；部署在反向代理后的应用必须配置 `nebula.web.trusted-proxies: [<代理IP或IPv4 CIDR>]` 才恢复真实客户端 IP 解析（算法：XFF 从右向左取第一个不可信地址）。不配置的直连部署无影响。
 
 ## 对外行为变更补充（T-A3-3）
