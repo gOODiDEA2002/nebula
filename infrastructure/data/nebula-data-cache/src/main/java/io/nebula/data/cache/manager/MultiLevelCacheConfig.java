@@ -121,6 +121,20 @@ public class MultiLevelCacheConfig {
     private Duration syncTimeout = Duration.ofSeconds(5);
     
     /**
+     * 是否缓存空值（穿透防护）
+     * getOrSet 回源返回 null 时写入短 TTL 空值哨兵，窗口内相同 key 不再重复回源，
+     * 防止不存在的 key 被反复打到数据源
+     */
+    @Builder.Default
+    private boolean nullCachingEnabled = false;
+    
+    /**
+     * 空值哨兵TTL（应远短于正常值TTL，数据创建后最多延迟该时长可见）
+     */
+    @Builder.Default
+    private Duration nullValueTtl = Duration.ofSeconds(60);
+    
+    /**
      * L1缓存驱逐策略
      */
     public enum L1EvictionPolicy {
@@ -234,6 +248,10 @@ public class MultiLevelCacheConfig {
         if (syncTimeout.isNegative() || syncTimeout.isZero()) {
             throw new IllegalArgumentException("Sync timeout must be positive");
         }
+        
+        if (nullCachingEnabled && (nullValueTtl.isNegative() || nullValueTtl.isZero())) {
+            throw new IllegalArgumentException("Null value TTL must be positive when null caching is enabled");
+        }
     }
     
     /**
@@ -258,6 +276,8 @@ public class MultiLevelCacheConfig {
                 .warmupThreads(warmupThreads)
                 .syncEnabled(syncEnabled)
                 .syncTimeout(syncTimeout)
+                .nullCachingEnabled(nullCachingEnabled)
+                .nullValueTtl(nullValueTtl)
                 .build();
     }
 }

@@ -1,17 +1,31 @@
 package io.nebula.data.cache.manager;
 
 import io.nebula.data.cache.manager.CacheManager;
+import io.nebula.data.cache.sync.CacheInvalidationBroadcaster;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
  * 多级缓存管理器
  * 支持L1本地缓存 + L2远程缓存的多级缓存架构
+ *
+ * <p>CD-10 可靠性增强:</p>
+ * <ul>
+ *   <li>跨节点失效: 注入 {@link CacheInvalidationBroadcaster} 后, set/delete/clear 等写操作
+ *       会广播失效通知, 其他节点驱逐各自 L1 的过期副本(否则旧值会残留到 L1 TTL 自然到期)</li>
+ *   <li>击穿防护: {@code getOrSet} 按 key single-flight, 并发同 key miss 只有一个线程回源,
+ *       其余线程等待其结果</li>
+ *   <li>穿透防护: 可配置空值哨兵({@code nullCachingEnabled}), 回源 null 时写入短 TTL 哨兵,
+ *       窗口期内不再重复回源不存在的 key。哨兵仅由 getOrSet 识别, 直接 get 该 key 视为未命中</li>
+ * </ul>
  * 
  * @author Nebula Framework
  * @since 2.0.0
@@ -19,9 +33,24 @@ import java.util.function.Supplier;
 @Slf4j
 public class MultiLevelCacheManager implements CacheManager {
     
+    /**
+     * 空值哨兵: 以普通字符串值存入 L1/L2(可跨节点、可序列化), getOrSet 读到时返回 null 且不回源
+     */
+    static final String NULL_SENTINEL = "__NEBULA_NULL__";
+    
     private final CacheManager l1Cache;    // 本地缓存（L1）
     private final CacheManager l2Cache;    // 远程缓存（L2）
     private final MultiLevelCacheConfig config;
+    
+    /**
+     * single-flight 登记表: key -> 正在回源的加载 Future, 跟随线程直接等待结果
+     */
+    private final ConcurrentHashMap<String, CompletableFuture<Object>> inFlightLoads = new ConcurrentHashMap<>();
+    
+    /**
+     * 跨节点失效广播器(可选, 由自动配置在 multi-level + Redis 场景注入)
+     */
+    private volatile CacheInvalidationBroadcaster invalidationBroadcaster;
     
     // 统计信息
     private volatile long l1HitCount = 0;
@@ -62,6 +91,9 @@ public class MultiLevelCacheManager implements CacheManager {
             if (config.isL2WriteEnabled()) {
                 l2Cache.set(key, value, duration);
             }
+            
+            // 通知其他节点驱逐 L1 旧副本(它们下次读取会从 L2 拿到新值)
+            broadcastEvict(key);
             
             log.debug("Set cache key: {} with duration: {}", key, duration);
         } catch (Exception e) {
@@ -127,19 +159,86 @@ public class MultiLevelCacheManager implements CacheManager {
         return getOrSet(key, type, supplier, config.getDefaultTtl());
     }
     
+    /**
+     * 命中空值哨兵时 lookupRaw 的内部返回标记(引用比较, 区别于"未命中"的 null)
+     */
+    private static final Object NULL_HIT = new Object();
+    
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T getOrSet(String key, Class<T> type, Supplier<T> supplier, Duration duration) {
-        Optional<T> cached = get(key, type);
-        if (cached.isPresent()) {
-            return cached.get();
+        Object cached = lookupRaw(key, type);
+        if (cached == NULL_HIT) {
+            return null;
+        }
+        if (cached != null) {
+            return (T) cached;
         }
         
-        // 缓存未命中，从供应器获取数据
+        // 击穿防护(single-flight): 并发同 key miss 只允许一个线程回源, 其余等待其结果
+        CompletableFuture<Object> myLoad = new CompletableFuture<>();
+        CompletableFuture<Object> existing = inFlightLoads.putIfAbsent(key, myLoad);
+        if (existing != null) {
+            try {
+                return (T) existing.join();
+            } catch (CompletionException | CancellationException e) {
+                // 首航线程回源失败: 跟随线程自行回源(不再嵌套 single-flight, 避免级联等待)
+                log.debug("In-flight load failed for key: {}, falling back to direct load", key);
+                return loadAndCache(key, supplier, duration);
+            }
+        }
+        
+        try {
+            // double-check: 排队期间首航线程可能已把值写入缓存
+            Object recheck = lookupRaw(key, type);
+            if (recheck != null) {
+                T result = recheck == NULL_HIT ? null : (T) recheck;
+                myLoad.complete(result);
+                return result;
+            }
+            T value = loadAndCache(key, supplier, duration);
+            myLoad.complete(value);
+            return value;
+        } catch (Throwable t) {
+            myLoad.completeExceptionally(t);
+            throw t;
+        } finally {
+            inFlightLoads.remove(key, myLoad);
+        }
+    }
+    
+    /**
+     * 缓存查找: 未命中返回 null; 命中空值哨兵返回 {@link #NULL_HIT}; 否则返回命中的值
+     */
+    private Object lookupRaw(String key, Class<?> type) {
+        // 先以 Object 读取: 同时识别空值哨兵与正常值, 避免以业务类型读哨兵触发类型不匹配告警
+        Optional<Object> raw = get(key, Object.class);
+        if (raw.isEmpty()) {
+            return null;
+        }
+        Object value = raw.get();
+        if (config.isNullCachingEnabled() && NULL_SENTINEL.equals(value)) {
+            log.debug("Null sentinel hit for key: {}, skip loading", key);
+            return NULL_HIT;
+        }
+        if (type.isInstance(value)) {
+            return value;
+        }
+        // 反序列化产物与目标类型不一致(如 L2 JSON 反序列化出 Map): 走类型感知的 get 让实现层转换
+        return get(key, type).orElse(null);
+    }
+    
+    /**
+     * 回源加载并写缓存: 非空值正常写入; null 且启用穿透防护时写短 TTL 空值哨兵
+     */
+    private <T> T loadAndCache(String key, Supplier<T> supplier, Duration duration) {
         T value = supplier.get();
         if (value != null) {
             set(key, value, duration);
+        } else if (config.isNullCachingEnabled()) {
+            set(key, NULL_SENTINEL, config.getNullValueTtl());
+            log.debug("Cached null sentinel for key: {} with TTL: {}", key, config.getNullValueTtl());
         }
-        
         return value;
     }
     
@@ -158,6 +257,10 @@ public class MultiLevelCacheManager implements CacheManager {
             }
             
             boolean result = l1Deleted || l2Deleted;
+            
+            // 通知其他节点驱逐 L1 副本, 否则删除后旧值仍会从其他节点的 L1 读出
+            broadcastEvict(key);
+            
             log.debug("Deleted cache key: {}, L1: {}, L2: {}", key, l1Deleted, l2Deleted);
             return result;
             
@@ -298,6 +401,7 @@ public class MultiLevelCacheManager implements CacheManager {
         if (config.isL1WriteEnabled()) {
             l1Cache.delete(key);
         }
+        broadcastEvict(key);
     }
     
     @Override
@@ -307,6 +411,7 @@ public class MultiLevelCacheManager implements CacheManager {
         if (config.isL1WriteEnabled()) {
             l1Cache.delete(key);
         }
+        broadcastEvict(key);
     }
     
     @Override
@@ -326,6 +431,7 @@ public class MultiLevelCacheManager implements CacheManager {
         if (config.isL1WriteEnabled()) {
             l1Cache.delete(key);
         }
+        broadcastEvict(key);
         return result;
     }
     
@@ -464,7 +570,7 @@ public class MultiLevelCacheManager implements CacheManager {
         return CompletableFuture.allOf(
             config.isL1WriteEnabled() ? l1Cache.setAsync(key, value) : CompletableFuture.completedFuture(null),
             config.isL2WriteEnabled() ? l2Cache.setAsync(key, value) : CompletableFuture.completedFuture(null)
-        );
+        ).thenRun(() -> broadcastEvict(key));
     }
     
     @Override
@@ -509,7 +615,10 @@ public class MultiLevelCacheManager implements CacheManager {
                 l2Cache.deleteAsync(key) : CompletableFuture.completedFuture(false);
         
         return CompletableFuture.allOf(l1Future, l2Future)
-                .thenApply(v -> l1Future.join() || l2Future.join());
+                .thenApply(v -> {
+                    broadcastEvict(key);
+                    return l1Future.join() || l2Future.join();
+                });
     }
     
     // ========== 管理操作 ==========
@@ -522,6 +631,12 @@ public class MultiLevelCacheManager implements CacheManager {
             }
             if (config.isL2WriteEnabled()) {
                 l2Cache.clear();
+            }
+            
+            // 通知其他节点清空各自的 L1
+            CacheInvalidationBroadcaster broadcaster = this.invalidationBroadcaster;
+            if (broadcaster != null) {
+                broadcaster.publishClear();
             }
             
             // 重置统计信息
@@ -661,6 +776,44 @@ public class MultiLevelCacheManager implements CacheManager {
         if (config.isL2WriteEnabled()) {
             l2Cache.clear();
             log.info("L2 cache cleared");
+        }
+    }
+    
+    // ========== 跨节点失效（CD-10） ==========
+    
+    /**
+     * 注入跨节点失效广播器（由自动配置在 multi-level + Redis 场景调用）
+     */
+    public void setInvalidationBroadcaster(CacheInvalidationBroadcaster broadcaster) {
+        this.invalidationBroadcaster = broadcaster;
+        log.info("Cache invalidation broadcaster attached: {}", broadcaster.getClass().getSimpleName());
+    }
+    
+    /**
+     * 处理其他节点的失效广播: 仅驱逐本地 L1, 不回发广播（否则消息风暴）
+     */
+    public void onRemoteEvict(String key) {
+        if (config.isL1WriteEnabled()) {
+            l1Cache.delete(key);
+        }
+    }
+    
+    /**
+     * 处理其他节点的清空广播: 仅清空本地 L1, 不回发广播
+     */
+    public void onRemoteClear() {
+        if (config.isL1WriteEnabled()) {
+            l1Cache.clear();
+        }
+    }
+    
+    /**
+     * 写路径广播失效通知（尽力而为, 失败不影响本地结果）
+     */
+    private void broadcastEvict(String key) {
+        CacheInvalidationBroadcaster broadcaster = this.invalidationBroadcaster;
+        if (broadcaster != null) {
+            broadcaster.publishEvict(key);
         }
     }
     

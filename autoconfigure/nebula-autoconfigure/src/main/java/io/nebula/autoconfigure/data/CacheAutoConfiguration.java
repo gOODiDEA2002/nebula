@@ -12,9 +12,12 @@ import io.nebula.data.cache.manager.MultiLevelCacheConfig;
 import io.nebula.data.cache.manager.MultiLevelCacheManager;
 import io.nebula.data.cache.manager.impl.DefaultCacheManager;
 import io.nebula.data.cache.manager.impl.LocalCacheManager;
+import io.nebula.data.cache.sync.CacheInvalidationBroadcaster;
+import io.nebula.data.cache.sync.RedisCacheInvalidationBroadcaster;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,6 +33,8 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -251,20 +256,7 @@ public class CacheAutoConfiguration {
         l2Cache.setKeyPrefix(properties.getRedis().getKeyPrefix());
 
         // 创建多级缓存配置
-        CacheProperties.MultiLevel multiConfig = properties.getMultiLevel();
-        MultiLevelCacheConfig config = MultiLevelCacheConfig.builder()
-                .l1ReadEnabled(multiConfig.isLocalCacheEnabled())
-                .l1WriteEnabled(multiConfig.isLocalCacheEnabled())
-                .l2ReadEnabled(multiConfig.isRemoteCacheEnabled())
-                .l2WriteEnabled(multiConfig.isRemoteCacheEnabled())
-                .l1WriteBackEnabled(multiConfig.isL1WriteBackEnabled())
-                .defaultTtl(properties.getDefaultTtl())
-                .l1DefaultTtl(multiConfig.getL1DefaultTtl())
-                .l1WriteBackTtl(multiConfig.getL1WriteBackTtl())
-                .l1TtlRatio(multiConfig.getL1TtlRatio())
-                .l1MaxSize(multiConfig.getL1MaxSize())
-                .syncEnabled(multiConfig.isSyncOnUpdate())
-                .build();
+        MultiLevelCacheConfig config = buildMultiLevelConfig(properties);
 
         return new MultiLevelCacheManager(l1Cache, l2Cache, config);
     }
@@ -291,12 +283,66 @@ public class CacheAutoConfiguration {
     }
 
     /**
+     * 多级缓存跨节点失效广播（CD-10）
+     * 基于 Redis pub/sub: 本节点写/删后通知其他节点驱逐各自 L1 的旧副本。
+     * 仅在 multi-level 模式下装配; 广播失败不影响本地缓存操作(L1 短 TTL 兜底)。
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "multi-level")
+    @ConditionalOnMissingBean(CacheInvalidationBroadcaster.class)
+    public CacheInvalidationBroadcaster cacheInvalidationBroadcaster(
+            RedisConnectionFactory redisConnectionFactory,
+            CacheManager multiLevelCacheManager,
+            CacheProperties properties) {
+
+        MultiLevelCacheManager manager = (MultiLevelCacheManager) multiLevelCacheManager;
+        String topic = properties.getRedis().getKeyPrefix() + "invalidation";
+
+        StringRedisTemplate template = new StringRedisTemplate();
+        template.setConnectionFactory(redisConnectionFactory);
+        template.afterPropertiesSet();
+
+        RedisCacheInvalidationBroadcaster broadcaster = new RedisCacheInvalidationBroadcaster(
+                template, topic, manager::onRemoteEvict, manager::onRemoteClear);
+        manager.setInvalidationBroadcaster(broadcaster);
+
+        log.info("Configuring cache invalidation broadcaster on topic: {}", topic);
+        return broadcaster;
+    }
+
+    /**
+     * 失效广播订阅容器: 监听广播频道, 收到其他节点的消息后驱逐本地 L1
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "multi-level")
+    @ConditionalOnBean(CacheInvalidationBroadcaster.class)
+    @ConditionalOnMissingBean(name = "cacheInvalidationListenerContainer")
+    public RedisMessageListenerContainer cacheInvalidationListenerContainer(
+            RedisConnectionFactory redisConnectionFactory,
+            CacheInvalidationBroadcaster broadcaster,
+            CacheProperties properties) {
+
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(redisConnectionFactory);
+        container.addMessageListener((RedisCacheInvalidationBroadcaster) broadcaster,
+                new ChannelTopic(properties.getRedis().getKeyPrefix() + "invalidation"));
+        return container;
+    }
+
+    /**
      * 多级缓存配置Bean
      */
     @Bean
     @ConditionalOnProperty(prefix = "nebula.data.cache", name = "type", havingValue = "multi-level")
     @ConditionalOnMissingBean(MultiLevelCacheConfig.class)
     public MultiLevelCacheConfig multiLevelCacheConfig(CacheProperties properties) {
+        return buildMultiLevelConfig(properties);
+    }
+
+    /**
+     * 由配置属性构建多级缓存配置（multiLevelCacheManager 与 multiLevelCacheConfig 共用）
+     */
+    private static MultiLevelCacheConfig buildMultiLevelConfig(CacheProperties properties) {
         CacheProperties.MultiLevel multiConfig = properties.getMultiLevel();
 
         return MultiLevelCacheConfig.builder()
@@ -311,6 +357,8 @@ public class CacheAutoConfiguration {
                 .l1TtlRatio(multiConfig.getL1TtlRatio())
                 .l1MaxSize(multiConfig.getL1MaxSize())
                 .syncEnabled(multiConfig.isSyncOnUpdate())
+                .nullCachingEnabled(multiConfig.isNullCachingEnabled())
+                .nullValueTtl(multiConfig.getNullValueTtl())
                 .build();
     }
 

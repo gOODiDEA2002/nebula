@@ -245,10 +245,11 @@
   - 文件：`RabbitMQMessageProducer`（send 时 message.tag 非空则 routingKey=tag，匹配 tagged 绑定）、`RabbitMQMessageConsumer.subscribeWithTag`（补 requeue=!isRedeliver，与 subscribe 路径一致）
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`
   - 完成：2026-07-06。Producer 抽出 `doSend(..., routingKey)`：`send(Message)` 在 tag 非空时 routingKey=tag（且不做队列兜底声明——tagged 队列由 `subscribeWithTag` 自行声明绑定），无 tag 路径保持 routingKey=topic 不变；`subscribeWithTag` 的 basicNack 补 `requeue=!isRedeliver`。新增 4 用例（tag 路由/无 tag 路由/tagged 绑定键/tagged 毒消息二次投递不再 requeue，用 ArgumentCaptor 捕获 DeliverCallback 直接驱动）。rabbitmq 45 测试全绿。行为级端到端（真 broker 上 tag 队列收到消息）仍转 CI 清单
-- [ ] **T-C1-7｜多级缓存跨节点失效 + 击穿/穿透防护（CD-10）**
+- [x] **T-C1-7｜多级缓存跨节点失效 + 击穿/穿透防护（CD-10）**
   - 文件：`MultiLevelCacheManager`（getOrSet single-flight per-key 锁；可配置空值哨兵缓存）、新增 `CacheInvalidationBroadcaster` 接口 + Redis pub/sub 实现、`CacheAutoConfiguration` 装配（multi-level + Redis 时启用广播）
   - 验收：节点 A delete 后节点 B 的 L1 被驱逐；并发同 key miss 只回源一次；null 结果可选缓存
   - 验证：`mvn -q -pl infrastructure/data/nebula-data-cache -am test`
+  - 完成：2026-07-06。三件事：(1) 跨节点失效——新增 `sync/CacheInvalidationBroadcaster` 接口 + `RedisCacheInvalidationBroadcaster`（pub/sub，消息 `nodeId|EVICT|key` / `nodeId|CLEAR`，nodeId 跳自发消息，key 含"|"按 limit=3 安全切分，发布失败仅告警——L1 短 TTL 兜底）；`MultiLevelCacheManager` 写路径（set/delete/clear/hSet/hMSet/hDelete/setAsync/deleteAsync）广播，`onRemoteEvict/onRemoteClear` 只动 L1 不回发（防风暴）；`CacheAutoConfiguration` 在 multi-level 下装配广播器 + `RedisMessageListenerContainer`（频道 `{keyPrefix}invalidation`）。(2) 击穿——getOrSet 以 `ConcurrentHashMap<key, CompletableFuture>` single-flight，跟随线程 join 首航结果，首航失败跟随自行回源不级联；进入临界区后 double-check。(3) 穿透——`nullCachingEnabled`（默认关）+ `nullValueTtl`（默认 60s）写字符串哨兵 `__NEBULA_NULL__`（可序列化可跨节点），lookupRaw 以 Object 读一次同时识别哨兵/正常值/Map 反序列化产物。新增 `MultiLevelCacheManagerTest` 7 用例（16 线程并发只回源一次/首航失败跟随恢复/哨兵窗口只回源一次/默认不缓存 null/数据出现覆盖哨兵/广播+远端处理/无广播器正常）+ `RedisCacheInvalidationBroadcasterTest` 4 用例。cache 22 + autoconfigure 23 测试全绿
 - [ ] **T-C1-8｜移除实现类残留 stereotype 注解**
   - 范围（已核实由 AutoConfiguration @Bean 管理或不应被组件扫描）：ReadWriteDataSourceAspect、DefaultCacheManager、RabbitMQ 一族（Producer/Consumer/ExchangeManager/Manager 等）、SpringAIEmbeddingService、MongoTemplate、DataSourceManager、ShardingConfig、ShardingSphereManager、DefaultTransactionManager、ReadWriteDataSourceManager、LockedAspect、RedisLockManager、AsyncRpcExecutionManager、TimedTaskJobHandler
   - 保留：注解定义的元注解 @Component（@MessageListener/@MessageHandler/@RpcService 设计如此）

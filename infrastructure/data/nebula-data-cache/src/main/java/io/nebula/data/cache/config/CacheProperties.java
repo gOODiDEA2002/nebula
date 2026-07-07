@@ -295,6 +295,17 @@ public class CacheProperties {
          * L1缓存最大条目数
          */
         private int l1MaxSize = 10000;
+        
+        /**
+         * 是否缓存空值（穿透防护）
+         * getOrSet 回源返回 null 时写入短 TTL 空值哨兵，窗口内相同 key 不再重复回源
+         */
+        private boolean nullCachingEnabled = false;
+        
+        /**
+         * 空值哨兵TTL（应远短于正常值TTL）
+         */
+        private Duration nullValueTtl = Duration.ofSeconds(60);
     }
     
     /**
