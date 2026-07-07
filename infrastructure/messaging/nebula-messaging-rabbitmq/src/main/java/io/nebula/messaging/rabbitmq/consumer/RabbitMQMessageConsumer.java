@@ -10,7 +10,6 @@ import io.nebula.messaging.core.exception.MessageConnectionException;
 import com.rabbitmq.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -26,7 +25,6 @@ import java.util.ArrayList;
 /**
  * RabbitMQ消息消费者实现
  */
-@Component
 public class RabbitMQMessageConsumer implements MessageConsumer<Object> {
     
     private static final Logger log = LoggerFactory.getLogger(RabbitMQMessageConsumer.class);

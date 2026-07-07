@@ -4,7 +4,6 @@ import com.rabbitmq.client.*;
 import com.rabbitmq.client.LongString;
 import io.nebula.messaging.core.serializer.MessageSerializer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2.0.0
  */
 @Slf4j
-@Component
 public class DelayMessageConsumer {
     
     private static final String DEAD_LETTER_EXCHANGE = "nebula.dlx.exchange";

@@ -12,7 +12,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.stereotype.Component;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -33,7 +32,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Aspect
-@Component
 public class SecurityAspect {
 
     @Before("@annotation(io.nebula.security.annotation.RequiresAuthentication)"

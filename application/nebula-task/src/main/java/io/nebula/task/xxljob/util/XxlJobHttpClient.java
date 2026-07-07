@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -13,7 +12,6 @@ import java.util.concurrent.TimeUnit;
  * XXL-JOB HTTP 客户端
  * 用于与 XXL-JOB 管理端通信
  */
-@Component
 public class XxlJobHttpClient {
     
     private static final Logger logger = LoggerFactory.getLogger(XxlJobHttpClient.class);

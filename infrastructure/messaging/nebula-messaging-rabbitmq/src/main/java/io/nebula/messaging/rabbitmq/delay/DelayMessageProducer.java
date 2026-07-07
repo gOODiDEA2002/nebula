@@ -6,7 +6,6 @@ import com.rabbitmq.client.Connection;
 import io.nebula.messaging.core.exception.MessageSendException;
 import io.nebula.messaging.core.serializer.MessageSerializer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -31,7 +30,6 @@ import java.util.stream.Collectors;
  * @since 2.0.0
  */
 @Slf4j
-@Component
 public class DelayMessageProducer {
     
     private static final String DELAY_EXCHANGE_PREFIX = "nebula.delay.exchange.";

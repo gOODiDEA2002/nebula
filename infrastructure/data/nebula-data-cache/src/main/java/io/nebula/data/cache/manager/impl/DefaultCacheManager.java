@@ -12,7 +12,6 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.*;
@@ -25,7 +24,6 @@ import java.util.stream.Collectors;
  * 基于Redis的缓存管理器默认实现
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class DefaultCacheManager implements CacheManager {
     

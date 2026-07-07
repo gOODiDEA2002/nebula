@@ -4,7 +4,6 @@ import io.nebula.task.autoconfigure.TaskProperties;
 import io.nebula.task.xxljob.dto.XxlJobResult;
 import io.nebula.task.xxljob.util.XxlJobHttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import lombok.extern.slf4j.Slf4j;
 import java.net.InetAddress;
@@ -21,7 +20,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * XXL-JOB 执行器注册服务
  * 负责向 XXL-JOB 管理端注册和注销执行器
  */
-@Service
 @Slf4j
 public class XxlJobRegistryService {
     

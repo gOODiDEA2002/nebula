@@ -20,7 +20,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -37,7 +36,6 @@ import java.util.stream.StreamSupport;
  * @param <ID> 主键类型
  */
 @Slf4j
-@Component
 public class MongoTemplate<T, ID extends Serializable> implements MongoRepository<T, ID> {
     
     private final MongoOperations mongoOperations;

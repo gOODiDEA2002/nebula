@@ -7,7 +7,6 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -21,7 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * 支持多数据源的动态配置和管理
  */
 @Slf4j
-@Component
 @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = false)
 @ConfigurationProperties(prefix = "nebula.data.persistence")
 public class DataSourceManager implements InitializingBean, DisposableBean {

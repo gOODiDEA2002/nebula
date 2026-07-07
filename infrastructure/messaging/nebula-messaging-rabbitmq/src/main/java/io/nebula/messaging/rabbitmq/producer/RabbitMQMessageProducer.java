@@ -12,7 +12,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.AMQP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -26,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author nebula
  */
-@Component
 public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(RabbitMQMessageProducer.class);

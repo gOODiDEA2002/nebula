@@ -5,7 +5,6 @@ import io.nebula.core.common.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -17,7 +16,6 @@ import java.util.concurrent.Executors;
  * 任务执行引擎
  * 负责任务的执行、监控和管理
  */
-@Component
 public class TaskEngine {
     
     private static final Logger logger = LoggerFactory.getLogger(TaskEngine.class);

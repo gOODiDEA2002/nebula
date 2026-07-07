@@ -4,7 +4,6 @@ import io.nebula.integration.payment.core.PaymentService;
 import io.nebula.integration.payment.core.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author nebula
  */
-@Service
 public class MockPaymentService implements PaymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(MockPaymentService.class);

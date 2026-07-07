@@ -3,7 +3,6 @@ package io.nebula.data.persistence.readwrite;
 import io.nebula.data.persistence.datasource.DataSourceManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.util.*;
@@ -18,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2.0.0
  */
 @Slf4j
-@Component
 @ConfigurationProperties(prefix = "nebula.data.read-write-separation")
 public class ReadWriteDataSourceManager {
     

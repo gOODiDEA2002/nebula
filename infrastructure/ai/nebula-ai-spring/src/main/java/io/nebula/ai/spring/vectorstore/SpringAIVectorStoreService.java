@@ -11,7 +11,6 @@ import io.nebula.ai.spring.config.VectorStoreProperties;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,6 @@ import java.util.stream.Collectors;
  * @author Nebula Framework
  * @since 2.0.0
  */
-@Service
 @ConditionalOnMissingBean(name = "vectorStoreService")
 public class SpringAIVectorStoreService implements VectorStoreService {
 

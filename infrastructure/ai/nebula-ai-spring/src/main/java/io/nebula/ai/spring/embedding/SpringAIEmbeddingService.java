@@ -8,7 +8,6 @@ import io.nebula.ai.core.model.EmbeddingResponse;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.embedding.EmbeddingOptions;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +20,6 @@ import java.util.stream.IntStream;
 /**
  * 基于Spring AI的嵌入服务实现
  */
-@Service
 public class SpringAIEmbeddingService implements EmbeddingService {
 
     private static final Logger log = LoggerFactory.getLogger(SpringAIEmbeddingService.class);

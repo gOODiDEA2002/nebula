@@ -8,7 +8,6 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -23,7 +22,6 @@ import java.time.Duration;
  * @author nebula
  */
 @Slf4j
-@Component
 public class MessageHandlerProcessor implements BeanPostProcessor {
 
     private final MessageManager messageManager;

@@ -7,7 +7,6 @@ import com.rabbitmq.client.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -19,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * RabbitMQ Exchange管理器
  * 负责Exchange的创建、删除和管理
  */
-@Component
 public class RabbitMQExchangeManager {
     
     private static final Logger log = LoggerFactory.getLogger(RabbitMQExchangeManager.class);

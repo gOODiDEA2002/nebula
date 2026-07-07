@@ -4,7 +4,6 @@ import io.nebula.task.core.TaskExecutor;
 import io.nebula.task.core.TaskType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.Map;
@@ -14,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * 任务注册器
  * 管理所有任务执行器的注册和查找
  */
-@Component
 public class TaskRegistry {
     
     private static final Logger logger = LoggerFactory.getLogger(TaskRegistry.class);

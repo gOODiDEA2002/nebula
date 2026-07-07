@@ -6,7 +6,6 @@ import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfigurat
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
-import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -20,7 +19,6 @@ import java.util.*;
  * @since 2.0.0
  */
 @Slf4j
-@Component
 public class ShardingSphereManager {
     
     private final Map<String, DataSource> shardingDataSources = new HashMap<>();

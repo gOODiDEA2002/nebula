@@ -10,13 +10,11 @@ import io.nebula.messaging.rabbitmq.exchange.RabbitMQExchangeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * RabbitMQ消息管理器实现
  * 统一管理生产者、消费者和Exchange
  */
-@Component
 public class RabbitMQMessageManager implements MessageManager {
     
     private static final Logger log = LoggerFactory.getLogger(RabbitMQMessageManager.class);

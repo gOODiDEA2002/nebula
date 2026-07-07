@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.rpc.async.storage.AsyncExecutionStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
@@ -23,7 +22,6 @@ import java.util.concurrent.Executor;
  * @since 2.1.0
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class AsyncRpcExecutionManager {
     

@@ -5,7 +5,6 @@ import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -17,7 +16,6 @@ import java.util.List;
  * @author Nebula Framework
  */
 @Slf4j
-@Component
 public class TimedTaskJobHandler {
 
     @Autowired(required = false)

@@ -12,7 +12,6 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -30,7 +29,6 @@ import io.nebula.data.persistence.readwrite.ReadWriteDataSourceManager;
  */
 @Slf4j
 @Aspect
-@Component
 @Order(1) // 确保在事务切面之前执行
 public class ReadWriteDataSourceAspect {
     

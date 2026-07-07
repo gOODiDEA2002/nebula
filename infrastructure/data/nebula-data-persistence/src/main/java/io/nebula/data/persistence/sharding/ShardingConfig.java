@@ -2,7 +2,6 @@ package io.nebula.data.persistence.sharding;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 
@@ -13,7 +12,6 @@ import java.util.*;
  * @since 2.0.0
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "nebula.data.sharding")
 public class ShardingConfig {
     
