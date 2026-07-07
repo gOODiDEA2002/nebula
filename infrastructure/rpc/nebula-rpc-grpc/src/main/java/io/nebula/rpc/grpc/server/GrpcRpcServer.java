@@ -10,7 +10,6 @@ import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
 import io.nebula.rpc.grpc.proto.RpcRequest;
 import io.nebula.rpc.grpc.proto.RpcResponse;
 import lombok.extern.slf4j.Slf4j;
-import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -30,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2.0.0
  */
 @Slf4j
-@GrpcService
 public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBase 
         implements ApplicationContextAware {
 

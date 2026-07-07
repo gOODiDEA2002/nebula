@@ -5,6 +5,7 @@ import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.rpc.grpc.client.GrpcRpcClient;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
+import io.nebula.rpc.grpc.server.GrpcAuthTokenInterceptor;
 import io.nebula.rpc.grpc.server.GrpcRpcServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -15,6 +16,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.annotation.Order;
+import org.springframework.grpc.server.GlobalServerInterceptor;
 
 /**
  * gRPC RPC 自动配置类
@@ -56,6 +59,21 @@ public class GrpcRpcAutoConfiguration {
     }
 
     /**
+     * gRPC token 鉴权拦截器（可选，配置 auth-token 后生效）
+     */
+    @Bean
+    @Order(0)
+    @GlobalServerInterceptor
+    @ConditionalOnProperty(prefix = "nebula.rpc.grpc.server", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public GrpcAuthTokenInterceptor grpcAuthTokenInterceptor(GrpcRpcProperties properties) {
+        String token = properties.getServer().getAuthToken();
+        if (token != null && !token.isEmpty()) {
+            log.info("gRPC RPC token 鉴权已启用");
+        }
+        return new GrpcAuthTokenInterceptor(token);
+    }
+
+    /**
      * 组件摘要: gRPC RPC
      */
     @Bean
@@ -66,6 +84,7 @@ public class GrpcRpcAutoConfiguration {
         details.put("Server Port", String.valueOf(properties.getServer().getPort()));
         details.put("Max Concurrent", String.valueOf(properties.getServer().getMaxConcurrentCalls()));
         details.put("KeepAlive Time", properties.getServer().getKeepAliveTime() + "s");
+        details.put("Auth Token", properties.getServer().getAuthToken().isEmpty() ? "disabled" : "enabled");
 
         // Client
         details.put("Target", properties.getClient().getTarget());

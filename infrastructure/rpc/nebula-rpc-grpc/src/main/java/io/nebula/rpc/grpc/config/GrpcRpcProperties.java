@@ -67,6 +67,13 @@ public class GrpcRpcProperties {
          * 最大并发调用数
          */
         private int maxConcurrentCalls = 1000;
+
+        /**
+         * gRPC 端点访问 token（可选，默认空=不鉴权）。
+         * 配置后，gRPC 请求须携带 metadata {@code x-nebula-rpc-token: <token>}，否则返回 UNAUTHENTICATED；
+         * 默认关闭以不影响纯内网调用。
+         */
+        private String authToken = "";
     }
 
     /**

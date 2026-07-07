@@ -25,11 +25,8 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
-import org.springframework.ai.document.MetadataMode;
-import org.springframework.ai.retry.RetryUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -39,8 +36,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestClient;
-import org.springframework.http.client.ReactorClientHttpRequestFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Nebula AI 自动配置类
@@ -61,121 +56,88 @@ public class AIAutoConfiguration {
     }
 
     /**
-     * 配置 RestClient.Builder
-     * 为 OpenAiApi / ChromaApi 提供统一的 RestClient.Builder Bean
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public RestClient.Builder builder() {
-        log.info("配置 RestClient.Builder (带HTTP日志拦截器)");
-
-        // 添加 HTTP 日志拦截器
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-
-        // 使用 ReactorClientHttpRequestFactory 以匹配 Spring 6.2 默认行为
-        // SimpleClientHttpRequestFactory 在 Reactor Netty 存在时会被忽略
-        ReactorClientHttpRequestFactory requestFactory = new ReactorClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(10));
-        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(300));
-
-        return RestClient.builder()
-                .requestFactory(requestFactory)
-                .requestInterceptor(loggingInterceptor);
-    }
-
-    /**
-     * 配置 OpenAiApi
-     * 基于 Nebula 配置创建 OpenAiApi Bean
-     */
-    @Bean("nebulaOpenAiApi")
-    @Primary
-    @ConditionalOnClass(OpenAiApi.class)
-    @ConditionalOnMissingBean(name = "nebulaOpenAiApi")
-    @ConditionalOnProperty(prefix = "nebula.ai.openai", name = "api-key")
-    public OpenAiApi nebulaOpenAiApi(AIProperties aiProperties, RestClient.Builder restClientBuilder) {
-        AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
-
-        log.info("配置 OpenAiApi, Base URL: {}", openAIConfig.getBaseUrl());
-
-        return OpenAiApi.builder()
-                .apiKey(openAIConfig.getApiKey())
-                .baseUrl(openAIConfig.getBaseUrl())
-                .restClientBuilder(restClientBuilder)
-                .build();
-    }
-
-    /**
      * 配置 OpenAI ChatModel
-     * 配置了 nebula.ai.openai.api-key 即自动创建
+     *
+     * Spring AI 2.0: OpenAiApi 已移除，apiKey/baseUrl 通过 OpenAiChatOptions 传入，
+     * 模型内部自动构建 OpenAIClient (基于官方 SDK)
      */
     @Bean("nebulaOpenAiChatModel")
     @Primary
     @ConditionalOnClass(OpenAiChatModel.class)
     @ConditionalOnMissingBean(name = "nebulaOpenAiChatModel")
-    @ConditionalOnBean(name = "nebulaOpenAiApi")
-    public ChatModel nebulaOpenAiChatModel(OpenAiApi nebulaOpenAiApi, AIProperties aiProperties) {
+    @ConditionalOnProperty(prefix = "nebula.ai.openai", name = "api-key")
+    public ChatModel nebulaOpenAiChatModel(AIProperties aiProperties) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
-        AIProperties.OpenAIChatOptions chatOptions = openAIConfig.getChat().getOptions();
+        AIProperties.OpenAIChatOptions chatOpts = openAIConfig.getChat().getOptions();
 
-        log.info("配置 OpenAI ChatModel, Model: {}, Temperature: {}, MaxTokens: {}",
-                chatOptions.getModel(), chatOptions.getTemperature(), chatOptions.getMaxTokens());
+        log.info("配置 OpenAI ChatModel, Base URL: {}, Model: {}, Temperature: {}, MaxTokens: {}",
+                openAIConfig.getBaseUrl(), chatOpts.getModel(), chatOpts.getTemperature(), chatOpts.getMaxTokens());
 
         OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .model(chatOptions.getModel())
-                .temperature(chatOptions.getTemperature())
-                .maxTokens(chatOptions.getMaxTokens())
+                .apiKey(openAIConfig.getApiKey())
+                .baseUrl(openAIConfig.getBaseUrl())
+                .model(chatOpts.getModel())
+                .temperature(chatOpts.getTemperature())
+                .maxTokens(chatOpts.getMaxTokens())
                 .build();
 
         return OpenAiChatModel.builder()
-                .openAiApi(nebulaOpenAiApi)
-                .defaultOptions(options)
+                .options(options)
                 .build();
     }
 
     /**
      * 配置 OpenAI EmbeddingModel
-     * 配置了 nebula.ai.openai.api-key 即自动创建
+     *
+     * Spring AI 2.0: 同 ChatModel，apiKey/baseUrl 通过 Options 传入
      */
     @Bean("nebulaOpenAiEmbeddingModel")
     @Primary
     @ConditionalOnClass(OpenAiEmbeddingModel.class)
     @ConditionalOnMissingBean(name = "nebulaOpenAiEmbeddingModel")
-    @ConditionalOnBean(name = "nebulaOpenAiApi")
-    public EmbeddingModel nebulaOpenAiEmbeddingModel(OpenAiApi nebulaOpenAiApi, AIProperties aiProperties) {
+    @ConditionalOnProperty(prefix = "nebula.ai.openai", name = "api-key")
+    public EmbeddingModel nebulaOpenAiEmbeddingModel(AIProperties aiProperties) {
         AIProperties.OpenAIProperties openAIConfig = aiProperties.getOpenai();
-        AIProperties.OpenAIEmbeddingOptions embeddingOptions = openAIConfig.getEmbedding().getOptions();
+        AIProperties.OpenAIEmbeddingOptions embOpts = openAIConfig.getEmbedding().getOptions();
 
-        log.info("配置 OpenAI EmbeddingModel, Model: {}", embeddingOptions.getModel());
+        log.info("配置 OpenAI EmbeddingModel, Model: {}", embOpts.getModel());
 
         OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
-                .model(embeddingOptions.getModel())
+                .apiKey(openAIConfig.getApiKey())
+                .baseUrl(openAIConfig.getBaseUrl())
+                .model(embOpts.getModel())
                 .build();
 
-        return new OpenAiEmbeddingModel(nebulaOpenAiApi, MetadataMode.EMBED, options,
-                RetryUtils.DEFAULT_RETRY_TEMPLATE);
+        return OpenAiEmbeddingModel.builder()
+                .options(options)
+                .build();
     }
 
     /**
      * 配置 ChromaApi
-     * 基于 Nebula 配置创建 ChromaApi Bean
+     *
+     * Spring AI 2.0: 使用 builder 模式，JsonMapper 由框架自动提供
      */
     @Bean("nebulaChromaApi")
     @Primary
     @ConditionalOnClass(ChromaApi.class)
     @ConditionalOnMissingBean(name = "nebulaChromaApi")
-    public ChromaApi nebulaChromaApi(RestClient.Builder builder, ObjectMapper objectMapper, AIProperties aiProperties) {
+    public ChromaApi nebulaChromaApi(AIProperties aiProperties) {
         AIProperties.ChromaProperties chromaConfig = aiProperties.getVectorStore().getChroma();
         String chromaUrl = chromaConfig.getUrl();
 
         log.info("配置 ChromaApi, URL: {}, Collection: {}, InitializeSchema: {}",
                 chromaUrl, chromaConfig.getCollectionName(), chromaConfig.isInitializeSchema());
 
-        return new ChromaApi(chromaUrl, builder, objectMapper);
+        return ChromaApi.builder()
+                .baseUrl(chromaUrl)
+                .build();
     }
 
     /**
      * 配置 ChromaVectorStore
-     * 基于 Nebula 配置创建 ChromaVectorStore Bean
+     *
+     * Spring AI 2.0: 使用官方 ChromaVectorStore.builder 替代自定义实现
      */
     @Bean("nebulaChromaVectorStore")
     @Primary
@@ -185,16 +147,13 @@ public class AIAutoConfiguration {
             AIProperties aiProperties) {
         AIProperties.ChromaProperties chromaConfig = aiProperties.getVectorStore().getChroma();
 
-        log.info("配置 CustomChromaVectorStore, Collection: {}, InitializeSchema: {}",
+        log.info("配置 ChromaVectorStore, Collection: {}, InitializeSchema: {}",
                 chromaConfig.getCollectionName(), chromaConfig.isInitializeSchema());
-        log.info("注入的 EmbeddingModel 类型: {}", embeddingModel.getClass().getName());
 
-        // 使用自定义实现绕过JSON解析兼容性问题
-        return new CustomChromaVectorStore(
-                nebulaChromaApi,
-                embeddingModel,
-                chromaConfig.getCollectionName(),
-                chromaConfig.isInitializeSchema());
+        return ChromaVectorStore.builder(nebulaChromaApi, embeddingModel)
+                .collectionName(chromaConfig.getCollectionName())
+                .initializeSchema(chromaConfig.isInitializeSchema())
+                .build();
     }
 
     /**

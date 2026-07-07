@@ -95,35 +95,36 @@ public class QueryConverter {
     
     /**
      * 转换 Range 查询
+     * ES Java Client 9.x 将 RangeQuery 拆为类型化变体，此处使用 UntypedRangeQuery 保持通用兼容。
      */
     private static Query convertRangeQuery(RangeQueryBuilder rangeBuilder) {
-        return RangeQuery.of(r -> {
-            r.field(rangeBuilder.getField());
-            
+        return RangeQuery.of(r -> r.untyped(u -> {
+            u.field(rangeBuilder.getField());
+
             if (rangeBuilder.getGt() != null) {
-                r.gt(co.elastic.clients.json.JsonData.of(rangeBuilder.getGt()));
+                u.gt(co.elastic.clients.json.JsonData.of(rangeBuilder.getGt()));
             }
             if (rangeBuilder.getGte() != null) {
-                r.gte(co.elastic.clients.json.JsonData.of(rangeBuilder.getGte()));
+                u.gte(co.elastic.clients.json.JsonData.of(rangeBuilder.getGte()));
             }
             if (rangeBuilder.getLt() != null) {
-                r.lt(co.elastic.clients.json.JsonData.of(rangeBuilder.getLt()));
+                u.lt(co.elastic.clients.json.JsonData.of(rangeBuilder.getLt()));
             }
             if (rangeBuilder.getLte() != null) {
-                r.lte(co.elastic.clients.json.JsonData.of(rangeBuilder.getLte()));
+                u.lte(co.elastic.clients.json.JsonData.of(rangeBuilder.getLte()));
             }
             if (rangeBuilder.getFormat() != null) {
-                r.format(rangeBuilder.getFormat());
+                u.format(rangeBuilder.getFormat());
             }
             if (rangeBuilder.getTimeZone() != null) {
-                r.timeZone(rangeBuilder.getTimeZone());
+                u.timeZone(rangeBuilder.getTimeZone());
             }
             if (rangeBuilder.getBoost() != null) {
-                r.boost(rangeBuilder.getBoost());
+                u.boost(rangeBuilder.getBoost());
             }
-            
-            return r;
-        })._toQuery();
+
+            return u;
+        }))._toQuery();
     }
     
     /**

@@ -32,10 +32,10 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- Spring Cloud Gateway -->
+        <!-- Spring Cloud Gateway (renamed in Spring Cloud 2025.1.x) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-gateway-server</artifactId>
+            <artifactId>spring-cloud-gateway-server-webflux</artifactId>
         </dependency>
         
         <!-- Spring Cloud LoadBalancer (用于 lb:// URI 支持) -->

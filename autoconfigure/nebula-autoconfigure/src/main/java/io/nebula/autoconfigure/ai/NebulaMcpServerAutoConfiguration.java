@@ -25,7 +25,7 @@ import java.util.Map;
  * @since 1.0.0
  */
 @AutoConfiguration
-@ConditionalOnClass(name = "org.springframework.ai.mcp.server.McpServer")
+@ConditionalOnClass(name = "org.springframework.ai.mcp.server.common.autoconfigure.McpServerAutoConfiguration")
 @ConditionalOnProperty(prefix = "nebula.ai.mcp.server", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(McpProperties.class)
 public class NebulaMcpServerAutoConfiguration {

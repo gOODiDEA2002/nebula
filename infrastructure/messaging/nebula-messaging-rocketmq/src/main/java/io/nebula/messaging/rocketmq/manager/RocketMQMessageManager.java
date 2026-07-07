@@ -91,7 +91,7 @@ public class RocketMQMessageManager implements MessageManager {
     public void createTopic(String topic) {
         try {
             // 依赖 Broker 开启 autoCreateTopicEnable；生产环境建议通过控制台预先创建
-            nativeProducer.createTopic(nativeProducer.getCreateTopicKey(), topic, 8);
+            nativeProducer.createTopic(nativeProducer.getCreateTopicKey(), topic, 8, null);
             log.info("创建主题: topic={}", topic);
         } catch (Exception e) {
             throw new IllegalStateException("创建主题失败（生产环境请通过控制台/mqadmin 创建）: " + topic, e);

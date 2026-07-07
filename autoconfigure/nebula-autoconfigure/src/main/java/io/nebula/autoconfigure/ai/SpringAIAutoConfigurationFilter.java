@@ -18,9 +18,7 @@ public class SpringAIAutoConfigurationFilter implements AutoConfigurationImportF
      * 需要排除的 Spring AI 自动配置类
      */
     private static final Set<String> EXCLUDED_AUTO_CONFIGURATIONS = Set.of(
-            // OpenAI 相关自动配置
-            "org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration",
-            "org.springframework.ai.model.openai.autoconfigure.OpenAiAutoConfiguration",
+            // OpenAI 相关自动配置（由 Nebula AIAutoConfiguration 统一管理）
             "org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration",
             "org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration",
             "org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration",

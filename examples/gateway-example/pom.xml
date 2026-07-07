@@ -17,8 +17,7 @@
     <description>Nebula Framework API 网关示例 - HTTP 反向代理、认证、限流</description>
 
     <properties>
-        <spring-cloud.version>2025.0.1</spring-cloud.version>
-        <jjwt.version>0.12.5</jjwt.version>
+        <!-- 版本继承自根 POM，不再覆盖 -->
     </properties>
 
     <dependencies>
@@ -47,18 +46,15 @@
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
         

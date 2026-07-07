@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.web.servlet.context.ServletWebServerInitializedEvent;
+import org.springframework.boot.web.server.servlet.context.ServletWebServerInitializedEvent;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.core.env.Environment;
 import org.springframework.mock.web.MockServletContext;
@@ -105,21 +105,33 @@ class NacosServiceAutoRegistrarTest {
     
     @Test
     void testAutoRegistrationWithGrpcPort() throws Exception {
-        // 设置gRPC端口
-        when(environment.getProperty("grpc.server.port")).thenReturn("9090");
+        when(environment.getProperty("spring.grpc.server.port")).thenReturn("9090");
         
-        // 使用反射调用registerService
         java.lang.reflect.Method method = NacosServiceAutoRegistrar.class.getDeclaredMethod("registerService", int.class);
         method.setAccessible(true);
         method.invoke(autoRegistrar, 8080);
         
-        // 验证服务注册被调用
         ArgumentCaptor<ServiceInstance> captor = ArgumentCaptor.forClass(ServiceInstance.class);
         verify(serviceDiscovery).register(captor.capture());
         
-        // 验证元数据包含gRPC端口
         ServiceInstance instance = captor.getValue();
         assertThat(instance.getMetadata()).containsEntry("grpcPort", "9090");
+    }
+
+    @Test
+    void testAutoRegistrationWithLegacyGrpcPort() throws Exception {
+        when(environment.getProperty("spring.grpc.server.port")).thenReturn(null);
+        when(environment.getProperty("grpc.server.port")).thenReturn("9091");
+
+        java.lang.reflect.Method method = NacosServiceAutoRegistrar.class.getDeclaredMethod("registerService", int.class);
+        method.setAccessible(true);
+        method.invoke(autoRegistrar, 8080);
+
+        ArgumentCaptor<ServiceInstance> captor = ArgumentCaptor.forClass(ServiceInstance.class);
+        verify(serviceDiscovery).register(captor.capture());
+
+        ServiceInstance instance = captor.getValue();
+        assertThat(instance.getMetadata()).containsEntry("grpcPort", "9091");
     }
     
     @Test

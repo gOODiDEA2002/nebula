@@ -29,11 +29,7 @@
             <artifactId>rocketmq-client</artifactId>
         </dependency>
 
-        <!-- RocketMQ ACL (开启 ACL 鉴权时提供 AclClientRPCHook) -->
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-acl</artifactId>
-        </dependency>
+        <!-- RocketMQ ACL: 5.x 已合并进 rocketmq-client (RIP-77), 不再单独依赖 -->
 
         <!-- Test -->
         <dependency>

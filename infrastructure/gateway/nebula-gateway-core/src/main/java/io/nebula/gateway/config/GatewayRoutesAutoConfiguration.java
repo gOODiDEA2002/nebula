@@ -1,9 +1,6 @@
 package io.nebula.gateway.config;
 
-import io.nebula.discovery.core.ServiceDiscovery;
-import io.nebula.discovery.core.ServiceInstance;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
@@ -17,19 +14,16 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import jakarta.annotation.PostConstruct;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 网关路由和CORS自动配置
+ * 网关路由和 CORS 自动配置
  * <p>
- * 将 nebula.gateway 的配置转换为 Spring Cloud Gateway 配置
- * <p>
- * 基于微服务三原则优化：
- * - 前端接口通过 Controller 暴露（HTTP 代理转发）
- * - 服务间调用通过 RpcClient（不经过 Gateway）
+ * 将 nebula.gateway 的配置转换为 Spring Cloud Gateway 配置。
+ * 服务发现场景统一使用 lb:// 协议交由 Spring Cloud LoadBalancer 动态路由，
+ * 不再在启动时解析固定地址（避免路由钉死到单实例）。
  */
 @Slf4j
 @Configuration
@@ -39,9 +33,6 @@ public class GatewayRoutesAutoConfiguration {
 
     private final GatewayProperties nebulaGatewayProperties;
     private final org.springframework.cloud.gateway.config.GatewayProperties springGatewayProperties;
-    
-    @Autowired(required = false)
-    private ServiceDiscovery serviceDiscovery;
 
     public GatewayRoutesAutoConfiguration(GatewayProperties nebulaGatewayProperties,
                                            org.springframework.cloud.gateway.config.GatewayProperties springGatewayProperties) {
@@ -51,23 +42,13 @@ public class GatewayRoutesAutoConfiguration {
 
     @PostConstruct
     public void configureRoutes() {
-        // 配置 HTTP 代理路由
         configureHttpProxyRoutes();
-        
-        // 配置自定义路由
         configureCustomRoutes();
-        
-        // 配置默认过滤器
         configureDefaultFilters();
         
         log.info("Nebula Gateway 路由配置完成，共 {} 条路由", springGatewayProperties.getRoutes().size());
     }
 
-    /**
-     * 根据 HTTP 代理服务配置自动生成路由
-     * <p>
-     * 为每个配置的服务生成路由，将请求代理到后端服务的 Controller
-     */
     private void configureHttpProxyRoutes() {
         GatewayProperties.HttpProxyConfig httpConfig = nebulaGatewayProperties.getHttp();
         if (!httpConfig.isEnabled() || httpConfig.getServices().isEmpty()) {
@@ -83,23 +64,19 @@ public class GatewayRoutesAutoConfiguration {
                 continue;
             }
             
-            // 获取 API 路径
             List<String> apiPaths = serviceConfig.getApiPaths();
             if (apiPaths == null || apiPaths.isEmpty()) {
                 log.warn("服务 {} 未配置 API 路径，跳过", serviceName);
                 continue;
             }
             
-            // 确定目标 URI
             String targetUri = determineTargetUri(serviceName, serviceConfig, httpConfig.isUseDiscovery());
             
-            // 为每组 API 路径创建路由
             RouteDefinition route = new RouteDefinition();
             route.setId("nebula-http-" + serviceName);
             route.setUri(URI.create(targetUri));
             route.setOrder(0);
             
-            // 配置 Path 谓词
             PredicateDefinition pathPredicate = new PredicateDefinition();
             pathPredicate.setName("Path");
             int idx = 0;
@@ -108,7 +85,6 @@ public class GatewayRoutesAutoConfiguration {
             }
             route.setPredicates(List.of(pathPredicate));
             
-            // 添加到路由列表
             boolean exists = springGatewayProperties.getRoutes().stream()
                     .anyMatch(r -> route.getId().equals(r.getId()));
             if (!exists) {
@@ -122,51 +98,24 @@ public class GatewayRoutesAutoConfiguration {
      * 确定目标 URI
      * <p>
      * 优先级：
-     * 1. 静态地址配置
-     * 2. 服务发现（从 Nacos 获取实例地址）
-     * 3. lb:// 前缀（需要 Spring Cloud LoadBalancer 支持）
+     * 1. 静态地址配置（直连）
+     * 2. lb:// 协议（通过 Spring Cloud LoadBalancer 动态路由 + Nebula ServiceDiscovery 适配）
      */
     private String determineTargetUri(String serviceName, 
                                        GatewayProperties.HttpServiceConfig serviceConfig,
                                        boolean useDiscovery) {
-        // 优先使用静态地址
         if (serviceConfig.getAddress() != null && !serviceConfig.getAddress().isEmpty()) {
             return serviceConfig.getAddress();
         }
         
-        // 使用服务发现
         if (useDiscovery) {
             String targetServiceName = serviceConfig.getServiceName() != null 
                     ? serviceConfig.getServiceName() 
                     : serviceName;
-            
-            // 尝试从 Nebula ServiceDiscovery 获取服务实例
-            if (serviceDiscovery != null) {
-                try {
-                    List<ServiceInstance> instances = serviceDiscovery.getInstances(targetServiceName);
-                    if (instances != null && !instances.isEmpty()) {
-                        // 获取第一个健康实例（实际生产中应该使用负载均衡）
-                        ServiceInstance instance = instances.stream()
-                                .filter(ServiceInstance::isHealthy)
-                                .findFirst()
-                                .orElse(instances.get(0));
-                        String uri = String.format("http://%s:%d", instance.getIp(), instance.getPort());
-                        log.info("从服务发现获取 {} 地址: {}", targetServiceName, uri);
-                        return uri;
-                    } else {
-                        log.warn("服务 {} 在服务发现中无可用实例", targetServiceName);
-                    }
-                } catch (Exception e) {
-                    log.warn("从服务发现获取 {} 地址失败: {}", targetServiceName, e.getMessage());
-                }
-            }
-            
-            // 如果 Nebula ServiceDiscovery 不可用，回退到 lb:// 前缀
-            // 这需要 Spring Cloud LoadBalancer 支持
             return "lb://" + targetServiceName;
         }
         
-        log.warn("服务 {} 无法确定目标 URI", serviceName);
+        log.warn("服务 {} 无法确定目标 URI（未配置静态地址且未启用服务发现）", serviceName);
         return "no://op";
     }
 

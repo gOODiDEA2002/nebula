@@ -9,7 +9,7 @@ Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 与 Java
 ## 技术栈
 
 - `Java 21`
-- `Spring Boot 3.5.8`
+- `Spring Boot 4.1.0`
 - `Maven`
 - `MyBatis-Plus`
 - `HikariCP` 连接池（数据持久化模块中使用）

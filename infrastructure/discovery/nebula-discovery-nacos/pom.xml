@@ -36,6 +36,13 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         
+        <!-- Web Server 事件（WebServerInitializedEvent），运行时由 web starter 提供 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-web-server</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
         <!-- Nacos Discovery -->
         <dependency>
             <groupId>com.alibaba.nacos</groupId>

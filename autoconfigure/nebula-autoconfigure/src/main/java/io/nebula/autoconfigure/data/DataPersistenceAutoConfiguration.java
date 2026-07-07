@@ -46,7 +46,7 @@ import java.util.concurrent.Executors;
  * @since 2.0.0
  */
 @Slf4j
-@AutoConfiguration(before = org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class)
+@AutoConfiguration(before = org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class)
 @ConditionalOnClass(name = "com.baomidou.mybatisplus.core.mapper.BaseMapper")
 @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(MybatisPlusProperties.class)

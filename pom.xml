@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.8</version>
+        <version>4.1.0</version>
         <relativePath/>
     </parent>
 
@@ -114,23 +114,21 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         
-        <!-- Spring Boot 3.5.x 相关 (3.5.16 为 3.5 线最后一个 OSS 版本, 升级 SB4.1 前的稳定基线) -->
-        <spring-boot.version>3.5.16</spring-boot.version>
+        <!-- Spring Boot 4.1.0 (Spring Framework 7 / Jakarta EE 11) -->
         <!-- Spring Framework 版本由 Spring Boot 管理 -->
         
         <!-- 数据库相关 -->
-        <mybatis-plus.version>3.5.9</mybatis-plus.version>
+        <mybatis-plus.version>3.5.16</mybatis-plus.version>
         <mysql.version>9.1.0</mysql.version>
         <druid.version>1.2.23</druid.version>
         <!-- MongoDB Driver 版本由 Spring Boot 管理 -->
-        <redisson.version>3.39.0</redisson.version>
+        <redisson.version>4.6.1</redisson.version>
 
         
         <!-- 消息队列 (spring-rabbit/amqp-client 交由 Spring Boot BOM 托管, 避免与 spring-amqp 版本错配) -->
-        <rocketmq.version>4.9.8</rocketmq.version>
+        <rocketmq.version>5.5.0</rocketmq.version>
         
-        <!-- 搜索引擎 -->
-        <elasticsearch.version>8.11.1</elasticsearch.version>
+        <!-- 搜索引擎: elasticsearch-java + elasticsearch-rest5-client 由 Boot 4.1 BOM 统一管理 (9.4.2) -->
         
         <!-- 对象存储 -->
         <minio.version>8.5.7</minio.version>
@@ -138,16 +136,16 @@
         
         <!-- 服务发现 -->
         <nacos.version>2.5.1</nacos.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <spring-cloud.version>2025.1.2</spring-cloud.version>
         
         <!-- AI -->
-        <spring-ai.version>1.1.0</spring-ai.version>
+        <spring-ai.version>2.0.0</spring-ai.version>
         
           <!-- 任务调度 -->
           <xxl-job.version>3.2.0</xxl-job.version>
           
           <!-- JWT -->
-          <jjwt.version>0.12.3</jjwt.version>
+          <jjwt.version>0.13.0</jjwt.version>
           
           <!-- 工具库 -->
         <guava.version>33.3.1-jre</guava.version>
@@ -164,11 +162,11 @@
         <!-- gRPC -->
         <grpc.version>1.68.1</grpc.version>
         <protobuf-java.version>3.25.5</protobuf-java.version>
-        <grpc-spring-boot-starter.version>3.1.0.RELEASE</grpc-spring-boot-starter.version>
+        <spring-grpc.version>1.1.0</spring-grpc.version>
         
         <!-- 插件版本 -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
         <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
         <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
     </properties>
@@ -208,7 +206,7 @@
             <!-- 数据库 -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
@@ -246,18 +244,9 @@
                 <artifactId>rocketmq-client</artifactId>
                 <version>${rocketmq.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-acl</artifactId>
-                <version>${rocketmq.version}</version>
-            </dependency>
+            <!-- rocketmq-acl: 5.x 已合并进 rocketmq-client (RIP-77), 不再单独依赖 -->
             
-            <!-- 搜索引擎 -->
-            <dependency>
-                <groupId>co.elastic.clients</groupId>
-                <artifactId>elasticsearch-java</artifactId>
-                <version>${elasticsearch.version}</version>
-            </dependency>
+            <!-- 搜索引擎: elasticsearch-java 由 Boot 4.1 BOM 管理 (elasticsearch-client.version=9.4.2) -->
             
             <!-- 对象存储 -->
             <dependency>
@@ -332,11 +321,11 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- gRPC Starter -->
+            <!-- Spring gRPC Core (replaces net.devh:grpc-spring-boot-starter) -->
             <dependency>
-                <groupId>net.devh</groupId>
-                <artifactId>grpc-spring-boot-starter</artifactId>
-                <version>${grpc-spring-boot-starter.version}</version>
+                <groupId>org.springframework.grpc</groupId>
+                <artifactId>spring-grpc-core</artifactId>
+                <version>${spring-grpc.version}</version>
             </dependency>
             <!-- Protobuf -->
             <dependency>
@@ -357,6 +346,13 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.1 Jackson 2 兼容：框架大量使用 com.fasterxml.jackson，
+             保留 jackson2 自动配置模块，Jackson 3 全量迁移留后续版本 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson2</artifactId>
         </dependency>
         
         <!-- 测试依赖 -->

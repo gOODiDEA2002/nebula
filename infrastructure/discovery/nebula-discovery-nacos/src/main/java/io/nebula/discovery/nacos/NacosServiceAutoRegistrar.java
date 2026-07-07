@@ -6,7 +6,7 @@ import io.nebula.discovery.core.ServiceInstance;
 import io.nebula.discovery.nacos.config.NacosProperties;
 import io.nebula.discovery.nacos.util.NetworkUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.context.WebServerInitializedEvent;
+import org.springframework.boot.web.server.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
@@ -82,10 +82,11 @@ public class NacosServiceAutoRegistrar implements ApplicationListener<Applicatio
             metadata.put("version", environment.getProperty("spring.application.version", "1.0.0"));
             metadata.put("profile", String.join(",", environment.getActiveProfiles()));
             
-            // ✅ 新增：如果配置了 gRPC 端口且用户未手动配置，添加到元数据
-            // 统一使用 grpcPort 作为 key（与 httpPort 保持一致）
             if (!metadata.containsKey("grpcPort")) {
-                String grpcPort = environment.getProperty("grpc.server.port");
+                String grpcPort = environment.getProperty("spring.grpc.server.port");
+                if (grpcPort == null || grpcPort.isEmpty()) {
+                    grpcPort = environment.getProperty("grpc.server.port");
+                }
                 if (grpcPort != null && !grpcPort.isEmpty()) {
                     metadata.put("grpcPort", grpcPort);
                     log.info("自动添加 gRPC 端口元数据: grpcPort={}", grpcPort);

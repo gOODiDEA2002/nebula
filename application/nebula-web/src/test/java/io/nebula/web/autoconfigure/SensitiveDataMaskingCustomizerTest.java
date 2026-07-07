@@ -6,7 +6,7 @@ import io.nebula.web.mask.MaskType;
 import io.nebula.web.mask.SensitiveData;
 import io.nebula.web.mask.SensitiveDataAnnotationIntrospector;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;

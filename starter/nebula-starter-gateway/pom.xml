@@ -31,10 +31,10 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Spring Cloud Gateway Starter -->
+        <!-- Spring Cloud Gateway Starter (renamed in Spring Cloud 2025.1.x) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway</artifactId>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
         </dependency>
         
         <!-- Resilience4j (熔断限流) -->

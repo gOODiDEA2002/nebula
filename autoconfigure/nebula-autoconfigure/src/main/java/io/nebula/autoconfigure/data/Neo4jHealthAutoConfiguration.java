@@ -2,7 +2,7 @@ package io.nebula.autoconfigure.data;
 
 import io.nebula.data.neo4j.support.Neo4jHealthIndicator;
 import org.neo4j.driver.Driver;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

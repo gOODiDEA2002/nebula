@@ -31,7 +31,7 @@ import java.util.concurrent.Executors;
  * 数据持久层自动配置类
  */
 @Slf4j
-@AutoConfiguration(before = org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class)
+@AutoConfiguration(before = org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class)
 @ConditionalOnClass(name = "com.baomidou.mybatisplus.core.mapper.BaseMapper")
 @ConditionalOnProperty(prefix = "nebula.data.persistence", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties

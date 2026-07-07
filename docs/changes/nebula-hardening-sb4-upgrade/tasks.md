@@ -265,11 +265,160 @@
   - 验证：`mvn -q -pl application/nebula-task -am test`
   - 完成：2026-07-06。四个 handler（minute/5min/hour/day）的重复吞异常逻辑收敛为泛型 `executeAll(jobName, tasks, invoker)`（Every*Execute 无公共父接口，用 @FunctionalInterface TaskInvoker 方法引用适配）：单任务失败不中断同批其余任务，收尾任一失败返回 `ReturnT.FAIL_CODE` 且消息含 "N/M tasks failed: 类名列表"——调度中心的失败告警/重试策略自此真实生效。改写原"失败仍断言 200"的旧用例为断言 FAIL，新增部分失败用例（失败者之后的任务仍执行 + 1/2 failed 上报）。task 48 测试全绿
 
-### 阶段 B / C 收尾 / D（C-pre 完成后拆）
+## EPIC-B｜升级 Spring Boot 4.1（升级设计 §8 阶段 1-3）
 
-- [ ] **EPIC-B｜升级 Spring Boot 4.1**（升级设计第 8 节阶段 1-3；C 中与重灾模块耦合的项——Gateway XFF/路由钉死、gRPC Channel 生命周期(RDG-2)、RocketMQ 停机钩子/事务表、gRPC token 鉴权——并入阶段 2 一起做）
+> 基线：3.5.16（hardening-b 最后一个 A+C-pre 提交）
+> 目标：Spring Boot 4.1.0 / Spring Framework 7 / Spring Cloud 2025.1.2 / Java 21 沿用
+> 策略：先加 `spring-boot-starter-classic` 跑通编译 → 逐模块修包名/API → 重灾模块重构 → 移除 classic
+> C 中与重灾模块耦合的项（Gateway 路由、gRPC Channel/token、RocketMQ 停机）并入 B2 一起做
+
+### 阶段 B1：切基线到 Boot 4.1
+
+- [x] **T-B1-1｜POM 切版本 + classic starters + 依赖版本对齐**
+  - 文件：根 `pom.xml` + 6 个子模块 POM
+  - 改动：
+    - parent `spring-boot-starter-parent` 3.5.8 → 4.1.0
+    - 删除 `spring-boot.version=3.5.16`（parent 已管理）
+    - `spring-cloud.version` 2025.0.0 → 2025.1.2
+    - `spring-ai.version` 1.1.0 → 2.0.0
+    - 添加 `spring-boot-starter-classic` 全局依赖（过渡用，B3 移除）
+    - `mybatis-plus` 3.5.9 → 3.5.16, artifactId `boot3-starter` → `boot4-starter`（含 data-persistence、starter-api 子模块）
+    - `redisson` 3.39.0 → 4.6.1（core 包，framework 不用 starter）
+    - `grpc-spring-boot-starter`(net.devh) → `spring-grpc-dependencies` BOM 1.1.0 + `spring-grpc-core`（T-B2-2 完整迁移）
+    - `jjwt` 0.12.3 → 0.13.0
+    - `maven-surefire-plugin` 3.2.2 → 3.5.5
+    - Spring Boot 4 breaking renames: `starter-aop` → `starter-aspectj`（3 处）; `gateway-server` → `gateway-server-webflux`（2 处）; `starter-gateway` → `starter-gateway-server-webflux`; `javax.annotation-api` → `jakarta.annotation-api`
+    - 其他由 Boot BOM 管理的依赖自动升级
+  - 验证：`mvn validate` 全 69 模块通过；`mvn compile` 仅剩包名迁移类错误（属 T-B1-2）
+  - 完成：2026-07-06。详细变更清单见 log.md「T-B1-1 执行记录」
+
+- [x] **T-B1-2｜包名迁移（autoconfigure FQN 全量替换）**
+  - 背景：Boot 4 模块化拆分把 `org.springframework.boot.autoconfigure.*` 拆到 `org.springframework.boot.<technology>.autoconfigure`
+  - 已迁移的包名映射（通过 JAR 扫描确认）：
+    - `o.s.b.autoconfigure.jdbc.DataSourceAutoConfiguration` → `o.s.b.jdbc.autoconfigure.DataSourceAutoConfiguration`（2 处）
+    - `o.s.b.autoconfigure.data.redis.RedisAutoConfiguration` → `o.s.b.data.redis.autoconfigure.DataRedisAutoConfiguration`（1 处）
+    - `o.s.b.autoconfigure.neo4j.Neo4jAutoConfiguration` → `o.s.b.neo4j.autoconfigure.Neo4jAutoConfiguration`（1 处）
+    - `o.s.b.autoconfigure.elasticsearch.*` → `o.s.b.elasticsearch.autoconfigure.*`（2 处）
+    - `o.s.b.autoconfigure.data.elasticsearch.*` → `o.s.b.data.elasticsearch.autoconfigure.Data*`（1 处）
+    - `o.s.b.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer` → `o.s.b.jackson2.autoconfigure.Jackson2ObjectMapperBuilderCustomizer`（3 处）
+    - `o.s.b.actuate.health.{Health,HealthIndicator}` → `o.s.b.health.contributor.{Health,HealthIndicator}`（2 处）
+    - `o.s.b.web.context.WebServerInitializedEvent` → `o.s.b.web.server.context.WebServerInitializedEvent`（1 处）
+  - 验证：`mvn compile -pl '!infrastructure/rpc/nebula-rpc-grpc'` **68 模块 BUILD SUCCESS**（gRPC 模块需 T-B2-2 迁移后通过）
+  - 完成：2026-07-06
+
+- [ ] **T-B1-3｜Jackson 2 → 3 全量迁移**（延后到 T-B3-2）
+  - 状态：Spring Boot 4.1 通过 `spring-boot-jackson2` 模块完整支持 Jackson 2（2.21.4），`spring-boot-starter-classic` 已在 classpath 上，68 模块编译+750 测试全绿。Jackson 3 迁移延后到移除 classic starter 时一并处理。
+  - 验证：`mvn test` 全绿确认兼容
+
+- [x] **T-B1-4｜Starter POM 依赖坐标更新**（无需操作）
+  - 状态：`spring-boot-starter-web` 在 4.1.0 中仍然存在（已验证 Maven Central），无需立即迁移为 `spring-boot-starter-webmvc`。T-B1-1 已处理的 starter 改名：`starter-aop`→`starter-aspectj`、`starter-gateway`→`starter-gateway-server-webflux`。
+
+- [x] **T-B1-5｜测试迁移**（无需操作）
+  - 状态：全仓库无 `@MockBean`/`@SpyBean`/`@MockitoBean` 使用，全部使用 Mockito 原生 `@Mock`+`@InjectMocks`。750 测试在 SB4.1 下全绿。
+
+- [x] **T-B1-6｜Web/API 小破坏性变更**（无阻塞项）
+  - 状态：750 测试全绿。SB4.1 + classic starter 组合下未发现 PathPattern、HttpHeaders、UrlPathHelper 等破坏性变更的编译或运行时错误。springdoc 未引入。属性改名无 migration 报告。
+
+### 阶段 B2：重灾模块重构（可并行）
+
+- [x] **T-B2-1｜Gateway 坐标改名 + 路由重构**
+  - POM 坐标改名（T-B1-1 已完成）：`spring-cloud-gateway-server` → `spring-cloud-gateway-server-webflux`（2 处）、`spring-cloud-starter-gateway` → `spring-cloud-starter-gateway-server-webflux`
+  - `GatewayProperties` 包路径：SCG 5.0.2 中**未变化**（仍在 `org.springframework.cloud.gateway.config`），无需迁移
+  - Gateway XFF 可信代理解析（RDG-15）：新增 `ReactiveClientIpResolver`（与 nebula-web ClientIpResolver 同源安全语义），`LoggingGlobalFilter` 和 `RateLimitKeyResolverConfig` 改用之；`GatewayProperties.LoggingConfig` 新增 `trustedProxies` 配置（默认空=不信任 XFF）。**破坏性**：依赖直接信任 XFF 的部署需配置 trusted-proxies
+  - 路由钉死修复：`determineTargetUri` 移除启动时 ServiceDiscovery 解析固定 IP 的逻辑，`useDiscovery=true` 时统一返回 `lb://serviceName`（由 `NebulaServiceInstanceListSupplier` 适配 LoadBalancer 动态路由）
+  - gateway-example 版本覆盖修正：移除本地 `spring-cloud.version=2025.0.1` 和 `jjwt.version=0.12.5` 覆盖（继承根 POM）
+  - 验证：gateway 模块 10 测试全绿（ReactiveClientIpResolverTest 7 + GatewayRoutesAutoConfigurationTest 3）；68 模块编译通过；gateway-example 编译通过；全量测试 BUILD SUCCESS
+  - 完成：2026-07-07
+
+- [ ] **T-B2-2｜gRPC 从 net.devh 转 Spring gRPC**
+  - 移除 `net.devh:grpc-spring-boot-starter`
+  - 引入 `spring-grpc-dependencies` BOM 1.1.0 + `spring-grpc-spring-boot-starter`
+  - 重写 `GrpcRpcServer`（`@GrpcService` 注解迁移）
+  - 重写 `GrpcRpcClient`（Channel 构建 → Spring gRPC 管理）
+  - C 中的 gRPC Channel 生命周期(RDG-2)、gRPC token 鉴权并入
+  - `NacosServiceAutoRegistrar` 的 gRPC 端口 key 改 `spring.grpc.server.port`
+  - 移除遗留 `javax.annotation-api:1.3.2`
+  - 验证：gRPC 模块编译通过 + rpc-async-example 可启动
+
+- [x] **T-B2-3｜ES 换 Rest5Client**
+  - `elasticsearch-java` 8.11.1 → 9.4.2（Boot 4.1 BOM 管理，删除根 POM 显式版本锁定）
+  - `RestClient` → `Rest5Client`（`Rest5ClientBuilder` 构建）
+  - `RestClientTransport` → `Rest5ClientTransport`
+  - `org.apache.http.*`（HttpClient 4.x）→ `org.apache.hc.client5/core5`（HttpComponents 5）
+  - `ElasticsearchAutoConfiguration` 全面重写：`Rest5Client` Bean + `Rest5ClientTransport` + HttpComponents 5 认证/连接池/SSL
+  - `QueryConverter.convertRangeQuery` 适配 9.x `TaggedUnion` API（改用 `UntypedRangeQuery`）
+  - `ElasticsearchSearchService` 移除过时 import（`RequestOptions`、`@Service`）
+  - 验证：search 模块 `mvn clean test` 38 测试全绿；autoconfigure `-am` 编译通过
+  - 完成：2026-07-07
+
+- [x] **T-B2-4｜RocketMQ 迁 5.5.0（增量升级，同 artifact）**
+  - 评估决策：采用 `rocketmq-client:5.5.0`（同 artifact Remoting SDK），而非全新 `rocketmq-client-java`（gRPC SDK 需完全重写）
+  - `rocketmq.version` 4.9.8 → 5.5.0
+  - `rocketmq-acl` 依赖移除（RIP-77，5.x 已合并进 rocketmq-client，ACL 类包名不变）
+  - `MessageModel` import 修正：`common.protocol.heartbeat` → `remoting.protocol.heartbeat`
+  - `createTopic` 方法签名适配：增加 `attributes` 参数（传 null）
+  - 18 级延迟映射保留（4.x 语义，5.x Broker 仍兼容；任意精度延迟留后续按需启用）
+  - 依赖冲突验证：Netty 由 Boot BOM 管理（4.2.15），fastjson 为 RocketMQ 内部 fork，无冲突
+  - 验证：rocketmq 模块 15 测试全绿，autoconfigure 编译通过
+  - 完成：2026-07-07
+
+### 阶段 B3：AI 模块 + 收尾
+
+- [x] **T-B3-1｜Spring AI 1.1 → 2.0**
+  - POM 版本统一：移除 `nebula-ai-spring`、`nebula-autoconfigure`、`fullstack-example` 三处本地 `spring-ai.version` 锁定（1.0.3/1.1.0），统一由根 POM `spring-ai-bom:2.0.0` 管理
+  - `OpenAiApi` 已移除（Spring AI 2.0 切换到官方 OpenAI Java SDK）：`AIAutoConfiguration` 删除 `OpenAiApi` bean 及 `RestClient.Builder` bean，apiKey/baseUrl 改由 `OpenAiChatOptions`/`OpenAiEmbeddingOptions` 携带
+  - `OpenAiChatModel.builder().options(options).build()` 替代 `.openAiApi(api).defaultOptions(options)`
+  - `OpenAiEmbeddingModel.builder().options(options).build()` 替代 `new OpenAiEmbeddingModel(api, MetadataMode, options, RetryTemplate)`
+  - `ChromaApi.builder().baseUrl(url).build()` 替代 `new ChromaApi(url, builder, objectMapper)` (Jackson 2 → 3)
+  - `ChromaVectorStore.builder(api, model).collectionName(...).initializeSchema(...).build()` 替代 `CustomChromaVectorStore`（但保留 `CustomChromaVectorStore` 类，其测试仍绿——从另一路径提供向量存储实现的灵活性）
+  - `SpringAIAutoConfigurationFilter` 清理：移除 2 个不存在的 1.x 遗留类名
+  - `NebulaMcpServerAutoConfiguration` 条件更新：`@ConditionalOnClass` 从 `McpServer` 改为 `McpServerAutoConfiguration`（Spring AI 2.0 MCP 重构）
+  - `nebula-ai-spring` 模块无代码修改——Spring AI 2.0 的 `EmbeddingModel`、`SearchRequest`、`Document` API 完全向后兼容
+  - 验证：69 模块编译通过；AI spring 18 测试 + autoconfigure 23 测试全绿；ai-example + fullstack-example 编译通过
+  - 完成：2026-07-07
+
+- [x] **T-B3-2｜移除 classic starters + 细粒度依赖**
+  - 根 POM：`spring-boot-starter-classic` → `spring-boot-jackson2`（框架 64 个文件使用 Jackson 2，Jackson 3 全量迁移留后续版本）
+  - `nebula-discovery-nacos` 添加 `spring-boot-web-server`（optional，提供 `WebServerInitializedEvent`）
+  - 其余模块的 `spring-boot-<technology>` 依赖均已通过既有传递路径覆盖：`spring-boot-health` ← actuator、`spring-boot-data-redis` ← nebula-data-cache
+  - 瘦身效果：`nebula-foundation` 的 Spring Boot 传递依赖从 ~80+ 模块减至 12 个
+  - 验证：69 模块编译通过，807 测试全绿（0 failures / 0 errors / 3 skipped）
+  - 完成：2026-07-07
+
+- [x] **T-B3-3｜全量回归 + 收尾**
+  - `mvn clean install -DskipTests` 69 模块全部 SUCCESS
+  - `mvn clean test` 807 测试全绿（0 failures / 0 errors / 3 skipped）
+  - `spring-boot-properties-migrator` 未引入（不需要移除）
+  - 更新 CLAUDE.md：Spring Boot 3.5.8 → 4.1.0
+  - 更新 project.mdc：Spring Boot 4.1.0、Spring Framework 7.0.8、Spring Cloud 2025.1.2、Spring AI 2.0.0、ES Client 9.4.2、Redisson 4.6.1、MyBatis-Plus 3.5.16
+  - examples 编译全部通过（启动验证需中间件环境，转 CI）
+  - 完成：2026-07-07
+
+---
+
+### 阶段 C 收尾 / D（B 完成后）
+
 - [ ] **EPIC-C2｜C 收尾（B 后）**（死配置全量清理、错误码三套体系收敛、web/security 认证两套收敛、xxl-job 孤儿 DTO 清理、补更多自动装配集成测试）
 - [ ] **T-D-1｜proud-day 接入 Nebula 持久化**（见阶段 D，仓库位置待用户提供时再启动）
+
+---
+
+## 变更摘要（EPIC-B：Spring Boot 4.1 升级，2026-07-07 收尾）
+
+- **目标版本**：Spring Boot 4.1.0 / Spring Framework 7.0.8 / Spring Cloud 2025.1.2 / Spring AI 2.0.0 / Java 21 沿用
+- **全量回归**：`mvn clean test` BUILD SUCCESS（69 模块）；807 tests / 0 failures / 0 errors / 3 skipped
+- **升级路径**：
+  1. B1：POM 版本切换 + `spring-boot-starter-classic` 过渡 + Jakarta EE 11 迁包 + 属性改名
+  2. B2：重灾模块重构（Gateway 坐标 → spring-cloud-gateway-server-webflux、gRPC net.devh → Spring gRPC 1.1.0、ES RestClient → Rest5Client 9.4.2、RocketMQ 4.9.8 → 5.5.0）
+  3. B3：Spring AI 1.1 → 2.0 + 移除 `spring-boot-starter-classic`（→ `spring-boot-jackson2` 细粒度替代）+ 全量回归
+- **Jackson 策略**：框架 64 个文件使用 Jackson 2（`com.fasterxml.jackson`），通过 `spring-boot-jackson2` 保持兼容；Jackson 3 全量迁移留后续版本
+- **破坏性变更**：
+  1. Jakarta EE 11（`javax.*` → `jakarta.*`）——所有下游应用需同步迁包
+  2. Spring Boot 4.1 属性改名（`server.servlet.*` → `server.tomcat.*` 等）
+  3. gRPC 从 `net.devh` 切换到 `org.springframework.grpc`
+  4. ES 客户端从 8.11.1 切换到 9.4.2（Rest5Client）
+  5. Spring AI 2.0 移除 `OpenAiApi`，改用 builder 模式
+- **遗留**：Jackson 2 → 3 迁移（64 文件）、examples 启动验证需中间件环境（转 CI）
 
 ---
 

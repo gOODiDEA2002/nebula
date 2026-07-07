@@ -25,11 +25,8 @@ import io.nebula.search.elasticsearch.config.ElasticsearchProperties;
 import io.nebula.search.elasticsearch.converter.AggregationConverter;
 import io.nebula.search.elasticsearch.converter.QueryConverter;
 import io.nebula.search.elasticsearch.converter.SuggesterConverter;
-import org.elasticsearch.client.RequestOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;

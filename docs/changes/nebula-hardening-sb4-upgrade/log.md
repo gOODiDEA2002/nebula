@@ -121,4 +121,97 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 - 变更规模：87 文件（+2792 / -1239），32 个原子提交。变更摘要已回填 tasks.md 末尾。
 - 待办出口：行为级验证清单转 CI（见「待补验证」）；下一步方向 B（升 SB4.1）/ C（P1 可靠性+治理）/ D（proud-day 迁移）待用户拍板。
 
+## T-B1-1 执行记录（2026-07-06）
+
+POM 切版本 + classic starters + 依赖版本升级。`mvn validate` **全 69 模块通过**。
+
+### 版本变更清单
+
+| 依赖 | 旧版本 | 新版本 | 备注 |
+|------|--------|--------|------|
+| spring-boot-starter-parent | 3.5.8 | 4.1.0 | Spring Framework 7 / Jakarta EE 11 |
+| spring-cloud-dependencies | 2025.0.0 | 2025.1.2 | |
+| spring-ai-bom | 1.1.0 | 2.0.0 | |
+| mybatis-plus | 3.5.9 | 3.5.16 | artifactId: boot3→boot4 |
+| redisson | 3.39.0 | 4.6.1 | |
+| jjwt | 0.12.3 | 0.13.0 | |
+| spring-grpc (new) | - | 1.1.0 | 替代 net.devh:grpc-spring-boot-starter |
+| maven-surefire-plugin | 3.2.2 | 3.5.5 | |
+
+### Spring Boot 4.1 breaking changes（POM 层面已处理）
+
+1. `spring-boot-starter-aop` → `spring-boot-starter-aspectj`（3 处子模块已改）
+2. `spring-cloud-gateway-server` → `spring-cloud-gateway-server-webflux`（gateway-core + autoconfigure 已改）
+3. `spring-cloud-starter-gateway` → `spring-cloud-starter-gateway-server-webflux`（starter-gateway 已改）
+4. `net.devh:grpc-spring-boot-starter` → `org.springframework.grpc:spring-grpc-core`（rpc-grpc 临时替换，T-B2-2 完整迁移）
+5. `javax.annotation-api` → `jakarta.annotation-api`（rpc-grpc 已改）
+6. 新增全局依赖 `spring-boot-starter-classic`（过渡桥，T-B3-2 移除）
+
+### 编译验证（预期失败，后续任务修复）
+
+`mvn compile` 出现两类编译错误，均属后续任务范围：
+- `org.springframework.boot.autoconfigure.jdbc` 包不存在 → T-B1-2（包名迁移）
+- `org.springframework.boot.actuate.health` 包不存在 → T-B1-2（包名迁移）
+
+## T-B1-2 执行记录（2026-07-06）
+
+Spring Boot 4.1 模块化包名迁移。排除 gRPC 模块后 **68 模块编译通过**。
+
+### 发现的包名迁移规律
+
+Spring Boot 4 把 `o.s.b.autoconfigure.<tech>.*` 拆到 `o.s.b.<tech>.autoconfigure.*`，部分类还改了名（加 `Data` 前缀）：
+- `autoconfigure.jdbc` → `jdbc.autoconfigure`
+- `autoconfigure.data.redis` → `data.redis.autoconfigure`（类名 `RedisAutoConfiguration` → `DataRedisAutoConfiguration`）
+- `autoconfigure.neo4j` → `neo4j.autoconfigure`
+- `autoconfigure.elasticsearch` → `elasticsearch.autoconfigure`
+- `autoconfigure.data.elasticsearch` → `data.elasticsearch.autoconfigure`（类名加 `Data` 前缀）
+- `autoconfigure.jackson` → `jackson2.autoconfigure`（注意是 `jackson2` 不是 `jackson`）
+- `actuate.health` → `health.contributor`
+- `web.context` → `web.server.context`
+
+### Spring Boot 4.1 的 starter 改名（T-B1-1 已处理）
+
+| 旧名 | 新名 |
+|------|------|
+| `spring-boot-starter-aop` | `spring-boot-starter-aspectj` |
+| `spring-cloud-gateway-server` | `spring-cloud-gateway-server-webflux` |
+| `spring-cloud-starter-gateway` | `spring-cloud-starter-gateway-server-webflux` |
+
+### 注意
+
+`spring-boot-starter-web` 在 4.1 中仍然存在（版本 4.1.0），不需要立即改为 `spring-boot-starter-webmvc`，T-B1-4 中可评估是否迁移。
+
+## T-B2-1 执行记录（2026-07-07）
+
+Gateway 坐标改名 + 路由重构 + XFF 可信代理 + 路由钉死修复。
+
+### 变更清单
+
+1. **Gateway XFF 可信代理解析（RDG-15 并入）**
+   - 新增 `io.nebula.gateway.util.ReactiveClientIpResolver`：与 nebula-web 的 `ClientIpResolver` 同源安全语义（默认不信任 XFF，仅 remoteAddr 命中可信代理列表才解析 XFF，从右向左取第一个不可信地址），适配 WebFlux `ServerHttpRequest`
+   - `GatewayProperties.LoggingConfig` 新增 `trustedProxies`（默认空=不信任 XFF）
+   - `LoggingGlobalFilter` 改为注入 `ReactiveClientIpResolver`，删除旧的直接信任 XFF 的 `getClientIp` 方法
+   - `RateLimitKeyResolverConfig` 改为注入 `ReactiveClientIpResolver`，删除旧的直接信任 XFF 的 `getClientIp` 方法
+   - `GatewayAutoConfiguration` 注册 `ReactiveClientIpResolver` Bean（@ConditionalOnMissingBean 可替换），注入到日志过滤器
+
+2. **路由钉死修复**
+   - `GatewayRoutesAutoConfiguration.determineTargetUri`：移除启动时通过 `ServiceDiscovery` 解析到固定 IP 的逻辑（`@PostConstruct` 时解析的地址会钉死到单实例，运行期服务实例变化不可感知）
+   - `useDiscovery=true` 时统一返回 `lb://serviceName`，由 `NebulaServiceInstanceListSupplier`（已有）适配 Spring Cloud LoadBalancer 动态路由
+   - `GatewayRoutesAutoConfiguration` 移除 `ServiceDiscovery` 注入（不再直接依赖）
+
+3. **gateway-example 版本修正**
+   - 移除 `spring-cloud.version=2025.0.1` 覆盖（继承根 POM 的 `2025.1.2`，否则 `spring-cloud-starter-gateway-server-webflux` 在 `2025.0.x` 中不存在会解析失败）
+   - 移除 `jjwt.version=0.12.5` 覆盖（继承根 POM 的 `0.13.0`）
+
+### 破坏性变更
+
+- Gateway XFF 解析行为变更：之前直接信任 XFF 首段，现在默认不读 XFF（直接用 remoteAddr）。反代场景需显式配置 `nebula.gateway.logging.trusted-proxies`
+- 路由解析方式变更：之前启动时解析 ServiceDiscovery 到固定 IP，现在统一走 `lb://`。需确保 Spring Cloud LoadBalancer 在 classpath 上（`nebula-starter-gateway` 已包含）
+
+### 测试
+
+- `ReactiveClientIpResolverTest` 7 用例：默认不信任/可信代理解析/CIDR/不可信 remoteAddr/X-Real-IP 回退/无 header/全 XFF 可信
+- `GatewayRoutesAutoConfigurationTest` 3 用例：服务发现生成 lb:// URI/静态地址直接使用/自定义 serviceName
+- 全量测试 BUILD SUCCESS
+
 _（开发中追加：实现与 Spec 不一致时，先更新 Spec 再改代码，并在此记录）_

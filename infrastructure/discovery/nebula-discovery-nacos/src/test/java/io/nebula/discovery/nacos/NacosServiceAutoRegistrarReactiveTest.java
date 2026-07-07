@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.web.context.WebServerInitializedEvent;
+import org.springframework.boot.web.server.context.WebServerInitializedEvent;
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.core.env.Environment;
 
@@ -46,6 +46,7 @@ class NacosServiceAutoRegistrarReactiveTest {
         when(environment.getProperty("spring.application.name", "unknown-service")).thenReturn("svc");
         when(environment.getProperty("spring.application.version", "1.0.0")).thenReturn("1.0.0");
         when(environment.getActiveProfiles()).thenReturn(new String[0]);
+        when(environment.getProperty("spring.grpc.server.port")).thenReturn(null);
         when(environment.getProperty("grpc.server.port")).thenReturn(null);
 
         // 任意 WebServerInitializedEvent(含 Reactive 的子类)都应触发注册

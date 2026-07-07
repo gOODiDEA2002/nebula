@@ -126,6 +126,15 @@ public class GatewayProperties {
          * 慢请求阈值(毫秒)
          */
         private long slowRequestThreshold = 3000;
+        
+        /**
+         * 可信代理列表（精确 IP 或 IPv4 CIDR）
+         * <p>
+         * 默认为空 = 不信任 XFF，直接使用 remoteAddr。
+         * 仅当 remoteAddr 命中此列表时才解析 X-Forwarded-For。
+         * 示例: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+         */
+        private List<String> trustedProxies = new ArrayList<>();
     }
     
     /**
