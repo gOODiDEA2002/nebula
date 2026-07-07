@@ -9,6 +9,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class WebProperties {
     
     /**
+     * 可信反向代理地址列表（精确 IP 或 IPv4 CIDR，如 "10.0.0.0/8"）。
+     * 默认为空：限流键/请求日志一律使用 remoteAddr，不信任 X-Forwarded-For / X-Real-IP。
+     * 部署在反向代理之后时须显式配置代理地址，才会解析转发头获取客户端真实 IP。
+     */
+    private String[] trustedProxies = {};
+    
+    /**
      * 异常处理器配置
      */
     private ExceptionHandler exceptionHandler = new ExceptionHandler();
@@ -57,6 +64,14 @@ public class WebProperties {
      * 健康检查配置
      */
     private Health health = new Health();
+    
+    public String[] getTrustedProxies() {
+        return trustedProxies;
+    }
+    
+    public void setTrustedProxies(String[] trustedProxies) {
+        this.trustedProxies = trustedProxies;
+    }
     
     public ExceptionHandler getExceptionHandler() {
         return exceptionHandler;

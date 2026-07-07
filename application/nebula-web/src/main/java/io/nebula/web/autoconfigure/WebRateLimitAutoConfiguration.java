@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.interceptor.RateLimitInterceptor;
 import io.nebula.web.ratelimit.DefaultRateLimitKeyGenerator;
+import io.nebula.web.util.ClientIpResolver;
 import io.nebula.web.ratelimit.MemoryRateLimiter;
 import io.nebula.web.ratelimit.RateLimiter;
 import io.nebula.web.ratelimit.RateLimitKeyGenerator;
@@ -32,9 +33,9 @@ class WebRateLimitAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public RateLimitKeyGenerator rateLimitKeyGenerator(WebProperties webProperties) {
+    public RateLimitKeyGenerator rateLimitKeyGenerator(WebProperties webProperties, ClientIpResolver clientIpResolver) {
         WebProperties.RateLimit config = webProperties.getRateLimit();
-        return new DefaultRateLimitKeyGenerator(config.getKeyStrategy());
+        return new DefaultRateLimitKeyGenerator(config.getKeyStrategy(), clientIpResolver);
     }
 
     @Bean

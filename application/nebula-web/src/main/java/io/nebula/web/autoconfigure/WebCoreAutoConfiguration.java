@@ -4,6 +4,7 @@ import io.nebula.web.exception.GlobalExceptionHandler;
 import io.nebula.web.filter.RequestLoggingFilter;
 import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.interceptor.RequestLoggingInterceptor;
+import io.nebula.web.util.ClientIpResolver;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
@@ -75,9 +76,19 @@ class WebCoreAutoConfiguration {
         return source;
     }
 
+    /**
+     * 客户端 IP 解析器（CWT-28）：默认不信任 X-Forwarded-For，
+     * 仅当请求来自 nebula.web.trusted-proxies 中的可信代理时才解析转发头
+     */
     @Bean
     @ConditionalOnMissingBean
-    public WebMvcConfigurer nebulaWebMvcConfigurer(WebProperties webProperties) {
+    public ClientIpResolver clientIpResolver(WebProperties webProperties) {
+        return new ClientIpResolver(webProperties.getTrustedProxies());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public WebMvcConfigurer nebulaWebMvcConfigurer(WebProperties webProperties, ClientIpResolver clientIpResolver) {
         return new WebMvcConfigurer() {
 
             @Override
@@ -97,7 +108,7 @@ class WebCoreAutoConfiguration {
             public void addInterceptors(InterceptorRegistry registry) {
                 WebProperties.RequestLogging requestLoggingConfig = webProperties.getRequestLogging();
                 if (requestLoggingConfig.isEnabled()) {
-                    registry.addInterceptor(new RequestLoggingInterceptor(requestLoggingConfig))
+                    registry.addInterceptor(new RequestLoggingInterceptor(requestLoggingConfig, clientIpResolver))
                            .addPathPatterns("/**")
                            .order(InterceptorOrders.REQUEST_LOGGING);
                 }

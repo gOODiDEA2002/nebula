@@ -221,10 +221,11 @@
   - 顺序：Logging(100) < RateLimit(200) < Auth(300) < Cache(400) < Perf(500)——限流先于认证挡匿名洪水，缓存命中不绕过限流计数
   - 验证：`mvn -q -pl application/nebula-web -am test`
   - 完成：2026-07-06。此前 Auth=-1、Perf=0、其余默认 0（按装配顺序），限流实际排在认证之后。统一改常量并全部显式注册；间隔 100 便于应用插入自定义拦截器。`InterceptorOrdersTest` 3 用例固化顺序契约；nebula-web 75 测试全绿
-- [ ] **T-C1-2｜Web 侧 XFF 可信代理解析（CWT-28）**
+- [x] **T-C1-2｜Web 侧 XFF 可信代理解析（CWT-28）**
   - 文件：新增 `nebula-web/.../util/ClientIpResolver.java`；`RequestLoggingInterceptor`、`DefaultRateLimitKeyGenerator` 改用之；`WebProperties` 加 `trustedProxies`
   - 语义：默认不信任 XFF（直接用 remoteAddr）；仅当 remoteAddr 命中可信代理列表才解析 XFF。**破坏性**：依赖 XFF 的部署需显式配置
   - 验证：`mvn -q -pl application/nebula-web -am test`
+  - 完成：2026-07-06。解析算法：remoteAddr 命中可信列表（精确 IP / IPv4 CIDR）时，XFF 从右向左取第一个不可信地址（右侧代理写入不可伪造，左侧客户端可伪造），整链可信取最左；XFF 缺失回退 X-Real-IP→remoteAddr。`ClientIpResolver` Bean 注册在 `WebCoreAutoConfiguration`（@ConditionalOnMissingBean 可替换）。原 `RequestLoggingInterceptorTest.testClientIpExtraction` 固化了"直接信任 XFF"旧行为，已改写为默认不读 XFF + 可信代理两条用例；新增 `ClientIpResolverTest` 7 用例。nebula-web 83 测试全绿
 - [ ] **T-C1-3｜双 MQ 并存冲突（MW-20）**
   - 文件：`RabbitMQAutoConfiguration` / `RocketMQAutoConfiguration`（@Primary MessageManager 按 `nebula.messaging.primary` 条件化，默认 rabbitmq）；`MessageHandlerProcessor` 注册挪到共享配置、注入 @Primary MessageManager
   - 验收：双 MQ 同时启用不再崩溃；@MessageListener 注册到 primary MQ（语义明确）

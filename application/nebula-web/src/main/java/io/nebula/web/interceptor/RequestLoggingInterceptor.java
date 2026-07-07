@@ -1,6 +1,7 @@
 package io.nebula.web.interceptor;
 
 import io.nebula.web.autoconfigure.WebProperties;
+import io.nebula.web.util.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -28,9 +29,11 @@ public class RequestLoggingInterceptor implements HandlerInterceptor {
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
     
     private final WebProperties.RequestLogging config;
+    private final ClientIpResolver clientIpResolver;
     
-    public RequestLoggingInterceptor(WebProperties.RequestLogging config) {
+    public RequestLoggingInterceptor(WebProperties.RequestLogging config, ClientIpResolver clientIpResolver) {
         this.config = config;
+        this.clientIpResolver = clientIpResolver;
     }
     
     @Override
@@ -140,20 +143,10 @@ public class RequestLoggingInterceptor implements HandlerInterceptor {
     }
     
     /**
-     * 获取客户端IP地址
+     * 获取客户端IP地址（可信代理感知，未配置可信代理时不读转发头）
      */
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (StringUtils.hasText(xForwardedFor) && !"unknown".equalsIgnoreCase(xForwardedFor)) {
-            return xForwardedFor.split(",")[0];
-        }
-        
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (StringUtils.hasText(xRealIp) && !"unknown".equalsIgnoreCase(xRealIp)) {
-            return xRealIp;
-        }
-        
-        return request.getRemoteAddr();
+        return clientIpResolver.resolve(request);
     }
     
     /**

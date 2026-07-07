@@ -1,6 +1,7 @@
 package io.nebula.web.interceptor;
 
 import io.nebula.web.autoconfigure.WebProperties;
+import io.nebula.web.util.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,8 @@ class RequestLoggingInterceptorTest {
     
     private RequestLoggingInterceptor loggingInterceptor;
     private WebProperties.RequestLogging loggingConfig;
+    /** 默认不配置可信代理: 一律使用 remoteAddr, 不读转发头 */
+    private ClientIpResolver clientIpResolver;
     
     @BeforeEach
     void setUp() {
@@ -41,7 +44,8 @@ class RequestLoggingInterceptorTest {
         loggingConfig.setMaxRequestBodyLength(1024);
         loggingConfig.setMaxResponseBodyLength(1024);
         
-        loggingInterceptor = new RequestLoggingInterceptor(loggingConfig);
+        clientIpResolver = new ClientIpResolver(new String[0]);
+        loggingInterceptor = new RequestLoggingInterceptor(loggingConfig, clientIpResolver);
         
         // Mock基本请求信息
         lenient().when(request.getMethod()).thenReturn("GET");
@@ -123,7 +127,7 @@ class RequestLoggingInterceptorTest {
     void testDisabledLogging() throws Exception {
         // 禁用日志
         loggingConfig.setEnabled(false);
-        loggingInterceptor = new RequestLoggingInterceptor(loggingConfig);
+        loggingInterceptor = new RequestLoggingInterceptor(loggingConfig, clientIpResolver);
         
         lenient().when(request.getRequestURI()).thenReturn("/api/test");
         
@@ -163,10 +167,9 @@ class RequestLoggingInterceptorTest {
     }
     
     @Test
-    void testClientIpExtraction() throws Exception {
-        // 测试X-Forwarded-For头
+    void testClientIpNotFromForwardedHeaderByDefault() throws Exception {
+        // CWT-28: 默认(未配置可信代理)不读 X-Forwarded-For, 直接用 remoteAddr, 防伪造
         lenient().when(request.getHeader("X-Forwarded-For")).thenReturn("192.168.1.1, 10.0.0.1");
-        lenient().when(request.getHeader("X-Real-IP")).thenReturn(null);
         lenient().when(request.getAttribute("REQUEST_START_TIME")).thenReturn(System.currentTimeMillis());
         lenient().when(response.getStatus()).thenReturn(200);
         lenient().when(request.getQueryString()).thenReturn(null);
@@ -174,7 +177,26 @@ class RequestLoggingInterceptorTest {
         // 执行
         loggingInterceptor.afterCompletion(request, response, null, null);
         
-        // 验证IP头被访问
+        // 验证: 未读取转发头, 使用了 remoteAddr
+        verify(request, never()).getHeader("X-Forwarded-For");
+        verify(request, atLeastOnce()).getRemoteAddr();
+    }
+    
+    @Test
+    void testClientIpFromTrustedProxy() throws Exception {
+        // 配置可信代理后: 来自可信代理的请求解析 XFF, 从右向左取第一个不可信地址
+        loggingInterceptor = new RequestLoggingInterceptor(loggingConfig,
+                new ClientIpResolver(new String[]{"127.0.0.1", "10.0.0.0/8"}));
+        
+        lenient().when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.7, 10.0.0.1");
+        lenient().when(request.getAttribute("REQUEST_START_TIME")).thenReturn(System.currentTimeMillis());
+        lenient().when(response.getStatus()).thenReturn(200);
+        lenient().when(request.getQueryString()).thenReturn(null);
+        
+        // 执行（remoteAddr=127.0.0.1 命中可信代理）
+        loggingInterceptor.afterCompletion(request, response, null, null);
+        
+        // 验证: 读取了转发头
         verify(request, atLeastOnce()).getHeader("X-Forwarded-For");
     }
     
@@ -182,7 +204,7 @@ class RequestLoggingInterceptorTest {
     void testWildcardIgnorePath() throws Exception {
         // 测试通配符忽略路径
         loggingConfig.setIgnorePaths(new String[]{"/api/public/**"});
-        loggingInterceptor = new RequestLoggingInterceptor(loggingConfig);
+        loggingInterceptor = new RequestLoggingInterceptor(loggingConfig, clientIpResolver);
         
         lenient().when(request.getRequestURI()).thenReturn("/api/public/info");
         

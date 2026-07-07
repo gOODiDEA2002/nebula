@@ -1,18 +1,24 @@
 package io.nebula.web.ratelimit;
 
+import io.nebula.web.util.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.util.StringUtils;
 
 /**
  * 默认限流键生成器
  * 根据策略生成不同的限流键
+ *
+ * <p>IP 解析委托 {@link ClientIpResolver}: 默认不信任转发头(客户端伪造 XFF 即可绕过
+ * IP 限流), 仅当请求来自 nebula.web.trusted-proxies 配置的可信代理时才解析 XFF。</p>
  */
 public class DefaultRateLimitKeyGenerator implements RateLimitKeyGenerator {
     
     private final String strategy;
+    private final ClientIpResolver clientIpResolver;
     
-    public DefaultRateLimitKeyGenerator(String strategy) {
+    public DefaultRateLimitKeyGenerator(String strategy, ClientIpResolver clientIpResolver) {
         this.strategy = strategy != null ? strategy.toUpperCase() : "IP";
+        this.clientIpResolver = clientIpResolver;
     }
     
     @Override
@@ -36,21 +42,10 @@ public class DefaultRateLimitKeyGenerator implements RateLimitKeyGenerator {
     }
     
     /**
-     * 获取客户端IP地址
+     * 获取客户端IP地址（可信代理感知，防 XFF 伪造绕过限流）
      */
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (StringUtils.hasText(xForwardedFor) && !"unknown".equalsIgnoreCase(xForwardedFor)) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (StringUtils.hasText(xRealIp) && !"unknown".equalsIgnoreCase(xRealIp)) {
-            return xRealIp;
-        }
-        
-        String remoteAddr = request.getRemoteAddr();
-        return StringUtils.hasText(remoteAddr) ? remoteAddr : "unknown";
+        return clientIpResolver.resolve(request);
     }
     
     /**
