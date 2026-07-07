@@ -2,7 +2,6 @@ package io.nebula.autoconfigure.messaging;
 
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
-import io.nebula.messaging.core.annotation.MessageHandlerProcessor;
 import io.nebula.messaging.core.router.DefaultMessageRouter;
 import io.nebula.messaging.core.router.MessageRouter;
 import io.nebula.messaging.core.serializer.JsonMessageSerializer;
@@ -20,8 +19,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.context.annotation.Primary;
 import org.springframework.util.StringUtils;
 
 /**
@@ -60,14 +57,12 @@ public class RocketMQAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @Primary
     public MessageSerializer messageSerializer() {
         return new JsonMessageSerializer();
     }
 
     @Bean
     @ConditionalOnMissingBean
-    @Primary
     public MessageRouter messageRouter() {
         return new DefaultMessageRouter();
     }
@@ -85,21 +80,18 @@ public class RocketMQAutoConfiguration {
         return new RocketMQMessageConsumer<>(messageSerializer, properties);
     }
 
+    /**
+     * 不再标 @Primary: 双 MQ 并存时的 primary 由 MessagingCoreAutoConfiguration
+     * 按 nebula.messaging.primary 统一选定（默认 rabbitmq），MW-20
+     */
     @Bean
     @ConditionalOnMissingBean
-    @Primary
     public RocketMQMessageManager rocketMQMessageManager(RocketMQMessageProducer<?> producer,
             RocketMQMessageConsumer<?> consumer,
             DefaultMQProducer rocketMQNativeProducer) throws Exception {
         RocketMQMessageManager manager = new RocketMQMessageManager(producer, consumer, rocketMQNativeProducer);
         manager.start();
         return manager;
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public static MessageHandlerProcessor messageHandlerProcessor(@Lazy RocketMQMessageManager messageManager) {
-        return new MessageHandlerProcessor(messageManager);
     }
 
     /**

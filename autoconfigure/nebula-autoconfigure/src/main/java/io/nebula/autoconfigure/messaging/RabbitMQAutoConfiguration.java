@@ -6,7 +6,6 @@ import io.nebula.messaging.core.serializer.MessageSerializer;
 import io.nebula.messaging.core.serializer.JsonMessageSerializer;
 import io.nebula.messaging.core.router.MessageRouter;
 import io.nebula.messaging.core.router.DefaultMessageRouter;
-import io.nebula.messaging.core.annotation.MessageHandlerProcessor;
 import io.nebula.messaging.rabbitmq.config.RabbitMQProperties;
 import io.nebula.messaging.rabbitmq.delay.RabbitDelayMessageProperties;
 import io.nebula.messaging.rabbitmq.producer.RabbitMQMessageProducer;
@@ -25,7 +24,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.context.annotation.Primary;
 
 /**
  * RabbitMQ自动配置
@@ -69,14 +67,12 @@ public class RabbitMQAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @Primary
     public MessageSerializer messageSerializer() {
         return new JsonMessageSerializer();
     }
 
     @Bean
     @ConditionalOnMissingBean
-    @Primary
     public MessageRouter messageRouter() {
         return new DefaultMessageRouter();
     }
@@ -122,19 +118,16 @@ public class RabbitMQAutoConfiguration {
         return new RabbitMQMessageConsumer(connection, messageSerializer, messageRouter);
     }
 
+    /**
+     * 不再标 @Primary: 双 MQ 并存时的 primary 由 MessagingCoreAutoConfiguration
+     * 按 nebula.messaging.primary 统一选定（默认 rabbitmq），MW-20
+     */
     @Bean
     @ConditionalOnMissingBean
-    @Primary
     public RabbitMQMessageManager rabbitMQMessageManager(RabbitMQMessageProducer producer,
             RabbitMQMessageConsumer consumer,
             RabbitMQExchangeManager exchangeManager) {
         return new RabbitMQMessageManager(producer, consumer, exchangeManager);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public static MessageHandlerProcessor messageHandlerProcessor(@Lazy RabbitMQMessageManager messageManager) {
-        return new MessageHandlerProcessor(messageManager);
     }
 
     @Bean

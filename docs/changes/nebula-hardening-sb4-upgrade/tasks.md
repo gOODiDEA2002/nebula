@@ -226,10 +226,11 @@
   - 语义：默认不信任 XFF（直接用 remoteAddr）；仅当 remoteAddr 命中可信代理列表才解析 XFF。**破坏性**：依赖 XFF 的部署需显式配置
   - 验证：`mvn -q -pl application/nebula-web -am test`
   - 完成：2026-07-06。解析算法：remoteAddr 命中可信列表（精确 IP / IPv4 CIDR）时，XFF 从右向左取第一个不可信地址（右侧代理写入不可伪造，左侧客户端可伪造），整链可信取最左；XFF 缺失回退 X-Real-IP→remoteAddr。`ClientIpResolver` Bean 注册在 `WebCoreAutoConfiguration`（@ConditionalOnMissingBean 可替换）。原 `RequestLoggingInterceptorTest.testClientIpExtraction` 固化了"直接信任 XFF"旧行为，已改写为默认不读 XFF + 可信代理两条用例；新增 `ClientIpResolverTest` 7 用例。nebula-web 83 测试全绿
-- [ ] **T-C1-3｜双 MQ 并存冲突（MW-20）**
+- [x] **T-C1-3｜双 MQ 并存冲突（MW-20）**
   - 文件：`RabbitMQAutoConfiguration` / `RocketMQAutoConfiguration`（@Primary MessageManager 按 `nebula.messaging.primary` 条件化，默认 rabbitmq）；`MessageHandlerProcessor` 注册挪到共享配置、注入 @Primary MessageManager
   - 验收：双 MQ 同时启用不再崩溃；@MessageListener 注册到 primary MQ（语义明确）
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq,infrastructure/messaging/nebula-messaging-rocketmq -am test`
+  - 完成：2026-07-06。实现与计划的偏差（更优方案）：不用"@Primary 按属性条件化拆双 @Bean 方法"（配置值非法时 Bean 静默消失），改为新增 `MessagingCoreAutoConfiguration`：(1) `BeanFactoryPostProcessor` 在多 Manager 并存时按 `nebula.messaging.primary`（bean 名称包含匹配，默认 rabbitmq）动态设唯一 primary，无匹配快速失败并列出候选；(2) `MessageHandlerProcessor` 只注册一份（@ConditionalOnBean(MessageManager)），注入 primary Manager；(3) 两 MQ 配置删除全部 @Primary（含 serializer/router 上冗余的）与各自的 processor 注册。单 MQ 行为完全不变。新增 `MessagingCoreAutoConfigurationTest` 5 用例（双 MQ 默认/显式选主/非法值快速失败/单 MQ/无 MQ）。messaging-core 5 + rabbitmq 41 + rocketmq 15 + autoconfigure 23 测试全绿
 - [ ] **T-C1-4｜读写分离切面 vs 事务（CD-9）**
   - 文件：`ReadWriteDataSourceAspect`（检测目标方法/类 @Transactional：非 readOnly 拒绝切读库 + warn；readOnly=true 放行）
   - 背景：现有 isActualTransactionActive 检查对"同方法 @ReadDataSource+@Transactional"失效（切面先于事务执行）

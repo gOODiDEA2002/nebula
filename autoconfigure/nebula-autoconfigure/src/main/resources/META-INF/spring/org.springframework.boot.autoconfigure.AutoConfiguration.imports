@@ -50,6 +50,7 @@ io.nebula.lock.redis.RedisLockAutoConfiguration
 # ========================================
 io.nebula.autoconfigure.messaging.RabbitMQAutoConfiguration
 io.nebula.autoconfigure.messaging.RocketMQAutoConfiguration
+io.nebula.autoconfigure.messaging.MessagingCoreAutoConfiguration
 
 # ========================================
 # WebSocket Layer - WebSocket层

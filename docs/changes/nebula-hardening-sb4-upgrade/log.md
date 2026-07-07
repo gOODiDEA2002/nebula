@@ -89,6 +89,7 @@ T-A1-3 设计要点：JwtAuthenticationFilter **只填充不拦截**、**默认�
 
 ## 对外行为变更补充（工作流 C 前置批）
 
+- **T-C1-3 双 MQ 选主**：RabbitMQ 与 RocketMQ 同时启用不再启动崩溃（此前双 @Primary MessageManager 冲突）。`@MessageListener` 注册到 `nebula.messaging.primary` 指定的 MQ（默认 rabbitmq）；配置值无匹配时启动快速失败并列出候选 Bean。单 MQ 部署行为不变，无需任何配置。
 - **T-C1-2 XFF 可信代理（破坏性）**：限流键与请求日志的客户端 IP 此前直接信任 `X-Forwarded-For` 首段（客户端每请求伪造新 IP 即绕过 IP 限流）。修复后**默认完全不读转发头**，一律使用 remoteAddr；部署在反向代理后的应用必须配置 `nebula.web.trusted-proxies: [<代理IP或IPv4 CIDR>]` 才恢复真实客户端 IP 解析（算法：XFF 从右向左取第一个不可信地址）。不配置的直连部署无影响。
 
 ## 对外行为变更补充（T-A3-3）
