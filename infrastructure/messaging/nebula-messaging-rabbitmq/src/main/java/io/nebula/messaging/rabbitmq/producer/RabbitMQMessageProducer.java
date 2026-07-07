@@ -46,6 +46,11 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
 
     @Override
     public SendResult send(Message<T> message) {
+        // tag 非空时路由键用 tag, 匹配 subscribeWithTag 的 queueBind(queue, topic, tag) 绑定;
+        // 此前 tag 被丢弃(路由键恒为 topic), tagged 队列永远收不到消息
+        if (message.getTag() != null && !message.getTag().isEmpty()) {
+            return doSend(message.getTopic(), null, message.getPayload(), message.getHeaders(), message.getTag());
+        }
         return send(message.getTopic(), message.getQueue(), message.getPayload(), message.getHeaders());
     }
 
@@ -66,6 +71,17 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
 
     @Override
     public SendResult send(String topic, String queue, T payload, Map<String, String> headers) {
+        // topic 交换机下消费者以 queueBind(queue, topic, topic) 绑定(路由键=topic)，
+        // 故普通发送路由键统一用 topic；此前用 queue/"" 与消费端绑定不匹配，消息会被静默丢弃。
+        return doSend(topic, queue, payload, headers, topic);
+    }
+
+    /**
+     * 统一发送实现
+     *
+     * @param routingKey 路由键: 普通消息=topic(匹配 subscribe 绑定), 带 tag 消息=tag(匹配 subscribeWithTag 绑定)
+     */
+    private SendResult doSend(String topic, String queue, T payload, Map<String, String> headers, String routingKey) {
         long startTime = System.currentTimeMillis();
         String messageId = generateMessageId();
         
@@ -73,7 +89,7 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
             // 确保交换机存在
             declareExchangeIfNotExists(channel, topic);
             
-            // 如果指定了队列，确保队列存在并绑定到交换机
+            // 如果指定了队列，确保队列存在并绑定到交换机(队列的声明绑定属消费侧职责, 此处仅兜底)
             if (queue != null) {
                 declareQueueIfNotExists(channel, queue);
                 bindQueueToExchange(channel, queue, topic);
@@ -85,14 +101,11 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
             // 构建消息属性
             AMQP.BasicProperties properties = buildMessageProperties(messageId, headers);
             
-            // 发送消息。topic 交换机下消费者以 queueBind(queue, topic, topic) 绑定(路由键=topic)，
-            // 故发送方路由键统一用 topic；此前用 queue/"" 与消费端绑定不匹配，消息会被静默丢弃。
-            String routingKey = topic;
             channel.basicPublish(topic, routingKey, properties, messageBody);
             
             long elapsedTime = System.currentTimeMillis() - startTime;
-            logger.debug("Message sent successfully: topic={}, queue={}, messageId={}, elapsed={}ms", 
-                topic, queue, messageId, elapsedTime);
+            logger.debug("Message sent successfully: topic={}, queue={}, routingKey={}, messageId={}, elapsed={}ms", 
+                topic, queue, routingKey, messageId, elapsedTime);
             
             return new RabbitMQSendResult(true, messageId, topic, queue, startTime, elapsedTime, null, null);
             

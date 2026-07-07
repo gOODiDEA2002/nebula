@@ -77,6 +77,46 @@ class RabbitMQMessageConsumerTest {
     }
     
     @Test
+    void testSubscribeWithTagBindsByTag() throws Exception {
+        String topic = "test.topic";
+        String tag = "vip";
+        
+        consumer.subscribeWithTag(topic, tag, messageHandler);
+        
+        // tagged 队列: 名称 topic_tag, 绑定路由键 = tag(与 producer 带 tag 消息的路由键匹配)
+        verify(channel).queueDeclare(eq(topic + "_" + tag), anyBoolean(), anyBoolean(), anyBoolean(), any());
+        verify(channel).queueBind(eq(topic + "_" + tag), eq(topic), eq(tag));
+    }
+    
+    @Test
+    void testTaggedPoisonMessageNotRequeuedAfterRedeliver() throws Exception {
+        // T-C1-6: tagged 消费路径与 subscribe 一致, 重投过的毒消息不再 requeue
+        org.mockito.ArgumentCaptor<DeliverCallback> callbackCaptor =
+                org.mockito.ArgumentCaptor.forClass(DeliverCallback.class);
+        when(messageSerializer.deserialize(any(byte[].class), eq(Object.class))).thenReturn("payload");
+        doThrow(new RuntimeException("毒消息")).when(messageHandler).handle(any());
+        lenient().when(messageHandler.getMessageType()).thenReturn(Object.class);
+        
+        consumer.subscribeWithTag("test.topic", "vip", messageHandler);
+        verify(channel).basicConsume(anyString(), anyBoolean(), callbackCaptor.capture(), any(CancelCallback.class));
+        DeliverCallback callback = callbackCaptor.getValue();
+        
+        // 首次投递(redeliver=false): requeue=true
+        callback.handle("ctag", delivery(1L, false));
+        verify(channel).basicNack(1L, false, true);
+        
+        // 重投后再失败(redeliver=true): requeue=false, 不再死循环
+        callback.handle("ctag", delivery(2L, true));
+        verify(channel).basicNack(2L, false, false);
+    }
+    
+    private Delivery delivery(long deliveryTag, boolean redeliver) {
+        Envelope envelope = new Envelope(deliveryTag, redeliver, "test.topic", "vip");
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().messageId("m-" + deliveryTag).build();
+        return new Delivery(envelope, properties, "{}".getBytes());
+    }
+    
+    @Test
     void testUnsubscribe() throws Exception {
         String topic = "test.topic";
         

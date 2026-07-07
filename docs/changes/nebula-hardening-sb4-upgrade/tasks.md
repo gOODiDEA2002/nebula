@@ -241,9 +241,10 @@
   - 验收：非 WebSocket 的 HTTP 请求不再产生幽灵会话；空闲连接被清理
   - 验证：`mvn -q -pl infrastructure/websocket/nebula-websocket-netty -am test`
   - 完成：2026-07-06。因服务端用手工 `WebSocketServerHandshaker`（非 WebSocketServerProtocolHandler），无内置 HandshakeComplete 事件——新增 `WebSocketHandshakeCompletedEvent` record，`HttpRequestHandler` 在握手响应写出成功后 fireUserEventTriggered（失败则关连接）；`WebSocketFrameHandler.userEventTriggered` 收到后才注册会话+发 CONNECTED 帧，收到 IdleStateEvent 直接关闭。顺带修复 `NettyWebSocketSession.getRemoteAddress()` 对非 INET 通道（EmbeddedChannel 等）的盲转型 CCE。新增 `WebSocketFrameHandlerTest` 4 用例（EmbeddedChannel 全链路：TCP 建连不注册/普通 HTTP 不注册/升级请求注册+101+CONNECTED/空闲关闭）。websocket-netty 4 测试全绿
-- [ ] **T-C1-6｜RabbitMQ tag 发送路由 + tagged 消费毒消息防护**
+- [x] **T-C1-6｜RabbitMQ tag 发送路由 + tagged 消费毒消息防护**
   - 文件：`RabbitMQMessageProducer`（send 时 message.tag 非空则 routingKey=tag，匹配 tagged 绑定）、`RabbitMQMessageConsumer.subscribeWithTag`（补 requeue=!isRedeliver，与 subscribe 路径一致）
   - 验证：`mvn -q -pl infrastructure/messaging/nebula-messaging-rabbitmq -am test`
+  - 完成：2026-07-06。Producer 抽出 `doSend(..., routingKey)`：`send(Message)` 在 tag 非空时 routingKey=tag（且不做队列兜底声明——tagged 队列由 `subscribeWithTag` 自行声明绑定），无 tag 路径保持 routingKey=topic 不变；`subscribeWithTag` 的 basicNack 补 `requeue=!isRedeliver`。新增 4 用例（tag 路由/无 tag 路由/tagged 绑定键/tagged 毒消息二次投递不再 requeue，用 ArgumentCaptor 捕获 DeliverCallback 直接驱动）。rabbitmq 45 测试全绿。行为级端到端（真 broker 上 tag 队列收到消息）仍转 CI 清单
 - [ ] **T-C1-7｜多级缓存跨节点失效 + 击穿/穿透防护（CD-10）**
   - 文件：`MultiLevelCacheManager`（getOrSet single-flight per-key 锁；可配置空值哨兵缓存）、新增 `CacheInvalidationBroadcaster` 接口 + Redis pub/sub 实现、`CacheAutoConfiguration` 装配（multi-level + Redis 时启用广播）
   - 验收：节点 A delete 后节点 B 的 L1 被驱逐；并发同 key miss 只回源一次；null 结果可选缓存

@@ -79,6 +79,34 @@ class RabbitMQMessageProducerTest {
     }
     
     @Test
+    void testSendWithTagRoutesByTag() throws Exception {
+        // T-C1-6: 带 tag 的消息路由键必须是 tag, 匹配 subscribeWithTag 的 queueBind(queue, topic, tag)
+        Message<String> message = Message.<String>builder()
+                .topic("test.topic")
+                .tag("vip")
+                .payload("tagged payload")
+                .build();
+        
+        MessageProducer.SendResult result = producer.send(message);
+        
+        assertThat(result.isSuccess()).isTrue();
+        verify(channel).basicPublish(eq("test.topic"), eq("vip"), any(), any(byte[].class));
+    }
+    
+    @Test
+    void testSendWithoutTagRoutesByTopic() throws Exception {
+        Message<String> message = Message.<String>builder()
+                .topic("test.topic")
+                .payload("plain payload")
+                .build();
+        
+        producer.send(message);
+        
+        // 无 tag: 路由键=topic, 匹配 subscribe 的 queueBind(queue, topic, topic)
+        verify(channel).basicPublish(eq("test.topic"), eq("test.topic"), any(), any(byte[].class));
+    }
+    
+    @Test
     void testSendWithTopicQueueAndPayload() throws Exception {
         String topic = "test.topic";
         String queue = "test.queue";
