@@ -1,6 +1,6 @@
 package io.nebula.rpc.http.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.rpc.core.message.RpcRequest;
 import io.nebula.rpc.core.message.RpcResponse;
 import io.nebula.rpc.http.client.HttpRpcClient;

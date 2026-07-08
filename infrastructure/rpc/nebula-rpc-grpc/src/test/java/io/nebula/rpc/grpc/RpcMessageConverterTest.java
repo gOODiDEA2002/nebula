@@ -1,6 +1,7 @@
 package io.nebula.rpc.grpc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.grpc.proto.RpcRequest;
 import io.nebula.rpc.grpc.proto.RpcResponse;
 import io.nebula.rpc.grpc.test.ComplexUser;
@@ -25,7 +26,7 @@ class RpcMessageConverterTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
+        objectMapper = JsonMapper.builder().build();
     }
 
     /**

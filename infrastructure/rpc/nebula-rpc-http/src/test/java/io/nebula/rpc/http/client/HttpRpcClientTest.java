@@ -1,6 +1,7 @@
 package io.nebula.rpc.http.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
@@ -21,7 +22,7 @@ class HttpRpcClientTest {
     void setUp() {
         RestClient restClient = RestClient.builder().build();
         Executor executor = Executors.newFixedThreadPool(2);
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = JsonMapper.builder().build();
         rpcClient = new HttpRpcClient(restClient, "http://localhost:8080", executor, objectMapper);
     }
     

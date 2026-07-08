@@ -1,6 +1,7 @@
 package io.nebula.rpc.http.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
@@ -21,7 +22,7 @@ class HttpRpcClientTargetIsolationTest {
 
     private HttpRpcClient newClient() {
         return new HttpRpcClient(mock(RestClient.class), "http://default:8080",
-                Runnable::run, new ObjectMapper());
+                Runnable::run, JsonMapper.builder().build());
     }
 
     @Test

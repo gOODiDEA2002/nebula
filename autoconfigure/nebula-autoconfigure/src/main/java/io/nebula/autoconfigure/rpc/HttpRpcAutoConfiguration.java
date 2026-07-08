@@ -2,7 +2,7 @@ package io.nebula.autoconfigure.rpc;
 
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.http.client.HttpRpcClient;
 import io.nebula.rpc.http.config.HttpRpcProperties;
@@ -120,14 +120,13 @@ public class HttpRpcAutoConfiguration {
     public HttpRpcClient httpRpcClient(RestClient rpcRestClient,
             Executor rpcExecutor,
             HttpRpcProperties properties,
-            ObjectMapper objectMapper,
             @org.springframework.beans.factory.annotation.Value("${server.port:8080}") int serverPort) {
         String baseUrl = properties.getClient().getBaseUrl();
         if (baseUrl == null || baseUrl.isEmpty()) {
             baseUrl = "http://localhost:" + serverPort;
         }
 
-        HttpRpcClient client = new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor, objectMapper,
+        HttpRpcClient client = new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor, JsonMapper.builder().build(),
                 properties.getClient().getAuthToken());
 
         log.info("配置HTTP RPC客户端: baseUrl={}", baseUrl);
@@ -165,10 +164,10 @@ public class HttpRpcAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(HttpRpcController.class)
     @ConditionalOnProperty(prefix = "nebula.rpc.http.server", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public HttpRpcController httpRpcController(HttpRpcServer httpRpcServer, ObjectMapper objectMapper,
+    public HttpRpcController httpRpcController(HttpRpcServer httpRpcServer,
                                               HttpRpcProperties properties) {
         log.info("配置HTTP RPC控制器");
-        return new HttpRpcController(httpRpcServer, objectMapper, properties.getServer().getAuthToken());
+        return new HttpRpcController(httpRpcServer, JsonMapper.builder().build(), properties.getServer().getAuthToken());
     }
 
     /**

@@ -80,9 +80,9 @@
             <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
 
-        <!-- Jackson for JSON conversion -->
+        <!-- Jackson 3 for JSON conversion -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
 

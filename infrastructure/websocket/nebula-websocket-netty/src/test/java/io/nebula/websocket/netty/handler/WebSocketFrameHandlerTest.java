@@ -1,7 +1,7 @@
 package io.nebula.websocket.netty.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+
 import io.nebula.websocket.core.session.SessionRegistry;
 import io.nebula.websocket.core.session.WebSocketSession;
 import io.netty.buffer.ByteBuf;
@@ -38,7 +38,7 @@ class WebSocketFrameHandlerTest {
     @BeforeEach
     void setUp() {
         sessionRegistry = mock(SessionRegistry.class);
-        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        ObjectMapper objectMapper = tools.jackson.databind.json.JsonMapper.builder().build();
         channel = new EmbeddedChannel(
                 new HttpServerCodec(),
                 new HttpObjectAggregator(65536),

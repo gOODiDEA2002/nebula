@@ -1,7 +1,7 @@
 package io.nebula.rpc.async.storage.nacos;
 
 import com.alibaba.nacos.api.config.ConfigService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.rpc.async.execution.AsyncRpcExecution;
 import io.nebula.rpc.async.execution.ExecutionStatus;
 import io.nebula.rpc.async.storage.AsyncExecutionStorage;

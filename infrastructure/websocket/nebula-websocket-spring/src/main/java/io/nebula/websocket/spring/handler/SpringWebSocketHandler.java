@@ -1,6 +1,6 @@
 package io.nebula.websocket.spring.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.websocket.core.handler.WebSocketEventHandler;
 import io.nebula.websocket.core.handler.WebSocketMessageHandler;
 import io.nebula.websocket.core.message.MessageType;

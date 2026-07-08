@@ -1,6 +1,7 @@
 package io.nebula.websocket.spring.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.websocket.core.WebSocketMessageService;
 import io.nebula.websocket.core.cluster.ClusterMessageBroker;
 import io.nebula.websocket.core.handler.WebSocketEventHandler;
@@ -41,9 +42,10 @@ import java.util.stream.Collectors;
 public class WebSocketAutoConfiguration implements WebSocketConfigurer {
 
     private final WebSocketProperties properties;
-    private final ObjectMapper objectMapper;
     private final List<WebSocketEventHandler> eventHandlers;
     private final List<WebSocketMessageHandler<?>> messageHandlers;
+
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
     /**
      * 会话注册表
@@ -66,7 +68,7 @@ public class WebSocketAutoConfiguration implements WebSocketConfigurer {
         log.info("初始化 WebSocket 处理器, 注册消息处理器: {}", handlerMap.keySet());
         return new SpringWebSocketHandler(
                 sessionRegistry, 
-                objectMapper, 
+                OBJECT_MAPPER, 
                 eventHandlers != null ? eventHandlers : Collections.emptyList(),
                 handlerMap
         );

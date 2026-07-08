@@ -1,6 +1,7 @@
 package io.nebula.autoconfigure.rpc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.rpc.grpc.client.GrpcRpcClient;
@@ -40,9 +41,9 @@ public class GrpcRpcAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(GrpcRpcServer.class)
     @ConditionalOnProperty(prefix = "nebula.rpc.grpc.server", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public GrpcRpcServer grpcRpcServer(ObjectMapper objectMapper, GrpcRpcProperties properties) {
+    public GrpcRpcServer grpcRpcServer(GrpcRpcProperties properties) {
         log.info("配置 gRPC RPC 服务器: port={}", properties.getServer().getPort());
-        return new GrpcRpcServer(objectMapper);
+        return new GrpcRpcServer(rpcObjectMapper());
     }
 
     /**
@@ -53,9 +54,13 @@ public class GrpcRpcAutoConfiguration {
     @Primary // 如果 gRPC 启用，优先使用它
     @ConditionalOnMissingBean(name = "grpcRpcClient")
     @ConditionalOnProperty(prefix = "nebula.rpc.grpc.client", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public GrpcRpcClient grpcRpcClient(ObjectMapper objectMapper, GrpcRpcProperties properties) {
+    public GrpcRpcClient grpcRpcClient(GrpcRpcProperties properties) {
         log.info("配置 gRPC RPC 客户端: target={}", properties.getClient().getTarget());
-        return new GrpcRpcClient(objectMapper, properties.getClient());
+        return new GrpcRpcClient(rpcObjectMapper(), properties.getClient());
+    }
+
+    private static ObjectMapper rpcObjectMapper() {
+        return JsonMapper.builder().build();
     }
 
     /**

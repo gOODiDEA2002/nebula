@@ -1,6 +1,7 @@
 package io.nebula.websocket.netty.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.websocket.core.WebSocketMessageService;
 import io.nebula.websocket.core.cluster.ClusterMessageBroker;
 import io.nebula.websocket.core.handler.WebSocketEventHandler;
@@ -33,7 +34,8 @@ import java.util.stream.Collectors;
 public class NettyWebSocketAutoConfiguration {
 
     private final NettyWebSocketProperties properties;
-    private final ObjectMapper objectMapper;
+
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
     /**
      * 会话注册表
@@ -64,7 +66,7 @@ public class NettyWebSocketAutoConfiguration {
         return new NettyWebSocketServer(
                 properties,
                 sessionRegistry,
-                objectMapper,
+                OBJECT_MAPPER,
                 eventHandlers != null ? eventHandlers : Collections.emptyList(),
                 handlerMap
         );

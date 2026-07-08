@@ -463,6 +463,37 @@
 **验证**：`mvn test -pl infrastructure/data/nebula-data-cache,infrastructure/data/nebula-data-persistence` → Tests run: 22+39=61, Failures: 0, BUILD SUCCESS
 **全仓编译**：BUILD SUCCESS
 
+---
+
+### Task 3-3: messaging/rpc/lock/websocket 层迁移
+
+**日期**: 2026-07-08
+
+**迁移范围**：
+- POM 换坐标: messaging-core, messaging-redis, rpc-grpc, rpc-async, websocket-core, websocket-spring, websocket-netty
+- 源码 import 迁移: messaging (JsonMessageSerializer, RedisMessageSerializer), rpc (GrpcRpcClient, GrpcRpcServer, HttpRpcClient, HttpRpcController, AsyncRpcExecutionManager, NacosAsyncExecutionStorage), websocket (所有模块的 Handler/Server/AutoConfiguration/Session 类)
+- ObjectMapper 构建方式统一改为 `JsonMapper.builder().build()`
+- `JsonProcessingException` 改 `JacksonException`（catch 子句）
+- 删除 `JavaTimeModule` 注册和 `WRITE_DATES_AS_TIMESTAMPS` 配置
+
+**关键决策 - Autoconfigure 层 ObjectMapper 兼容性**：
+- 问题: `spring-boot-jackson2` bridge（Task 3-6 前保留）导致 Spring 上下文的 `ObjectMapper` bean 为 Jackson 2 类型 (`com.fasterxml.jackson.databind.ObjectMapper`)，无法注入到已迁移为 Jackson 3 的 RPC/WebSocket 模块
+- 解决: RPC 自动配置类 (`GrpcRpcAutoConfiguration`, `HttpRpcAutoConfiguration`, `AsyncRpcAutoConfiguration`, `NacosAsyncStorageAutoConfiguration`) 不再从 Spring context 注入 ObjectMapper，改为自行创建 `JsonMapper.builder().build()` 实例
+- WebSocket 自动配置类 (`WebSocketAutoConfiguration`, `NettyWebSocketAutoConfiguration`) 同理改为 `private static final ObjectMapper` 字段
+- 此策略在 Task 3-6 "拆桥收尾" 前确保编译兼容
+
+**测试结果**：
+- messaging-core: 5 tests, 0 failures
+- rpc-http: 15 tests, 0 failures
+- rpc-grpc: 58 tests, 0 failures (含 GrpcServerLoopbackIntegrationTest)
+- lock-redis: 46 tests, 0 failures
+- websocket-netty: 4 tests, 0 failures
+- Total: 128 tests passed, BUILD SUCCESS
+
+**全仓编译**: `mvn clean compile` → BUILD SUCCESS
+
+---
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）

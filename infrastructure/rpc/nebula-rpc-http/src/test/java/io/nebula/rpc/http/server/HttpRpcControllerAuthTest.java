@@ -1,6 +1,7 @@
 package io.nebula.rpc.http.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.core.message.RpcRequest;
 import io.nebula.rpc.core.message.RpcResponse;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ import static org.mockito.Mockito.when;
 class HttpRpcControllerAuthTest {
 
     private final HttpRpcServer server = mock(HttpRpcServer.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     private RpcRequest request() {
         RpcRequest r = new RpcRequest();

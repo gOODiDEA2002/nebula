@@ -1,13 +1,11 @@
 package io.nebula.messaging.core.serializer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,7 +43,7 @@ public class JsonMessageSerializer implements MessageSerializer {
             log.debug("对象序列化成功: type={}, size={} bytes", 
                     obj.getClass().getSimpleName(), result.length);
             return result;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             String errorMsg = String.format("JSON 序列化失败: type=%s, error=%s", 
                     obj.getClass().getName(), e.getMessage());
             log.error(errorMsg, e);
@@ -68,7 +66,7 @@ public class JsonMessageSerializer implements MessageSerializer {
             log.debug("数据反序列化成功: type={}, size={} bytes", 
                     clazz.getSimpleName(), data.length);
             return result;
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             String errorMsg = String.format("JSON 反序列化失败: type=%s, dataSize=%d, error=%s", 
                     clazz.getName(), data.length, e.getMessage());
             log.error(errorMsg, e);
@@ -87,8 +85,8 @@ public class JsonMessageSerializer implements MessageSerializer {
         }
         
         try {
-            com.fasterxml.jackson.core.type.TypeReference<T> jacksonTypeRef = 
-                    new com.fasterxml.jackson.core.type.TypeReference<T>() {
+            tools.jackson.core.type.TypeReference<T> jacksonTypeRef = 
+                    new tools.jackson.core.type.TypeReference<T>() {
                         @Override
                         public java.lang.reflect.Type getType() {
                             return typeReference.getGenericType();
@@ -99,7 +97,7 @@ public class JsonMessageSerializer implements MessageSerializer {
             log.debug("数据反序列化成功（泛型）: type={}, size={} bytes", 
                     typeReference.getType().getSimpleName(), data.length);
             return result;
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             String errorMsg = String.format("JSON 反序列化失败（泛型）: type=%s, dataSize=%d, error=%s", 
                     typeReference.getType().getName(), data.length, e.getMessage());
             log.error(errorMsg, e);
@@ -173,21 +171,12 @@ public class JsonMessageSerializer implements MessageSerializer {
      * 创建 ObjectMapper
      */
     private ObjectMapper createObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        
-        // 注册 Java 8 时间模块
-        mapper.registerModule(new JavaTimeModule());
-        
-        // 配置序列化特性
-        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        
-        // 配置反序列化特性
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-        mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
-        
-        return mapper;
+        return JsonMapper.builder()
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT)
+                .build();
     }
     
     /**

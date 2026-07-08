@@ -192,12 +192,13 @@
 - **验证命令**: `mvn test -pl infrastructure/data/nebula-data-cache,infrastructure/data/nebula-data-persistence`
 - [x] 完成（Tests run: 61, Failures: 0; 全仓 compile BUILD SUCCESS）
 
-### Task 3-3: messaging / rpc / lock 层迁移
+### Task 3-3: messaging / rpc / lock / websocket 层迁移
 
-- **涉及文件**: `nebula-messaging-core/rabbitmq/redis/rocketmq`（消息序列化器）、`nebula-rpc-http/grpc/core`（RpcRequest/Response 序列化）、lock 模块若有
-- **关注**: RPC 双端序列化格式一致性（同版本框架间调用不跨 Jackson 大版本，无兼容层需求）
-- **验证命令**: `mvn test -pl infrastructure/messaging/...,infrastructure/rpc/...`
-- [ ] 完成
+- **涉及文件**: messaging-core/redis（序列化器）、rpc-http/grpc/async（客户端/服务器/控制器）、lock-redis（无Jackson依赖）、websocket-core/spring/netty（Handler/Server/AutoConfig）
+- **关注**: RPC 双端序列化格式一致性；Autoconfigure 层 ObjectMapper 兼容性（bridge 期间不注入 Spring 管理的 Jackson 2 ObjectMapper，改为自行创建 Jackson 3 实例）
+- **验证命令**: `mvn test -pl infrastructure/messaging/nebula-messaging-core,infrastructure/rpc/nebula-rpc-http,infrastructure/rpc/nebula-rpc-grpc,infrastructure/lock/nebula-lock-redis,infrastructure/websocket/nebula-websocket-netty`
+- **验证结果**: 128 tests passed, BUILD SUCCESS
+- [x] 完成
 
 ### Task 3-4: web 层迁移（脱敏 customizer 重写为 Jackson 3）
 

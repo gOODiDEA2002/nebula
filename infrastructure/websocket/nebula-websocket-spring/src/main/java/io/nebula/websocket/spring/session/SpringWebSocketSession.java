@@ -1,7 +1,7 @@
 package io.nebula.websocket.spring.session;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.websocket.core.exception.MessageSendException;
 import io.nebula.websocket.core.message.WebSocketMessage;
 import io.nebula.websocket.core.session.WebSocketSession;
@@ -120,7 +120,7 @@ public class SpringWebSocketSession implements WebSocketSession {
         try {
             String json = objectMapper.writeValueAsString(message);
             sendText(json);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new MessageSendException(getId(), "消息序列化失败", e);
         }
     }

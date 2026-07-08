@@ -1,6 +1,7 @@
 package io.nebula.rpc.grpc.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.grpc.stub.StreamObserver;
 import io.nebula.rpc.grpc.proto.RpcRequest;
 import io.nebula.rpc.grpc.proto.RpcResponse;
@@ -41,7 +42,7 @@ class GrpcRpcServerTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
+        objectMapper = JsonMapper.builder().build();
         grpcRpcServer = new GrpcRpcServer(objectMapper);
         
         // 准备测试服务实例

@@ -1,6 +1,6 @@
 package io.nebula.rpc.grpc.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.grpc.stub.StreamObserver;
 import io.nebula.rpc.core.annotation.RpcClient;
 import io.nebula.rpc.core.annotation.RemoteService;
@@ -268,7 +268,7 @@ public class GrpcRpcServer extends GenericRpcServiceGrpc.GenericRpcServiceImplBa
         for (int i = 0; i < parameterJsonList.size(); i++) {
             String parameterJson = parameterJsonList.get(i);
             // 使用 Jackson 的 TypeFactory 构建完整的类型信息，支持泛型
-            com.fasterxml.jackson.databind.JavaType javaType = 
+            tools.jackson.databind.JavaType javaType = 
                     objectMapper.getTypeFactory().constructType(genericParameterTypes[i]);
             parameters[i] = objectMapper.readValue(parameterJson, javaType);
         }

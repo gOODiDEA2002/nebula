@@ -1,6 +1,6 @@
 package io.nebula.autoconfigure.rpc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.async.execution.AsyncRpcExecutionManager;
 import io.nebula.rpc.async.storage.AsyncExecutionStorage;
 import lombok.extern.slf4j.Slf4j;
@@ -62,10 +62,9 @@ public class AsyncRpcAutoConfiguration {
     @ConditionalOnBean(AsyncExecutionStorage.class)
     public AsyncRpcExecutionManager asyncRpcExecutionManager(
             AsyncExecutionStorage storage,
-            Executor asyncRpcExecutor,
-            ObjectMapper objectMapper) {
+            Executor asyncRpcExecutor) {
 
         log.info("[AsyncRpc] 配置执行管理器: storage={}", storage.getClass().getSimpleName());
-        return new AsyncRpcExecutionManager(storage, asyncRpcExecutor, objectMapper);
+        return new AsyncRpcExecutionManager(storage, asyncRpcExecutor, JsonMapper.builder().build());
     }
 }

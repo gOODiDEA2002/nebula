@@ -1,6 +1,7 @@
 package io.nebula.rpc.grpc.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -16,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  */
 class GrpcRpcServerFindMethodTest {
 
-    private final GrpcRpcServer server = new GrpcRpcServer(new ObjectMapper());
+    private final GrpcRpcServer server = new GrpcRpcServer(JsonMapper.builder().build());
 
     @Test
     void matchesByDeclaredTypeName() {

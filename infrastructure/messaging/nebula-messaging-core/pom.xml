@@ -34,14 +34,10 @@
             <artifactId>spring-context</artifactId>
         </dependency>
         
-        <!-- JSON 处理 -->
+        <!-- Jackson 3 -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
         <!-- 测试: 验证 @MessageListener/@MessageHandler 扫描注册 -->

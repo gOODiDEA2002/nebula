@@ -1,6 +1,7 @@
 package io.nebula.rpc.http.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -17,7 +18,7 @@ import static org.mockito.Mockito.mock;
 class HttpRpcControllerFindMethodTest {
 
     private final HttpRpcController controller =
-            new HttpRpcController(mock(HttpRpcServer.class), new ObjectMapper());
+            new HttpRpcController(mock(HttpRpcServer.class), JsonMapper.builder().build());
 
     @Test
     void matchesByDeclaredTypeName() {

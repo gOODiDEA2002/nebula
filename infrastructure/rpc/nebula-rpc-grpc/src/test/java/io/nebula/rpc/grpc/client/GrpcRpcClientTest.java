@@ -1,6 +1,7 @@
 package io.nebula.rpc.grpc.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.grpc.ManagedChannel;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
@@ -41,7 +42,7 @@ class GrpcRpcClientTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
+        objectMapper = JsonMapper.builder().build();
         clientConfig = new GrpcRpcProperties.ClientConfig();
         clientConfig.setTarget("localhost:9081");
         clientConfig.setRequestTimeout(5000L);

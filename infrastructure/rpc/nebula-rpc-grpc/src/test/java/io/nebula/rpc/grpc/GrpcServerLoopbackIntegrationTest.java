@@ -1,6 +1,7 @@
 package io.nebula.rpc.grpc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -190,6 +191,11 @@ class GrpcServerLoopbackIntegrationTest {
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration
     static class TestApp {
+
+        @Bean
+        ObjectMapper objectMapper() {
+            return JsonMapper.builder().build();
+        }
 
         @Bean
         GrpcRpcServer grpcRpcServer(ObjectMapper objectMapper) {

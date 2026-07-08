@@ -1,6 +1,6 @@
 package io.nebula.websocket.spring.cluster;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.messaging.redis.RedisMessageManager;
 import io.nebula.websocket.core.cluster.ClusterMessageBroker;
 import io.nebula.websocket.core.message.WebSocketMessage;
@@ -80,9 +80,7 @@ public class RedisClusterMessageBroker implements ClusterMessageBroker {
     }
 
     /** 用于把反序列化得到的 LinkedHashMap payload 重新映射为 WebSocketMessage */
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    private static final ObjectMapper MAPPER = tools.jackson.databind.json.JsonMapper.builder().build();
 
     @Override
     @SuppressWarnings("unchecked")
