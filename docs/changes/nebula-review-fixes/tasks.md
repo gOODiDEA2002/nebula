@@ -150,7 +150,7 @@
 - **依赖**: 无
 - **验收标准**: 既有缓存测试仍绿；健康检查写入的键带 `nebula:cache:` 前缀
 - **验证命令**: `mvn test -pl infrastructure/data/nebula-data-cache`
-- [ ] 完成
+- [x] 完成
 
 ## Task 11: [M-4] ES trust-all 生产环境防护
 

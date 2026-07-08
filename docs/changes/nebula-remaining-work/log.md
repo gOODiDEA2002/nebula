@@ -112,6 +112,12 @@
 - 验证命令: `mvn test -pl infrastructure/rpc/nebula-rpc-grpc` → Tests run: 58, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
 - 已有鉴权测试(含 token/无 token/错误 token)全绿, 常量时间比较不影响行为
 
+### Task 10 [M-3] 缓存健康检查键前缀 + 统计原子化
+- 涉及文件: DefaultCacheManager.java, LocalCacheManager.java
+- 变更: `"health:check"` → `keyPrefix + "health:check"`, 三个 `volatile long` → `LongAdder`
+- 验证命令: `mvn test -pl infrastructure/data/nebula-data-cache` → Tests run: 22, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
+- LocalCacheManager 一并修改(同样存在 volatile long 统计), clear() 改 LongAdder.reset()
+
 ## 踩坑记录
 
 （待开发过程中填写）

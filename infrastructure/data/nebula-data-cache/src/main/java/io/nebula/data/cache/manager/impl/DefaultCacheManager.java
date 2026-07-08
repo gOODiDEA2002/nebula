@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -33,10 +34,9 @@ public class DefaultCacheManager implements CacheManager {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     
-    // 统计信息
-    private volatile long hitCount = 0;
-    private volatile long missCount = 0;
-    private volatile long evictionCount = 0;
+    private final LongAdder hitCount = new LongAdder();
+    private final LongAdder missCount = new LongAdder();
+    private final LongAdder evictionCount = new LongAdder();
 
     /**
      * 缓存 key 前缀(命名空间)。所有 key 统一加此前缀存储，使 clear()/getSize() 能按前缀圈定范围，
@@ -106,7 +106,7 @@ public class DefaultCacheManager implements CacheManager {
         try {
             Object value = redisTemplate.opsForValue().get(buildKey(key));
             if (value != null) {
-                hitCount++;
+                hitCount.increment();
                 log.debug("缓存命中: key={}", key);
                 if (type.isInstance(value)) {
                     return Optional.of((T) value);
@@ -125,12 +125,12 @@ public class DefaultCacheManager implements CacheManager {
                     return Optional.empty();
                 }
             } else {
-                missCount++;
+                missCount.increment();
                 log.debug("缓存未命中: key={}", key);
                 return Optional.empty();
             }
         } catch (Exception e) {
-            missCount++;
+            missCount.increment();
             try {
                 StringRedisSerializer keySerializer = (StringRedisSerializer) redisTemplate.getKeySerializer();
                 byte[] rawKey = keySerializer.serialize(buildKey(key));
@@ -186,7 +186,7 @@ public class DefaultCacheManager implements CacheManager {
             Boolean result = redisTemplate.delete(buildKey(key));
             boolean deleted = Boolean.TRUE.equals(result);
             if (deleted) {
-                evictionCount++;
+                evictionCount.increment();
                 log.debug("删除缓存: key={}", key);
             }
             return deleted;
@@ -207,7 +207,7 @@ public class DefaultCacheManager implements CacheManager {
             Long result = redisTemplate.delete(prefixed);
             long deleted = result != null ? result : 0;
             if (deleted > 0) {
-                evictionCount += deleted;
+                evictionCount.add(deleted);
                 log.debug("批量删除缓存: keys={}, deleted={}", keys.size(), deleted);
             }
             return deleted;
@@ -684,7 +684,7 @@ public class DefaultCacheManager implements CacheManager {
             Set<String> keys = scanKeys(keyPrefix + "*");
             if (!keys.isEmpty()) {
                 redisTemplate.delete(keys);
-                evictionCount += keys.size();
+                evictionCount.add(keys.size());
                 log.info("清空缓存(前缀 {}): count={}", keyPrefix, keys.size());
             }
         } catch (Exception e) {
@@ -705,7 +705,7 @@ public class DefaultCacheManager implements CacheManager {
     @Override
     public boolean isAvailable() {
         try {
-            redisTemplate.opsForValue().set("health:check", "ok", Duration.ofSeconds(1));
+            redisTemplate.opsForValue().set(keyPrefix + "health:check", "ok", Duration.ofSeconds(1));
             return true;
         } catch (Exception e) {
             log.error("缓存不可用", e);
@@ -720,18 +720,19 @@ public class DefaultCacheManager implements CacheManager {
         
         @Override
         public long getHitCount() {
-            return hitCount;
+            return hitCount.sum();
         }
         
         @Override
         public long getMissCount() {
-            return missCount;
+            return missCount.sum();
         }
         
         @Override
         public double getHitRate() {
-            long total = hitCount + missCount;
-            return total > 0 ? (double) hitCount / total : 0.0;
+            long h = hitCount.sum();
+            long total = h + missCount.sum();
+            return total > 0 ? (double) h / total : 0.0;
         }
         
         @Override
@@ -747,7 +748,7 @@ public class DefaultCacheManager implements CacheManager {
         
         @Override
         public long getEvictionCount() {
-            return evictionCount;
+            return evictionCount.sum();
         }
     }
 }

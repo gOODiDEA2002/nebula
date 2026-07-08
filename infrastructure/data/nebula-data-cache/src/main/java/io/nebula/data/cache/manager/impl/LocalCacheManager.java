@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 /**
@@ -23,10 +24,9 @@ public class LocalCacheManager implements CacheManager {
     private final LocalCacheConfig config;
     private final ScheduledExecutorService cleanupExecutor;
     
-    // 统计信息
-    private volatile long hitCount = 0;
-    private volatile long missCount = 0;
-    private volatile long evictionCount = 0;
+    private final LongAdder hitCount = new LongAdder();
+    private final LongAdder missCount = new LongAdder();
+    private final LongAdder evictionCount = new LongAdder();
     
     public LocalCacheManager() {
         this(LocalCacheConfig.defaultConfig());
@@ -93,20 +93,18 @@ public class LocalCacheManager implements CacheManager {
         try {
             CacheEntry entry = cache.get(key);
             if (entry == null) {
-                missCount++;
+                missCount.increment();
                 return Optional.empty();
             }
             
-            // 检查是否过期
             if (entry.isExpired()) {
                 cache.remove(key);
-                missCount++;
+                missCount.increment();
                 return Optional.empty();
             }
             
-            // 更新访问时间
             entry.updateAccessTime();
-            hitCount++;
+            hitCount.increment();
             
             Object value = entry.getValue();
             if (value != null && type.isAssignableFrom(value.getClass())) {
@@ -114,13 +112,13 @@ public class LocalCacheManager implements CacheManager {
             } else {
                 log.warn("Type mismatch for cache key: {}, expected: {}, actual: {}", 
                         key, type.getName(), value != null ? value.getClass().getName() : "null");
-                missCount++;
+                missCount.increment();
                 return Optional.empty();
             }
             
         } catch (Exception e) {
             log.error("Error getting local cache key: {}", key, e);
-            missCount++;
+            missCount.increment();
             return Optional.empty();
         }
     }
@@ -474,9 +472,9 @@ public class LocalCacheManager implements CacheManager {
     public void clear() {
         try {
             cache.clear();
-            hitCount = 0;
-            missCount = 0;
-            evictionCount = 0;
+            hitCount.reset();
+            missCount.reset();
+            evictionCount.reset();
             log.info("Local cache cleared");
         } catch (Exception e) {
             log.error("Error clearing local cache", e);
@@ -547,7 +545,7 @@ public class LocalCacheManager implements CacheManager {
         for (int i = 0; i < evictCount && i < entries.size(); i++) {
             String key = entries.get(i).getKey();
             cache.remove(key);
-            evictionCount++;
+            evictionCount.increment();
         }
         
         log.debug("Evicted {} entries from local cache", evictCount);
@@ -592,18 +590,19 @@ public class LocalCacheManager implements CacheManager {
         
         @Override
         public long getHitCount() {
-            return hitCount;
+            return hitCount.sum();
         }
         
         @Override
         public long getMissCount() {
-            return missCount;
+            return missCount.sum();
         }
         
         @Override
         public double getHitRate() {
-            long total = hitCount + missCount;
-            return total == 0 ? 0.0 : (double) hitCount / total;
+            long h = hitCount.sum();
+            long total = h + missCount.sum();
+            return total == 0 ? 0.0 : (double) h / total;
         }
         
         @Override
@@ -613,7 +612,7 @@ public class LocalCacheManager implements CacheManager {
         
         @Override
         public long getEvictionCount() {
-            return evictionCount;
+            return evictionCount.sum();
         }
     }
     
