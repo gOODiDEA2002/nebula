@@ -340,11 +340,11 @@ mvn clean deploy                # 快照版本
 
 - Web：
   - 限流拦截器定义 `application/nebula-web/src/main/java/io/nebula/web/interceptor/RateLimitInterceptor.java:22`
-  - 内存限流器 `application/nebula-web/src/main/java/io/nebula/web/ratelimit/MemoryRateLimiter.java:14`
+  - 内存限流器 `application/nebula-web/src/main/java/io/nebula/web/ratelimit/MemoryRateLimiter.java:17`
   - 响应缓存实现 `application/nebula-web/src/main/java/io/nebula/web/cache/MemoryResponseCache.java:16`
-  - 认证拦截器定义 `application/nebula-web/src/main/java/io/nebula/web/interceptor/AuthInterceptor.java:25`
+  - 认证拦截器定义 `application/nebula-web/src/main/java/io/nebula/web/interceptor/AuthInterceptor.java:33`
   - 性能监控拦截器定义 `application/nebula-web/src/main/java/io/nebula/web/interceptor/PerformanceMonitorInterceptor.java:15`
-  - 性能监控器与拦截器注册 `application/nebula-web/src/main/java/io/nebula/web/autoconfigure/WebAutoConfiguration.java:355,373`
+  - 性能监控器与拦截器注册 `application/nebula-web/src/main/java/io/nebula/web/autoconfigure/WebMonitorAutoConfiguration.java:35,43`
   - 健康端点 `application/nebula-web/src/main/java/io/nebula/web/controller/HealthController.java:57,72,89,103,111,123,136`
   - 性能端点 `application/nebula-web/src/main/java/io/nebula/web/controller/PerformanceController.java:37,66,96`
 - Messaging（RabbitMQ）：
@@ -352,28 +352,28 @@ mvn clean deploy                # 快照版本
   - 默认序列化器/路由器 `.../RabbitMQAutoConfiguration.java:71,79`
   - 生产者/消费者 Bean 定义 `.../RabbitMQAutoConfiguration.java:109,117`
   - 延迟消息生产/消费 `.../RabbitMQAutoConfiguration.java:91,100`
-  - 生产者类 `infrastructure/messaging/nebula-messaging-rabbitmq/src/main/java/io/nebula/messaging/rabbitmq/producer/RabbitMQMessageProducer.java:30`
-  - 消费者类 `infrastructure/messaging/nebula-messaging-rabbitmq/src/main/java/io/nebula/messaging/rabbitmq/consumer/RabbitMQMessageConsumer.java:30`
+  - 生产者类 `infrastructure/messaging/nebula-messaging-rabbitmq/src/main/java/io/nebula/messaging/rabbitmq/producer/RabbitMQMessageProducer.java:28`
+  - 消费者类 `infrastructure/messaging/nebula-messaging-rabbitmq/src/main/java/io/nebula/messaging/rabbitmq/consumer/RabbitMQMessageConsumer.java:28`
 - 服务发现（Nacos）：
-  - 自动配置入口 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/discovery/NacosDiscoveryAutoConfiguration.java:27`
+  - 自动配置入口 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/discovery/NacosDiscoveryAutoConfiguration.java:29`
   - 发现实现 `infrastructure/discovery/nebula-discovery-nacos/src/main/java/io/nebula/discovery/nacos/NacosServiceDiscovery.java:28`
   - 自动注册器（含 gRPC 端口 metadata）`infrastructure/discovery/nebula-discovery-nacos/src/main/java/io/nebula/discovery/nacos/NacosServiceAutoRegistrar.java:86–90,30`
 - RPC：
-  - HTTP 自动配置 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/rpc/HttpRpcAutoConfiguration.java:41`
-  - HTTP 客户端类 `infrastructure/rpc/nebula-rpc-http/src/main/java/io/nebula/rpc/http/client/HttpRpcClient.java:26`
-  - gRPC 自动配置（优先）`autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/rpc/GrpcRpcAutoConfiguration.java:26`
-  - gRPC 客户端/通道 `infrastructure/rpc/nebula-rpc-grpc/src/main/java/io/nebula/rpc/grpc/client/GrpcRpcClient.java:27,52–69`
-  - gRPC 服务器/服务注册 `infrastructure/rpc/nebula-rpc-grpc/src/main/java/io/nebula/rpc/grpc/server/GrpcRpcServer.java:32,54–67,78–112`
-  - RPC-发现整合 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/rpc/RpcDiscoveryAutoConfiguration.java:32,60–77`
+  - HTTP 自动配置 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/rpc/HttpRpcAutoConfiguration.java:48`
+  - HTTP 客户端类 `infrastructure/rpc/nebula-rpc-http/src/main/java/io/nebula/rpc/http/client/HttpRpcClient.java:30`
+  - gRPC 自动配置（优先）`autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/rpc/GrpcRpcAutoConfiguration.java:35`
+  - gRPC 客户端/通道 `infrastructure/rpc/nebula-rpc-grpc/src/main/java/io/nebula/rpc/grpc/client/GrpcRpcClient.java:29`
+  - gRPC 服务器/服务注册 `infrastructure/rpc/nebula-rpc-grpc/src/main/java/io/nebula/rpc/grpc/server/GrpcRpcServer.java:36`
+  - RPC-发现整合 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/rpc/RpcDiscoveryAutoConfiguration.java:48`
 - 分布式锁（Redis）：
-  - 自动配置与切面 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/lock/RedisLockAutoConfiguration.java:26,41–46`
-  - 锁管理器 `infrastructure/lock/nebula-lock-redis/src/main/java/io/nebula/lock/redis/RedisLockManager.java:23,45–55,63–71`
+  - 自动配置与切面 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/lock/RedisLockAutoConfiguration.java:31`
+  - 锁管理器 `infrastructure/lock/nebula-lock-redis/src/main/java/io/nebula/lock/redis/RedisLockManager.java:20`
 - 数据持久化：
-  - 多数据源管理器 `infrastructure/data/nebula-data-persistence/src/main/java/io/nebula/data/persistence/datasource/DataSourceManager.java:24,70–85,90–123,160–169`
+  - 多数据源管理器 `infrastructure/data/nebula-data-persistence/src/main/java/io/nebula/data/persistence/datasource/DataSourceManager.java:25`
 - 基础响应：
   - 统一响应 `core/nebula-foundation/src/main/java/io/nebula/core/common/result/Result.java:55–79,107–133,141–165`
 - 安全：
-  - 安全自动配置与切面 `core/nebula-security/src/main/java/io/nebula/security/config/SecurityAutoConfiguration.java:20,28–33`
+  - 安全自动配置与切面 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/security/SecurityAutoConfiguration.java:38`
 
 - 存储：
   - MinIO 自动配置 `autoconfigure/nebula-autoconfigure/src/main/java/io/nebula/autoconfigure/storage/MinIOAutoConfiguration.java:44–79,81–101`
@@ -581,3 +581,13 @@ flowchart LR
 - **[L-1] JwtAuthenticationFilter**: 删除 `readStringList()` 冗余 `Objects::nonNull` 过滤
 - **[L-2] ES ObjectMapper 隔离**: `elasticsearchClient()` 使用 `objectMapper.copy()` 避免污染全局实例
 - **[L-3] ServiceDiscoveryRpcClient 异步执行器**: 新增 5 参构造支持注入 `Executor`，`callAsync` 使用注入的执行器
+
+### Spring Boot 4.1 加固（阶段二）
+- **[Task 2-0a] 文档版本对齐**: README/AGENTS.md Spring Boot 版本更新为 4.1.0
+- **[Task 2-0b] RpcDiscovery Executor 注入**: `RpcDiscoveryAutoConfiguration.serviceDiscoveryRpcClient` 改用 `ObjectProvider<Executor>` 注入 `rpcExecutor`，缺失时 fallback `ForkJoinPool.commonPool()`
+- **[Task 2-2] HTTP RPC 连接池接通**: `rpcRestClient` 改用 `HttpComponentsClientHttpRequestFactory` + `PoolingHttpClientConnectionManager`，`maxConnections`/`maxConnectionsPerRoute`/`keepAliveTime` 生效
+- **[Task 2-3] 死配置删除**: `SecurityProperties` 删 `anonymousUrls`/`rbac.enableCache`/`cacheExpiration`/`superAdminRole`；`NacosProperties` 删 `heartbeatInterval`/`heartbeatTimeout`/`ipDeleteTimeout`；`GrpcRpcProperties.ServerConfig` 删 `maxInboundMessageSize`/`keepAliveTime`/`keepAliveTimeout`/`permitKeepAliveWithoutCalls`/`maxConcurrentCalls`；`HttpRpcProperties.ClientConfig` 删 `writeTimeout`/`retryCount`/`retryInterval`/`compressionEnabled`/`loggingEnabled`
+- **[Task 2-4] 错误码收敛**: `ResultCode` 补 `getByName(String)`；`Result` 新增 `of(ResultCode)` / `of(ResultCode, T)` 工厂（code 使用 `resultCode.name()` 符号码）；`Constants.ErrorCode` 标 `@Deprecated`
+- **[Task 2-5] 认证收敛**: `AuthInterceptor` 移除自行 JWT 解析，改读 `SecurityContext`（由 `JwtAuthenticationFilter` 在 Filter 层填充），桥接填充 `AuthContext` 保持 API 兼容；新增 `JwtFilterEnabledCondition`：`nebula.web.auth.enabled=true` 时自动注册 Filter
+- **[Task 2-6] xxl-job DTO 清理**: 删除孤儿 DTO（`XxlJobExecuteRequest`/`XxlJobLogRequest`/`XxlJobLogResult`）
+- **[Task 2-7] 自动装配三态测试**: 新增 7 个 ConditionTest 覆盖 Web/Cache/RabbitMQ/HttpRpc/GrpcRpc/ES/Security 的 enabled/disabled/缺类三态

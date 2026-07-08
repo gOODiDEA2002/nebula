@@ -153,7 +153,7 @@
 - **依赖**: Task 2-1 ~ 2-7
 - **验收标准**: 抽查 20 条行号引用全部命中；`mvn clean compile && mvn test` 全仓通过
 - **验证命令**: `mvn clean compile && mvn test`
-- [ ] 完成
+- [x] 完成
 
 ---
 

@@ -264,24 +264,26 @@ mvn spring-boot:run -Dlogging.level.io.nebula=DEBUG
 
 Nebula 采用**双层鉴权架构**:
 
-### 6.1 安全层 (`nebula-security`)
+### 6.1 安全层 (`nebula-security`) -- 唯一 JWT 解析点
 
 - **JWT 认证**: 由 `JwtService`（`DefaultJwtService`）签发和验证 Token
   - 密钥配置: `nebula.security.jwt.secret`（**必须显式配置，>= 32 字符**，无默认值）
   - Token 有效期: 默认 24 小时（`nebula.security.jwt.expiration`）
   - Refresh Token: 默认 7 天（`nebula.security.jwt.refresh-expiration`）
   - Header: `Authorization: Bearer <token>`
+- **JwtAuthenticationFilter**: Servlet Filter 层解析 JWT 并填充 `SecurityContext`
+  - 注册条件: `nebula.security.jwt.filter.enabled=true` **或** `nebula.web.auth.enabled=true`（`JwtFilterEnabledCondition`）
+  - 只填充、不拦截: 无 token / token 无效时不返回 401，仅不填充上下文
 - **RBAC 授权**: 由 `SecurityAspect` 切面处理
-  - 超级管理员角色: `SUPER_ADMIN`（`nebula.security.rbac.super-admin-role`）
-  - 权限缓存: 默认 30 分钟
 - 条件加载: `nebula.security.enabled=true`（Level 1, 默认启用）
 
-### 6.2 Web 层 (`nebula-web`)
+### 6.2 Web 层 (`nebula-web`) -- 消费 SecurityContext
 
-- **AuthInterceptor**: 拦截所有请求进行 Token 验证
+- **AuthInterceptor**: 从 `SecurityContext` 读取认证信息（不再自行解析 JWT），桥接填充 `AuthContext`
   - 启用开关: `nebula.web.auth.enabled`
   - 忽略路径: `nebula.web.auth.ignore-paths`（Ant 风格匹配，默认包含 `/public/**`、`/actuator/**`、`/swagger-ui/**`）
-  - 认证上下文: `AuthContext` 线程绑定当前用户信息
+  - 认证上下文: `AuthContext` 线程绑定当前用户信息（由 `SecurityContext` 的 `UserPrincipal` 转换而来）
+  - **已废弃**: `nebula.web.auth.jwt-secret`（收敛后生效密钥为 `nebula.security.jwt.secret`）
 
 ### 6.3 Gateway 层
 

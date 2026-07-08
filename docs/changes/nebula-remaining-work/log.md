@@ -291,6 +291,15 @@
 - 临时解决: 使用临时 settings 文件 `/tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central; 全部 mvn 命令需加 `-s /tmp/nebula-mvn-settings.xml`
 - 建议: 修复 Nexus 服务器 SSL 证书(加 SAN `nexus.vocoor.com.cn`)
 
+### Task 2-8: 文档同步 + 阶段二收尾
+- 验证命令: `mvn clean compile` → BUILD SUCCESS (全仓 20.890s)
+- 验证命令: `mvn test -pl core/nebula-foundation,core/nebula-security,application/nebula-web,application/nebula-task,autoconfigure/nebula-autoconfigure` → BUILD SUCCESS (所有关键模块)
+- 改动要点:
+  - CLAUDE.md: 补阶段二变更记录(Task 2-0~2-7)；更新15+处行号引用(AuthInterceptor/RateLimiter/RPC/Lock等)；SecurityAutoConfiguration路径更正(core→autoconfigure)
+  - AGENTS.md: 同步更新对应行号引用
+  - .cursor/rules/project.mdc: 第6章鉴权架构更新为Filter唯一解析+Interceptor消费SecurityContext；删除已失效的RBAC配置引用
+  - env/StarterDefaultsInjectionTest 从Task 2-7清单移除: 阶段一已落地
+
 ### Task 2-7: 自动装配三态条件测试
 - 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure` → Tests run: 61, Failures: 0, Errors: 0 → BUILD SUCCESS
 - 新增/扩展测试类:
