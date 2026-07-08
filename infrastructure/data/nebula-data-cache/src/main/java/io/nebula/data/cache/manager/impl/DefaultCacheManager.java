@@ -1,8 +1,7 @@
 package io.nebula.data.cache.manager.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.data.cache.manager.CacheManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +29,7 @@ public class DefaultCacheManager implements CacheManager {
     
     private final RedisTemplate<String, Object> redisTemplate;
     private static final String CACHE_NAME = "DefaultCache";
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
     
     private final LongAdder hitCount = new LongAdder();
     private final LongAdder missCount = new LongAdder();

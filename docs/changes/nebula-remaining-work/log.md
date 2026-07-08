@@ -452,6 +452,17 @@
 **验证**：`mvn test -pl core/nebula-foundation` → Tests run: 278, Failures: 0, BUILD SUCCESS
 **全仓编译**：`mvn clean compile` → BUILD SUCCESS
 
+### Task 3-2: data 层迁移
+
+**迁移文件**：
+- `nebula-data-cache/pom.xml`：换坐标 + 删 jsr310
+- `nebula-data-persistence/pom.xml`：换坐标 + 删 jsr310
+- `nebula-data-mongodb/pom.xml`：换坐标
+- `DefaultCacheManager.java`：import 改 `tools.jackson.*`；`ObjectMapper` 构建改 `JsonMapper.builder().build()`；删除 `JavaTimeModule`/`WRITE_DATES_AS_TIMESTAMPS`
+
+**验证**：`mvn test -pl infrastructure/data/nebula-data-cache,infrastructure/data/nebula-data-persistence` → Tests run: 22+39=61, Failures: 0, BUILD SUCCESS
+**全仓编译**：BUILD SUCCESS
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）

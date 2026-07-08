@@ -190,7 +190,7 @@
 - **涉及文件**: `nebula-data-cache`（Redis 值序列化器、多态白名单——Jackson 3 的 PolymorphicTypeValidator API 对应迁移）、`nebula-data-persistence`
 - **关注**: Q5 拍板的缓存兼容策略在此落地；多态白名单安全语义不得减弱
 - **验证命令**: `mvn test -pl infrastructure/data/nebula-data-cache,infrastructure/data/nebula-data-persistence`
-- [ ] 完成
+- [x] 完成（Tests run: 61, Failures: 0; 全仓 compile BUILD SUCCESS）
 
 ### Task 3-3: messaging / rpc / lock 层迁移
 
