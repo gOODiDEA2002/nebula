@@ -27,6 +27,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -58,11 +59,14 @@ import java.util.List;
 public class ElasticsearchAutoConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchAutoConfiguration.class);
+    private static final java.util.Set<String> SAFE_PROFILES = java.util.Set.of("dev", "test", "local");
 
     private final ElasticsearchProperties properties;
+    private final Environment environment;
 
-    public ElasticsearchAutoConfiguration(ElasticsearchProperties properties) {
+    public ElasticsearchAutoConfiguration(ElasticsearchProperties properties, Environment environment) {
         this.properties = properties;
+        this.environment = environment;
     }
 
     /**
@@ -163,13 +167,19 @@ public class ElasticsearchAutoConfiguration {
      */
     private SSLContext createSSLContext() throws Exception {
         if (!properties.isSslVerificationEnabled()) {
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[]{new X509TrustManager() {
-                @Override public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
-                @Override public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
-                @Override public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[0]; }
-            }}, null);
-            return sslContext;
+            if (isProductionProfile()) {
+                logger.error("生产环境禁止跳过 SSL 证书校验(sslVerificationEnabled=false), 已忽略该配置, 使用默认 SSL 校验");
+            } else {
+                logger.warn("SSL 证书校验已禁用, 当前环境: {}, 仅限非生产环境使用",
+                        String.join(",", environment.getActiveProfiles()));
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, new TrustManager[]{new X509TrustManager() {
+                    @Override public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+                    @Override public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+                    @Override public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[0]; }
+                }}, null);
+                return sslContext;
+            }
         }
 
         if (properties.getSslCaPath() != null) {
@@ -196,6 +206,19 @@ public class ElasticsearchAutoConfiguration {
         }
 
         return SSLContext.getDefault();
+    }
+
+    private boolean isProductionProfile() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        if (activeProfiles.length == 0) {
+            return false;
+        }
+        for (String profile : activeProfiles) {
+            if (SAFE_PROFILES.contains(profile.toLowerCase())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

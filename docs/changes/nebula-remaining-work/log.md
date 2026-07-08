@@ -118,6 +118,13 @@
 - 验证命令: `mvn test -pl infrastructure/data/nebula-data-cache` → Tests run: 22, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
 - LocalCacheManager 一并修改(同样存在 volatile long 统计), clear() 改 LongAdder.reset()
 
+### Task 11 [M-4] ES trust-all 生产环境防护
+- 涉及文件: ElasticsearchAutoConfiguration.java, 新增 ElasticsearchSslGuardTest.java
+- 变更: createSSLContext() 在 sslVerificationEnabled=false 时, 先判 isProductionProfile(); 生产环境 error 日志 + 回退默认 SSLContext, 非生产才 trust-all
+- 对齐: 与 HttpCrawlerEngine 相同的 SAFE_PROFILES 判定逻辑(dev/test/local 视为安全)
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=ElasticsearchSslGuardTest` → Tests run: 5, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
+- 五个用例: prod 被拦截, production 被拦截, dev 允许, 无 profile 允许, sslVerificationEnabled=true 正常
+
 ## 踩坑记录
 
 （待开发过程中填写）

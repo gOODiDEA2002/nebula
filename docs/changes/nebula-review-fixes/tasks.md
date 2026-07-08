@@ -161,7 +161,7 @@
 - **依赖**: 无
 - **验收标准**: 见测试；非生产 profile 行为不变
 - **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=ElasticsearchSslGuardTest`
-- [ ] 完成
+- [x] 完成
 
 ## Task 12: [L 批] 三处小修
 
