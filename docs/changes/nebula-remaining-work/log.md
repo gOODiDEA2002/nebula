@@ -617,6 +617,15 @@
 - 结果: BUILD SUCCESS (全仓 68 模块, 25.195s)
 - 本地仓库确认: `~/.m2/repository/io/nebula/nebula-parent/2.1.0-SNAPSHOT/` 和 `nebula-foundation/2.1.0-SNAPSHOT/` 均已安装
 
+### Task 4-0a/4-0b 交付审计（2026-07-08，审计人：主对话 Agent）
+
+- 提交核实：`75130046`（4-0a）、`59f0edd6`（4-0b），一任务一提交，本地已同步至远端 HEAD。
+- 分支说明：编码代理基于 `a5a019c0` 开工，未包含主对话的文档提交 `bcaef5de`（阶段四实现细则补写）；其自行重建的 D7 条目与 `bcaef5de` 内容等价且更全（含 storage-core/gateway-core 新发现）。审计时本地 `git reset --hard` 到远端 HEAD，再从 `bcaef5de` 恢复 implementation.md 的阶段四章节并按执行后口径修订（4 项改 6 项、"删除依赖"改"换坐标"）。
+- **验证缺口补跑**：4-0a 交付时只跑了 `mvn clean compile`（implementation.md 要求 compile+test）；且编码代理 `mvn install` 用了自定义 settings（`/tmp/nebula-mvn-settings.xml`，现已不存在），产物未进用户默认 `~/.m2`（当时 `nebula-foundation/2.1.0-SNAPSHOT/` 仅有 `.lastUpdated` 残根）。审计时以默认 settings 重跑 `mvn clean install -DskipTests`（BUILD SUCCESS, 32.6s）+ 全仓 `mvn test`（BUILD SUCCESS, 01:12），两个缺口均已闭合，proud-day 前置条件（`~/.m2` 可拉取 2.1.0-SNAPSHOT）现已真实满足。
+- 抽查通过：升级指南内容完整（清缓存步骤/坐标对照/代码要点/已知残留，含滚动升级不可行警告）；payment/crawler-captcha/storage-core/gateway-core 四处 POM 已换 `tools.jackson.core` 坐标；examples 两文件 import 已迁移；根 pom `<revision>` 为 2.1.0-SNAPSHOT。
+- 小修：升级指南清缓存命令由 `redis-cli KEYS`（阻塞生产 Redis）改为 `redis-cli --scan --pattern`。
+- 偏差备案：4-0a 对 payment/crawler-captcha 采用"换坐标"而非 implementation.md 原写的"删除依赖"，符合 Task 3-0 盘点裁决口径，效果等价，implementation.md 已按执行后口径修订。
+
 ---
 
 ## Spec-Code 偏差

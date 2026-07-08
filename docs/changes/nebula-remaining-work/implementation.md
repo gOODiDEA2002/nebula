@@ -592,8 +592,31 @@ new ApplicationContextRunner()
 
 ## 4. 阶段四：proud-day 接入（外部仓库）
 
-- **Task 4-0（本仓库）**：根 `pom.xml` 的 `<revision>` 由 `2.0.1-SNAPSHOT` 改 `2.1.0-SNAPSHOT`，全仓 `mvn install -DskipTests` 后提交。执行时机：阶段一完成后即可（不必等阶段二三）。
-- **Task 4-1（proud-day 仓库）**：按 `/Users/andy/DevOps/SourceCode/business-projects/proud-day-projects/proud-day-backend/docs/changes/nebula-persistence-adoption/tasks.md` 三任务执行，该文档自含全部细节（配置映射表、验收清单）。前置：Task 4-0 落地且本仓库快照可拉取。
+### Task 4-0a（本仓库）：阶段三欠账清理
+
+来源：log.md D7 审计条目（2026-07-08），6 项（审计预列 4 项 + 执行时新发现 storage-core/gateway-core 两处 POM 残留），一次提交完成。已于 commit `75130046` 落地，以下为执行后口径：
+
+1. **补写升级指南** `docs/upgrade-guide-jackson3.md`（新建）。内容要点：
+   - 面向 nebula 2.1.0 使用方的 Jackson 2 → 3 升级说明：包名 `com.fasterxml.jackson.*` → `tools.jackson.*`（`jackson.annotation` 除外，包名不变）；`JsonProcessingException` → `JacksonException`；定制入口 `Jackson2ObjectMapperBuilderCustomizer` → `JsonMapperBuilderCustomizer`。
+   - **Redis 缓存部署步骤（Q5 拍板）**：Jackson 3 序列化格式与 Jackson 2 不兼容，不做双读兼容层；升级部署前必须清理缓存键 `redis-cli --scan --pattern 'nebula:cache:*' | xargs redis-cli del`（业务方按自身 keyPrefix 类推，如 proud-day 清 `pd:cache:*`）。
+   - 唯一 Jackson 2 运行时残留为 jjwt-jackson 传递依赖（jjwt 0.13.0 无 Jackson 3 变体），不影响业务序列化路径。
+2. **payment POM 清理**：`jackson-databind` 换 `tools.jackson.core` 坐标、删 `jackson-datatype-jsr310`（原方案为直接删除 databind，执行时按 Task 3-0 盘点裁决"换坐标"口径落地，效果等价——运行时不再引 Jackson 2）。
+3. **crawler-captcha POM 清理**：`jackson-databind` 换 `tools.jackson.core` 坐标（同上）。
+4. **examples 迁移**：`TaskService.java` 与 `WeatherTool.java` 的 `com.fasterxml.jackson.databind.ObjectMapper` 改为 `tools.jackson.databind.ObjectMapper`，`new ObjectMapper()` 改 `JsonMapper.builder().build()`。
+5. **storage-core / gateway-core POM**（执行时新发现）：`jackson-databind` 换 `tools.jackson.core` 坐标（Task 3-0 盘点表标记迁移但阶段三遗漏）。
+
+**验证**：全仓 `mvn clean compile && mvn test`；`rg "com.fasterxml.jackson.(core|datatype)" -g 'pom.xml'` 仅剩 `jackson-annotations` 保留项。
+
+### Task 4-0b（本仓库）：版本号升代
+
+根 `pom.xml` 的 `<revision>` 由 `2.0.1-SNAPSHOT` 改 `2.1.0-SNAPSHOT`；同步更新 `CLAUDE.md` 变更记录节（追加 v2.1.0 条目：SB4.1 升级 + Jackson 3 迁移 + 阶段一/二修复摘要）与 `.cursor/rules/project.mdc` 版本表（项目版本行）。改后全仓 `mvn install -DskipTests`（供 proud-day 以快照坐标拉取）并单独提交。
+
+### Task 4-1（proud-day 仓库）
+
+按 `/Users/andy/DevOps/SourceCode/business-projects/proud-day-projects/proud-day-backend/docs/changes/nebula-persistence-adoption/tasks.md` 三任务执行，该文档自含全部细节（配置映射表、验收清单）。前置：Task 4-0b 落地且本仓库快照可拉取（`~/.m2` 本地 install 即满足）。注意：
+- proud-day 的三件套文档同样遵守"一任务一提交 + 验证记 log.md"纪律，log 写入 proud-day 仓库的 `docs/changes/nebula-persistence-adoption/log.md`。
+- Task 2（数据源迁移）与 Task 3（全量回归）需要本地 MySQL/Redis 可用；启动验证若因外部中间件不可达失败，属环境问题不属代码问题，按纪律记录后向用户汇报，不许改代码绕过。
+- 上线发布说明必须包含：清 Redis `pd:cache:*`（Jackson 3 序列化不兼容）+ DB 不可达时启动语义变化（Q2 结论：原 `initialization-fail-timeout:-1` 允许 DB 不可达也启动，迁移后变为"DB 不可达即启动失败"，靠 Swarm 自动重启补救，用户已确认可接受，不回流框架加参数）。
 
 ---
 
@@ -602,7 +625,7 @@ new ApplicationContextRunner()
 ```
 阶段一: T1 → T2 → T3 → T9 → T4 → T5 → T6 → T8 → T7 → T10 → T11 → T12 → T13
         (T9 必须先于 T4; T11 先于 T12; T6/T8 同模块但仍各自独立提交)
-阶段一完成后 ──→ Task 4-0(版本号) ──→ Task 4-1(proud-day, 可与阶段二并行)
+阶段三完成后 ──→ Task 4-0a(欠账清理) → Task 4-0b(版本号+install) ──→ Task 4-1(proud-day)
 阶段二: T2-0(欠账清理) → T2-1(盘点,HARD-GATE 用户确认) → T2-2/2-3/2-4/2-6(可并行) → T2-5 → T2-7 → T2-8
 阶段三: T3-0(盘点) → T3-1 → T3-2 → T3-3 → T3-4 → T3-5 → T3-6(拆桥)
 ```

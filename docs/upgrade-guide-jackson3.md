@@ -19,11 +19,12 @@ Jackson 3 的序列化格式与 Jackson 2 不完全兼容（类型标识、日�
 **升级部署前必须清除 Redis 中由 Nebula 缓存模块写入的全部缓存条目**，否则反序列化会报错。
 
 ```bash
-# 连接 Redis 后执行（keyPrefix 默认为 nebula:cache:）
-redis-cli KEYS "nebula:cache:*" | xargs redis-cli DEL
+# 使用 SCAN 遍历删除（KEYS 命令会阻塞 Redis，生产环境禁用）
+# keyPrefix 默认为 nebula:cache:
+redis-cli --scan --pattern "nebula:cache:*" | xargs -r redis-cli DEL
 
 # proud-day 应用的缓存前缀
-redis-cli KEYS "pd:cache:*" | xargs redis-cli DEL
+redis-cli --scan --pattern "pd:cache:*" | xargs -r redis-cli DEL
 ```
 
 如果使用了自定义 `keyPrefix`，请替换为实际前缀。
