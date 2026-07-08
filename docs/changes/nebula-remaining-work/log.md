@@ -53,6 +53,13 @@
 |--------|----------|--------|------|------|
 | （盘点时填写） | | | | |
 
+## 阶段一任务验证记录
+
+### Task 1 [C-1] Starter 默认锁定 MVC 走 Jackson 2
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=NebulaStarterDefaultsIntegrationTest && mvn test -pl starter/nebula-starter-web,starter/nebula-starter-all,starter/nebula-starter-mcp`
+- autoconfigure 结果: Tests run: 2, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (11.056s)
+- starter 结果: Nebula Starter Web SUCCESS [2.704s], Nebula Starter MCP SUCCESS [1.966s], Nebula Starter All SUCCESS [2.274s]; Tests run: 1, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (7.300s)
+
 ## 踩坑记录
 
 （待开发过程中填写）

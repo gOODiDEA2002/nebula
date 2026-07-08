@@ -9,8 +9,14 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Jackson 配置类
  * <p>
- * 配置 Jackson ObjectMapper 以支持 Java 8 日期时间类型
- * 其他使用 nebula-web 的项目将自动继承此配置
+ * 配置 Jackson ObjectMapper 以支持 Java 8 日期时间类型。
+ * 其他使用 nebula-web 的项目将自动继承此配置。
+ * <p>
+ * <b>SB4.1 注意事项</b>: 本定制通过 {@link Jackson2ObjectMapperBuilderCustomizer} 作用于 Jackson 2 的 ObjectMapper。
+ * Spring Boot 4.1 默认 MVC 消息转换器优先使用 Jackson 3, 会绕过本定制导致脱敏({@code @SensitiveData})等功能静默失效。
+ * 需配置 {@code spring.http.converters.preferred-json-mapper=jackson2} 方能生效。
+ * Nebula 的 web/all/mcp starter 已通过 {@code nebula-defaults.properties} 自动注入该配置;
+ * 裸依赖 nebula-web 的应用需自行在 application.yml 中配置。
  */
 @Configuration
 public class JacksonConfig {
