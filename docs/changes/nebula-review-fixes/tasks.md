@@ -56,7 +56,7 @@
 - **依赖**: 无
 - **验收标准**: 编译通过；`mvn dependency:tree -pl infrastructure/rpc/nebula-rpc-grpc` 中出现 `spring-boot-grpc-server` 且无 Netty/grpc 版本冲突（结果记入 log.md）
 - **验证命令**: `mvn -q compile -pl infrastructure/rpc/nebula-rpc-grpc -am && mvn dependency:tree -pl infrastructure/rpc/nebula-rpc-grpc`
-- [ ] 完成
+- [x] 完成
 
 ## Task 4: [C-2] gRPC 端口桥接 EPP + 旧端口配置废弃标注
 

@@ -22,8 +22,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * gRPC RPC 服务器
- * 处理通用RPC调用
+ * gRPC RPC 服务器, 处理通用 RPC 调用。
+ * <p>
+ * 本类继承 {@code GenericRpcServiceGrpc.GenericRpcServiceImplBase}（即 {@code BindableService}）,
+ * 由 Spring Boot gRPC Server 自动配置发现并挂载到 gRPC Server, 无需自建 {@code io.grpc.Server}。
+ * 启动后自动扫描带 {@link RpcService} 注解的 Bean 并注册到内部服务表,
+ * 通过统一的 proto 定义处理跨服务 RPC 调用。
  *
  * @author Nebula Framework
  * @since 2.0.0

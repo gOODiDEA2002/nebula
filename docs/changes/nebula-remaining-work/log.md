@@ -66,6 +66,12 @@
 - 哨兵有效性验证: 临时移除 preferred-json-mapper=jackson2 后测试转红, 报 `JSON path "$.data.phone" expected:<138****5678> but was:<13812345678>`, 证明哨兵确实在看门。恢复属性后测试恢复绿色。
 - SB4 包迁移: `AutoConfigureMockMvc` 从 `org.springframework.boot.test.autoconfigure.web.servlet` 迁移到 `org.springframework.boot.webmvc.test.autoconfigure`; 需额外依赖 `spring-boot-starter-webmvc-test`
 
+### Task 3 [C-2] nebula-rpc-grpc 接入 Boot 官方 gRPC Server Starter
+- 验证命令: `mvn -q compile -pl infrastructure/rpc/nebula-rpc-grpc -am && mvn dependency:tree -pl infrastructure/rpc/nebula-rpc-grpc`
+- 编译结果: BUILD SUCCESS (20s)
+- 依赖树确认: spring-boot-starter-grpc-server:4.1.0 出现; 所有 io.grpc 坐标统一为 1.80.0; 传输层仅 grpc-netty-shaded(无 grpc-netty); spring-grpc-core:1.1.0 作为 starter 传递依赖自动引入
+- 根 pom 变更: 删除自管 grpc-bom:1.68.1 import + spring-grpc-core dependencyManagement; grpc.version 属性改 1.80.0(protobuf 插件坐标引用); spring-grpc.version 属性已删
+
 ## 踩坑记录
 
 （待开发过程中填写）

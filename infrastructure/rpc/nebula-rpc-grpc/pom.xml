@@ -35,13 +35,22 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- Spring gRPC Core (replaces net.devh:grpc-spring-boot-starter) -->
+        <!-- Spring Boot gRPC Server Starter (replaces spring-grpc-core, 提供服务端自动配置与 BindableService 发现) -->
         <dependency>
-            <groupId>org.springframework.grpc</groupId>
-            <artifactId>spring-grpc-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-grpc-server</artifactId>
+            <exclusions>
+                <!-- 客户端 GrpcRpcClient 直接 import 了 shaded NettyChannelBuilder,
+                     必须保留 grpc-netty-shaded; starter 默认带的 grpc-netty(非 shaded)与之并存会导致
+                     两套 Netty 传输 provider 竞争, 故排除 -->
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-netty</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-        <!-- gRPC Netty -->
+        <!-- gRPC Netty (shaded, 客户端 GrpcRpcClient 直接 import shaded NettyChannelBuilder) -->
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
