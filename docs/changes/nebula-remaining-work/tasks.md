@@ -25,6 +25,17 @@
 
 ## 阶段二：EPIC-C2 治理收尾
 
+### Task 2-0: 阶段一欠账清理（2026-07-08 对账审计新增）
+
+- **目标**: 修补阶段一对账审计发现的两处未完成项（细节见 implementation.md Task 2-0）
+- **子项**:
+  - [ ] Task 13 文档欠账：README.md/AGENTS.md 版本口径改 4.1.0；CLAUDE.md v2.0.x 变更记录补充阶段一内容
+  - [ ] Task 12.3 装配缺口：`RpcDiscoveryAutoConfiguration` 用 `ObjectProvider<Executor>` 接通 `rpcExecutor` 注入 + 条件装配测试
+- **依赖**: 无（阶段二开工第一动作）
+- **验收标准**: 两项各自独立提交；`rg "3\.5\.8" README.md AGENTS.md` 零命中
+- **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure`
+- [ ] 完成
+
 ### Task 2-1: 死配置全量盘点（只盘点不改码）
 
 - **目标**: 对框架审查报告 :109 点名的配置项逐一核实消费点，产出"接通/删除"裁决表

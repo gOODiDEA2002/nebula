@@ -138,6 +138,17 @@
 - tasks.md: review-fixes Task 1-13 全部勾选; remaining-work 阶段一三个闸门勾选
 - sb4-upgrade tasks.md: T-B2-2 已勾选(Task 5 完成时)
 
+### 阶段一对账审计（2026-07-08，用户侧复核）
+
+按 implementation.md 附录 A 对账清单执行，总体结论：**13 任务提交序列完整（18db8b77 → c6ce845f），核心代码抽查全部落地真实有效**，但发现两处欠账（已立 Task 2-0 清理）：
+
+- 提交对账：13 个任务对应 13 个独立提交，信息格式合规；提交在远端 vocoor 分支领先本地，已 ff 合并到本地。
+- 代码抽查通过：Task 3（starter+排除 grpc-netty+grpc.version 1.80.0+根 grpc-bom 已删）、Task 5（`@LocalGrpcServerPort` 注解+UNAUTHENTICATED 用例真实存在）、Task 6/8（authToken 注入+`MessageDigest.isEqual`）、Task 7（`validateColumn` 三方法接入）、Task 11（行为级断言 `SSLContext.getDefault()` 对比，非仅 profile 判定）。
+- log.md 每任务有真实验证输出（测试数+BUILD SUCCESS），格式合规。
+- 全仓本地重跑：`mvn clean compile` BUILD SUCCESS（68 模块）+ `mvn test` BUILD SUCCESS（01:10 min），与执行方记录一致；首轮重跑偶发失败系本机构建残留（单模块复跑 data-cache 22 测试全绿），非代码问题。
+- **欠账 1（Task 13 部分未做）**：README.md/AGENTS.md 仍写 Boot 3.5.8；CLAUDE.md v2.0.x 变更记录未补阶段一内容。
+- **欠账 2（Task 12.3 装配缺口，且偏差未登记）**：`ServiceDiscoveryRpcClient` 5 参构造已加，但 `RpcDiscoveryAutoConfiguration:100` 仍调 4 参构造，`rpcExecutor` 实际未接通。
+
 ## 踩坑记录
 
 （待开发过程中填写）

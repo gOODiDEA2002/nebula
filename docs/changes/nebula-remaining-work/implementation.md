@@ -386,28 +386,151 @@ JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
 
 ---
 
-## 2. 阶段二：EPIC-C2 治理（8 任务，实现要点）
+## 2. 阶段二：EPIC-C2 治理（Task 2-0 ~ 2-8，代码级说明）
 
-> 详细任务定义见 `tasks.md` 阶段二。以下只补充已核实的代码事实与实现约束，避免执行时重复调研。
+> 本节行号已于 2026-07-08 在阶段一收尾提交 `c6ce845f` 上核实。任务定义见 `tasks.md` 阶段二；Task 2-0 为阶段一对账审计新增的欠账清理任务。
 
-**Task 2-1 死配置盘点**：产出盘点表填入 `log.md` 既有表格。已核实的起点事实：
-- `HttpRpcProperties.ClientConfig` 全字段清单见上文 Task 6 现场（:113-192）：`writeTimeout`/`maxConnections`/`maxConnectionsPerRoute`/`keepAliveTime`/`retryCount`/`retryInterval`/`compressionEnabled` 均无真实消费点（仅 `HttpRpcAutoConfiguration.java:172-176` 诊断展示）。
-- `connectTimeout`/`readTimeout` 是否已用于 `rpcRestClient` Bean 构建需现场确认（`HttpRpcAutoConfiguration` :40-61 区域）。
-- 盘点表须经用户确认后才执行 2-2/2-3（HARD-GATE）。
+### Task 2-0 阶段一欠账清理（开工第一动作，两项，各自独立提交）
 
-**Task 2-2 HTTP RPC 参数接通**：`rpcRestClient` Bean 改用 `JdkClientHttpRequestFactory` 或 HttpComponents 工厂应用超时/连接池参数；诊断端点只展示真实生效项。
+阶段一对账审计（2026-07-08）发现两处未完成项：
 
-**Task 2-3 删除批**：`SecurityProperties.anonymousUrls`、`NacosProperties.heartbeatInterval/Timeout`（:93,101）、`GrpcRpcProperties.ServerConfig` 遗留参数（Task 4 已 Javadoc 预告）。删除时同步清对应 AutoConfiguration 诊断展示（`GrpcRpcAutoConfiguration.java:85-86` 的 Max Concurrent/KeepAlive 展示在列）。CHANGELOG（CLAUDE.md v2.0.x）逐项标注破坏性变更。
+1. **Task 13 文档项漏做**：`README.md:4,11` 与 `AGENTS.md:12` 仍写 Spring Boot 3.5.8（应为 4.1.0）；`CLAUDE.md` v2.0.x 变更记录未补充阶段一内容（`rg "auth-token|preferred-json-mapper" CLAUDE.md` 零命中）。补法：README 徽章与技术栈两处、AGENTS 技术栈一处改 4.1.0；CLAUDE.md 变更记录补充——新配置项 `nebula.rpc.http.client.auth-token`、starter defaults 注入 `spring.http.converters.preferred-json-mapper=jackson2`、EPP 迁移新注册键、gateway 死代码删除、ServiceImpl 列名校验、ES trust-all 生产防护。
+2. **Task 12.3 装配缺口**：`ServiceDiscoveryRpcClient` 已加 5 参构造（`asyncExecutor`），但装配点 `RpcDiscoveryAutoConfiguration.java:100-101` 仍调 4 参构造——HTTP RPC 场景下 `rpcExecutor` Bean 存在也不会被用上，`callAsync` 恒走 `ForkJoinPool.commonPool()`，且该偏差未记 log.md。补法：`serviceDiscoveryRpcClient(...)` 方法加参数 `ObjectProvider<Executor> rpcExecutor`（不能用必填 `Executor`——该 Bean 只在 HTTP RPC 启用时创建，必填会让 gRPC-only 场景启动失败），构造改传 `rpcExecutor.getIfAvailable(ForkJoinPool::commonPool)`；若上下文存在多个 Executor Bean 产生歧义，配合 `@Qualifier("rpcExecutor")`。补一条 `ApplicationContextRunner` 测试：有 rpcExecutor Bean 时注入它、无时回落 commonPool（可通过反射读 `asyncExecutor` 字段断言）。
 
-**Task 2-4 错误码收敛**：`ResultCode.getByCode()` 缺陷修复 + `Result.of(ResultCode)` 工厂新增。硬约束：`Result` 现有方法与码值零改动（下游可能字符串匹配 `"SUCCESS"`）。
+**验证命令**：`mvn test -pl autoconfigure/nebula-autoconfigure` + 人工核对三份文档改动；两项分别提交（`docs: ...` 与 `fix(rpc): ...`）。
 
-**Task 2-5 认证收敛（本批最高风险）**：方向 = `JwtAuthenticationFilter`（security 层，Filter 先行）唯一解析点，`AuthInterceptor` 改读 `SecurityContext` 并桥接 `AuthContext`（公开 API 不变）。集成测试断言同一请求 `JwtService` 解析仅一次（Mockito spy）。动手前通读 `AuthInterceptor`、`AuthContext`、`JwtAuthenticationFilter`、`SecurityContext` 四个类现状。
+---
 
-**Task 2-6 孤儿 DTO**：删 `XxlJobExecuteRequest`/`XxlJobLogRequest`/`XxlJobLogResult`；**保留** `XxlJobResult`（`XxlJobRegistryService.java:169,205` 在用，已核实）。
+### Task 2-1 死配置全量盘点（只盘点不改码，产出 HARD-GATE 裁决表）
 
-**Task 2-7 ApplicationContextRunner 测试**：8 个测试类清单与模式见 tasks.md；注意 `ElasticsearchAutoConfigurationConditionTest` 只测条件评估不连真实 ES。
+产出盘点表填入 `log.md` 既有表格，**经用户确认裁决后才可执行 Task 2-2/2-3**。已核实的起点事实（省调研，但仍须全量扫描补漏）：
 
-**Task 2-8 文档同步**：CLAUDE.md/AGENTS.md 行号引用逐条核对（辅助脚本：对每条引用 rg 类名取实际行号）；`.cursor/rules/project.mdc` 中被删配置项/鉴权说明段落同步。
+- `HttpRpcProperties.ClientConfig`（`:109-198`）：
+  - **已接通**：`connectTimeout`(:126)/`readTimeout`(:134) → `HttpRpcAutoConfiguration.rpcRestClient`(:51-53, `SimpleClientHttpRequestFactory`)；`authToken`(:198) → 阶段一 Task 6；`baseUrl`(:118)、`enabled`(:113)。
+  - **无消费点**：`writeTimeout`(:142)/`maxConnections`(:150)/`maxConnectionsPerRoute`(:158)/`keepAliveTime`(:166)/`retryCount`(:174)/`retryInterval`(:182)/`compressionEnabled`(:187)；`loggingEnabled`(:192) 消费点待查。
+- `GrpcRpcProperties.ServerConfig`：`maxInboundMessageSize`(:52)/`keepAliveTime`(:58)/`keepAliveTimeout`(:64)/`permitKeepAliveWithoutCalls`(:70)/`maxConcurrentCalls`(:76) 已在阶段一 Task 4 标 Javadoc 预告废弃；诊断展示在 `GrpcRpcAutoConfiguration.java:85-86`。`port`(:45-46, @Deprecated 桥接生效) 与 `authToken`(:83) **保留不裁**。
+- `SecurityProperties.anonymousUrls`（`:38`，`rg "anonymousUrls" --type java` 当前仅定义处命中，无消费点）。
+- `NacosProperties.heartbeatInterval`(:93)/`heartbeatTimeout`(:101)。注意：tasks.md 提到的"`NacosDiscoveryAutoConfiguration.java:94` 诊断展示"已失实——该类现无 heartbeat 输出（rg 零命中），以现场为准。
+- 全量扫描：`rg -l "Properties" --type java -g '*Properties.java'` 列出全部配置类，逐类核对每个字段的消费点。
+
+**随盘点表一并提请用户拍板的设计决策**（Task 2-4 需要）：`Result.of(ResultCode)` 工厂产出的 code 用枚举名 `name()`（"SUCCESS"，与 Result 现有符号码风格一致，**推荐**）还是数字码 `getCode()`（"0000"，与 ResultCode 定义一致）。
+
+---
+
+### Task 2-2 HTTP RPC 客户端参数接通（按 2-1 裁决执行）
+
+**现场**：`HttpRpcAutoConfiguration.rpcRestClient`(:46-61) 现用 `SimpleClientHttpRequestFactory`，只接了 connect/read 超时；诊断展示 :170-176。
+
+**改法**（按裁决表二选一，推荐 A）：
+
+- **方案 A（保留连接池参数）**：改 `HttpComponentsClientHttpRequestFactory` + `PoolingHttpClientConnectionManager`——`maxConnections` → `setMaxTotal`、`maxConnectionsPerRoute` → `setDefaultMaxPerRoute`、`keepAliveTime` → 连接存活策略。需在 `nebula-rpc-http`（或 autoconfigure）加依赖 `org.apache.httpcomponents.client5:httpclient5`（Boot BOM 托管无需版本号）。
+- **方案 B（裁决删除连接池参数）**：改 `JdkClientHttpRequestFactory`（JDK HttpClient 无连接池调节参数），随 Task 2-3 删除 `maxConnections`/`maxConnectionsPerRoute`/`keepAliveTime` 字段。
+- 两方案共同项：`writeTimeout`/`compressionEnabled`/`retryCount`/`retryInterval` 预期裁决为删除（RestClient 无对应语义，重试属上层职责）；诊断展示只保留真实生效项。
+
+**新增测试** `autoconfigure/.../rpc/HttpRpcClientConfigTest.java`：`ApplicationContextRunner` 装配 `HttpRpcAutoConfiguration`，断言 `rpcRestClient` Bean 存在且请求工厂类型/超时值与属性一致（反射或 `RestClient.mutate()` 探查；不可行则以工厂 Bean 单测替代，记 log.md）。
+
+**验证命令**：`mvn test -pl autoconfigure/nebula-autoconfigure,infrastructure/rpc/nebula-rpc-http`
+
+---
+
+### Task 2-3 死配置删除批（按 2-1 裁决执行）
+
+**已核实改点**（裁决通过后执行）：
+
+- `core/nebula-security/.../config/SecurityProperties.java:38` 删 `anonymousUrls`（核心模块破坏性变更：CLAUDE.md 变更记录注明替代项 `nebula.web.auth.ignore-paths`）。
+- `infrastructure/discovery/nebula-discovery-nacos/.../config/NacosProperties.java:93,101` 删 `heartbeatInterval`/`heartbeatTimeout`。
+- `infrastructure/rpc/nebula-rpc-grpc/.../config/GrpcRpcProperties.java:52-76` 删 ServerConfig 五个遗留参数（Task 4 已 Javadoc 预告）；**同步删** `GrpcRpcAutoConfiguration.java:85-86` 的 Max Concurrent/KeepAlive 诊断展示，否则编译不过。
+- 其余按裁决表逐项，每删一项 `rg` 确认零残留引用。
+
+**验收**：`rg "anonymousUrls|heartbeatInterval|heartbeatTimeout" --type java` 主代码零命中；CLAUDE.md v2.0.x 逐项标注破坏性变更。
+**验证命令**：`mvn clean compile && mvn test -pl core/nebula-security,infrastructure/discovery/nebula-discovery-nacos,infrastructure/rpc/nebula-rpc-grpc`
+
+---
+
+### Task 2-4 错误码收敛（ResultCode 为唯一事实源）
+
+**重要事实修正**（2026-07-08 核实，与审查报告 CF-40 表述不符）：`ResultCode.getByCode()`(:100-102) 委托 `EnumBase.EnumUtils.getByCode`(:44-55，遍历比较 `code.equals(getCode())`)，**当前实现对数字码（"0000"等）回查是正确的**。CF-40 说"永远查不到"的实际语义是**跨体系互查不通**：`Result` 用符号码（`Result.java:62` `"SUCCESS"`）、`ResultCode` 用数字码（`"0000"`）、`Constants.ResponseCode`(:174-206) 又是一套数字码常量——三套互不相认。执行时先写全枚举回查测试验证上述结论，成立则把 CF-40 的修复对象改判为"跨体系收敛"，记 log.md 偏差。
+
+**改法**：
+
+1. `Result.java` 新增工厂（现有方法与码值**零改动**，下游可能字符串匹配 `"SUCCESS"`）：
+
+```java
+public static <T> Result<T> of(ResultCode resultCode) { return of(resultCode, null); }
+public static <T> Result<T> of(ResultCode resultCode, T data) {
+    // code 取枚举名(与 Result 既有符号码风格一致), 具体取 name() 还是 getCode() 以 Task 2-1 用户拍板为准
+    ...
+}
+```
+
+2. `ResultCode` 补 `getByName(String)`（`valueOf` + 非法值返回 null 包装）。
+3. `Constants.java:174-206` 的 `ResponseCode` 数字码常量标 `@Deprecated`，Javadoc 指向 `ResultCode`。
+4. **新增测试** `core/nebula-foundation/src/test/java/.../ResultCodeTest.java`：全枚举 `getByCode(getCode())` 回查一致；`Result.of(SUCCESS)` 的 code/message 断言；`Result.success().getCode()` 等既有值回归断言。
+
+**验证命令**：`mvn test -pl core/nebula-foundation`
+
+---
+
+### Task 2-5 认证收敛（本批最高风险，动手前先通读六个文件）
+
+**已核实的两条平行链路**（问题本质：同一请求 JWT 可能被解析两次，且两层各用一套 secret 配置）：
+
+| | web 链路 | security 链路 |
+|---|---|---|
+| 开关 | `nebula.web.auth.enabled=true` | `nebula.security.jwt.filter.enabled=true`（opt-in，`SecurityAutoConfiguration.java:70-77`） |
+| 装配 | `WebAuthAutoConfiguration`（nebula-web 模块 :27-57）：`JwtUtils`(@Deprecated) → `DefaultAuthService` → `AuthInterceptor`（order=`InterceptorOrders.AUTH`，拦 `/**`） | autoconfigure 的 `SecurityAutoConfiguration`：`JwtAuthenticationFilter`（`OncePerRequestFilter`） |
+| 密钥 | `nebula.web.auth.jwt-secret` | `nebula.security.jwt.secret` |
+| 上下文 | `AuthContext`（ThreadLocal） | `SecurityContext` |
+
+**改法**（方向已在 tasks.md 确认：Filter 唯一解析、Interceptor 消费）：
+
+1. `AuthInterceptor.preHandle`(:41-82)：删除 `extractToken` + `authService.getUser(token)` 自行解析路径，改为读取 `SecurityContext` 的当前认证信息（方法名以 `core/nebula-security/.../authentication/SecurityContext.java` 实际 API 为准，动手前先读）——未认证→维持现有 401 响应格式；已认证→由 security 层用户信息构造 `AuthUser` 填充 `AuthContext`，并保留 `request.setAttribute("currentUser", user)`(:80) 兼容行为。CORS 预检放行(:51-53)与忽略路径(:57-60)逻辑不动。
+2. **注册联动**：`nebula.web.auth.enabled=true` 时必须保证 `JwtAuthenticationFilter` 已注册（否则 Interceptor 读不到认证信息全部 401）。`@ConditionalOnProperty` 不支持 OR——用 `AnyNestedCondition` 实现"`nebula.security.jwt.filter.enabled=true` 或 `nebula.web.auth.enabled=true` 任一即注册"，原 opt-in 键保留为独立覆盖手段。
+3. **遗留 Bean 去留**：`JwtUtils`/`DefaultAuthService`/`AuthService` Bean 定义保留（API 兼容硬约束，删除留给下个大版本），但 `AuthInterceptor` 构造不再依赖 `AuthService`——改构造签名前先 `rg "new AuthInterceptor"` 确认全部装配点。
+4. **密钥归一说明**：收敛后生效密钥为 `nebula.security.jwt.secret`；`nebula.web.auth.jwt-secret` 在 CLAUDE.md 标注废弃并给迁移说明。
+5. **新增集成测试** `application/nebula-web/src/test/java/.../AuthConvergenceIntegrationTest.java`：MockMvc + `@MockitoSpyBean JwtService`——(a) 同一请求 JWT 解析方法仅调用一次；(b) `AuthContext.getCurrentUser()` 与 `SecurityContext` 用户一致；(c) 无 token 访问受保护路径 401；(d) 白名单路径放行。
+
+**验证命令**：`mvn test -pl application/nebula-web,core/nebula-security,autoconfigure/nebula-autoconfigure`
+
+---
+
+### Task 2-6 xxl-job 孤儿 DTO 清理
+
+已核实：`application/nebula-task/.../xxljob/dto/` 下四个文件齐在；`XxlJobResult` 被 `XxlJobRegistryService.java:169,205` 使用**保留**，其余三个（`XxlJobExecuteRequest`/`XxlJobLogRequest`/`XxlJobLogResult`）删除前 `rg` 逐一确认零引用后删。
+
+**验证命令**：`mvn test -pl application/nebula-task` + `rg "XxlJobExecuteRequest|XxlJobLogRequest|XxlJobLogResult"` 零命中
+
+---
+
+### Task 2-7 自动装配三态条件测试（ApplicationContextRunner）
+
+**清单修订**（对照 tasks.md 的 8 项，已核实两处变化）：
+
+- `env/StarterDefaultsInjectionTest` **从清单移除**——阶段一 Task 1 已在三个 starter 模块内落地同名测试，勿重复；记 log.md。
+- `security/SecurityAutoConfigurationConditionTest`：autoconfigure 测试目录已有 `SecurityAutoConfigurationTest` 覆盖 filter 的 opt-in 条件——**扩展该类**补 enabled=false/缺类两态，不新建重名近似类。
+- 其余 6 类新建：web/（目录需新建）`WebAutoConfigurationConditionTest`、data/`CacheAutoConfigurationConditionTest`、messaging/`RabbitMQAutoConfigurationConditionTest`、rpc/`HttpRpcAutoConfigurationConditionTest`、rpc/`GrpcRpcAutoConfigurationConditionTest`、search/`ElasticsearchAutoConfigurationConditionTest`（只测条件评估，不连真实 ES）。
+
+每类三态：`enabled=true` 有 Bean / `enabled=false` 无 Bean / `FilteredClassLoader` 模拟缺类无 Bean。模式：
+
+```java
+new ApplicationContextRunner()
+    .withConfiguration(AutoConfigurations.of(XxxAutoConfiguration.class))
+    .withPropertyValues("nebula.xxx.enabled=true")
+    .run(ctx -> assertThat(ctx).hasSingleBean(XxxService.class));
+```
+
+**依赖**：Task 2-2/2-3/2-5 之后执行（配置面定型再锁测试）。
+**验证命令**：`mvn test -pl autoconfigure/nebula-autoconfigure`
+
+---
+
+### Task 2-8 文档同步 + 阶段二收尾
+
+- `CLAUDE.md`/`AGENTS.md`"关键实现引用"逐条核对行号（对每条引用 rg 类名/方法名取实际行号），过期即更新；"模块核对提示词"中失实描述（net.devh gRPC、已删配置项等）同步修正。
+- `.cursor/rules/project.mdc`：被删配置项、鉴权收敛说明（第 6 章双层鉴权架构需反映 Filter 唯一解析）同步。
+- 阶段二全量回归 + tasks.md 勾选 + spec/log 回填。
+
+**验证命令**：`mvn clean compile && mvn test`（全仓）+ 抽查 20 条行号引用全部命中
 
 ---
 
@@ -452,7 +575,7 @@ JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
 阶段一: T1 → T2 → T3 → T9 → T4 → T5 → T6 → T8 → T7 → T10 → T11 → T12 → T13
         (T9 必须先于 T4; T11 先于 T12; T6/T8 同模块但仍各自独立提交)
 阶段一完成后 ──→ Task 4-0(版本号) ──→ Task 4-1(proud-day, 可与阶段二并行)
-阶段二: T2-1(盘点,HARD-GATE 用户确认) → T2-2/2-3/2-4/2-6(可并行) → T2-5 → T2-7 → T2-8
+阶段二: T2-0(欠账清理) → T2-1(盘点,HARD-GATE 用户确认) → T2-2/2-3/2-4/2-6(可并行) → T2-5 → T2-7 → T2-8
 阶段三: T3-0(盘点) → T3-1 → T3-2 → T3-3 → T3-4 → T3-5 → T3-6(拆桥)
 ```
 
