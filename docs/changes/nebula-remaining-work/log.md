@@ -237,6 +237,12 @@
 - 新增 RpcDiscoveryExecutorInjectionTest(2 用例): 有 rpcExecutor Bean 时注入它; 无时回落 ForkJoinPool.commonPool()
 - 注意: Maven 镜像 nexus.vocoor.com.cn SSL 证书失效(SAN 不匹配), 需使用 `-s /tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central
 
+### Task 2-6 xxl-job 孤儿 DTO 清理
+- 删除: XxlJobExecuteRequest.java, XxlJobLogRequest.java, XxlJobLogResult.java
+- rg 确认零引用(仅定义处命中)
+- 验证命令: `mvn test -pl application/nebula-task` → BUILD SUCCESS
+- XxlJobResult.java 保留(XxlJobRegistryService 在用)
+
 ## 踩坑记录
 
 ### P2-T1: Maven 镜像 SSL 证书失效

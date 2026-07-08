@@ -117,7 +117,7 @@
 - **依赖**: 无
 - **验收标准**: task 模块编译与测试通过；`rg "XxlJobExecuteRequest|XxlJobLogRequest|XxlJobLogResult"` 零命中
 - **验证命令**: `mvn test -pl application/nebula-task`
-- [ ] 完成
+- [x] 完成
 
 ### Task 2-7: 自动装配集成测试补齐（ApplicationContextRunner）
 
