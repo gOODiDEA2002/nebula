@@ -95,7 +95,7 @@
 
 ### CRITICAL
 
-#### C-1. SB4.1 下 MVC 默认使用 Jackson 3, `@SensitiveData` 脱敏与日期定制对 Controller 响应静默失效
+#### C-1. SB4.1 下 MVC 默认使用 Jackson 3, `@SensitiveData` 脱敏与日期定制对 Controller 响应静默失效 -- **已修复（Task 1 + Task 2）**
 
 - 位置: `application/nebula-web/.../WebAuthAutoConfiguration.java`（脱敏 customizer）、`application/nebula-web/src/main/java/io/nebula/web/config/JacksonConfig.java`（JSR310 customizer）
 - 证据链:
@@ -109,7 +109,7 @@
   2. 在 T-B3-2（Jackson 2→3 全量迁移）中将脱敏/JSR310 定制同步实现为 Jackson 3 版本后再切换。
   另外必须补一条 **MockMvc 级集成测试**: 断言带 `@SensitiveData` 字段的 Controller 响应体是脱敏后的值, 防止再次静默回归。
 
-#### C-2. gRPC 服务端在新依赖体系下不会启动, 但客户端默认仍优先 gRPC
+#### C-2. gRPC 服务端在新依赖体系下不会启动, 但客户端默认仍优先 gRPC -- **已修复（Task 3 + Task 4 + Task 5）**
 
 - 位置: `infrastructure/rpc/nebula-rpc-grpc/pom.xml`（仅引入 `spring-grpc-core:1.1.0`）、`autoconfigure/.../GrpcRpcAutoConfiguration.java`
 - 证据链:
@@ -124,13 +124,13 @@
 
 ### HIGH
 
-#### H-1. `HttpRpcClient` 不注入 `X-Nebula-Rpc-Token`, 开启服务端 RPC 鉴权后框架自身调用全部 401
+#### H-1. `HttpRpcClient` 不注入 `X-Nebula-Rpc-Token`, 开启服务端 RPC 鉴权后框架自身调用全部 401 -- **已修复（Task 6）**
 
 - 位置: `infrastructure/rpc/nebula-rpc-http/.../client/HttpRpcClient.java:324`（仅设置 `X-Request-ID`）; 服务端校验在 `HttpRpcController.java:52-56`。
 - 影响: T-A2-4b 的 token 鉴权是"只做了锁, 没配钥匙"——一旦应用配置 `nebula.rpc.http.server.auth-token`, 框架内建的 HTTP RPC 客户端（含服务发现路径）无法通过认证, 服务间调用全断。该功能当前默认关, 所以未爆发, 但等于不可用。
 - 建议: `HttpRpcProperties` 增加 client 侧 token 配置（或复用同一值）, `HttpRpcClient` 发请求时携带 `X-Nebula-Rpc-Token`; 补一条"开启鉴权后客户端可调通"的集成测试。
 
-#### H-2. `ServiceImpl.findByField` 列名直接拼入 SQL, 存在注入风险
+#### H-2. `ServiceImpl.findByField` 列名直接拼入 SQL, 存在注入风险 -- **已修复（Task 7）**
 
 - 位置: `infrastructure/data/nebula-data-persistence/.../service/impl/ServiceImpl.java`（T-A4-4 新实现, `queryWrapper.eq(field, value)` 系列）。
 - 影响: MyBatis-Plus 的 `QueryWrapper.eq(String column, ...)` 第一个参数是**原样拼接的列名**。`findByField/findOneByField` 是公开泛型 API, 若上层把用户输入当字段名传入（如动态排序/筛选场景）, 即构成 SQL 注入。
@@ -138,25 +138,25 @@
 
 ### MEDIUM
 
-#### M-1. `/rpc` token 比较使用 `String.equals`, 非常量时间
+#### M-1. `/rpc` token 比较使用 `String.equals`, 非常量时间 -- **已修复（Task 8）**
 
 - 位置: `HttpRpcController.java:54`。
 - 影响: 理论上可被计时侧信道逐字节猜测 token。内网场景风险有限, 但改造成本极低。
 - 建议: 改用 `MessageDigest.isEqual(authToken.getBytes(UTF_8), provided.getBytes(UTF_8))`。
 
-#### M-2. EPP 注册在 SB4.1 使用的是"废弃兼容键", 存在未来版本再次静默失效的风险
+#### M-2. EPP 注册在 SB4.1 使用的是"废弃兼容键", 存在未来版本再次静默失效的风险 -- **已修复（Task 9）**
 
 - 位置: `autoconfigure/.../META-INF/spring.factories`（键 `org.springframework.boot.env.EnvironmentPostProcessor`）。
 - 证据: 反编译 `spring-boot-4.1.0.jar` 的 `SpringFactoriesEnvironmentPostProcessorsFactory`, 确认存在 `loadDeprecatedPostProcessors` 兼容加载旧键, **当前功能正常**; 但新正主键是 `org.springframework.boot.EnvironmentPostProcessor`, 旧键随时可能在后续大版本移除——届时会精确复刻 A1 修掉的那类静默失效。
 - 建议: 双注册过渡（同一实现类可同时登记在新旧两个键下, 新接口签名一致）, 并让 `NebulaStarterDefaultsPostProcessor` 改为 implements 新包接口; 已有的"defaults 注入生效"集成测试保留作回归哨兵。
 
-#### M-3. `DefaultCacheManager.isAvailable()` 健康检查键未加命名空间前缀
+#### M-3. `DefaultCacheManager.isAvailable()` 健康检查键未加命名空间前缀 -- **已修复（Task 10）**
 
 - 位置: `infrastructure/data/nebula-data-cache/.../DefaultCacheManager.java:708`（`set("health:check", ...)`）。
 - 影响: 与 T-A3-3 的"所有键收进 `nebula:cache:` 命名空间"原则不一致, 向共享 Redis 库写入裸键; 另 `evictionCount` 统计为非原子自增, 并发下少计。均不影响正确性主线。
 - 建议: 改为 `keyPrefix + "health:check"`; 统计字段改 `LongAdder`。
 
-#### M-4. ES `ssl-verification-enabled=false` 的 trust-all 无环境防护
+#### M-4. ES `ssl-verification-enabled=false` 的 trust-all 无环境防护 -- **已修复（Task 11）**
 
 - 位置: `ElasticsearchAutoConfiguration.createSSLContext()`（信任所有证书的 `X509TrustManager`）。
 - 影响: 与爬虫模块"trustAll 仅限非生产 profile, 生产自动拒绝"的既定安全策略不一致, 生产环境可被配置绕过证书校验。
@@ -164,10 +164,10 @@
 
 ### LOW
 
-- **L-1** `JwtAuthenticationFilter.readStringList` 末尾 `filter(Objects::nonNull)` 冗余（前一步 `map(String::trim)` 后不可能为 null）, 可删。
-- **L-2** `ElasticsearchAutoConfiguration.elasticsearchClient()` 直接对注入的共享 `ObjectMapper` 调 `registerModule(new JavaTimeModule())`, 副作用外溢到全局 mapper; 建议 `objectMapper.copy()` 后再注册。
-- **L-3** `ServiceDiscoveryRpcClient.callAsync` 使用无执行器的 `supplyAsync`（commonPool）, 与 `HttpRpcClient.callAsync` 用自有 executor 不一致; 建议注入统一 executor。
-- **L-4** `78e595a4` 单提交约 87 文件, 混合了"版本升级/ES 重写/AI 适配/gRPC 临时替换"多个关注点, 回滚与 bisect 粒度差; 后续大升级建议按 tasks.md 的任务边界拆提交。
+- **L-1** `JwtAuthenticationFilter.readStringList` 末尾 `filter(Objects::nonNull)` 冗余（前一步 `map(String::trim)` 后不可能为 null）, 可删。 -- **已修复（Task 12）**
+- **L-2** `ElasticsearchAutoConfiguration.elasticsearchClient()` 直接对注入的共享 `ObjectMapper` 调 `registerModule(new JavaTimeModule())`, 副作用外溢到全局 mapper; 建议 `objectMapper.copy()` 后再注册。 -- **已修复（Task 12）**
+- **L-3** `ServiceDiscoveryRpcClient.callAsync` 使用无执行器的 `supplyAsync`（commonPool）, 与 `HttpRpcClient.callAsync` 用自有 executor 不一致; 建议注入统一 executor。 -- **已修复（Task 12）**
+- **L-4** `78e595a4` 单提交约 87 文件, 混合了"版本升级/ES 重写/AI 适配/gRPC 临时替换"多个关注点, 回滚与 bisect 粒度差; 后续大升级建议按 tasks.md 的任务边界拆提交。 -- 流程建议, 不涉及代码修改
 
 ---
 

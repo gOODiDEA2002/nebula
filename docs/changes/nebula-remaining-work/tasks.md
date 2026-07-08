@@ -17,9 +17,9 @@
 
 > 详细任务见 `docs/changes/nebula-review-fixes/tasks.md`（Task 1-13），此处只挂总闸门，不重复维护两份清单。
 
-- [ ] **P1｜review-fixes Task 1-5 完成**（2 个 CRITICAL：MVC 脱敏失效、gRPC 服务端；含 T-B2-2 收尾）
-- [ ] **P1｜review-fixes Task 6-7 完成**（2 个 HIGH：RPC 客户端 token、findByField 注入）
-- [ ] **P1｜review-fixes Task 8-13 完成**（MEDIUM/LOW + 全量回归收尾）
+- [x] **P1｜review-fixes Task 1-5 完成**（2 个 CRITICAL：MVC 脱敏失效、gRPC 服务端；含 T-B2-2 收尾）
+- [x] **P1｜review-fixes Task 6-7 完成**（2 个 HIGH：RPC 客户端 token、findByField 注入）
+- [x] **P1｜review-fixes Task 8-13 完成**（MEDIUM/LOW + 全量回归收尾）
 
 ---
 

@@ -187,14 +187,13 @@
 - **依赖**: Task 1-12 全部完成
 - **验收标准**: `mvn clean compile` 与 `mvn test` 全仓通过；Spec 第 10 节验收标准逐项勾选
 - **验证命令**: `mvn clean compile && mvn test`
-- [ ] 完成
+- [x] 完成
 
 ---
 
 ## 变更摘要
 
-> 全部 Task 完成后填写
-
-- 总文件数:
-- Spec-Plan 偏差记录:
-- 遗留问题:
+- 总文件数: ~35 个文件变更
+- 新增测试类: 7 个（StarterDefaultsInjectionTest x3, SensitiveDataMvcMaskingTest, GrpcServerLoopbackIntegrationTest, HttpRpcAuthTokenRoundTripTest, ServiceImplColumnValidationTest, ElasticsearchSslGuardTest, NebulaGrpcServerPortBridgeTest）
+- Spec-Plan 偏差记录: 见 log.md 各 Task 偏差栏
+- 遗留问题: 无

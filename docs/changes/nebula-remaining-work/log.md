@@ -131,6 +131,13 @@
 - 子项3: ServiceDiscoveryRpcClient 新增 5 参构造(含 Executor), 4 参构造委托传 ForkJoinPool.commonPool(); callAsync() 使用注入的 executor
 - 验证命令: `mvn -q compile -pl core/nebula-security,infrastructure/rpc/nebula-rpc-core` 编译通过; `mvn test -pl core/nebula-security,infrastructure/rpc/nebula-rpc-core` BUILD SUCCESS
 
+### Task 13 全量回归 + 文档收尾
+- 全仓安装: `mvn install -DskipTests` → 全部 68 模块 BUILD SUCCESS (20s)
+- 全量测试: `mvn test` → 全部模块 BUILD SUCCESS (01:15 min)
+- 文档更新: 审查报告 C-1~C-2, H-1~H-2, M-1~M-4, L-1~L-3 标注"已修复(Task N)"
+- tasks.md: review-fixes Task 1-13 全部勾选; remaining-work 阶段一三个闸门勾选
+- sb4-upgrade tasks.md: T-B2-2 已勾选(Task 5 完成时)
+
 ## 踩坑记录
 
 （待开发过程中填写）
