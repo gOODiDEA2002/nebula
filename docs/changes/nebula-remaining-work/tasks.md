@@ -141,7 +141,7 @@
 - **依赖**: Task 2-2/2-3/2-5（配置面定型后再锁测试）
 - **验收标准**: 8 个测试类各覆盖 enabled=true / false / 缺依赖类三态
 - **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure`
-- [ ] 完成
+- [x] 完成
 
 ### Task 2-8: CLAUDE.md / AGENTS.md 行号引用同步 + 阶段二收尾
 

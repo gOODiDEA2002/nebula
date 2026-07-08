@@ -291,6 +291,18 @@
 - 临时解决: 使用临时 settings 文件 `/tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central; 全部 mvn 命令需加 `-s /tmp/nebula-mvn-settings.xml`
 - 建议: 修复 Nexus 服务器 SSL 证书(加 SAN `nexus.vocoor.com.cn`)
 
+### Task 2-7: 自动装配三态条件测试
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure` → Tests run: 61, Failures: 0, Errors: 0 → BUILD SUCCESS
+- 新增/扩展测试类:
+  - SecurityAutoConfigurationTest: 扩展 +3 测试（enabled=false、缺类、web.auth.enabled 联动）
+  - WebAutoConfigurationConditionTest(新增): Web环境/非Web/缺DispatcherServlet 三态
+  - CacheAutoConfigurationConditionTest(新增): enabled/disabled/default 三态（无@ConditionalOnClass，不测缺类）
+  - RabbitMQAutoConfigurationConditionTest(新增): enabled/disabled/default/缺ConnectionFactory 四态
+  - HttpRpcAutoConfigurationConditionTest(新增): enabled/disabled/default/缺HttpRpcProperties 四态
+  - GrpcRpcAutoConfigurationConditionTest(新增): enabled/disabled/default/缺GrpcRpcProperties 四态
+  - ElasticsearchAutoConfigurationConditionTest(新增): enabled/disabled/default/缺ElasticsearchClient 四态
+- env/StarterDefaultsInjectionTest 从清单移除: 阶段一 Task 1 已在三个 starter 模块内落地同名测试
+
 ### P2-T5: AuthConvergenceIntegrationTest 上下文启动失败
 - 现象1: `@MockitoSpyBean` 报 `Unable to select a bean to wrap: there are no beans of type JwtService`
 - 原因: 测试 classpath 无 nebula-autoconfigure，JwtService Bean 由测试内 @Bean 定义，@MockitoSpyBean 在 Bean 注册前尝试查找
