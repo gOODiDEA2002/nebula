@@ -43,7 +43,7 @@
 - **说明**: 测试属性显式带 `preferred-json-mapper=jackson2` 是刻意设计——nebula-web 模块测试的 classpath 上没有 starter jar 的 defaults 文件，无法验证注入；"defaults 注入生效"由 Task 1 的 `NebulaStarterDefaultsIntegrationTest` 覆盖，本测试只负责"该属性下脱敏在 MVC 路径生效"，两者合起来才是完整链路
 - **验收标准**: 测试通过；临时移除 preferred-json-mapper 属性时该测试失败（人工验证一次测试有效性，结果记入 log.md）
 - **验证命令**: `mvn test -pl application/nebula-web -Dtest=SensitiveDataMvcMaskingTest`
-- [ ] 完成
+- [x] 完成
 
 ## Task 3: [C-2] nebula-rpc-grpc 接入 Boot 官方 gRPC Server Starter
 

@@ -60,6 +60,12 @@
 - autoconfigure 结果: Tests run: 2, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (11.056s)
 - starter 结果: Nebula Starter Web SUCCESS [2.704s], Nebula Starter MCP SUCCESS [1.966s], Nebula Starter All SUCCESS [2.274s]; Tests run: 1, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (7.300s)
 
+### Task 2 [C-1] MockMvc 脱敏回归哨兵测试
+- 验证命令: `mvn test -pl application/nebula-web -Dtest=SensitiveDataMvcMaskingTest`
+- 结果: Tests run: 1, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (4.475s)
+- 哨兵有效性验证: 临时移除 preferred-json-mapper=jackson2 后测试转红, 报 `JSON path "$.data.phone" expected:<138****5678> but was:<13812345678>`, 证明哨兵确实在看门。恢复属性后测试恢复绿色。
+- SB4 包迁移: `AutoConfigureMockMvc` 从 `org.springframework.boot.test.autoconfigure.web.servlet` 迁移到 `org.springframework.boot.webmvc.test.autoconfigure`; 需额外依赖 `spring-boot-starter-webmvc-test`
+
 ## 踩坑记录
 
 （待开发过程中填写）
