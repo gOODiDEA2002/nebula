@@ -9,6 +9,7 @@ import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.core.config.RpcDiscoveryProperties;
 import io.nebula.rpc.core.discovery.ServiceDiscoveryRpcClient;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -19,6 +20,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 /**
  * RPC 与服务发现集成自动配置
@@ -94,16 +98,18 @@ public class RpcDiscoveryAutoConfiguration {
     public ServiceDiscoveryRpcClient serviceDiscoveryRpcClient(
             ServiceDiscovery serviceDiscovery,
             LoadBalancer loadBalancer,
-            RpcClient delegateRpcClient,  // 移除 @Qualifier，让 @Primary 生效
-            Environment environment) {
+            RpcClient delegateRpcClient,
+            Environment environment,
+            @Qualifier("rpcExecutor") ObjectProvider<Executor> rpcExecutor) {
         
         ServiceDiscoveryRpcClient client = new ServiceDiscoveryRpcClient(
-                serviceDiscovery, loadBalancer, delegateRpcClient, environment);
+                serviceDiscovery, loadBalancer, delegateRpcClient, environment,
+                rpcExecutor.getIfAvailable(ForkJoinPool::commonPool));
         
         log.info("配置服务发现 RPC 客户端: serviceDiscovery={}, loadBalancer={}, delegateClient={}", 
                 serviceDiscovery.getClass().getSimpleName(),
                 loadBalancer.getClass().getSimpleName(),
-                delegateRpcClient.getClass().getSimpleName());  // 新增：记录委托客户端类型
+                delegateRpcClient.getClass().getSimpleName());
         
         return client;
     }

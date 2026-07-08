@@ -149,9 +149,25 @@
 - **欠账 1（Task 13 部分未做）**：README.md/AGENTS.md 仍写 Boot 3.5.8；CLAUDE.md v2.0.x 变更记录未补阶段一内容。
 - **欠账 2（Task 12.3 装配缺口，且偏差未登记）**：`ServiceDiscoveryRpcClient` 5 参构造已加，但 `RpcDiscoveryAutoConfiguration:100` 仍调 4 参构造，`rpcExecutor` 实际未接通。
 
+## 阶段二任务验证记录
+
+### Task 2-0a 文档欠账修复
+- 验证: `rg "3\.5\.8" README.md AGENTS.md` 零命中; `rg "auth-token|preferred-json-mapper" CLAUDE.md` 命中 2 行(变更记录已补充)
+- 提交: a2b469b
+
+### Task 2-0b RpcDiscoveryAutoConfiguration 装配缺口修复
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure`
+- 结果: Tests run: 25, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
+- 新增 RpcDiscoveryExecutorInjectionTest(2 用例): 有 rpcExecutor Bean 时注入它; 无时回落 ForkJoinPool.commonPool()
+- 注意: Maven 镜像 nexus.vocoor.com.cn SSL 证书失效(SAN 不匹配), 需使用 `-s /tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central
+
 ## 踩坑记录
 
-（待开发过程中填写）
+### P2-T1: Maven 镜像 SSL 证书失效
+- 现象: `mvn test` 报 `Certificate for <nexus.vocoor.com.cn> doesn't match any of the subject alternative names: [vocoor.com.cn, www.vocoor.com.cn]`
+- 原因: Nexus 镜像 SSL 证书的 SAN 列表只有 `vocoor.com.cn` 和 `www.vocoor.com.cn`, 不包含 `nexus.vocoor.com.cn`
+- 临时解决: 使用临时 settings 文件 `/tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central; 全部 mvn 命令需加 `-s /tmp/nebula-mvn-settings.xml`
+- 建议: 修复 Nexus 服务器 SSL 证书(加 SAN `nexus.vocoor.com.cn`)
 
 ## 知识发现
 
