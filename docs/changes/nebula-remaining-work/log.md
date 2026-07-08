@@ -47,11 +47,87 @@
 - prod Hikari `initialization-fail-timeout: -1`（DB 不可达仍完成启动）在 `DataSourceManager.PoolConfig` 无对应参数，迁移后启动语义变化，已列入 proud-day spec 待澄清 Q2。
 - proud-day 自有 `MybatisPlusConfig`（分页）/`MybatisAuditConfig`（审计兜底）与 nebula 侧同类 Bean 均为 `@ConditionalOnMissingBean` 关系，可共存不冲突，迁移期不必删。
 
-## 死配置盘点表（Task 2-1 产出，待填写）
+## 死配置盘点表（Task 2-1 产出，2026-07-08）
+
+> 全量扫描范围：33 个 Properties 类，排除 target/test/docs 目录。
+> 判定标准：字段 getter 被功能代码调用 = 有消费；仅在 NebulaComponentSummary/NebulaDiagnosticEndpoint 中展示 = 仅诊断；其余 = 无消费点。
+> 裁决分类：本批处理（Task 2-2 接通 / Task 2-3 删除）、新发现记录（超出本批范围，记录待后续处理）。
+
+### A. 本批处理范围（审查报告 :109 点名项）
 
 | 配置项 | 定义位置 | 消费点 | 裁决 | 理由 |
 |--------|----------|--------|------|------|
-| （盘点时填写） | | | | |
+| **HttpRpcProperties.ClientConfig** | | | | |
+| `writeTimeout` | :142 | 无消费点 | **删除** | SimpleClientHttpRequestFactory/JdkClientHttpRequestFactory 均不支持 |
+| `maxConnections` | :150 | 仅诊断展示(:175) | **接通(方案A)或删除(方案B)** | 见下方方案选择 |
+| `maxConnectionsPerRoute` | :158 | 无消费点 | **接通(方案A)或删除(方案B)** | 同上 |
+| `keepAliveTime` | :166 | 无消费点 | **接通(方案A)或删除(方案B)** | 同上 |
+| `retryCount` | :174 | 仅诊断展示(:176) | **删除** | RestClient 无内置重试，重试属上层职责 |
+| `retryInterval` | :182 | 无消费点 | **删除** | 同上 |
+| `compressionEnabled` | :187 | 仅诊断展示(:177) | **删除** | RestClient 未配置 gzip 拦截器 |
+| `loggingEnabled` | :192 | 无消费点 | **删除** | HttpRpcClient 使用固定 @Slf4j，不受此开关控制 |
+| **GrpcRpcProperties.ServerConfig** | | | | |
+| `maxInboundMessageSize` | :52 | 无消费点 | **删除** | Boot gRPC starter 已接管，用 spring.grpc.server.* |
+| `keepAliveTime` | :58 | 仅诊断展示(:86) | **删除** | 同上 |
+| `keepAliveTimeout` | :64 | 无消费点 | **删除** | 同上 |
+| `permitKeepAliveWithoutCalls` | :70 | 无消费点 | **删除** | 同上 |
+| `maxConcurrentCalls` | :76 | 仅诊断展示(:85) | **删除** | 同上 |
+| **SecurityProperties** | | | | |
+| `anonymousUrls` | :38 | 无消费点 | **删除** | 功能由 nebula.web.auth.ignore-paths 替代 |
+| `rbac.enableCache` | :89 | 无消费点 | **删除** | SecurityAspect 无权限缓存实现 |
+| `rbac.cacheExpiration` | :94 | 无消费点 | **删除** | 同上 |
+| `rbac.superAdminRole` | :99 | 无消费点 | **删除** | 文档约定 SUPER_ADMIN，代码中无引用 |
+| `rbac.enabled` | :84 | 仅诊断展示(:94) | **保留(诊断)** | 仅摘要展示，无误导性 |
+| **NacosProperties** | | | | |
+| `heartbeatInterval` | :93 | 仅诊断展示 | **删除** | SDK 自管理，未传入 Nacos Properties |
+| `heartbeatTimeout` | :101 | 无消费点 | **删除** | 同上 |
+| `ipDeleteTimeout` | :109 | 无消费点 | **删除** | 同上(盘点新发现) |
+| **RedisLockProperties** | | | | |
+| `defaultWaitTime` | :34 | 仅诊断展示(:92) | **保留(记录)** | 未注入 LockConfig，但字段语义正确，后续可接通 |
+| `defaultLeaseTime` | :40 | 仅诊断展示(:93) | **保留(记录)** | 同上 |
+| `enableWatchdog` | :47 | 仅诊断展示(:94) | **保留(记录)** | 同上 |
+| `fair` | :60 | 仅诊断展示(:95) | **保留(记录)** | 同上 |
+| `watchdogInterval` | :53 | 无消费点 | **保留(记录)** | Redisson 内置看门狗，不读该字段 |
+| `redlock.enabled` | :124 | 仅诊断展示(:96) | **保留(记录)** | Redlock 未接线，但保留配置结构供后续实现 |
+| `redlock.addresses` | :130 | 无消费点 | **保留(记录)** | 同上 |
+| `redlock.quorum` | :136 | 无消费点 | **保留(记录)** | 同上 |
+
+#### HTTP RPC 连接池方案选择（需用户拍板）
+
+- **方案 A（推荐：接通连接池）**：`rpcRestClient` 改用 `HttpComponentsClientHttpRequestFactory` + `PoolingHttpClientConnectionManager`，接通 `maxConnections`/`maxConnectionsPerRoute`/`keepAliveTime`。需加依赖 `httpclient5`（Boot BOM 托管）。
+- **方案 B（删除连接池）**：`rpcRestClient` 改用 `JdkClientHttpRequestFactory`，删除 `maxConnections`/`maxConnectionsPerRoute`/`keepAliveTime` 字段。
+
+两方案共同项：`writeTimeout`/`compressionEnabled`/`retryCount`/`retryInterval`/`loggingEnabled` 均删除。
+
+### B. CORS 两套配置分析
+
+| 配置前缀 | 属性类 | 生效场景 | 结论 |
+|---------|--------|---------|------|
+| `nebula.web.cors.*` | WebProperties.Cors | Servlet Web 应用 | 被 WebCoreAutoConfiguration 消费(双路径: CorsConfigurationSource + addCorsMappings) |
+| `nebula.gateway.cors.*` | GatewayProperties.CorsConfig | Spring Cloud Gateway | 被 GatewayRoutesAutoConfiguration.corsWebFilter() 消费 |
+
+两套分属不同部署形态（Web 进程 vs Gateway 进程），同一进程不同时加载。**非死配置，不处理**。
+但 Web 侧存在 CorsConfigurationSource 与 addCorsMappings 双注册潜在不一致——记录供后续优化，本批不处理。
+
+### C. 新发现死配置（超出本批范围，记录待后续）
+
+| 类 | 死配置字段数 | 关键项 |
+|----|------------|--------|
+| CacheProperties | 8 | local.enabled/expireAfterAccess/statsEnabled; redis.serialization/ssl.*; multiLevel.enabled; defaultMaxSize |
+| RabbitMQProperties | 17 | consumer.retryCount/retryInterval; producer.publisherConfirms/confirmTimeout/publisherReturns; exchange.durable/autoDelete; delayMessage 整组(与 RabbitDelayMessageProperties 重复) |
+| ElasticsearchProperties | 5 | bulkSize; searchTimeout; scrollSize; sslCertificatePath; sslKeyPath |
+| MinIOProperties | 4 | secure; defaultExpiry; maxFileSize; allowedContentTypes |
+| TaskProperties | 6 | executor 整组(corePoolSize/maxPoolSize/keepAliveSeconds/queueCapacity/threadNamePrefix); xxlJob.registryTimeout |
+| AIProperties | 15+ | chat/embedding/vectorStore 多提供商配置; ollama 整棵废弃子树 |
+| WebProperties | 9 | ExceptionHandler.logStackTrace/includeExceptionDetails; DataMasking.sensitiveFields/strategy/maskChar; Performance.enableDetailedMetrics/metricsInterval; Health.endpoint/checkInterval |
+| GatewayProperties | 8 | LoggingConfig.logRequestBody/logResponseBody; RoutesConfig.apiPathPrefix; HttpProxyConfig.timeout; TimeoutConfig 整组(3 字段); JwtConfig.enabled(仅诊断) |
+
+### D. `Result.of(ResultCode)` 码值风格决策（需用户拍板）
+
+`Result.of(ResultCode resultCode)` 工厂产出的 `code` 字段取什么值？
+
+- **选项 1（推荐）**：`resultCode.name()`（如 `"SUCCESS"`）—— 与 `Result.success().getCode()` 现有符号码风格一致，下游 `result.getCode().equals("SUCCESS")` 断言不破
+- **选项 2**：`resultCode.getCode()`（如 `"0000"`）—— 与 `ResultCode` 枚举定义的数字码一致，但与 `Result` 现有码值不同体系
 
 ## 阶段一任务验证记录
 
