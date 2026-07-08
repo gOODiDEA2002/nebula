@@ -2,11 +2,10 @@
 org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
 io.nebula.autoconfigure.ai.SpringAIAutoConfigurationFilter
 
-# Nebula 环境后处理器
+# Nebula 环境后处理器 (SB4 新注册键, 旧键 org.springframework.boot.env.EnvironmentPostProcessor 仅兼容保留不再使用)
 # - NebulaStarterDefaultsPostProcessor: 扫描各 Starter 的 META-INF/nebula-defaults.properties,
 #   以最低优先级注入默认启用项, 实现"引入 Starter 即开箱即用"
-#   (必须注册在此处; Spring Boot 只从 spring.factories 加载 EnvironmentPostProcessor, 不读 .imports)
 # - NebulaMcpEnvironmentPostProcessor: 将 nebula.ai.mcp 配置桥接到 spring.ai.mcp.server
-org.springframework.boot.env.EnvironmentPostProcessor=\
+org.springframework.boot.EnvironmentPostProcessor=\
 io.nebula.autoconfigure.env.NebulaStarterDefaultsPostProcessor,\
 io.nebula.autoconfigure.ai.NebulaMcpEnvironmentPostProcessor

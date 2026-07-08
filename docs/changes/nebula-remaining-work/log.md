@@ -72,6 +72,12 @@
 - 依赖树确认: spring-boot-starter-grpc-server:4.1.0 出现; 所有 io.grpc 坐标统一为 1.80.0; 传输层仅 grpc-netty-shaded(无 grpc-netty); spring-grpc-core:1.1.0 作为 starter 传递依赖自动引入
 - 根 pom 变更: 删除自管 grpc-bom:1.68.1 import + spring-grpc-core dependencyManagement; grpc.version 属性改 1.80.0(protobuf 插件坐标引用); spring-grpc.version 属性已删
 
+### Task 9 [M-2] EPP 迁移至 SB4 新接口与新注册键
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure`
+- 结果: Tests run: 23, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (6.748s)
+- NebulaStarterDefaultsIntegrationTest 回归通过(EPP 新键注册生效)
+- `rg "net.devh" --type java` 主代码零命中(删除 GatewayGrpcServerExcludeConfiguration + 对应 spring.factories)
+
 ## 踩坑记录
 
 （待开发过程中填写）

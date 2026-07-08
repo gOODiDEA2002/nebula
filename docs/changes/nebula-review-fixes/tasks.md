@@ -140,7 +140,7 @@
 - **依赖**: 无（**必须先于 Task 4 执行**）
 - **验收标准**: 既有"starter defaults 注入生效"集成测试仍绿（回归哨兵）；启动日志无 EPP 相关废弃警告；`rg "net.devh" --type java` 主代码零命中
 - **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure`
-- [ ] 完成
+- [x] 完成
 
 ## Task 10: [M-3] 缓存健康检查键前缀 + 统计原子化
 
