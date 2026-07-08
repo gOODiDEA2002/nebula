@@ -198,7 +198,7 @@ mvn spring-boot:run -Dlogging.level.io.nebula=DEBUG
 ## 部署与发布
 
 ### 版本管理
-- 版本格式：`2.0.0-SNAPSHOT`
+- 版本格式：`2.1.0-SNAPSHOT`
 - 发布时移除 `-SNAPSHOT`
 - 遵循语义化版本
 
@@ -591,3 +591,15 @@ flowchart LR
 - **[Task 2-5] 认证收敛**: `AuthInterceptor` 移除自行 JWT 解析，改读 `SecurityContext`（由 `JwtAuthenticationFilter` 在 Filter 层填充），桥接填充 `AuthContext` 保持 API 兼容；新增 `JwtFilterEnabledCondition`：`nebula.web.auth.enabled=true` 时自动注册 Filter
 - **[Task 2-6] xxl-job DTO 清理**: 删除孤儿 DTO（`XxlJobExecuteRequest`/`XxlJobLogRequest`/`XxlJobLogResult`）
 - **[Task 2-7] 自动装配三态测试**: 新增 7 个 ConditionTest 覆盖 Web/Cache/RabbitMQ/HttpRpc/GrpcRpc/ES/Security 的 enabled/disabled/缺类三态
+
+### Jackson 2 → 3 全量迁移（阶段三）
+- **[Task 3-1] foundation 层迁移**: `JsonUtils`/`Beans` 全部 import 迁移至 `tools.jackson.*`；`ObjectMapper` 构建改用 `JsonMapper.builder()`；删除 `JavaTimeModule` 注册
+- **[Task 3-2] data 层迁移**: cache/persistence/mongodb 的 Jackson import 和 POM 坐标迁移；Redis 序列化器改用 Jackson 3 的 `JsonMapper.builder().build()`
+- **[Task 3-3] messaging/rpc/lock/websocket 层迁移**: 全部 Jackson import 迁移；自动配置类改为自行创建 Jackson 3 `JsonMapper` 实例（bridge 期间避免类型不匹配）
+- **[Task 3-4] web 层迁移**: `SensitiveDataAnnotationIntrospector`/`SensitiveDataSerializer` 重写为 Jackson 3 API；`Jackson2ObjectMapperBuilderCustomizer` → `JsonMapperBuilderCustomizer`；删除 `JacksonConfig`
+- **[Task 3-5] search/ai/task/autoconfigure 层迁移**: ES 客户端改用 `Jackson3JsonpMapper`；Redis 缓存序列化器改用 `GenericJacksonJsonRedisSerializer`（Jackson 3 版）
+- **[Task 3-6] 拆桥收尾**: 根 POM 删除 `spring-boot-jackson2` 依赖；三份 starter defaults 移除 `preferred-json-mapper=jackson2`；全仓 886 测试全绿
+
+### 版本升代（阶段四准备）
+- **[Task 4-0a] 阶段三审计欠账清理**: 补写 `docs/upgrade-guide-jackson3.md`；修复 payment/crawler-captcha/storage-core/gateway-core POM Jackson 2 坐标残留；examples 两文件 import 迁移
+- **[Task 4-0b] 版本号升代**: `revision` 从 `2.0.1-SNAPSHOT` 升至 `2.1.0-SNAPSHOT`（SB4 代际与 proud-day 现依赖的 SB3.5 代际坐标区分）

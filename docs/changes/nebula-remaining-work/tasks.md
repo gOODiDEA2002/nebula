@@ -233,7 +233,7 @@
 > 详细规格与任务已立于该仓库 `docs/changes/nebula-persistence-adoption/`（spec 已 confirmed，Q1/Q2/Q3 于 2026-07-07 拍板；3 任务）
 
 - [x] **Task 4-0a: [nebula 侧] 阶段三审计欠账清理**（log.md D7，6 项：upgrade-guide-jackson3.md 补写、payment/crawler-captcha/storage-core/gateway-core POM Jackson 2 残留换坐标、examples 两文件 import 迁移）
-- [ ] **Task 4-0b: [nebula 侧] 版本号升代 `2.0.1-SNAPSHOT` → `2.1.0-SNAPSHOT`**（根 pom `<revision>`，Q7 已确认；同步 CLAUDE.md/project.mdc；proud-day 迁移的前置硬依赖，防 SB3.5 应用误吞 SB4 快照）
+- [x] **Task 4-0b: [nebula 侧] 版本号升代 `2.0.1-SNAPSHOT` → `2.1.0-SNAPSHOT`**（根 pom `<revision>`，Q7 已确认；同步 CLAUDE.md/project.mdc；`mvn install -DskipTests` BUILD SUCCESS）
 - [ ] **Task 4-1: [proud-day 侧] 按其仓库 tasks.md 执行三任务**（版本对齐 → 数据源/Mapper 扫描迁移 → 全量回归；框架侧若暴露问题回流本清单）
 
 ---

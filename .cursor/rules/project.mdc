@@ -34,7 +34,7 @@ Nebula 是一个基于 Java 21 与 Spring Boot 4.1.0 构建的现代化企业级
 | JJWT | 0.12.3 | JWT 签发与验证 |
 | Lombok | (Spring Boot 管理) | 样板代码消除 |
 | Swagger/OpenAPI | springdoc | API 文档 |
-| 项目版本 | 2.0.1-SNAPSHOT | CI-Friendly，只在根 pom.xml 修改 |
+| 项目版本 | 2.1.0-SNAPSHOT | CI-Friendly，只在根 pom.xml 修改 |
 
 ## 3. 目录结构
 
@@ -336,7 +336,7 @@ Nebula 采用**双层鉴权架构**:
 
 ### 7.5 版本管理
 
-- 版本号格式: `2.0.x-SNAPSHOT`（开发期），发布时移除 `-SNAPSHOT`
+- 版本号格式: `2.1.x-SNAPSHOT`（开发期），发布时移除 `-SNAPSHOT`
 - 版本由根 POM 的 `<revision>` 属性统一管理，所有子模块使用 `${revision}` 引用
 - 发布到 Nexus: `mvn clean deploy -P release`（正式版）或 `mvn clean deploy`（快照版）
 

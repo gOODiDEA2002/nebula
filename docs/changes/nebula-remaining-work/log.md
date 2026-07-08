@@ -607,6 +607,16 @@
   5. TaskService.java: import 改 `tools.jackson.databind.ObjectMapper`
   6. storage-core pom + gateway-core pom: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`（审计新发现）
 
+### Task 4-0b: 版本号升代 2.0.1-SNAPSHOT → 2.1.0-SNAPSHOT
+
+- 变更:
+  - 根 `pom.xml` `<revision>` 改 `2.1.0-SNAPSHOT`
+  - `CLAUDE.md`: 版本格式改 `2.1.0-SNAPSHOT`；补充 v2.0.1 变更记录中阶段三（Jackson 3 迁移）与阶段四准备（版本升代）内容
+  - `.cursor/rules/project.mdc`: 版本表改 `2.1.0-SNAPSHOT`；版本号格式改 `2.1.x-SNAPSHOT`
+- 验证命令: `mvn install -DskipTests -s /tmp/nebula-mvn-settings.xml`
+- 结果: BUILD SUCCESS (全仓 68 模块, 25.195s)
+- 本地仓库确认: `~/.m2/repository/io/nebula/nebula-parent/2.1.0-SNAPSHOT/` 和 `nebula-foundation/2.1.0-SNAPSHOT/` 均已安装
+
 ---
 
 ## Spec-Code 偏差
