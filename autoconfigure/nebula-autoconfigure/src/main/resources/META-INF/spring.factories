@@ -8,4 +8,5 @@ io.nebula.autoconfigure.ai.SpringAIAutoConfigurationFilter
 # - NebulaMcpEnvironmentPostProcessor: 将 nebula.ai.mcp 配置桥接到 spring.ai.mcp.server
 org.springframework.boot.EnvironmentPostProcessor=\
 io.nebula.autoconfigure.env.NebulaStarterDefaultsPostProcessor,\
-io.nebula.autoconfigure.ai.NebulaMcpEnvironmentPostProcessor
+io.nebula.autoconfigure.ai.NebulaMcpEnvironmentPostProcessor,\
+io.nebula.autoconfigure.env.NebulaGrpcServerPortBridgePostProcessor

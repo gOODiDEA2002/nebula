@@ -78,6 +78,12 @@
 - NebulaStarterDefaultsIntegrationTest 回归通过(EPP 新键注册生效)
 - `rg "net.devh" --type java` 主代码零命中(删除 GatewayGrpcServerExcludeConfiguration + 对应 spring.factories)
 
+### Task 4 [C-2] gRPC 端口桥接 EPP + 旧端口配置废弃标注
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=NebulaGrpcServerPortBridge*`
+- 结果: Tests run: 3, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (4.196s)
+- 三态测试: 只配旧键->新键出现且值一致; 两者都配->新键保持用户值; 都不配->不注入
+- GrpcRpcProperties.ServerConfig: port 标 @Deprecated, 其余线程/流控参数 Javadoc 标注改用 spring.grpc.server.*, Task 2-3 清理
+
 ## 踩坑记录
 
 （待开发过程中填写）

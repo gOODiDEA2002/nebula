@@ -74,7 +74,7 @@
 - **依赖**: Task 3、**Task 9（硬依赖，先做键迁移再建本 EPP，避免刚写旧钥匙又换锁；2026-07-07 外部审查意见 P3-1）**
 - **验收标准**: 仅配 `nebula.rpc.grpc.server.port=9527` 时 gRPC 服务端监听 9527；两者都配时 `spring.grpc.server.port` 优先
 - **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=NebulaGrpcServerPortBridge*`
-- [ ] 完成
+- [x] 完成
 
 ## Task 5: [C-2] gRPC 服务端回环集成测试（含 token 拦截器）
 
