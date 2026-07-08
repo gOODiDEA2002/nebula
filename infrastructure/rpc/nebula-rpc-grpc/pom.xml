@@ -99,6 +99,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- gRPC Server Test (Boot 4.1, 提供 @LocalGrpcServerPort 等测试基础设施) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-grpc-server-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -78,6 +78,14 @@
 - NebulaStarterDefaultsIntegrationTest 回归通过(EPP 新键注册生效)
 - `rg "net.devh" --type java` 主代码零命中(删除 GatewayGrpcServerExcludeConfiguration + 对应 spring.factories)
 
+### Task 5 [C-2] gRPC 服务端回环集成测试(含 token 拦截器)
+- 验证命令: `mvn test -pl infrastructure/rpc/nebula-rpc-grpc -Dtest=GrpcServerLoopbackIntegrationTest`
+- 结果: Tests run: 3, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (7.745s)
+- 日志确认: gRPC Server started, listening on port 55393; Registered gRPC service: io.nebula.rpc.grpc.GenericRpcService; token 校验失败(无 token 被拒)
+- 三个用例: 回环调用成功(sayHello); 无 token 被拒(UNAUTHENTICATED); 带 token 调用成功(add)
+- T-B2-2 已在 sb4-upgrade tasks.md 中勾选完成
+- 偏差: implementation.md 建议用 GrpcRpcClient 做回环, 但 GrpcRpcClient 不支持 auth metadata 注入; 改用原生 gRPC stub + ClientInterceptor 注入 token, 同时覆盖回环+鉴权
+
 ### Task 4 [C-2] gRPC 端口桥接 EPP + 旧端口配置废弃标注
 - 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=NebulaGrpcServerPortBridge*`
 - 结果: Tests run: 3, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (4.196s)

@@ -84,7 +84,7 @@
 - **依赖**: Task 3, Task 4
 - **验收标准**: 两组用例均绿；`tasks.md`（sb4-upgrade）中 T-B2-2 可标记完成
 - **验证命令**: `mvn test -pl infrastructure/rpc/nebula-rpc-grpc -Dtest=GrpcServerLoopbackIntegrationTest`
-- [ ] 完成
+- [x] 完成
 
 ## Task 6: [H-1] HTTP RPC 客户端注入鉴权 token
 

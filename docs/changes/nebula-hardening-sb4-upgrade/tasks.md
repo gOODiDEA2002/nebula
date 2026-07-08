@@ -330,7 +330,7 @@
   - 验证：gateway 模块 10 测试全绿（ReactiveClientIpResolverTest 7 + GatewayRoutesAutoConfigurationTest 3）；68 模块编译通过；gateway-example 编译通过；全量测试 BUILD SUCCESS
   - 完成：2026-07-07
 
-- [ ] **T-B2-2｜gRPC 从 net.devh 转 Spring gRPC**
+- [x] **T-B2-2｜gRPC 从 net.devh 转 Spring gRPC**（完成于 review-fixes Task 3+5: 接入 Boot 官方 gRPC Server Starter + 回环集成测试）
   - 移除 `net.devh:grpc-spring-boot-starter`
   - 引入 `spring-grpc-dependencies` BOM 1.1.0 + `spring-grpc-spring-boot-starter`
   - 重写 `GrpcRpcServer`（`@GrpcService` 注解迁移）
