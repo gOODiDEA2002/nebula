@@ -254,6 +254,17 @@
 - 新增 ResultCodeTest(9 用例): 全枚举 getByCode/getByName 回查、Result.of 码值断言、既有 Result 工厂码值回归
 - 验证命令: `mvn test -pl core/nebula-foundation` → Tests run: 278, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
 
+### Task 2-3 死配置删除批 (security/nacos/grpc)
+- SecurityProperties: 删除 `anonymousUrls` 列表、`rbac.enableCache`/`rbac.cacheExpiration`/`rbac.superAdminRole` 字段; 保留 `rbac.enabled`(诊断展示)
+- NacosProperties: 删除 `heartbeatInterval`/`heartbeatTimeout`/`ipDeleteTimeout` 字段
+- GrpcRpcProperties.ServerConfig: 删除 `maxInboundMessageSize`/`keepAliveTime`/`keepAliveTimeout`/`permitKeepAliveWithoutCalls`/`maxConcurrentCalls` 字段
+- NacosDiscoveryAutoConfiguration: 删除诊断展示中的 `Heartbeat` 行(引用已删字段)
+- GrpcRpcAutoConfiguration: 删除诊断展示中的 `maxConcurrentCalls`/`keepAliveTime` 行
+- 验证命令: `mvn clean compile` → BUILD SUCCESS (68 模块)
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure` → Tests run: 36, Failures: 0 -- BUILD SUCCESS
+- 验证命令: `mvn test -pl core/nebula-security` → Tests run: 30, Failures: 0 -- BUILD SUCCESS
+- 残留引用检查: `rg "anonymousUrls|heartbeatInterval|heartbeatTimeout|ipDeleteTimeout|maxConcurrentCalls" --type java` 主代码零命中(仅 log.md 有记录)
+
 ### Task 2-6 xxl-job 孤儿 DTO 清理
 - 删除: XxlJobExecuteRequest.java, XxlJobLogRequest.java, XxlJobLogResult.java
 - rg 确认零引用(仅定义处命中)

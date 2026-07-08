@@ -91,7 +91,6 @@ public class NacosDiscoveryAutoConfiguration {
                 details.put("Group", props.getGroupName());
                 details.put("Cluster", props.getClusterName());
                 details.put("Weight", String.valueOf(props.getWeight()));
-                details.put("Heartbeat", props.getHeartbeatInterval() + "ms");
                 details.put("Auto Register", String.valueOf(props.isAutoRegister()));
                 return new SimpleComponentSummary("Service Discovery", "Nacos", true, 100, details);
         }

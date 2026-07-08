@@ -46,36 +46,6 @@ public class GrpcRpcProperties {
         private int port = 9090;
 
         /**
-         * 最大入站消息大小(字节)。
-         * <p>改用 {@code spring.grpc.server.*}, 本参数已无消费者, 阶段二 Task 2-3 删除。
-         */
-        private int maxInboundMessageSize = 10 * 1024 * 1024; // 10MB
-
-        /**
-         * Keep-Alive 时间(秒)。
-         * <p>改用 {@code spring.grpc.server.*}, 本参数已无消费者, 阶段二 Task 2-3 删除。
-         */
-        private long keepAliveTime = 30;
-
-        /**
-         * Keep-Alive 超时时间(秒)。
-         * <p>改用 {@code spring.grpc.server.*}, 本参数已无消费者, 阶段二 Task 2-3 删除。
-         */
-        private long keepAliveTimeout = 10;
-
-        /**
-         * 是否允许无调用时的 Keep-Alive。
-         * <p>改用 {@code spring.grpc.server.*}, 本参数已无消费者, 阶段二 Task 2-3 删除。
-         */
-        private boolean permitKeepAliveWithoutCalls = true;
-
-        /**
-         * 最大并发调用数。
-         * <p>改用 {@code spring.grpc.server.*}, 本参数已无消费者, 阶段二 Task 2-3 删除。
-         */
-        private int maxConcurrentCalls = 1000;
-
-        /**
          * gRPC 端点访问 token（可选，默认空=不鉴权）。
          * 配置后，gRPC 请求须携带 metadata {@code x-nebula-rpc-token: <token>}，否则返回 UNAUTHENTICATED；
          * 默认关闭以不影响纯内网调用。

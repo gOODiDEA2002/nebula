@@ -85,30 +85,6 @@ public class NacosProperties {
     private String secretKey;
     
     /**
-     * 心跳间隔（毫秒）
-     * 范围: 1000 - 60000 毫秒
-     */
-    @Min(value = 1000, message = "心跳间隔不能小于 1000 毫秒")
-    @Max(value = 60000, message = "心跳间隔不能大于 60000 毫秒")
-    private long heartbeatInterval = 5000;
-    
-    /**
-     * 心跳超时时间（毫秒）
-     * 范围: 5000 - 300000 毫秒
-     */
-    @Min(value = 5000, message = "心跳超时时间不能小于 5000 毫秒")
-    @Max(value = 300000, message = "心跳超时时间不能大于 300000 毫秒")
-    private long heartbeatTimeout = 15000;
-    
-    /**
-     * IP删除超时时间（毫秒）
-     * 范围: 10000 - 600000 毫秒
-     */
-    @Min(value = 10000, message = "IP 删除超时时间不能小于 10000 毫秒")
-    @Max(value = 600000, message = "IP 删除超时时间不能大于 600000 毫秒")
-    private long ipDeleteTimeout = 30000;
-    
-    /**
      * 是否启用
      */
     private boolean enabled = true;

@@ -72,7 +72,7 @@
 - **依赖**: Task 2-1
 - **验收标准**: `rg "anonymousUrls|heartbeatInterval|heartbeatTimeout" --type java` 主代码零命中；编译通过
 - **验证命令**: `mvn clean compile && mvn test -pl core/nebula-security,infrastructure/discovery/nebula-discovery-nacos`
-- [ ] 完成
+- [x] 完成
 
 ### Task 2-4: 错误码收敛 -- ResultCode 为唯一事实源
 

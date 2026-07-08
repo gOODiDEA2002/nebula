@@ -4,8 +4,6 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 安全配置属性
@@ -32,10 +30,6 @@ public class SecurityProperties {
      */
     private Rbac rbac = new Rbac();
     
-    /**
-     * 匿名访问URL列表
-     */
-    private List<String> anonymousUrls = new ArrayList<>();
     
     /**
      * JWT配置
@@ -82,21 +76,6 @@ public class SecurityProperties {
          * 是否启用RBAC
          */
         private boolean enabled = true;
-        
-        /**
-         * 是否启用权限缓存
-         */
-        private boolean enableCache = true;
-        
-        /**
-         * 权限缓存过期时间
-         */
-        private Duration cacheExpiration = Duration.ofMinutes(30);
-        
-        /**
-         * 超级管理员角色
-         */
-        private String superAdminRole = "SUPER_ADMIN";
     }
 }
 

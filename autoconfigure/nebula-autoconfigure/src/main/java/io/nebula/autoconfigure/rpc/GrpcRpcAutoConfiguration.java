@@ -80,10 +80,8 @@ public class GrpcRpcAutoConfiguration {
     NebulaComponentSummary grpcRpcSummary(GrpcRpcProperties properties) {
         var details = new java.util.LinkedHashMap<String, String>();
 
-        // Server
+        // Server（遗留线程/流控参数已删除，改用 spring.grpc.server.*）
         details.put("Server Port", String.valueOf(properties.getServer().getPort()));
-        details.put("Max Concurrent", String.valueOf(properties.getServer().getMaxConcurrentCalls()));
-        details.put("KeepAlive Time", properties.getServer().getKeepAliveTime() + "s");
         details.put("Auth Token", properties.getServer().getAuthToken().isEmpty() ? "disabled" : "enabled");
 
         // Client
