@@ -333,12 +333,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <!-- Spring Boot 4.1 Jackson 2 兼容：框架大量使用 com.fasterxml.jackson，
-             保留 jackson2 自动配置模块，Jackson 3 全量迁移留后续版本 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-jackson2</artifactId>
-        </dependency>
         
         <!-- 测试依赖 -->
         <dependency>

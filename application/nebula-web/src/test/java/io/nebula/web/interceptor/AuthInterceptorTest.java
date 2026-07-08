@@ -1,7 +1,7 @@
 package io.nebula.web.interceptor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.security.authentication.Authentication;
 import io.nebula.security.authentication.GrantedAuthority;
 import io.nebula.security.authentication.JwtAuthenticationToken;
@@ -52,8 +52,7 @@ class AuthInterceptorTest {
         authConfig.setAuthHeaderPrefix("Bearer ");
         authConfig.setIgnorePaths(new String[]{"/public/**", "/health", "/login"});
         
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper = JsonMapper.builder().build();
         
         authInterceptor = new AuthInterceptor(authConfig, objectMapper);
     }

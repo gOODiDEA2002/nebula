@@ -1,6 +1,6 @@
 package io.nebula.web.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.web.auth.AuthService;
 import io.nebula.web.auth.DefaultAuthService;
 import io.nebula.web.auth.JwtUtils;

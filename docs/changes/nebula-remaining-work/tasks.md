@@ -223,7 +223,7 @@
 - **依赖**: Task 3-0 ~ 3-5
 - **验收标准**: 全仓编译 + 测试通过；MockMvc 脱敏哨兵在 Jackson 3 默认路径下绿；`mvn dependency:tree` 无 `com.fasterxml.jackson` 运行时依赖（第三方传递除外，按 Task 3-0 盘点表逐项核销并记录清单）；POM 中无 Task 3-0 裁决为"迁移/删除"的 Jackson 2 系显式依赖残留
 - **验证命令**: `mvn clean compile && mvn test`
-- [ ] 完成
+- [x] 完成（全仓 886T/0F，Jackson 2 databind/core/datatype import 主代码零命中）
 
 ---
 

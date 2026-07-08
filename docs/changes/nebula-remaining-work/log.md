@@ -546,6 +546,37 @@
 
 ---
 
+### Task 3-6: 拆桥收尾
+
+**日期**: 2026-07-08
+
+**执行内容**：
+1. **根 pom.xml**: 删除 `spring-boot-jackson2` 依赖（:336-341，含注释）
+2. **三份 starter defaults 移除 `preferred-json-mapper=jackson2`**:
+   - `starter/nebula-starter-web/src/main/resources/META-INF/nebula-defaults.properties`
+   - `starter/nebula-starter-all/src/main/resources/META-INF/nebula-defaults.properties`
+   - `starter/nebula-starter-mcp/src/main/resources/META-INF/nebula-defaults.properties`
+3. **三个 StarterDefaultsInjectionTest 更新**: 断言 `preferred-json-mapper` 属性为 null（不再强制 jackson2），增加其他默认属性断言保证测试覆盖率
+4. **nebula-web 遗留 Jackson 2 import 清理**:
+   - `RateLimitInterceptor`: `com.fasterxml.jackson.databind.ObjectMapper` → `tools.jackson.databind.ObjectMapper`
+   - `AuthInterceptor`: 同上
+   - `WebRateLimitAutoConfiguration`: 同上
+   - `WebAuthAutoConfiguration`: 同上
+   - `JwtUtils`（deprecated）: `com.fasterxml.jackson.core.type.TypeReference` → `tools.jackson.core.type.TypeReference`，`ObjectMapper` → `tools.jackson.databind.ObjectMapper`
+   - 测试 `AuthInterceptorTest`: `new ObjectMapper()` → `JsonMapper.builder().build()`，移除 `JavaTimeModule`
+   - 测试 `AuthConvergenceIntegrationTest`: `ObjectMapper` import 改为 Jackson 3
+
+**验收结果**：
+- `rg "import com\.fasterxml\.jackson\.(databind|core|datatype|module)" --glob '**/main/**/*.java'` → 零命中
+- `com.fasterxml.jackson.annotation` 保留（Jackson 3 annotation 包名未变，合规）
+- Jackson 2 运行时残留仅 `jjwt-jackson` 传递（符合 Task 3-0 盘点策略）
+- 全仓编译: BUILD SUCCESS
+- 全仓测试: 886 tests, 0 failures, 0 errors, BUILD SUCCESS
+- `SensitiveDataMvcMaskingTest`: 无 `preferred-json-mapper` 属性，走 Jackson 3 默认路径，通过
+- 三个 `StarterDefaultsInjectionTest`: 各 3 tests，全通过
+
+---
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）

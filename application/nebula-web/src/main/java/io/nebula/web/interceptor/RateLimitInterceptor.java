@@ -1,6 +1,6 @@
 package io.nebula.web.interceptor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.core.common.result.Result;
 import io.nebula.web.autoconfigure.WebProperties;
 import io.nebula.web.ratelimit.RateLimiter;

@@ -1,6 +1,6 @@
 package io.nebula.web.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.interceptor.RateLimitInterceptor;
 import io.nebula.web.ratelimit.DefaultRateLimitKeyGenerator;
