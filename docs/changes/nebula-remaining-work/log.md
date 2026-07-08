@@ -577,6 +577,38 @@
 
 ---
 
+### D7（2026-07-08）：阶段三审计欠账清理（Task 4-0a 前置对账）
+
+阶段三（Jackson 2→3）全量迁移收尾后，对照 Task 3-0 盘点表逐项核销发现 6 处欠账（用户预列 4 项 + 审计新发现 2 项）：
+
+1. **升级指南未编写**：spec.md 3.3 节、Task 3-2 均要求"docs/ 升级指南写清部署前清 `nebula:cache:*` 步骤"，实际未产出。补写 `docs/upgrade-guide-jackson3.md`。
+2. **payment POM Jackson 2 残留**：`integration/nebula-integration-payment/pom.xml` 的 `com.fasterxml.jackson.core:jackson-databind` 未换坐标，`jackson-datatype-jsr310` 未删除（Task 3-0 盘点表明确标记为"换坐标"和"删除"）。该模块源码无 Jackson 2 import（仅 POM 声明）。
+3. **crawler-captcha POM Jackson 2 残留**：`infrastructure/crawler/nebula-crawler-captcha/pom.xml` 的 `com.fasterxml.jackson.core:jackson-databind` 未换坐标（Task 3-0 盘点表标记为"换坐标"）。该模块源码无 Jackson 2 import。
+4. **examples 两文件 Jackson 2 import 残留**：`examples/fullstack-example/.../WeatherTool.java`（`com.fasterxml.jackson.databind.ObjectMapper` + `new ObjectMapper()`）和 `examples/rpc-async-example/client/.../TaskService.java`（同 import）——阶段三迁移遗漏示例模块。
+5. **storage-core POM Jackson 2 残留**（审计新发现）：`infrastructure/storage/nebula-storage-core/pom.xml` 的 `com.fasterxml.jackson.core:jackson-databind` 未换坐标（Task 3-0 盘点表标记为"换坐标"）。源码已迁移，仅 POM 残留。
+6. **gateway-core POM Jackson 2 残留**（审计新发现）：`infrastructure/gateway/nebula-gateway-core/pom.xml` 的 `com.fasterxml.jackson.core:jackson-databind` 未换坐标（Task 3-0 盘点表标记为"换坐标"）。源码已迁移，仅 POM 残留。
+
+六项一次提交清理。
+
+## 阶段四任务验证记录
+
+### Task 4-0a: 阶段三审计欠账清理
+
+- 验证命令: `mvn clean compile -s /tmp/nebula-mvn-settings.xml`
+- 编译结果: BUILD SUCCESS (全仓 68 模块, 21.586s)
+- Jackson 2 POM 残留核销:
+  - `rg "<groupId>com.fasterxml.jackson.(core|datatype)</groupId>" -g 'pom.xml'` 仅剩 `jackson-annotations`(ai-core, search-core)——注解包名不变，合规
+  - `rg "import com.fasterxml.jackson.(databind|core.|datatype|module)" --glob '**/main/**/*.java'` 零命中
+- 改动清单（D7 六项）:
+  1. 新增 `docs/upgrade-guide-jackson3.md`（含 Redis 缓存清理步骤、坐标对照、代码迁移要点、已知残留说明）
+  2. payment pom: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`; 删 `jackson-datatype-jsr310`
+  3. crawler-captcha pom: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`
+  4. WeatherTool.java: import 改 `tools.jackson.databind.*`; `new ObjectMapper()` → `JsonMapper.builder().build()`
+  5. TaskService.java: import 改 `tools.jackson.databind.ObjectMapper`
+  6. storage-core pom + gateway-core pom: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`（审计新发现）
+
+---
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）

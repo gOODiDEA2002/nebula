@@ -1,6 +1,7 @@
 package io.nebula.example.modules.ai.mcp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.ai.core.mcp.McpTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ import java.util.Map;
 public class WeatherTool implements McpTool {
     
     private static final Logger logger = LoggerFactory.getLogger(WeatherTool.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
     
     @Override
     public String getName() {

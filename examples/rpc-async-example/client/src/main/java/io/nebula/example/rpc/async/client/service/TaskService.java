@@ -1,6 +1,6 @@
 package io.nebula.example.rpc.async.client.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.nebula.example.rpc.async.api.DataProcessRpcClient;
 import io.nebula.example.rpc.async.api.dto.ProcessRequest;
 import io.nebula.example.rpc.async.api.dto.ProcessResult;
