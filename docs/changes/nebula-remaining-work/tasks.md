@@ -202,10 +202,11 @@
 
 ### Task 3-4: web 层迁移（脱敏 customizer 重写为 Jackson 3）
 
-- **涉及文件**: `application/nebula-web` 的 `WebAuthAutoConfiguration`（脱敏 AnnotationIntrospector → Jackson 3 对应 API）、`JacksonConfig`（JavaTimeModule——Jackson 3 内置 java.time，评估直接删除）、`SensitiveDataMaskingCustomizerTest` 同步
-- **关注**: 阶段一 Task 2 的 MockMvc 哨兵测试改为 Jackson 3 路径后必须仍绿（本阶段回归闸门）
+- **涉及文件**: `SensitiveDataAnnotationIntrospector`/`SensitiveDataSerializer` 重写为 Jackson 3 API；`WebAuthAutoConfiguration` 改用 `JsonMapperBuilderCustomizer`；删除 `JacksonConfig`（JavaTimeModule 不再需要）
+- **关注**: 回归闸门 `SensitiveDataMvcMaskingTest` 移除 `preferred-json-mapper=jackson2` 后仍通过
 - **验证命令**: `mvn test -pl application/nebula-web`
-- [ ] 完成
+- **验证结果**: 88 tests passed (含回归闸门), BUILD SUCCESS
+- [x] 完成
 
 ### Task 3-5: search / ai / task / autoconfigure 层迁移
 

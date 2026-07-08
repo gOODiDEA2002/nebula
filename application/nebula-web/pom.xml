@@ -56,12 +56,6 @@
             <version>2.2.0</version>
         </dependency>
 
-        <!-- JSON 处理 -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        
         <!-- JWT Support -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

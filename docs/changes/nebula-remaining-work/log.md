@@ -494,6 +494,28 @@
 
 ---
 
+---
+
+### Task 3-4: web 层迁移（脱敏 customizer 重写为 Jackson 3）
+
+**日期**: 2026-07-08
+
+**迁移范围**：
+- `SensitiveDataAnnotationIntrospector`: `com.fasterxml.jackson.databind.AnnotationIntrospector` → `tools.jackson.databind.AnnotationIntrospector`；`findSerializer(Annotated)` → `findSerializer(MapperConfig<?>, Annotated)`
+- `SensitiveDataSerializer`: `com.fasterxml.jackson.databind.JsonSerializer<String>` → `tools.jackson.databind.ValueSerializer<String>`；`serialize(String, JsonGenerator, SerializerProvider) throws IOException` → `serialize(String, JsonGenerator, SerializationContext)`
+- `WebAuthAutoConfiguration`: `Jackson2ObjectMapperBuilderCustomizer` → `org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer`；`AnnotationIntrospectorPair.pair()` → `AnnotationIntrospectorPair.create()`
+- `JacksonConfig`: 删除（Jackson 3 内置 java.time 支持，无需 `JavaTimeModule`）
+- `WebAutoConfiguration`: 移除 `JacksonConfig.class` 引用
+- `pom.xml`: 移除 `jackson-datatype-jsr310` 依赖
+
+**回归闸门**：`SensitiveDataMvcMaskingTest` 移除 `spring.http.converters.preferred-json-mapper=jackson2` 属性后仍通过 → 脱敏在 Jackson 3 原生 MVC 路径生效
+
+**注意**：`AuthInterceptor` 和 `JwtUtils` 保留 Jackson 2 `ObjectMapper` 使用（deprecated 路径，bridge 期间仍可注入）
+
+**测试结果**: nebula-web 88 tests, 0 failures, BUILD SUCCESS
+
+---
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）

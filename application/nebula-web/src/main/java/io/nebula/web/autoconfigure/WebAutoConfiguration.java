@@ -1,6 +1,5 @@
 package io.nebula.web.autoconfigure;
 
-import io.nebula.web.config.JacksonConfig;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -17,7 +16,6 @@ import org.springframework.web.servlet.DispatcherServlet;
 @ConditionalOnClass(DispatcherServlet.class)
 @EnableConfigurationProperties(WebProperties.class)
 @Import({
-    JacksonConfig.class,
     WebCoreAutoConfiguration.class,
     WebRateLimitAutoConfiguration.class,
     WebCacheAutoConfiguration.class,

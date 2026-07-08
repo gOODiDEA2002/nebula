@@ -22,14 +22,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * MockMvc 脱敏回归哨兵测试。
  * <p>
  * 在 MVC 转换器路径（而非 mapper 本体）断言脱敏生效, 防止再次静默回归。
- * 测试属性显式带 preferred-json-mapper=jackson2 是刻意设计——nebula-web 模块测试的 classpath 上
- * 没有 starter jar 的 defaults 文件, 无法验证注入; "defaults 注入生效"由 Task 1 的
- * StarterDefaultsInjectionTest 覆盖, 本测试只负责"该属性下脱敏在 MVC 路径生效"。
+ * Jackson 3 迁移后不再需要 preferred-json-mapper=jackson2 属性——
+ * 脱敏通过 Jackson 3 原生 JsonMapperBuilderCustomizer 路径生效。
  */
 @SpringBootTest(
         classes = SensitiveDataMvcMaskingTest.TestApp.class,
         properties = {
-                "spring.http.converters.preferred-json-mapper=jackson2",
                 "nebula.web.data-masking.enabled=true"
         }
 )

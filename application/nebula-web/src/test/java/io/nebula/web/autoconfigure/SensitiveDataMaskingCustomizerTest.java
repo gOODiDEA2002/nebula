@@ -1,22 +1,17 @@
 package io.nebula.web.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.web.mask.DataMaskingStrategyManager;
 import io.nebula.web.mask.MaskType;
 import io.nebula.web.mask.SensitiveData;
 import io.nebula.web.mask.SensitiveDataAnnotationIntrospector;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.jackson2.autoconfigure.Jackson2ObjectMapperBuilderCustomizer;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 验证脱敏 introspector 被挂到 Spring MVC 使用的主 ObjectMapper。
- * <p>
- * 修复前 introspector 只挂在独立的 dataMaskingObjectMapper 上, 控制器正常返回走主 mapper 并不脱敏,
- * {@code @SensitiveData} 事实上不生效。本测试用修复引入的 customizer 构建主 mapper, 断言脱敏生效,
- * 且非敏感字段仍正常序列化(证明 AnnotationIntrospectorPair 未丢默认注解处理)。
+ * 验证脱敏 introspector 被挂到 Spring MVC 使用的主 JsonMapper（Jackson 3 路径）。
  */
 class SensitiveDataMaskingCustomizerTest {
 
@@ -25,17 +20,17 @@ class SensitiveDataMaskingCustomizerTest {
         DataMaskingStrategyManager manager = new DataMaskingStrategyManager();
         SensitiveDataAnnotationIntrospector introspector = new SensitiveDataAnnotationIntrospector(manager);
 
-        Jackson2ObjectMapperBuilderCustomizer customizer =
+        JsonMapperBuilderCustomizer customizer =
                 new WebAuthAutoConfiguration().sensitiveDataMaskingCustomizer(introspector);
 
-        Jackson2ObjectMapperBuilder builder = new Jackson2ObjectMapperBuilder();
+        JsonMapper.Builder builder = JsonMapper.builder();
         customizer.customize(builder);
-        ObjectMapper mapper = builder.build();
+        JsonMapper mapper = builder.build();
 
         String json = mapper.writeValueAsString(new UserView("13812348888", "alice"));
 
-        assertThat(json).contains("138****8888");   // 手机号脱敏生效
-        assertThat(json).contains("alice");           // 非敏感字段不变(默认处理保留)
+        assertThat(json).contains("138****8888");
+        assertThat(json).contains("alice");
         assertThat(json).doesNotContain("13812348888");
     }
 

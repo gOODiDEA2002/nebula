@@ -1,8 +1,6 @@
 package io.nebula.web.autoconfigure;
 
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
 import io.nebula.web.auth.AuthService;
 import io.nebula.web.auth.DefaultAuthService;
 import io.nebula.web.auth.JwtUtils;
@@ -12,11 +10,13 @@ import io.nebula.web.mask.DataMaskingStrategyManager;
 import io.nebula.web.mask.SensitiveDataAnnotationIntrospector;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.jackson2.autoconfigure.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import tools.jackson.databind.AnnotationIntrospector;
+import tools.jackson.databind.introspect.AnnotationIntrospectorPair;
 
 /**
  * Web 认证与数据脱敏自动配置
@@ -71,18 +71,18 @@ class WebAuthAutoConfiguration {
     }
 
     /**
-     * 将脱敏 introspector 挂到 Spring MVC 使用的主 ObjectMapper。
-     * 此前脱敏只挂在独立的 dataMaskingObjectMapper 上, 控制器正常返回时走主 ObjectMapper 并不脱敏,
-     * 导致 @SensitiveData 事实上不生效。用 AnnotationIntrospectorPair 与默认 introspector 链接
-     * (脱敏优先、其余回退默认), 避免像旧独立 mapper 那样 setAnnotationIntrospector 覆盖掉默认注解处理。
+     * 将脱敏 introspector 挂到 Spring MVC 使用的主 JsonMapper（Jackson 3 路径）。
+     * 使用 AnnotationIntrospectorPair.create() 与默认 introspector 链接
+     * (脱敏优先、其余回退默认), 避免覆盖掉默认注解处理。
      */
     @Bean
     @ConditionalOnProperty(name = "nebula.web.data-masking.enabled", havingValue = "true")
-    public Jackson2ObjectMapperBuilderCustomizer sensitiveDataMaskingCustomizer(
+    public JsonMapperBuilderCustomizer sensitiveDataMaskingCustomizer(
             SensitiveDataAnnotationIntrospector introspector) {
-        return builder -> builder.postConfigurer(objectMapper -> {
-            AnnotationIntrospector primary = objectMapper.getSerializationConfig().getAnnotationIntrospector();
-            objectMapper.setAnnotationIntrospector(AnnotationIntrospectorPair.pair(introspector, primary));
-        });
+        return builder -> {
+            AnnotationIntrospector current = builder.annotationIntrospector();
+            builder.annotationIntrospector(
+                    AnnotationIntrospectorPair.create(introspector, current));
+        };
     }
 }

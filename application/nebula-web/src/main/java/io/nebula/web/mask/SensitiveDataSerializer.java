@@ -1,18 +1,16 @@
 package io.nebula.web.mask;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-
-import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
 
 /**
- * 敏感数据序列化器
+ * 敏感数据序列化器（Jackson 3）
  * 用于在 JSON 序列化时自动脱敏
  * 
  * @author nebula
  */
-public class SensitiveDataSerializer extends JsonSerializer<String> {
+public class SensitiveDataSerializer extends ValueSerializer<String> {
     
     private final DataMaskingStrategyManager strategyManager;
     private final MaskType maskType;
@@ -30,8 +28,7 @@ public class SensitiveDataSerializer extends JsonSerializer<String> {
     }
     
     @Override
-    public void serialize(String value, JsonGenerator gen, SerializerProvider serializers) 
-            throws IOException {
+    public void serialize(String value, JsonGenerator gen, SerializationContext ctxt) {
         if (!enabled || strategyManager == null) {
             gen.writeString(value);
             return;
