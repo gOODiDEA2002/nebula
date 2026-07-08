@@ -565,3 +565,19 @@ flowchart LR
 ### 架构改进
 - 实现类（MinIOStorageService、AliyunOSSStorageService、ElasticsearchSearchService、SpringAIChatService）移除冗余 `@Service` 注解，统一由 AutoConfiguration 管理
 - 爬虫 `HttpCrawlerEngine` SSL trustAll 增加环境检查，生产环境自动拒绝
+
+### Spring Boot 4.1 升级与加固（阶段一）
+- **[C-1] MVC 脱敏恢复**: Starter defaults 注入 `spring.http.converters.preferred-json-mapper=jackson2`，确保 `@SensitiveData` 脱敏在 SB4.1 下生效（Jackson 3 全量迁移后移除）
+- **[C-1] MockMvc 脱敏哨兵**: 新增 `SensitiveDataMvcMaskingTest` 端到端验证脱敏输出
+- **[C-2] gRPC 服务端宿主**: `nebula-rpc-grpc` 从 `spring-grpc-core` 切换到 `spring-boot-starter-grpc-server`；根 POM 删除自管 `grpc-bom:1.68.1`，由 Boot BOM 统一管理 gRPC 1.80.0
+- **[C-2] gRPC 端口桥接**: 新增 `NebulaGrpcServerPortBridgePostProcessor`，`nebula.rpc.grpc.server.port` 自动桥接到 `spring.grpc.server.port`
+- **[C-2] gRPC 回环测试**: 新增 `GrpcServerLoopbackIntegrationTest` 验证服务端启动、RPC 调用与 token 拦截
+- **[H-1] HTTP RPC 客户端鉴权**: 新增配置项 `nebula.rpc.http.client.auth-token`，`HttpRpcClient` 请求自动携带 `X-Nebula-Rpc-Token` 头
+- **[H-2] 列名白名单校验**: `ServiceImpl.findByField/findOneByField/findByFields` 增加列名正则校验，阻断 SQL 注入
+- **[M-1] /rpc token 常量时间比较**: `HttpRpcController` 与 `GrpcAuthTokenInterceptor` 的 token 比较改用 `MessageDigest.isEqual`
+- **[M-2] EPP 新接口迁移**: `NebulaStarterDefaultsPostProcessor`/`NebulaMcpEnvironmentPostProcessor` 迁移到 `org.springframework.boot.EnvironmentPostProcessor`；注册键改新键；删除 gateway 死代码 `GatewayGrpcServerExcludeConfiguration`
+- **[M-3] 缓存健康检查键前缀**: Redis 健康检查键加 `keyPrefix` 前缀；`evictionCount` 改 `LongAdder` 原子化
+- **[M-4] ES trust-all 生产防护**: `ElasticsearchAutoConfiguration.createSSLContext()` 生产环境自动拒绝禁用 SSL 校验
+- **[L-1] JwtAuthenticationFilter**: 删除 `readStringList()` 冗余 `Objects::nonNull` 过滤
+- **[L-2] ES ObjectMapper 隔离**: `elasticsearchClient()` 使用 `objectMapper.copy()` 避免污染全局实例
+- **[L-3] ServiceDiscoveryRpcClient 异步执行器**: 新增 5 参构造支持注入 `Executor`，`callAsync` 使用注入的执行器

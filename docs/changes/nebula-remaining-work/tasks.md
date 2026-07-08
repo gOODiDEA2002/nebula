@@ -29,7 +29,7 @@
 
 - **目标**: 修补阶段一对账审计发现的两处未完成项（细节见 implementation.md Task 2-0）
 - **子项**:
-  - [ ] Task 13 文档欠账：README.md/AGENTS.md 版本口径改 4.1.0；CLAUDE.md v2.0.x 变更记录补充阶段一内容
+  - [x] Task 13 文档欠账：README.md/AGENTS.md 版本口径改 4.1.0；CLAUDE.md v2.0.x 变更记录补充阶段一内容
   - [ ] Task 12.3 装配缺口：`RpcDiscoveryAutoConfiguration` 用 `ObjectProvider<Executor>` 接通 `rpcExecutor` 注入 + 条件装配测试
 - **依赖**: 无（阶段二开工第一动作）
 - **验收标准**: 两项各自独立提交；`rg "3\.5\.8" README.md AGENTS.md` 零命中

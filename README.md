@@ -1,14 +1,14 @@
 # Nebula Framework
 
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.java.net/projects/jdk/21/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.8-green.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-green.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 和 Java 21 构建，提供企业级应用开发的完整解决方案。
+Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 4.1.0 和 Java 21 构建，提供企业级应用开发的完整解决方案。
 
 ## 特性
 
-- **现代化技术栈**: Java 21 + Spring Boot 3.5.8 + Maven
+- **现代化技术栈**: Java 21 + Spring Boot 4.1.0 + Maven
 - **模块化架构**: 清晰的分层设计，按需引入
 - **安全认证**: JWT + RBAC 权限体系，安全注解支持
 - **数据持久化**: MyBatis-Plus 集成，读写分离/分库分表
