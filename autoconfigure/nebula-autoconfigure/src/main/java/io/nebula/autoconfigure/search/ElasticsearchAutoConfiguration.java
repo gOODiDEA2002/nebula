@@ -145,8 +145,9 @@ public class ElasticsearchAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ElasticsearchClient elasticsearchClient(Rest5Client rest5Client, ObjectMapper objectMapper) {
-        objectMapper.registerModule(new JavaTimeModule());
-        JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(objectMapper);
+        ObjectMapper mapper = objectMapper.copy();
+        mapper.registerModule(new JavaTimeModule());
+        JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
         ElasticsearchTransport transport = new Rest5ClientTransport(rest5Client, jsonpMapper);
         return new ElasticsearchClient(transport);
     }

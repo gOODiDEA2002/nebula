@@ -15,7 +15,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -158,7 +157,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return Arrays.stream(text.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .filter(Objects::nonNull)
                 .toList();
     }
 }

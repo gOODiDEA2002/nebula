@@ -173,7 +173,7 @@
 - **依赖**: Task 11（同文件 ElasticsearchAutoConfiguration，避免冲突，顺序执行）
 - **验收标准**: 编译与既有测试通过
 - **验证命令**: `mvn -q compile && mvn test -pl core/nebula-security,infrastructure/rpc/nebula-rpc-core`
-- [ ] 完成
+- [x] 完成
 
 ## Task 13: 全量回归 + 文档收尾
 

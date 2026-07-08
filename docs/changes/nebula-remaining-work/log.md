@@ -125,6 +125,12 @@
 - 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=ElasticsearchSslGuardTest` → Tests run: 5, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
 - 五个用例: prod 被拦截, production 被拦截, dev 允许, 无 profile 允许, sslVerificationEnabled=true 正常
 
+### Task 12 [L批] 三处小修
+- 子项1: JwtAuthenticationFilter.readStringList() 删除冗余 `.filter(Objects::nonNull)`, 清理无引用 `import java.util.Objects`
+- 子项2: ElasticsearchAutoConfiguration.elasticsearchClient() 改为 `objectMapper.copy()` 再注册模块, 避免污染全局 ObjectMapper
+- 子项3: ServiceDiscoveryRpcClient 新增 5 参构造(含 Executor), 4 参构造委托传 ForkJoinPool.commonPool(); callAsync() 使用注入的 executor
+- 验证命令: `mvn -q compile -pl core/nebula-security,infrastructure/rpc/nebula-rpc-core` 编译通过; `mvn test -pl core/nebula-security,infrastructure/rpc/nebula-rpc-core` BUILD SUCCESS
+
 ## 踩坑记录
 
 （待开发过程中填写）

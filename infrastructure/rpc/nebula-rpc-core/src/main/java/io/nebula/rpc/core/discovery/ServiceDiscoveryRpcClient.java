@@ -13,6 +13,8 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -27,16 +29,26 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     private final LoadBalancer loadBalancer;
     private final io.nebula.rpc.core.client.RpcClient delegateClient;
     private final Environment environment;
+    private final Executor asyncExecutor;
     private final ConcurrentHashMap<String, List<ServiceInstance>> serviceCache = new ConcurrentHashMap<>();
     
     public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery, 
                                    LoadBalancer loadBalancer, 
                                    io.nebula.rpc.core.client.RpcClient delegateClient,
                                    Environment environment) {
+        this(serviceDiscovery, loadBalancer, delegateClient, environment, ForkJoinPool.commonPool());
+    }
+
+    public ServiceDiscoveryRpcClient(ServiceDiscovery serviceDiscovery,
+                                   LoadBalancer loadBalancer,
+                                   io.nebula.rpc.core.client.RpcClient delegateClient,
+                                   Environment environment,
+                                   Executor asyncExecutor) {
         this.serviceDiscovery = serviceDiscovery;
         this.loadBalancer = loadBalancer;
         this.delegateClient = delegateClient;
         this.environment = environment;
+        this.asyncExecutor = asyncExecutor != null ? asyncExecutor : ForkJoinPool.commonPool();
         
         log.info("ServiceDiscoveryRpcClient 初始化完成，负载均衡策略: {}", 
                 loadBalancer.getClass().getSimpleName());
@@ -89,7 +101,7 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     
     @Override
     public <T> CompletableFuture<T> callAsync(Class<T> serviceClass, String methodName, Object... args) {
-        return CompletableFuture.supplyAsync(() -> call(serviceClass, methodName, args));
+        return CompletableFuture.supplyAsync(() -> call(serviceClass, methodName, args), asyncExecutor);
     }
     
     @Override
