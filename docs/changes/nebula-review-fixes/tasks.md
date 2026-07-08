@@ -117,7 +117,7 @@
 - **依赖**: 无
 - **验收标准**: 非法列名抛 `ValidationException` 且信息明确；合法查询行为不变
 - **验证命令**: `mvn test -pl infrastructure/data/nebula-data-persistence`
-- [ ] 完成
+- [x] 完成
 
 ## Task 8: [M-1] /rpc token 常量时间比较
 

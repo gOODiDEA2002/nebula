@@ -99,6 +99,12 @@
 - 三态测试: 只配旧键->新键出现且值一致; 两者都配->新键保持用户值; 都不配->不注入
 - GrpcRpcProperties.ServerConfig: port 标 @Deprecated, 其余线程/流控参数 Javadoc 标注改用 spring.grpc.server.*, Task 2-3 清理
 
+### Task 7 [H-2] ServiceImpl 列名白名单校验
+- 涉及文件: ServiceImpl.java (新增 validateColumn + 接入 findByField/findOneByField/findByFields)
+- 新增 ServiceImplColumnValidationTest.java: 合法列名放行(6 种) + 非法列名拒绝(7 种) + null/空串拒绝
+- 验证命令: `mvn test -pl infrastructure/data/nebula-data-persistence` → Tests run: 39, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
+- 偏差: ValidationException.getMessage() 固定返回"数据验证失败", 测试改用 getFormattedMessage()+fieldErrors 校验, 断言更强(同时验证字段名和消息内容)
+
 ### Task 8 [M-1] /rpc token 常量时间比较
 - 涉及文件: HttpRpcController.java, GrpcAuthTokenInterceptor.java
 - 变更: `.equals(provided)` → `MessageDigest.isEqual(expected.getBytes(UTF_8), provided.getBytes(UTF_8))`; 先判 provided != null 避免 NPE

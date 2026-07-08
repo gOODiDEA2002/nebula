@@ -10,12 +10,15 @@ import io.nebula.data.persistence.service.IService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.nebula.core.common.exception.ValidationException;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -28,7 +31,20 @@ import java.util.stream.Collectors;
 public class ServiceImpl<M extends BaseMapper<T>, T> 
         extends com.baomidou.mybatisplus.extension.service.impl.ServiceImpl<M, T> 
         implements IService<T> {
-    
+
+    private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("^[A-Za-z0-9_]+$");
+
+    /**
+     * 校验列名合法性, 阻断 SQL 注入。
+     * 仅允许字母、数字、下划线, 拒绝任何特殊字符。
+     */
+    private static String validateColumn(String field) {
+        if (field == null || !COLUMN_NAME_PATTERN.matcher(field).matches()) {
+            throw ValidationException.of("column", "非法列名: " + field);
+        }
+        return field;
+    }
+
     @Override
     public Optional<T> findById(Serializable id) {
         return baseMapper.selectByIdOpt(id);
@@ -41,12 +57,13 @@ public class ServiceImpl<M extends BaseMapper<T>, T>
     
     @Override
     public List<T> findByField(String field, Object value) {
+        validateColumn(field);
         return list(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<T>().eq(field, value));
     }
 
     @Override
     public Optional<T> findOneByField(String field, Object value) {
-        // 按字段等值查询取一条(false=命中多条不抛异常)，而非把字段值当主键
+        validateColumn(field);
         return Optional.ofNullable(
                 getOne(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<T>().eq(field, value), false));
     }
@@ -56,7 +73,10 @@ public class ServiceImpl<M extends BaseMapper<T>, T>
         com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<T> wrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
         if (fieldValues != null) {
-            fieldValues.forEach(wrapper::eq);
+            fieldValues.forEach((k, v) -> {
+                validateColumn(k);
+                wrapper.eq(k, v);
+            });
         }
         return list(wrapper);
     }
