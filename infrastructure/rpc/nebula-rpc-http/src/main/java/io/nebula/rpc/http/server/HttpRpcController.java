@@ -48,10 +48,12 @@ public class HttpRpcController {
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RpcResponse> handleRpcRequest(@RequestBody RpcRequest request,
                                                         jakarta.servlet.http.HttpServletRequest httpRequest) {
-        // 可选 token 鉴权(配置了才校验): /rpc 端点无鉴权时任何人可按方法名调用所有已注册服务
         if (!authToken.isEmpty()) {
             String provided = httpRequest.getHeader(AUTH_TOKEN_HEADER);
-            if (!authToken.equals(provided)) {
+            boolean pass = provided != null && java.security.MessageDigest.isEqual(
+                    authToken.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    provided.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            if (!pass) {
                 log.warn("RPC 请求 token 校验失败: requestId={}, service={}",
                         request.getRequestId(), request.getServiceName());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

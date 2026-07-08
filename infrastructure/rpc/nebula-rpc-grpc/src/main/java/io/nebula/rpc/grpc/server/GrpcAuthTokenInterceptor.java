@@ -40,7 +40,10 @@ public class GrpcAuthTokenInterceptor implements ServerInterceptor {
         }
 
         String provided = headers.get(AUTH_TOKEN_KEY);
-        if (!expectedToken.equals(provided)) {
+        boolean pass = provided != null && java.security.MessageDigest.isEqual(
+                expectedToken.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                provided.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        if (!pass) {
             log.warn("gRPC RPC token 校验失败: method={}", call.getMethodDescriptor().getFullMethodName());
             call.close(Status.UNAUTHENTICATED.withDescription("gRPC RPC 鉴权失败"), new Metadata());
             return new ServerCall.Listener<>() {};
