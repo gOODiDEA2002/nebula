@@ -78,6 +78,13 @@
 - NebulaStarterDefaultsIntegrationTest 回归通过(EPP 新键注册生效)
 - `rg "net.devh" --type java` 主代码零命中(删除 GatewayGrpcServerExcludeConfiguration + 对应 spring.factories)
 
+### Task 6 [H-1] HTTP RPC 客户端注入鉴权 token
+- 验证命令: `mvn test -pl infrastructure/rpc/nebula-rpc-http`
+- 结果: Tests run: 15, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (7.597s)
+- 新增 HttpRpcAuthTokenRoundTripTest(4 用例): controller 层无 token->401/有 token->200; client 层带 token->成功/无 token->RuntimeException("RPC调用失败")
+- 既有测试回归: HttpRpcControllerAuthTest(4), HttpRpcClientTest(2), HttpRpcClientTargetIsolationTest(2), HttpRpcControllerFindMethodTest(3) 均绿
+- 偏差: tasks.md 称"构造函数变更为编译期破坏性变更", 实际保留 4 参构造委托 5 参传空串, 破坏面最小化; 已记 log
+
 ### Task 5 [C-2] gRPC 服务端回环集成测试(含 token 拦截器)
 - 验证命令: `mvn test -pl infrastructure/rpc/nebula-rpc-grpc -Dtest=GrpcServerLoopbackIntegrationTest`
 - 结果: Tests run: 3, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS (7.745s)

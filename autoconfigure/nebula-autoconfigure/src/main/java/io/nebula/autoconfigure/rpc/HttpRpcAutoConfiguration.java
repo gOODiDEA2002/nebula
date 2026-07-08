@@ -99,7 +99,8 @@ public class HttpRpcAutoConfiguration {
             baseUrl = "http://localhost:" + serverPort;
         }
 
-        HttpRpcClient client = new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor, objectMapper);
+        HttpRpcClient client = new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor, objectMapper,
+                properties.getClient().getAuthToken());
 
         log.info("配置HTTP RPC客户端: baseUrl={}", baseUrl);
 

@@ -190,5 +190,11 @@ public class HttpRpcProperties {
          * 是否启用日志
          */
         private boolean loggingEnabled = true;
+
+        /**
+         * 调用下游 /rpc 端点时携带的鉴权 token(可选,默认空=不携带)。
+         * 下游服务端配置 nebula.rpc.http.server.auth-token 后,本端必须配置一致的值才能调通。
+         */
+        private String authToken = "";
     }
 }

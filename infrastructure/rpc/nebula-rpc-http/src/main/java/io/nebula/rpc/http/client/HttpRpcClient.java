@@ -33,6 +33,7 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     private volatile String baseUrl;
     private final Executor executor;
     private final ObjectMapper objectMapper;
+    private final String authToken;
 
     /** 本次请求的目标地址覆盖(per-thread)，避免并发调不同实例时改写共享 baseUrl 造成串地址。 */
     private final ThreadLocal<String> targetOverride = new ThreadLocal<>();
@@ -40,10 +41,16 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     private final ConcurrentHashMap<MethodCacheKey, Method> methodCache = new ConcurrentHashMap<>();
 
     public HttpRpcClient(RestClient restClient, String baseUrl, Executor executor, ObjectMapper objectMapper) {
+        this(restClient, baseUrl, executor, objectMapper, "");
+    }
+
+    public HttpRpcClient(RestClient restClient, String baseUrl, Executor executor,
+                         ObjectMapper objectMapper, String authToken) {
         this.restClient = restClient;
         this.baseUrl = baseUrl;
         this.executor = executor;
         this.objectMapper = objectMapper;
+        this.authToken = authToken == null ? "" : authToken;
     }
 
     /** 本次调用生效的 baseUrl：优先 per-request 覆盖，否则用配置的默认 baseUrl。 */
@@ -317,12 +324,15 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
             log.debug("RPC请求序列化: url={}, bodyLength={}, service={}, method={}",
                     url, jsonBody.length(), request.getServiceName(), request.getMethodName());
             
-            return restClient.post()
+            var spec = restClient.post()
                     .uri(url)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
-                    .header("X-Request-ID", request.getRequestId())
-                    .body(jsonBody)
+                    .header("X-Request-ID", request.getRequestId());
+            if (!authToken.isEmpty()) {
+                spec = spec.header(io.nebula.rpc.http.server.HttpRpcController.AUTH_TOKEN_HEADER, authToken);
+            }
+            return spec.body(jsonBody)
                     .retrieve()
                     .body(RpcResponse.class);
         } catch (Exception e) {

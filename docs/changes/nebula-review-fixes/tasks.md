@@ -102,7 +102,7 @@
 - **依赖**: 无
 - **验收标准**: 见测试用例；构造函数变更为编译期破坏性变更，全仓检索调用点同步更新
 - **验证命令**: `mvn test -pl infrastructure/rpc/nebula-rpc-http`
-- [ ] 完成
+- [x] 完成
 
 ## Task 7: [H-2] ServiceImpl 列名白名单校验
 
