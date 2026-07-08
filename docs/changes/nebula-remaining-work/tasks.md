@@ -183,7 +183,7 @@
 
 - **涉及文件**: `core/nebula-foundation` 内全部 Jackson import（`JsonUtils` 为核心）；公开方法签名若含 `ObjectMapper` 需评估兼容（核心模块，优先内部封装隔离）
 - **验证命令**: `mvn test -pl core/nebula-foundation`
-- [ ] 完成
+- [x] 完成（Tests run: 278, Failures: 0; 全仓 `mvn clean compile` BUILD SUCCESS）
 
 ### Task 3-2: data 层迁移（cache Redis 序列化 + persistence）
 

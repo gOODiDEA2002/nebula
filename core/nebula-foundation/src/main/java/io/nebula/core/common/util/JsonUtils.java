@@ -1,14 +1,14 @@
 package io.nebula.core.common.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -42,16 +42,11 @@ public final class JsonUtils {
      * @return ObjectMapper实例
      */
     private static ObjectMapper createDefaultMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        // 注册Java 8时间模块
-        mapper.registerModule(new JavaTimeModule());
-        // 禁用写入日期为时间戳
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        // 忽略未知属性
-        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        // 允许空Bean序列化
-        mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-        return mapper;
+        return JsonMapper.builder()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+                .build();
     }
     
     /**
@@ -60,10 +55,12 @@ public final class JsonUtils {
      * @return ObjectMapper实例
      */
     private static ObjectMapper createPrettyMapper() {
-        ObjectMapper mapper = createDefaultMapper();
-        // 启用美化输出
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        return mapper;
+        return JsonMapper.builder()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .build();
     }
     
     /**
@@ -100,7 +97,7 @@ public final class JsonUtils {
         }
         try {
             return DEFAULT_MAPPER.writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -117,7 +114,7 @@ public final class JsonUtils {
         }
         try {
             return PRETTY_MAPPER.writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -134,7 +131,7 @@ public final class JsonUtils {
         }
         try {
             return DEFAULT_MAPPER.writeValueAsBytes(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -157,7 +154,7 @@ public final class JsonUtils {
         }
         try {
             return DEFAULT_MAPPER.readValue(json, clazz);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -176,7 +173,7 @@ public final class JsonUtils {
         }
         try {
             return DEFAULT_MAPPER.readValue(json, typeRef);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -195,7 +192,7 @@ public final class JsonUtils {
         }
         try {
             return DEFAULT_MAPPER.readValue(jsonBytes, clazz);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -214,7 +211,7 @@ public final class JsonUtils {
         }
         try {
             return DEFAULT_MAPPER.readValue(inputStream, clazz);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -246,9 +243,8 @@ public final class JsonUtils {
             return null;
         }
         try {
-            return DEFAULT_MAPPER.readValue(json, 
-                    DEFAULT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz));
-        } catch (JsonProcessingException e) {
+            return DEFAULT_MAPPER.readerForListOf(clazz).readValue(json);
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -305,7 +301,7 @@ public final class JsonUtils {
         }
         try {
             return DEFAULT_MAPPER.readTree(json);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -365,7 +361,7 @@ public final class JsonUtils {
         
         try {
             return DEFAULT_MAPPER.treeToValue(currentNode, clazz);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -387,7 +383,7 @@ public final class JsonUtils {
         try {
             DEFAULT_MAPPER.readTree(json);
             return true;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return false;
         }
     }
@@ -442,7 +438,7 @@ public final class JsonUtils {
         try {
             JsonNode merged = merge(node1, node2);
             return DEFAULT_MAPPER.writeValueAsString(merged);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -456,7 +452,7 @@ public final class JsonUtils {
      */
     private static JsonNode merge(JsonNode mainNode, JsonNode updateNode) {
         if (updateNode.isObject() && mainNode.isObject()) {
-            updateNode.fields().forEachRemaining(entry -> {
+            for (var entry : updateNode.properties()) {
                 String fieldName = entry.getKey();
                 JsonNode updateValue = entry.getValue();
                 
@@ -465,12 +461,12 @@ public final class JsonUtils {
                     if (mainValue.isObject() && updateValue.isObject()) {
                         merge(mainValue, updateValue);
                     } else {
-                        ((com.fasterxml.jackson.databind.node.ObjectNode) mainNode).set(fieldName, updateValue);
+                        ((ObjectNode) mainNode).set(fieldName, updateValue);
                     }
                 } else {
-                    ((com.fasterxml.jackson.databind.node.ObjectNode) mainNode).set(fieldName, updateValue);
+                    ((ObjectNode) mainNode).set(fieldName, updateValue);
                 }
-            });
+            }
             return mainNode;
         }
         return updateNode;

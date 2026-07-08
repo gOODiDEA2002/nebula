@@ -436,6 +436,22 @@
 
 **未发现新第三方约束**：所有 Jackson 2 依赖均为框架自身代码使用或 jjwt 传递，不存在 implementation.md 3.2 节第三方约束表未覆盖的情况。继续执行。
 
+### Task 3-1: foundation 层迁移
+
+**迁移文件**：
+- `core/nebula-foundation/pom.xml`：`jackson-databind` 换 `tools.jackson.core`；删除 `jackson-datatype-jsr310`
+- `JsonUtils.java`：全部 import 迁移至 `tools.jackson.*`；`ObjectMapper` 构建改用 `JsonMapper.builder()`；删除 `JavaTimeModule` 注册；`JsonProcessingException` → `JacksonException`；`fields()` → `properties()`
+- `Beans.java`：同理迁移 `ObjectMapper` 构建
+
+**Jackson 3 行为差异发现**：
+- `SerializationFeature.WRITE_DATES_AS_TIMESTAMPS`：已从枚举移除（Jackson 3 内置 java.time 默认 ISO-8601）
+- `JsonNode.fields()` → `JsonNode.properties()`
+- `FAIL_ON_NULL_FOR_PRIMITIVES` 默认值从 `false`(J2) 变为 `true`(J3)：JSON 缺失字段映射到 `int` 等原始类型时 J3 会报错。修复：显式 `.disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)`
+- `readValue(String, JavaType)` 在不可变 mapper 上行为与 J2 一致，无问题；改用 `readerForListOf()` 更简洁
+
+**验证**：`mvn test -pl core/nebula-foundation` → Tests run: 278, Failures: 0, BUILD SUCCESS
+**全仓编译**：`mvn clean compile` → BUILD SUCCESS
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）
