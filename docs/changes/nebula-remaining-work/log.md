@@ -626,6 +626,15 @@
 - 小修：升级指南清缓存命令由 `redis-cli KEYS`（阻塞生产 Redis）改为 `redis-cli --scan --pattern`。
 - 偏差备案：4-0a 对 payment/crawler-captcha 采用"换坐标"而非 implementation.md 原写的"删除依赖"，符合 Task 3-0 盘点裁决口径，效果等价，implementation.md 已按执行后口径修订。
 
+### Task 4-1 回流问题 #1：RedisMessageListenerContainer 双 Bean 歧义（2026-07-08，已修复）
+
+- **来源**：proud-day Task 2 启动验证失败（cache multi-level + messaging-redis 同时启用）。
+- **现象**：`redisMessageConsumer 需要单一 Bean 但找到 2 个：cacheInvalidationListenerContainer（CacheAutoConfiguration，阶段一 M-3 跨节点失效广播引入）与 redisMessageListenerContainer（RedisMessagingAutoConfiguration）`。
+- **根因**：`RedisMessagingAutoConfiguration.redisMessageConsumer` 按类型注入 `RedisMessageListenerContainer`，参数名 `listenerContainer` 不匹配任何 Bean 名，同类型双 Bean 时无法消歧。框架自身测试未覆盖"cache 失效容器与消息容器并存"组合，故阶段一至三全绿但未暴露。
+- **修复**：注入点加 `@Qualifier("redisMessageListenerContainer")`；新增回归测试 `RedisMessagingContainerAmbiguityTest`（双容器并存断言上下文不失败 + 消费者持有的确为消息模块自建容器）。
+- **验证**：`mvn test -pl autoconfigure`（62 tests, 0 failures, BUILD SUCCESS）；全仓 `mvn clean install -DskipTests` BUILD SUCCESS，`~/.m2` 快照已刷新。
+- **附注**：proud-day 侧代理遵守了"框架问题回流不就地打补丁"纪律，处置正确。其 Task 2 之前的首次失败（`ClassNotFoundException: JsonMapperBuilderCustomizer`）为误诊——实际是其 Task 1 漏升 parent 到 4.1.0，SB3.5 消费 SB4 框架属预期失败，已责成补全。
+
 ---
 
 ## Spec-Code 偏差

@@ -9,6 +9,7 @@ import io.nebula.messaging.redis.stream.RedisStreamProducer;
 import io.nebula.messaging.redis.support.RedisMessageSerializer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -82,11 +83,15 @@ public class RedisMessagingAutoConfiguration {
 
     /**
      * Redis Pub/Sub 消息消费者
+     * 显式限定注入本配置的 redisMessageListenerContainer:
+     * 当缓存模块的失效广播容器(cacheInvalidationListenerContainer)同时存在时,
+     * 容器中会有两个 RedisMessageListenerContainer, 按类型注入会产生歧义
      */
     @Bean
     @ConditionalOnMissingBean
-    public RedisMessageConsumer<Object> redisMessageConsumer(RedisMessageListenerContainer listenerContainer,
-                                                              RedisMessageSerializer serializer) {
+    public RedisMessageConsumer<Object> redisMessageConsumer(
+            @Qualifier("redisMessageListenerContainer") RedisMessageListenerContainer listenerContainer,
+            RedisMessageSerializer serializer) {
         log.info("初始化 Redis Pub/Sub 消息消费者");
         return new RedisMessageConsumer<>(listenerContainer, properties, serializer);
     }
