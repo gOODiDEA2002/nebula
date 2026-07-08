@@ -237,6 +237,15 @@
 - 新增 RpcDiscoveryExecutorInjectionTest(2 用例): 有 rpcExecutor Bean 时注入它; 无时回落 ForkJoinPool.commonPool()
 - 注意: Maven 镜像 nexus.vocoor.com.cn SSL 证书失效(SAN 不匹配), 需使用 `-s /tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central
 
+### Task 2-2 HTTP RPC 客户端参数接通（方案 A: HttpComponents 连接池）
+- rpcRestClient 从 SimpleClientHttpRequestFactory 改为 HttpComponentsClientHttpRequestFactory + PoolingHttpClientConnectionManager
+- 接通参数: connectTimeout, readTimeout, maxConnections, maxConnectionsPerRoute, keepAliveTime
+- 删除死字段: writeTimeout, retryCount, retryInterval, compressionEnabled, loggingEnabled
+- 诊断端点(NebulaDiagnosticEndpoint)只展示真实生效参数
+- autoconfigure pom 加 httpclient5 optional 依赖(Boot BOM 托管 5.6.1)
+- 新增 HttpRpcClientConfigTest(3 用例): Bean 创建、属性读取、已删字段反射确认
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure,infrastructure/rpc/nebula-rpc-http` → Tests run: 51 (15+36), Failures: 0 -- BUILD SUCCESS
+
 ### Task 2-4 错误码收敛 ResultCode 为唯一事实源
 - ResultCode.getByCode() 原实现正确(遍历比较数字码)，CF-40 真实问题是跨体系互查不通(偏差已记)
 - 新增 ResultCode.getByName(String) 容错版 valueOf

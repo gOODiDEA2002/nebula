@@ -13,12 +13,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.util.TimeValue;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestClient;
 
@@ -41,19 +48,40 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class HttpRpcAutoConfiguration {
 
     /**
-     * 配置HTTP RPC专用的RestClient（替代 RestTemplate）
+     * 配置HTTP RPC专用的RestClient（HttpComponents 连接池）
      */
     @Bean(name = "rpcRestClient")
     @ConditionalOnMissingBean(name = "rpcRestClient")
     public RestClient rpcRestClient(HttpRpcProperties properties) {
         HttpRpcProperties.ClientConfig clientConfig = properties.getClient();
 
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(clientConfig.getConnectTimeout());
-        factory.setReadTimeout(clientConfig.getReadTimeout());
+        ConnectionConfig connectionConfig = ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofMilliseconds(clientConfig.getConnectTimeout()))
+                .setSocketTimeout(Timeout.ofMilliseconds(clientConfig.getReadTimeout()))
+                .setTimeToLive(TimeValue.ofMilliseconds(clientConfig.getKeepAliveTime()))
+                .build();
 
-        log.info("配置HTTP RPC RestClient: connectTimeout={}ms, readTimeout={}ms",
-                clientConfig.getConnectTimeout(), clientConfig.getReadTimeout());
+        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+        connManager.setMaxTotal(clientConfig.getMaxConnections());
+        connManager.setDefaultMaxPerRoute(clientConfig.getMaxConnectionsPerRoute());
+        connManager.setDefaultConnectionConfig(connectionConfig);
+
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectionRequestTimeout(Timeout.ofMilliseconds(clientConfig.getConnectTimeout()))
+                .build();
+
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionManager(connManager)
+                .setDefaultRequestConfig(requestConfig)
+                .build();
+
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
+
+        log.info("配置HTTP RPC RestClient: connectTimeout={}ms, readTimeout={}ms, " +
+                        "maxConnections={}, maxConnectionsPerRoute={}, keepAliveTime={}ms",
+                clientConfig.getConnectTimeout(), clientConfig.getReadTimeout(),
+                clientConfig.getMaxConnections(), clientConfig.getMaxConnectionsPerRoute(),
+                clientConfig.getKeepAliveTime());
 
         return RestClient.builder()
                 .requestFactory(factory)
@@ -169,12 +197,12 @@ public class HttpRpcAutoConfiguration {
         details.put("Context Path", properties.getServer().getContextPath());
         details.put("Request Timeout", properties.getServer().getRequestTimeout() + "ms");
 
-        // Client Info
+        // Client Info（仅展示真实生效的参数）
         details.put("Connect Timeout", properties.getClient().getConnectTimeout() + "ms");
         details.put("Read Timeout", properties.getClient().getReadTimeout() + "ms");
         details.put("Max Connections", String.valueOf(properties.getClient().getMaxConnections()));
-        details.put("Retry Count", String.valueOf(properties.getClient().getRetryCount()));
-        details.put("Compression", String.valueOf(properties.getClient().isCompressionEnabled()));
+        details.put("Max Connections Per Route", String.valueOf(properties.getClient().getMaxConnectionsPerRoute()));
+        details.put("Keep Alive Time", properties.getClient().getKeepAliveTime() + "ms");
 
         return new SimpleComponentSummary("RPC", "HTTP RPC", true, 200, details);
     }

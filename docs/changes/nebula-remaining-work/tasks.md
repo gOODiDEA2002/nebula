@@ -58,7 +58,7 @@
 - **依赖**: Task 2-1
 - **验收标准**: 每个保留的配置项有真实消费点；诊断端点不展示已删除项
 - **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure,infrastructure/rpc/nebula-rpc-http`
-- [ ] 完成
+- [x] 完成
 
 ### Task 2-3: 死配置处理 -- 删除批（security/nacos/grpc 遗留）
 

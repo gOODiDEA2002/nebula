@@ -77,6 +77,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- HTTP RPC 连接池(HttpComponents，可选) -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- RPC gRPC (可选) -->
         <dependency>
             <groupId>io.nebula</groupId>

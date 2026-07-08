@@ -142,7 +142,9 @@ public class NebulaDiagnosticEndpoint {
                     "enabled", httpRpc.getClient().isEnabled(),
                     "connectTimeout", httpRpc.getClient().getConnectTimeout(),
                     "readTimeout", httpRpc.getClient().getReadTimeout(),
-                    "retryCount", httpRpc.getClient().getRetryCount()
+                    "maxConnections", httpRpc.getClient().getMaxConnections(),
+                    "maxConnectionsPerRoute", httpRpc.getClient().getMaxConnectionsPerRoute(),
+                    "keepAliveTime", httpRpc.getClient().getKeepAliveTime()
                 ));
             }
             info.put("http", httpInfo);

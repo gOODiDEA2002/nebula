@@ -134,14 +134,6 @@ public class HttpRpcProperties {
         private int readTimeout = 60000; // 60s
 
         /**
-         * 写入超时时间（毫秒）
-         * 范围: 1000ms - 600000ms
-         */
-        @Min(value = 1000, message = "写入超时时间不能小于 1000 毫秒")
-        @Max(value = 600000, message = "写入超时时间不能大于 600000 毫秒")
-        private int writeTimeout = 60000; // 60s
-
-        /**
          * 最大连接数
          * 范围: 1 - 10000
          */
@@ -164,32 +156,6 @@ public class HttpRpcProperties {
         @Min(value = 10000, message = "连接保持时间不能小于 10000 毫秒")
         @Max(value = 3600000, message = "连接保持时间不能大于 3600000 毫秒")
         private long keepAliveTime = 60000; // 60s
-
-        /**
-         * 重试次数
-         * 范围: 0 - 10
-         */
-        @Min(value = 0, message = "重试次数不能小于 0")
-        @Max(value = 10, message = "重试次数不能大于 10")
-        private int retryCount = 3;
-
-        /**
-         * 重试间隔（毫秒）
-         * 范围: 100ms - 60000ms
-         */
-        @Min(value = 100, message = "重试间隔不能小于 100 毫秒")
-        @Max(value = 60000, message = "重试间隔不能大于 60000 毫秒")
-        private long retryInterval = 1000; // 1s
-
-        /**
-         * 是否启用压缩
-         */
-        private boolean compressionEnabled = false;
-
-        /**
-         * 是否启用日志
-         */
-        private boolean loggingEnabled = true;
 
         /**
          * 调用下游 /rpc 端点时携带的鉴权 token(可选,默认空=不携带)。
