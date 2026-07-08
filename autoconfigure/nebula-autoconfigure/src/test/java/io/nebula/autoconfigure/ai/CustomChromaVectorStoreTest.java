@@ -1,6 +1,6 @@
 package io.nebula.autoconfigure.ai;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -40,7 +40,7 @@ class CustomChromaVectorStoreTest {
                 .thenReturn(new ChromaApi.Collection("col-id-1", "test-col", null));
         // mock 实例的内部 objectMapper 为 null，无法 callRealMethod，等价实现 where 的 JSON->Map 解析
         when(chromaApi.where(anyString())).thenAnswer(inv ->
-                new ObjectMapper().readValue(inv.getArgument(0, String.class), Map.class));
+                JsonMapper.builder().build().readValue(inv.getArgument(0, String.class), Map.class));
         store = new CustomChromaVectorStore(chromaApi, embeddingModel, "test-col", false);
     }
 

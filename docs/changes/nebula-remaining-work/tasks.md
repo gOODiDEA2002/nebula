@@ -212,7 +212,7 @@
 
 - **涉及文件**: `nebula-search-elasticsearch`（`JacksonJsonpMapper` 换 Jackson 3 变体）、`nebula-ai-*`、`nebula-task`、`nebula-autoconfigure`（CacheAutoConfiguration 序列化器装配、诊断端点等）
 - **验证命令**: `mvn test -pl infrastructure/search/...,infrastructure/ai/...,application/nebula-task,autoconfigure/nebula-autoconfigure`
-- [ ] 完成
+- [x] 完成（autoconfigure 61T/ai-spring 18T/search-es 38T/task 48T, 0 failures）
 
 ### Task 3-6: 拆桥收尾
 

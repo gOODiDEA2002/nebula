@@ -43,11 +43,11 @@
         
         <!-- Jackson for JSON processing -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
         
-        <!-- Jackson Annotations -->
+        <!-- Jackson Annotations (retains com.fasterxml.jackson.annotation package) -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>

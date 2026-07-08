@@ -1,6 +1,7 @@
 package io.nebula.task.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.xxl.job.core.executor.impl.XxlJobSpringExecutor;
 import io.nebula.task.scheduled.TimedTaskJobHandler;
 import io.nebula.task.xxljob.service.XxlJobRegistryService;
@@ -27,8 +28,8 @@ public class XxlJobAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public XxlJobHttpClient xxlJobHttpClient(ObjectMapper objectMapper) {
-        return new XxlJobHttpClient(objectMapper);
+    public XxlJobHttpClient xxlJobHttpClient() {
+        return new XxlJobHttpClient(JsonMapper.builder().build());
     }
 
     /**

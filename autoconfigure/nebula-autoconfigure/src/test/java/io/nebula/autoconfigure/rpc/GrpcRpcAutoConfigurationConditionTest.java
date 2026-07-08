@@ -1,6 +1,7 @@
 package io.nebula.autoconfigure.rpc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.grpc.client.GrpcRpcClient;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
 import io.nebula.rpc.grpc.server.GrpcRpcServer;
@@ -65,7 +66,7 @@ class GrpcRpcAutoConfigurationConditionTest {
     static class MockDeps {
         @Bean
         ObjectMapper objectMapper() {
-            return new ObjectMapper();
+            return JsonMapper.builder().build();
         }
     }
 }

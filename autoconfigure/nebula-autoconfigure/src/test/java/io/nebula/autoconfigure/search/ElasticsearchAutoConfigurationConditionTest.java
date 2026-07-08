@@ -1,7 +1,8 @@
 package io.nebula.autoconfigure.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.search.elasticsearch.service.ElasticsearchSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -56,7 +57,7 @@ class ElasticsearchAutoConfigurationConditionTest {
     static class MockDeps {
         @Bean
         ObjectMapper objectMapper() {
-            return new ObjectMapper();
+            return JsonMapper.builder().build();
         }
     }
 }

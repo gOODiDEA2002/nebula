@@ -1,6 +1,7 @@
 package io.nebula.ai.spring.mcp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nebula.ai.core.mcp.McpTool;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
@@ -19,7 +20,7 @@ public class McpToolAdapter implements ToolCallback {
     
     public McpToolAdapter(McpTool mcpTool) {
         this.mcpTool = mcpTool;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = JsonMapper.builder().build();
         this.toolDefinition = createToolDefinition();
     }
     

@@ -1,7 +1,9 @@
 package com.acme.cache;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import tools.jackson.databind.DefaultTyping;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import io.nebula.autoconfigure.data.CacheAutoConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -18,12 +20,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class CacheRedisTypingWhitelistTest {
 
-    // 用一个"信任一切"的 mapper 生成携带类型信息的 JSON，模拟 Redis 中被写入的多态数据
     private String typedJson(Object value) throws Exception {
-        ObjectMapper permissive = new ObjectMapper();
-        permissive.activateDefaultTyping(
-                BasicPolymorphicTypeValidator.builder().allowIfSubType(Object.class).build(),
-                ObjectMapper.DefaultTyping.NON_FINAL);
+        ObjectMapper permissive = JsonMapper.builder()
+                .activateDefaultTyping(
+                        BasicPolymorphicTypeValidator.builder().allowIfSubType(Object.class).build(),
+                        DefaultTyping.NON_FINAL)
+                .build();
         return permissive.writeValueAsString(value);
     }
 
@@ -39,7 +41,6 @@ class CacheRedisTypingWhitelistTest {
     void untrustedTypeIsRejectedByDefault() throws Exception {
         String malicious = typedJson(new Untrusted("x"));
         ObjectMapper restricted = CacheAutoConfiguration.buildRedisValueObjectMapper(List.of());
-        // com.acme 不在默认白名单(java.util/java.time/io.nebula) -> 反序列化被拒
         assertThatThrownBy(() -> restricted.readValue(malicious, Object.class))
                 .isInstanceOf(Exception.class);
     }

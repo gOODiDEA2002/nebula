@@ -1,9 +1,9 @@
 package io.nebula.autoconfigure.data;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.DefaultTyping;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.data.cache.config.CacheProperties;
@@ -35,7 +35,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
@@ -126,11 +126,11 @@ public class CacheAutoConfiguration {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
 
-        // 创建支持 Java 8 日期时间类型并启用类型信息的 ObjectMapper(带多态白名单)
+        // 创建启用类型信息的 ObjectMapper(带多态白名单)，Jackson 3 内置 java.time 支持
         ObjectMapper objectMapper = buildRedisValueObjectMapper(properties.getRedis().getTrustedPackages());
 
-        // 设置value序列化器（支持 LocalDateTime 等 Java 8 时间类型，保留类型信息）
-        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        // 设置value序列化器（保留类型信息）
+        GenericJacksonJsonRedisSerializer jsonSerializer = new GenericJacksonJsonRedisSerializer(objectMapper);
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);
 
@@ -139,14 +139,12 @@ public class CacheAutoConfiguration {
     }
 
     /**
-     * 构建 Redis 值序列化用的 ObjectMapper：启用类型信息(保留多态)，但用白名单限定可反序列化的类型，
-     * 仅允许 java.util / java.time / io.nebula 及应用声明的业务包，防止 Jackson gadget 反序列化 RCE。
+     * 构建 Redis 值序列化用的 ObjectMapper（Jackson 3）：启用类型信息(保留多态)，
+     * 但用白名单限定可反序列化的类型，仅允许 java.util / java.time / io.nebula
+     * 及应用声明的业务包，防止 Jackson gadget 反序列化 RCE。
      * 提取为包级静态方法以便直接测试白名单行为。
      */
     public static ObjectMapper buildRedisValueObjectMapper(java.util.List<String> trustedPackages) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         BasicPolymorphicTypeValidator.Builder ptvBuilder = BasicPolymorphicTypeValidator.builder()
                 .allowIfSubType("java.util.")
                 .allowIfSubType("java.time.")
@@ -158,8 +156,9 @@ public class CacheAutoConfiguration {
                 }
             }
         }
-        objectMapper.activateDefaultTyping(ptvBuilder.build(), ObjectMapper.DefaultTyping.NON_FINAL);
-        return objectMapper;
+        return JsonMapper.builder()
+                .activateDefaultTyping(ptvBuilder.build(), DefaultTyping.NON_FINAL)
+                .build();
     }
 
     /**

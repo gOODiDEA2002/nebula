@@ -1,9 +1,7 @@
 package io.nebula.autoconfigure.search;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
@@ -144,10 +142,8 @@ public class ElasticsearchAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public ElasticsearchClient elasticsearchClient(Rest5Client rest5Client, ObjectMapper objectMapper) {
-        ObjectMapper mapper = objectMapper.copy();
-        mapper.registerModule(new JavaTimeModule());
-        JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
+    public ElasticsearchClient elasticsearchClient(Rest5Client rest5Client) {
+        Jackson3JsonpMapper jsonpMapper = new Jackson3JsonpMapper();
         ElasticsearchTransport transport = new Rest5ClientTransport(rest5Client, jsonpMapper);
         return new ElasticsearchClient(transport);
     }

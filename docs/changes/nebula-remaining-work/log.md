@@ -516,6 +516,36 @@
 
 ---
 
+### Task 3-5: search/ai/task/autoconfigure 层迁移
+
+**日期**: 2026-07-08
+
+**迁移范围**：
+
+1. **search-core POM**: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`
+2. **search-elasticsearch POM**: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`
+3. **ElasticsearchAutoConfiguration**: `JacksonJsonpMapper` → `Jackson3JsonpMapper`；移除 `ObjectMapper` 注入和 `JavaTimeModule`
+4. **ai-spring POM**: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`
+5. **McpToolAdapter**: `com.fasterxml.jackson.databind.ObjectMapper` → `tools.jackson.databind.ObjectMapper` + `JsonMapper.builder().build()`
+6. **nebula-task POM**: `com.fasterxml.jackson.core:jackson-databind` → `tools.jackson.core:jackson-databind`
+7. **XxlJobHttpClient**: `com.fasterxml.jackson.databind.ObjectMapper` → `tools.jackson.databind.ObjectMapper`
+8. **XxlJobAutoConfiguration**: 移除 `ObjectMapper` 注入，改用 `JsonMapper.builder().build()` 内部实例
+9. **CacheAutoConfiguration**: `GenericJackson2JsonRedisSerializer` → `GenericJacksonJsonRedisSerializer`；`buildRedisValueObjectMapper` 改用 `JsonMapper.builder()` 构建；移除 `JavaTimeModule` 和 `WRITE_DATES_AS_TIMESTAMPS`
+10. **autoconfigure 测试**: 所有使用 `new ObjectMapper()` 的测试改为 `JsonMapper.builder().build()`
+
+**策略要点**：
+- autoconfigure 层的 RPC/WebSocket/Task 模块 Bean 不再注入 Spring 管理的 `ObjectMapper`（因 bridge 仍存在，Spring 注入的是 Jackson 2 类型），改为内部实例化 Jackson 3 `ObjectMapper`
+- ES 客户端使用 `co.elastic.clients:elasticsearch-java` 提供的 `Jackson3JsonpMapper`，原生支持 Jackson 3
+- Redis 缓存序列化器使用 `spring-data-redis` 提供的 `GenericJacksonJsonRedisSerializer`（Jackson 3 版本）
+
+**测试结果**:
+- autoconfigure: 61 tests, 0 failures, BUILD SUCCESS
+- nebula-task: 48 tests, 0 failures, BUILD SUCCESS
+- search-elasticsearch: 38 tests, 0 failures, BUILD SUCCESS
+- ai-spring: 18 tests, 0 failures, BUILD SUCCESS
+
+---
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）
