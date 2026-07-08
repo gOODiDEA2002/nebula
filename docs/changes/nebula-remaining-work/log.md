@@ -354,6 +354,88 @@
 - 但生产环境中实际可用（需进一步确认 Spring Boot 在同一 @Import 批次中的条件评估行为）
 - 建议: 后续版本移除这些 @ConditionalOnMissingBean，或改用具体 Bean 名称匹配
 
+## 阶段三任务验证记录
+
+### Task 3-0: Jackson POM 依赖盘点与替代策略
+
+**jjwt Jackson 3 支持复查（2026-07-08）**：GitHub issue #1029 及 PR #1032 确认 0.14.x 分支正在开发 Jackson 3 支持，但截至 2026-07-08 **未发布**（0.14.x pom.xml 仍写 jackson.version=2.22.0）。维护者表示"will be out in the next release"（2026-06-11）。结论：保留 jjwt-jackson + 传递 Jackson 2，为唯一允许的运行时残留。
+
+**全仓 POM 盘点表**（`rg "jackson|jjwt" -g 'pom.xml'`，24 个文件命中）：
+
+| 模块 pom | 依赖 | 策略 | 理由 |
+|----------|------|------|------|
+| **根 pom.xml** | | | |
+| :148 `jjwt.version=0.13.0` | 属性 | **保留** | jjwt 无 Jackson 3 变体 |
+| :279-290 jjwt-api/impl/jackson DM | dependencyManagement | **保留** | 同上 |
+| :336-340 `spring-boot-jackson2` | 全模块 dependency | **Task 3-6 删除** | 迁移完成后拆桥 |
+| **core/nebula-foundation** | | | |
+| :26-27 `jackson-databind` | com.fasterxml.jackson.core | **换 `tools.jackson.core:jackson-databind`** | Jackson 3 坐标 |
+| :30-31 `jackson-datatype-jsr310` | com.fasterxml.jackson.datatype | **删除** | 并入 Jackson 3 databind |
+| :53-64 jjwt-api/impl/jackson | | **保留** | JWT 签发需要 |
+| **core/nebula-security** | | | |
+| :63-74 jjwt-api/impl/jackson | | **保留** | JWT 验证需要 |
+| **application/nebula-web** | | | |
+| :61-62 `jackson-datatype-jsr310` | | **删除** | 并入 Jackson 3 |
+| :68-81 jjwt-api/impl/jackson | | **保留** | 遗留引用(AuthContext) |
+| **application/nebula-task** | | | |
+| :60-61 `jackson-databind` | com.fasterxml.jackson.core | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/data/nebula-data-cache** | | | |
+| :40-41 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :44-45 `jackson-datatype-jsr310` | | **删除** | |
+| **infrastructure/data/nebula-data-persistence** | | | |
+| :76-77 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :80-81 `jackson-datatype-jsr310` | | **删除** | |
+| **infrastructure/data/nebula-data-mongodb** | | | |
+| :39-40 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/messaging/nebula-messaging-core** | | | |
+| :39-40 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :43-44 `jackson-datatype-jsr310` | | **删除** | |
+| **infrastructure/messaging/nebula-messaging-redis** | | | |
+| :40-41 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :44-45 `jackson-datatype-jsr310` | | **删除** | |
+| **infrastructure/rpc/nebula-rpc-grpc** | | | |
+| :85-86 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/rpc/nebula-rpc-async** | | | |
+| :63-64 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/websocket/nebula-websocket-core** | | | |
+| :28-29 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :32-33 `jackson-datatype-jsr310` | | **删除** | |
+| **infrastructure/websocket/nebula-websocket-spring** | | | |
+| :42-43 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :46-47 `jackson-datatype-jsr310` | | **删除** | |
+| **infrastructure/websocket/nebula-websocket-netty** | | | |
+| :48-49 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :52-53 `jackson-datatype-jsr310` | | **删除** | |
+| **infrastructure/gateway/nebula-gateway-core** | | | |
+| :57-68 jjwt-api/impl/jackson | | **保留** | Gateway JWT(应用层) |
+| :75-76 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/storage/nebula-storage-core** | | | |
+| :46-47 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/search/nebula-search-core** | | | |
+| :46-47 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :52-53 `jackson-annotations` | | **保留** | 注解包名不变 |
+| **infrastructure/search/nebula-search-elasticsearch** | | | |
+| :49-50 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/ai/nebula-ai-core** | | | |
+| :34-35 `jackson-annotations` | | **保留** | 注解包名不变，无代码迁移 |
+| **infrastructure/ai/nebula-ai-spring** | | | |
+| :87-88 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **infrastructure/crawler/nebula-crawler-captcha** | | | |
+| :49-50 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| **integration/nebula-integration-payment** | | | |
+| :55-56 `jackson-databind` | | **换 `tools.jackson.core:jackson-databind`** | |
+| :60-61 `jackson-datatype-jsr310` | | **删除** | |
+| **examples/gateway-example** | | | |
+| :48-57 jjwt-api/impl/jackson | | **保留** | 示例跟随主仓库 |
+
+**统计**：
+- 换坐标（databind）：17 处
+- 删除（jsr310）：11 处
+- 保留（jjwt/annotations）：8 组
+- Task 3-6 拆桥删除（spring-boot-jackson2）：1 处
+
+**未发现新第三方约束**：所有 Jackson 2 依赖均为框架自身代码使用或 jjwt 传递，不存在 implementation.md 3.2 节第三方约束表未覆盖的情况。继续执行。
+
 ## Spec-Code 偏差
 
 （实现与 Spec 不一致时，先更新 Spec 再改代码，并在此登记）
