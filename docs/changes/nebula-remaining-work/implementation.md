@@ -106,12 +106,25 @@ class StarterDefaultsInjectionTest {
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-grpc-server</artifactId>
+    <exclusions>
+        <!-- 客户端 GrpcRpcClient 直接 import 了 shaded NettyChannelBuilder(GrpcRpcClient.java:6),
+             必须保留 grpc-netty-shaded; starter 默认带的 grpc-netty(非 shaded)与之并存会导致
+             两套 Netty 传输 provider 竞争, 故排除 -->
+        <exclusion>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty</artifactId>
+        </exclusion>
+    </exclusions>
 </dependency>
 ```
 
-（Boot 4.1 BOM 托管版本；保留 `grpc-netty-shaded`/`grpc-protobuf`/`grpc-stub`——客户端自建 Channel 仍需。）
+（保留 `grpc-netty-shaded`/`grpc-protobuf`/`grpc-stub`——客户端自建 Channel 仍需。）
 
-2. 根 `pom.xml`：检索 `spring-grpc-core` 是否还有其他模块引用（`rg "spring-grpc" --type xml -g '!target'`），无引用则删除 dependencyManagement 条目与相关 version 属性。
+2. 根 `pom.xml` 的 gRPC 版本对齐（2026-07-08 外部审查 P1-2 已核实，必做）：
+   - 现状：根 pom `:316-322` 自行 import `io.grpc:grpc-bom:${grpc.version}`（`grpc.version=1.68.1`，属性 `:163`），子 POM 的 dependencyManagement 优先级高于父 Boot BOM，会把 gRPC 钉死在 1.68.1；而 Boot 4.1 BOM 托管的是 grpc-bom **1.80.0** + spring-grpc 1.1.0，starter 按 1.80.0 编译——混用两个年代的版本，依赖树可能"看着绿"但运行时出怪问题。
+   - 改法：**删除根 pom 的 `grpc-bom` import 条目**（让 Boot BOM 的 grpc-bom 1.80.0 接管全部 io.grpc 坐标）；`grpc.version` 属性**改为 1.80.0 保留**（`nebula-rpc-grpc/pom.xml:122` 的 protobuf 插件坐标 `protoc-gen-grpc-java:${grpc.version}` 仍引用它，须与运行时版本一致；若该插件段实为注释状态则属性也可直接删，现场确认）。
+   - 同步：检索 `spring-grpc-core` 是否还有其他模块引用（`rg "spring-grpc" --type xml -g '!target'`），无引用则删除 dependencyManagement 条目 `:326-330` 与 `spring-grpc.version` 属性。
+   - 验收：`mvn dependency:tree -pl infrastructure/rpc/nebula-rpc-grpc | grep -E "io.grpc|netty"` 确认只剩**一套一致的 gRPC 版本（1.80.0）**、传输层只有 `grpc-netty-shaded` 无 `grpc-netty`。
 
 3. `GrpcRpcServer.java`（`infrastructure/rpc/nebula-rpc-grpc/.../server/GrpcRpcServer.java:24-33`）：类 Javadoc 更新——本类 extends `GenericRpcServiceGrpc.GenericRpcServiceImplBase`（即 `BindableService`），由 Boot gRPC Server 自动配置发现并挂载，无需自建 `Server`。
 
@@ -175,7 +188,17 @@ public class NebulaGrpcServerPortBridgePostProcessor implements EnvironmentPostP
 **新增** `infrastructure/rpc/nebula-rpc-grpc/src/test/java/io/nebula/rpc/grpc/GrpcServerLoopbackIntegrationTest.java`：
 
 - `@SpringBootTest` 最小配置类（自行 `@Bean` 装配 `GrpcRpcServer`/`GrpcAuthTokenInterceptor`，或引入 autoconfigure 测试依赖），属性 `spring.grpc.server.port=0`（随机端口）。
-- 端口注入注解：spring-grpc 测试支持在 `org.springframework.grpc.test` 包（`spring-grpc-test` artifact，Boot BOM 托管），注解名以实际 jar 为准（预期 `@LocalGrpcPort`）；**执行时先 `unzip -l` 或查依赖确认坐标与注解名，结论记 log.md**。若测试支持不可用，退路：固定用 `ServerSocket(0)` 预取空闲端口配置给 `spring.grpc.server.port`。
+- 测试依赖（2026-07-08 已本地核实，直接照用）：`nebula-rpc-grpc/pom.xml` 加
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-grpc-server-test</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+（Boot 4.1 BOM 托管，4.1.0 可拉取；注意**不是** `org.springframework.grpc:spring-grpc-test`——该坐标 1.1.0 拉取失败。）端口注入注解为 `org.springframework.boot.grpc.test.autoconfigure.LocalGrpcServerPort`（已解包 `spring-boot-grpc-test-4.1.0.jar` 确认该类存在）。若集成测试中该注解仍不可用，退路：`ServerSocket(0)` 预取空闲端口配置给 `spring.grpc.server.port`。
 - 用例一（回环）：`GrpcRpcClient` 指向 `localhost:<port>`，注册一个带 `@RpcService` 的简单测试服务，调用并断言返回值。
 - 用例二（token）：属性加 `nebula.rpc.grpc.server.auth-token=test-token`，无 metadata 调用断言 `StatusRuntimeException` 且 `Status.UNAUTHENTICATED`；带 `x-nebula-rpc-token: test-token`（metadata key 见 `GrpcAuthTokenInterceptor.java:24`）调用成功。
 
@@ -222,7 +245,10 @@ return spec.body(jsonBody).retrieve().body(RpcResponse.class);
 
 3. `HttpRpcAutoConfiguration.java:102`：`new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor, objectMapper)` 改传 5 参，追加 `properties.getClient().getAuthToken()`。
 
-4. **新增测试** `infrastructure/rpc/nebula-rpc-http/src/test/java/io/nebula/rpc/http/server/HttpRpcAuthTokenRoundTripTest.java`（同包已有 `HttpRpcControllerAuthTest` 可参考其测法）：server 配 token + client 配相同 token 调通；client 无 token 得 401。
+4. **新增测试** `infrastructure/rpc/nebula-rpc-http/src/test/java/io/nebula/rpc/http/server/HttpRpcAuthTokenRoundTripTest.java`（同包已有 `HttpRpcControllerAuthTest` 可参考其测法）：server 配 token + client 配相同 token 调通；client 无 token 被拒。
+   - **断言口径注意**（2026-07-08 外部审查 P3-2）：`HttpRpcClient.sendRequest`（:312-332）用 try-catch 包住整个请求，`RestClient.retrieve()` 遇 401 抛的 `RestClientResponseException` 会被吃掉并封装为 `RpcResponse.exception(...)`——所以 client 侧**拿不到裸 401**。两层分开断言：
+     - controller 层（不经 client）：直接构造带/不带头的请求调 `handleRpcRequest`（或 MockMvc），断言 401 状态；
+     - client 侧（走 `HttpRpcClient`）：断言返回的 `RpcResponse` 为失败（`success=false`/异常信息含 401），不要断言抛出原始 HTTP 异常。
 
 **验证命令**：`mvn test -pl infrastructure/rpc/nebula-rpc-http`
 
@@ -232,7 +258,7 @@ return spec.body(jsonBody).retrieve().body(RpcResponse.class);
 
 **现场**：`HttpRpcController.java:52-60`，现为 `!authToken.equals(provided)`。
 
-**改法**（与 Task 6 同模块，允许合并为一次提交，但 tasks.md 分开勾选）：
+**改法**（2026-07-08 统一口径：与 Task 6 同模块但**仍各自独立提交**，遵守"一任务一提交"，撤销此前"可合并提交"的说法）：
 
 ```java
 if (!authToken.isEmpty()) {
@@ -265,15 +291,17 @@ private static final java.util.regex.Pattern SAFE_COLUMN = java.util.regex.Patte
  */
 private static String validateColumn(String field) {
     if (field == null || !SAFE_COLUMN.matcher(field).matches()) {
+        // ValidationException 无单字符串构造函数(已核实 ValidationException.java:25-41),
+        // 用 (field, message, value) 三参构造或静态工厂 of(field, message, value)
         throw new io.nebula.core.common.exception.ValidationException(
-                "非法列名: " + field + " (仅允许字母/数字/下划线)");
+                "field", "非法列名(仅允许字母/数字/下划线)", field);
     }
     return field;
 }
 ```
 
 三个方法接入：`eq(validateColumn(field), value)`；`findByFields` 改 `fieldValues.forEach((f, v) -> wrapper.eq(validateColumn(f), v))`。
-注意：`ValidationException` 的实际包路径与构造函数先 `rg "class ValidationException" core/` 核实再引用。
+`ValidationException` 位于 `io.nebula.core.common.exception`，可用构造：`(List<FieldError>)`、`(String field, String message, Object value)`、静态 `of(field, message)` / `of(field, message, value)`——**没有**单字符串构造（2026-07-08 已核实，勿凭直觉写）。
 
 **新增测试** `ServiceImplColumnValidationTest`：合法列名（`user_name`、`age2`）不抛；非法输入（`"name; DROP TABLE x"`、"name`)"、`"a-b"`、`null`、空串）抛 `ValidationException`。纯校验逻辑可直接测静态行为（通过反射或包内可见性；若不便，容忍把 `validateColumn` 设为 package-private）。
 
@@ -320,7 +348,10 @@ if (!properties.isSslVerificationEnabled()) {
 
 3. `isProductionProfile()` 私有方法照抄爬虫语义（见上）。
 
-**新增测试** `autoconfigure/.../search/ElasticsearchSslGuardTest.java`：由于 `createSSLContext` 是私有方法，用反射或将判定逻辑抽为 package-private 静态方法测三态：无 profile→非生产；`dev`→非生产；`prod`→生产。
+**新增测试** `autoconfigure/.../search/ElasticsearchSslGuardTest.java`，两层都要测（只测 profile 判定等于只看门牌不试门锁）：
+
+1. **判定逻辑三态**：无 profile→非生产；`dev`→非生产；`prod`→生产（判定逻辑抽为 package-private 静态方法便于直测）。
+2. **行为验证**（2026-07-08 外部审查 P2-6 补强）：`prod` profile + `sslVerificationEnabled=false` 时，断言产出的 `SSLContext` **不是** trust-all 的那条路径——推荐做法：把"构建 trust-all SSLContext"的分支也抽为独立 package-private 方法，行为测试断言 prod 下该方法不被调用（或对比返回的 SSLContext 与 `SSLContext.getDefault()` 语义一致/`getSocketFactory` 走默认校验）；同时可用 logback 捕获断言 error 日志出现。具体断言手法执行时按抽取后的方法边界定，原则不变：**必须证明生产环境下拿不到 trust-all 上下文**，不能只证明"判定出了生产环境"。
 
 **验证命令**：`mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=ElasticsearchSslGuardTest`
 
@@ -337,7 +368,7 @@ mapper.registerModule(new JavaTimeModule());
 JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
 ```
 
-3. `infrastructure/rpc/nebula-rpc-core/.../discovery/ServiceDiscoveryRpcClient.java:92`：`callAsync` 的 `CompletableFuture.supplyAsync(() -> call(...))` 未指定 executor（吃公共 ForkJoinPool）。构造函数新增 `Executor asyncExecutor` 参数（同 Task 6 手法：保留旧构造函数委托新构造传 `ForkJoinPool.commonPool()` 保持兼容），`supplyAsync(..., asyncExecutor)`。装配点在 `autoconfigure/.../rpc/RpcDiscoveryAutoConfiguration.java`——先读它确认建 `ServiceDiscoveryRpcClient` 的位置，把已有的 `rpcExecutor` Bean 传入（若该上下文拿不到则维持 commonPool 缺省并记 log.md）。
+3. `infrastructure/rpc/nebula-rpc-core/.../discovery/ServiceDiscoveryRpcClient.java:92`：`callAsync` 的 `CompletableFuture.supplyAsync(() -> call(...))` 未指定 executor（吃公共 ForkJoinPool）。构造函数新增 `Executor asyncExecutor` 参数（同 Task 6 手法：保留旧构造函数委托新构造传 `ForkJoinPool.commonPool()` 保持兼容），`supplyAsync(..., asyncExecutor)`。装配点在 `autoconfigure/.../rpc/RpcDiscoveryAutoConfiguration.java:94-100`（`serviceDiscoveryRpcClient` Bean）。**注入必须写成可选**：`rpcExecutor` Bean 只在 HTTP RPC 自动配置启用时创建（定义在 `HttpRpcAutoConfiguration`），若给 `serviceDiscoveryRpcClient(...)` 方法加必填 `Executor` 参数，gRPC-only 场景（`nebula.rpc.http.enabled=false`）会因缺 Bean 启动失败。写法：方法参数用 `ObjectProvider<Executor> rpcExecutor`，构造时 `rpcExecutor.getIfAvailable(ForkJoinPool::commonPool)`（如上下文有多个 Executor Bean 导致歧义，改用 `@Qualifier("rpcExecutor")` + `ObjectProvider`，现场按实际 Bean 名确认）。
 
 **验证命令**：`mvn -q compile && mvn test -pl core/nebula-security,infrastructure/rpc/nebula-rpc-core`
 
@@ -346,6 +377,8 @@ JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
 ### Task 13 全量回归 + 文档收尾
 
 按 tasks.md Task 13 列表执行：T-B2-2 勾选、审查报告逐条标"已修复（commit hash）"、tasks.md 变更摘要回填、spec 状态改 done、`CLAUDE.md` v2.0.x 变更记录补充本批（重点：新增配置项 `nebula.rpc.http.client.auth-token`、`spring.http.converters.preferred-json-mapper` defaults、EPP 新键迁移、gateway 死代码删除）。
+
+**追加（2026-07-08 外部审查 P3-1）**：`README.md:4,11` 与 `AGENTS.md:12` 仍写 Spring Boot 3.5.8，根 pom 已是 4.1.0——本任务一并改为 4.1.0（徽章与技术栈两处），避免后续编码代理被旧口径带偏。若执行阶段一途中就发现被误导，可提前单独提交这一处。
 
 **验证命令**：`mvn clean compile && mvn test`（全仓，结果记 log.md）
 
@@ -396,7 +429,7 @@ JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
 
 ### 3.2 执行要点
 
-- Task 3-0 盘点先行（POM 直接依赖：根 pom `jjwt-jackson`:290 / `spring-boot-jackson2`:355、security:74 与 web:73 的 `jjwt-jackson`、payment 的 `jackson-databind`:56）；jjwt 的 Jackson 3 支持情况上网核实（JJWT 0.13+ release notes），无则按 tasks.md 预判二选一。
+- Task 3-0 盘点先行，**必须全仓扫描生成清单，不得只按预列条目**：`rg -n "jackson|jjwt-jackson" -g 'pom.xml'` 逐文件登记（2026-07-08 外部审查 P2-1 复核：gateway/storage/search/websocket/crawler/rpc-async/messaging/foundation/cache/mongodb/payment/task 等 20+ 个 pom 均有显式 `jackson-databind`/`jackson-datatype-jsr310`/`jjwt-jackson` 声明，远多于最初预列的 5 处）。每项定策略：换 `tools.jackson` 坐标 / 删除（jsr310 并入 databind）/ 保留（第三方桥接需要）。jjwt 的 Jackson 3 支持情况上网核实（JJWT 0.13+ release notes），无则按 tasks.md 预判二选一。
 - 每模块迁移 = 一次提交；迁移顺序 foundation → data → messaging/rpc/lock → web → search/ai/task/autoconfigure；全程 `mvn clean compile` 保持绿。
 - web 层脱敏 customizer 重写后，Task 2 的 MockMvc 哨兵测试把测试属性从 `jackson2` 切到默认（Jackson 3 路径）必须仍绿——这是整个阶段的回归闸门。
 - Redis 缓存序列化：Q5 已拍板"升级清缓存"，多态白名单（PolymorphicTypeValidator）安全语义不得减弱；升级指南写清缓存步骤。
@@ -415,7 +448,7 @@ JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
 
 ```
 阶段一: T1 → T2 → T3 → T9 → T4 → T5 → T6 → T8 → T7 → T10 → T11 → T12 → T13
-        (T9 必须先于 T4; T11 先于 T12; T6/T8 同模块可合并提交)
+        (T9 必须先于 T4; T11 先于 T12; T6/T8 同模块但仍各自独立提交)
 阶段一完成后 ──→ Task 4-0(版本号) ──→ Task 4-1(proud-day, 可与阶段二并行)
 阶段二: T2-1(盘点,HARD-GATE 用户确认) → T2-2/2-3/2-4/2-6(可并行) → T2-5 → T2-7 → T2-8
 阶段三: T3-0(盘点) → T3-1 → T3-2 → T3-3 → T3-4 → T3-5 → T3-6(拆桥)

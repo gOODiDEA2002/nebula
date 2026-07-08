@@ -7,7 +7,7 @@
 ## 前置条件
 
 - [ ] Spec 已确认（HARD-GATE 通过）
-- [ ] 当前在 `nebula-hardening-b` 分支，工作区干净
+- [x] 当前在 `nebula-remaining-work` 分支，工作区干净（2026-07-08 更正分支口径）
 - [ ] 全仓可编译（基线：`mvn clean compile` 已通过）
 
 ---
@@ -49,8 +49,9 @@
 
 - **目标**: gRPC 服务端由 Spring Boot 4.1 官方自动配置托管启动，`BindableService` 与 `@GlobalServerInterceptor` 自动注册
 - **涉及文件**:
-  - `infrastructure/rpc/nebula-rpc-grpc/pom.xml` -- `spring-grpc-core` 替换为 `org.springframework.boot:spring-boot-starter-grpc-server`（BOM 托管，无需版本号）；保留 `grpc-netty-shaded`（客户端自建 Channel 用）
-  - `pom.xml`（根） -- dependencyManagement 中 `spring-grpc-core` 条目移除（若无其他模块引用）；`<spring-grpc.version>` 属性视引用情况清理
+  - `infrastructure/rpc/nebula-rpc-grpc/pom.xml` -- `spring-grpc-core` 替换为 `org.springframework.boot:spring-boot-starter-grpc-server`（BOM 托管，无需版本号），并从中排除默认 `grpc-netty`（保留 `grpc-netty-shaded`——客户端直接 import 了 shaded NettyChannelBuilder，两套传输并存会冲突；2026-07-08 外部审查 P1-2 补充）
+  - `pom.xml`（根） -- **删除自管的 `grpc-bom:1.68.1` import**（Boot 4.1 BOM 托管 grpc 1.80.0，子 POM 自管条目会钉死旧版造成混装；`grpc.version` 属性改 1.80.0 保留给 protobuf 插件坐标）；dependencyManagement 中 `spring-grpc-core` 条目移除（若无其他模块引用）；`<spring-grpc.version>` 属性视引用情况清理
+  - 验收补充：`mvn dependency:tree -pl infrastructure/rpc/nebula-rpc-grpc` 只剩一套 gRPC 版本（1.80.0）、传输层无 `grpc-netty`
   - `infrastructure/rpc/nebula-rpc-grpc/src/main/java/io/nebula/rpc/grpc/server/GrpcRpcServer.java` -- 类 Javadoc 更新：说明由 Boot gRPC 自动配置托管为 BindableService
 - **依赖**: 无
 - **验收标准**: 编译通过；`mvn dependency:tree -pl infrastructure/rpc/nebula-rpc-grpc` 中出现 `spring-boot-grpc-server` 且无 Netty/grpc 版本冲突（结果记入 log.md）
@@ -123,7 +124,7 @@
 - **目标**: 消除计时侧信道
 - **涉及文件**:
   - `infrastructure/rpc/nebula-rpc-http/src/main/java/io/nebula/rpc/http/server/HttpRpcController.java` -- :54 `authToken.equals(provided)` 改 `MessageDigest.isEqual(authToken.getBytes(UTF_8), provided.getBytes(UTF_8))`（provided 判空前置）
-- **依赖**: 无（与 Task 6 同模块，可合并为一次提交，但保持独立勾选项）
+- **依赖**: 无（与 Task 6 同模块，但仍各自独立提交，遵守"一任务一提交"；2026-07-08 统一口径）
 - **验收标准**: 既有鉴权测试仍绿
 - **验证命令**: `mvn test -pl infrastructure/rpc/nebula-rpc-http`
 - [ ] 完成

@@ -3,7 +3,7 @@
 > 状态：confirmed（2026-07-07 Q1-Q7 全部拍板，待用户对整体方案最终放行）
 > 创建日期：2026-07-07
 > 复杂度：复杂
-> 目标分支：`nebula-hardening-b`
+> 目标分支：`nebula-remaining-work`（2026-07-08 自 `nebula-hardening-b` 检出，后续工作与提交均在此分支）
 > 关联文档：
 > - `docs/nebula-hardening-code-review-2026-07.md`（代码审查报告，剩余问题来源之一）
 > - `docs/changes/nebula-hardening-sb4-upgrade/tasks.md`（原始任务清单，未勾选项来源）
@@ -137,7 +137,7 @@ proud-day 仓库：`/Users/andy/DevOps/SourceCode/business-projects/proud-day-pr
 - [x] Q4：认证收敛方向为"security 解析、web 复用"？—— 推荐（与 A1 修复同向）
 - [x] Q5：阶段三 Redis 缓存序列化滚动兼容——用户已确认接受"升级需清缓存"（2026-07-07），不做双读兼容层；升级指南中写明清缓存步骤
 - [x] Q6：proud-day 仓库路径已提供：`/Users/andy/DevOps/SourceCode/business-projects/proud-day-projects/proud-day-backend`；阶段四规格已另立于该仓库 `docs/changes/nebula-persistence-adoption/`
-- [x] Q7：nebula 版本号升代——用户已确认（2026-07-07）：b 分支 `revision` `2.0.1-SNAPSHOT` → `2.1.0-SNAPSHOT`（SB4 代际与 proud-day 现依赖的 SB3.5 代际坐标区分，解除快照误吞的 sequencing 风险），对应 Task 4-0
+- [x] Q7：nebula 版本号升代——用户已确认（2026-07-07）：`revision` `2.0.1-SNAPSHOT` → `2.1.0-SNAPSHOT`（在 `nebula-remaining-work` 分支执行，Task 4-0）（SB4 代际与 proud-day 现依赖的 SB3.5 代际坐标区分，解除快照误吞的 sequencing 风险），对应 Task 4-0
 
 ## 10. 验收标准
 

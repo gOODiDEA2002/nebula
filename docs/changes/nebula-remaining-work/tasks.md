@@ -9,7 +9,7 @@
 
 - [x] Spec 已确认（Q1-Q7 全部拍板，2026-07-07；等用户对整体方案最终放行后开工）
 - [ ] 开工第一个动作：将方案文档（`docs/changes/nebula-remaining-work/`、`docs/changes/nebula-review-fixes/`、`docs/nebula-hardening-code-review-2026-07.md`）单独提交一次，使代码工作区回到干净状态，保证后续"一任务一提交"账目清晰
-- [ ] 当前在 `nebula-hardening-b` 分支，代码工作区干净（方案文档提交后核验）
+- [x] 当前在 `nebula-remaining-work` 分支（2026-07-08 已检出并提交方案文档 `1f49a363`），代码工作区干净
 
 ---
 
@@ -154,6 +154,7 @@
 ### Task 3-0: Jackson 相关 POM 依赖盘点与替代策略（只盘点不改码）
 
 - **目标**: 代码 import 清零之外，把 POM 里显式声明的 Jackson 2 系依赖逐项定策略，避免"import 干净了、运行时包还没搬完"（2026-07-07 外部审查意见 P2-1）
+- **盘点方式**（2026-07-08 修订，外部审查 P2-1）: 必须对**全仓所有 pom.xml** 执行 `rg -n "jackson|jjwt-jackson" -g 'pom.xml'` 生成完整清单逐项定策略——复核发现 gateway/storage/search/websocket/crawler/rpc-async/messaging/foundation/cache 等 20+ 个 pom 均有显式 Jackson 2 系声明，下方"已知清单"仅是起点示例，**不是全集**
 - **已知清单**（盘点起点，rg 核实于 2026-07-07）:
   - 根 `pom.xml:290` -- `jjwt-jackson`（dependencyManagement）
   - 根 `pom.xml:355` -- `spring-boot-jackson2`（桥模块，Task 3-6 拆除）

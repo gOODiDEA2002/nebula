@@ -4,13 +4,13 @@
 > 创建日期：2026-07-07
 > 复杂度：复杂
 > 来源：`docs/nebula-hardening-code-review-2026-07.md`（代码审查报告）
-> 目标分支：`nebula-hardening-b`
+> 目标分支：`nebula-remaining-work`（2026-07-08 更正：工作分支已自 `nebula-hardening-b` 检出为本分支）
 
 ## 1. 背景与目标
 
 代码审查报告对 `nebula-hardening-a` / `nebula-hardening-b` 两分支给出"有条件通过"结论，列出 2 个 CRITICAL、2 个 HIGH、4 个 MEDIUM、3 个 LOW 代码问题。本变更按报告逐项修复，目标：
 
-1. 消除两个"编译通过但运行时静默失效"的 CRITICAL 问题（MVC 脱敏失效、gRPC 服务端不启动），使 b 分支达到可合入主干状态；
+1. 消除两个"编译通过但运行时静默失效"的 CRITICAL 问题（MVC 脱敏失效、gRPC 服务端不启动），使 `nebula-remaining-work` 分支达到可合入主干状态；
 2. 补齐 HIGH 级功能缺口与注入风险；
 3. 收敛 MEDIUM/LOW 级技术债，并补充能捕获"静默失效"类回归的集成测试。
 
