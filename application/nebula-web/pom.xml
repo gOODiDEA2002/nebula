@@ -21,6 +21,14 @@
             <artifactId>nebula-foundation</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Security（可选，认证收敛后 AuthInterceptor 读取 SecurityContext） -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-security</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
         
         
         <!-- Spring Boot Web Starter -->

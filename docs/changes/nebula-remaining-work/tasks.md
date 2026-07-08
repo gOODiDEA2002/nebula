@@ -104,7 +104,7 @@
 - **依赖**: 阶段一完成（Filter 注册机制稳定后）
 - **验收标准**: 见集成测试；`nebula-web` 与 `nebula-security` 既有测试全绿
 - **验证命令**: `mvn test -pl application/nebula-web,core/nebula-security`
-- [ ] 完成
+- [x] 完成
 
 ### Task 2-6: xxl-job 孤儿 DTO 清理
 

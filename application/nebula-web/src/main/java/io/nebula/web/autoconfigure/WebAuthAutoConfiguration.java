@@ -42,14 +42,13 @@ class WebAuthAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "nebula.web.auth.enabled", havingValue = "true")
-    public WebMvcConfigurer authWebMvcConfigurer(AuthService authService,
-                                                WebProperties webProperties,
+    public WebMvcConfigurer authWebMvcConfigurer(WebProperties webProperties,
                                                 ObjectMapper objectMapper) {
         return new WebMvcConfigurer() {
             @Override
             public void addInterceptors(InterceptorRegistry registry) {
                 WebProperties.Auth config = webProperties.getAuth();
-                registry.addInterceptor(new AuthInterceptor(authService, config, objectMapper))
+                registry.addInterceptor(new AuthInterceptor(config, objectMapper))
                        .addPathPatterns("/**")
                        .order(InterceptorOrders.AUTH);
             }

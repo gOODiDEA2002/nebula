@@ -2,11 +2,16 @@ package io.nebula.web.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.nebula.web.auth.AuthService;
-import io.nebula.web.auth.AuthUser;
+import io.nebula.security.authentication.Authentication;
+import io.nebula.security.authentication.GrantedAuthority;
+import io.nebula.security.authentication.JwtAuthenticationToken;
+import io.nebula.security.authentication.SecurityContext;
+import io.nebula.security.authentication.SimpleGrantedAuthority;
+import io.nebula.security.authentication.UserPrincipal;
 import io.nebula.web.autoconfigure.WebProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,19 +21,18 @@ import org.springframework.http.HttpStatus;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * 认证拦截器测试
+ * 认证拦截器测试（收敛后：AuthInterceptor 读取 SecurityContext，不再自行解析 JWT）
  */
 @ExtendWith(MockitoExtension.class)
 class AuthInterceptorTest {
-    
-    @Mock
-    private AuthService authService;
     
     @Mock
     private HttpServletRequest request;
@@ -51,46 +55,42 @@ class AuthInterceptorTest {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         
-        authInterceptor = new AuthInterceptor(authService, authConfig, objectMapper);
+        authInterceptor = new AuthInterceptor(authConfig, objectMapper);
+    }
+    
+    @AfterEach
+    void tearDown() {
+        SecurityContext.clearAuthentication();
     }
     
     @Test
     void testAuthSuccess() throws Exception {
-        // 准备测试数据
-        String token = "valid-token";
-        AuthUser user = new AuthUser("user-123", "testuser");
-        user.setRoles(Set.of("USER"));
-        
         when(request.getRequestURI()).thenReturn("/api/users");
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(authService.getUser(token)).thenReturn(user);
         
-        // 执行认证
+        // 模拟 Filter 层已填充 SecurityContext
+        Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("user:read"));
+        UserPrincipal principal = new UserPrincipal(123L, "testuser", authorities);
+        principal.setRoles(Set.of("USER"));
+        Authentication authentication = new JwtAuthenticationToken("token", principal, authorities);
+        SecurityContext.setAuthentication(authentication);
+        
         boolean result = authInterceptor.preHandle(request, response, null);
         
-        // 验证认证成功
         assertThat(result).isTrue();
-        verify(request).setAttribute("currentUser", user);
-        verify(request).setAttribute("currentUserId", "user-123");
+        verify(request).setAttribute(eq("currentUser"), any());
+        verify(request).setAttribute("currentUserId", "123");
         verify(request).setAttribute("currentUsername", "testuser");
     }
     
     @Test
-    void testAuthFailure() throws Exception {
-        // 准备测试数据
-        String token = "invalid-token";
+    void testNoAuthentication_returns401() throws Exception {
         StringWriter responseWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(responseWriter);
-        
         when(request.getRequestURI()).thenReturn("/api/users");
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(authService.getUser(token)).thenReturn(null);
-        when(response.getWriter()).thenReturn(printWriter);
+        when(response.getWriter()).thenReturn(new PrintWriter(responseWriter));
         
-        // 执行认证
+        // SecurityContext 无认证信息
         boolean result = authInterceptor.preHandle(request, response, null);
         
-        // 验证认证失败
         assertThat(result).isFalse();
         verify(response).setStatus(HttpStatus.UNAUTHORIZED.value());
         verify(response).setHeader("WWW-Authenticate", "Bearer");
@@ -98,85 +98,38 @@ class AuthInterceptorTest {
     
     @Test
     void testIgnorePath() throws Exception {
-        // 测试忽略路径
         when(request.getRequestURI()).thenReturn("/public/info");
         
         boolean result = authInterceptor.preHandle(request, response, null);
         
-        // 验证忽略路径不需要认证
         assertThat(result).isTrue();
-        verify(authService, never()).getUser(anyString());
-    }
-    
-    @Test
-    void testMissingToken() throws Exception {
-        // 准备测试数据
-        StringWriter responseWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(responseWriter);
-        
-        when(request.getRequestURI()).thenReturn("/api/users");
-        when(request.getHeader("Authorization")).thenReturn(null);
-        when(request.getParameter("token")).thenReturn(null);
-        when(response.getWriter()).thenReturn(printWriter);
-        
-        // 执行认证
-        boolean result = authInterceptor.preHandle(request, response, null);
-        
-        // 验证缺少Token返回401
-        assertThat(result).isFalse();
-        verify(response).setStatus(HttpStatus.UNAUTHORIZED.value());
-        verify(authService, never()).getUser(anyString());
-    }
-    
-    @Test
-    void testTokenFromQueryParameter() throws Exception {
-        // 测试从查询参数获取Token
-        String token = "query-token";
-        AuthUser user = new AuthUser("user-456", "queryuser");
-        
-        when(request.getRequestURI()).thenReturn("/api/data");
-        when(request.getHeader("Authorization")).thenReturn(null);
-        when(request.getParameter("token")).thenReturn(token);
-        when(authService.getUser(token)).thenReturn(user);
-        
-        boolean result = authInterceptor.preHandle(request, response, null);
-        
-        assertThat(result).isTrue();
-        verify(authService).getUser(token);
     }
     
     @Test
     void testAuthDisabled() throws Exception {
-        // 禁用认证
         authConfig.setEnabled(false);
-        authInterceptor = new AuthInterceptor(authService, authConfig, objectMapper);
+        authInterceptor = new AuthInterceptor(authConfig, objectMapper);
         
         lenient().when(request.getRequestURI()).thenReturn("/api/users");
         
         boolean result = authInterceptor.preHandle(request, response, null);
         
-        // 验证禁用认证后所有请求都通过
         assertThat(result).isTrue();
-        verify(authService, never()).getUser(anyString());
     }
 
     @Test
     void testCorsPreflightAllowed() throws Exception {
-        // 真正的 CORS 预检: OPTIONS + Origin + Access-Control-Request-Method 三者齐全
         when(request.getMethod()).thenReturn("OPTIONS");
         when(request.getHeader("Origin")).thenReturn("http://example.com");
         when(request.getHeader("Access-Control-Request-Method")).thenReturn("POST");
 
         boolean result = authInterceptor.preHandle(request, response, null);
 
-        // 预检放行, 不走认证
         assertThat(result).isTrue();
-        verify(authService, never()).getUser(anyString());
     }
 
     @Test
     void testPlainOptionsNotBypassed() throws Exception {
-        // 非预检的 OPTIONS(无 Origin/ACRM 头)不应被无条件放行, 无 token 时须拒绝
         StringWriter responseWriter = new StringWriter();
         when(request.getMethod()).thenReturn("OPTIONS");
         when(request.getRequestURI()).thenReturn("/api/users");
@@ -184,9 +137,47 @@ class AuthInterceptorTest {
 
         boolean result = authInterceptor.preHandle(request, response, null);
 
-        // 未绕过: 走到认证并因缺 token 被拒
         assertThat(result).isFalse();
         verify(response).setStatus(HttpStatus.UNAUTHORIZED.value());
     }
+    
+    @Test
+    void testAuthContext_populated_from_securityContext() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/data");
+        
+        Collection<GrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("data:read"),
+                new SimpleGrantedAuthority("data:write"));
+        UserPrincipal principal = new UserPrincipal(456L, "datauser", authorities);
+        principal.setRoles(Set.of("ADMIN", "USER"));
+        Authentication authentication = new JwtAuthenticationToken("token", principal, authorities);
+        SecurityContext.setAuthentication(authentication);
+        
+        boolean result = authInterceptor.preHandle(request, response, null);
+        
+        assertThat(result).isTrue();
+        
+        // 验证 AuthContext 已正确填充
+        var authUser = io.nebula.web.auth.AuthContext.getCurrentUser();
+        assertThat(authUser).isNotNull();
+        assertThat(authUser.getUserId()).isEqualTo("456");
+        assertThat(authUser.getUsername()).isEqualTo("datauser");
+        assertThat(authUser.getRoles()).containsExactlyInAnyOrder("ADMIN", "USER");
+        assertThat(authUser.getPermissions()).containsExactlyInAnyOrder("data:read", "data:write");
+    }
+    
+    @Test
+    void testAfterCompletion_clearsAuthContext() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/data");
+        
+        UserPrincipal principal = new UserPrincipal(1L, "user");
+        Authentication authentication = new JwtAuthenticationToken("t", principal, List.of());
+        SecurityContext.setAuthentication(authentication);
+        
+        authInterceptor.preHandle(request, response, null);
+        assertThat(io.nebula.web.auth.AuthContext.getCurrentUser()).isNotNull();
+        
+        authInterceptor.afterCompletion(request, response, null, null);
+        assertThat(io.nebula.web.auth.AuthContext.getCurrentUser()).isNull();
+    }
 }
-

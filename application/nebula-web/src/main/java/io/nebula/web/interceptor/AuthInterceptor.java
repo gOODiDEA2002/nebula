@@ -2,8 +2,10 @@ package io.nebula.web.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.nebula.core.common.result.Result;
+import io.nebula.security.authentication.Authentication;
+import io.nebula.security.authentication.SecurityContext;
+import io.nebula.security.authentication.UserPrincipal;
 import io.nebula.web.auth.AuthContext;
-import io.nebula.web.auth.AuthService;
 import io.nebula.web.auth.AuthUser;
 import io.nebula.web.autoconfigure.WebProperties;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,27 +15,30 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.util.AntPathMatcher;
-import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 认证拦截器
- * 验证用户身份并设置认证上下文
+ * <p>
+ * 从 {@link SecurityContext} 读取认证信息（由 JwtAuthenticationFilter 在 Filter 层填充），
+ * 桥接填充 {@link AuthContext} 以保持 web 层 API 兼容。
+ * 自身不再解析 JWT，收敛为单一解析点。
  */
 public class AuthInterceptor implements HandlerInterceptor {
     
     private static final Logger logger = LoggerFactory.getLogger(AuthInterceptor.class);
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
     
-    private final AuthService authService;
     private final WebProperties.Auth config;
     private final ObjectMapper objectMapper;
     
-    public AuthInterceptor(AuthService authService, WebProperties.Auth config, ObjectMapper objectMapper) {
-        this.authService = authService;
+    public AuthInterceptor(WebProperties.Auth config, ObjectMapper objectMapper) {
         this.config = config;
         this.objectMapper = objectMapper;
     }
@@ -46,37 +51,37 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
         
-        // 仅放行真正的 CORS 预检请求(OPTIONS + Origin + Access-Control-Request-Method 三者齐全);
-        // 不再无条件放行所有 OPTIONS, 避免未限定 method 的业务接口被 OPTIONS 无认证触发
+        // 仅放行真正的 CORS 预检请求(OPTIONS + Origin + Access-Control-Request-Method 三者齐全)
         if (CorsUtils.isPreFlightRequest(request)) {
             return true;
         }
         
         String requestURI = request.getRequestURI();
         
-        // 检查是否为忽略路径
         if (shouldIgnoreAuth(requestURI)) {
             return true;
         }
         
-        // 提取认证令牌
-        String token = extractToken(request);
-        if (!StringUtils.hasText(token)) {
+        // 从 SecurityContext 读取认证信息（由 JwtAuthenticationFilter 在 Filter 层预填充）
+        Authentication authentication = SecurityContext.getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
             handleAuthenticationError(response, "缺少认证令牌");
             return false;
         }
         
-        // 验证令牌并获取用户信息
-        AuthUser user = authService.getUser(token);
-        if (user == null) {
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof UserPrincipal userPrincipal)) {
             handleAuthenticationError(response, "认证令牌无效");
             return false;
         }
         
+        // 从 security 层的 UserPrincipal 构建 web 层的 AuthUser，保持 API 兼容
+        AuthUser user = buildAuthUser(userPrincipal);
+        
         // 设置认证上下文
         AuthContext.setCurrentUser(user);
         
-        // 添加用户信息到请求属性
+        // 添加用户信息到请求属性（兼容行为）
         request.setAttribute("currentUser", user);
         request.setAttribute("currentUserId", user.getUserId());
         request.setAttribute("currentUsername", user.getUsername());
@@ -88,27 +93,28 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, 
                               Object handler, Exception ex) {
-        // 清除认证上下文
         AuthContext.clear();
     }
     
     /**
-     * 提取认证令牌
+     * 从 security 层的 UserPrincipal 构建 web 层的 AuthUser
      */
-    private String extractToken(HttpServletRequest request) {
-        // 从请求头获取令牌
-        String authHeader = request.getHeader(config.getAuthHeader());
-        if (StringUtils.hasText(authHeader) && authHeader.startsWith(config.getAuthHeaderPrefix())) {
-            return authHeader.substring(config.getAuthHeaderPrefix().length());
+    private AuthUser buildAuthUser(UserPrincipal principal) {
+        String userId = principal.getUserId() != null ? principal.getUserId().toString() : null;
+        AuthUser user = new AuthUser(userId, principal.getUsername());
+        
+        if (principal.getRoles() != null) {
+            user.setRoles(new LinkedHashSet<>(principal.getRoles()));
         }
         
-        // 从请求参数获取令牌（备选方案）
-        String tokenParam = request.getParameter("token");
-        if (StringUtils.hasText(tokenParam)) {
-            return tokenParam;
+        if (principal.getAuthorities() != null) {
+            Set<String> permissions = principal.getAuthorities().stream()
+                    .map(auth -> auth.getAuthority())
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            user.setPermissions(permissions);
         }
         
-        return null;
+        return user;
     }
     
     /**
@@ -137,13 +143,10 @@ public class AuthInterceptor implements HandlerInterceptor {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         
-        // 创建错误响应
         Result<Void> errorResult = Result.error("AUTHENTICATION_FAILED", message);
         
-        // 添加认证相关的响应头
         response.setHeader("WWW-Authenticate", config.getAuthHeaderPrefix().trim());
         
-        // 写入响应
         String responseBody = objectMapper.writeValueAsString(errorResult);
         response.getWriter().write(responseBody);
         response.getWriter().flush();

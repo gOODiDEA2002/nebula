@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -60,18 +61,22 @@ public class SecurityAutoConfiguration {
     }
 
     /**
-     * JWT 认证过滤器（默认关闭，opt-in）。
+     * JWT 认证过滤器。
      * <p>
      * 解析请求头 JWT 并填充 {@link io.nebula.security.authentication.SecurityContext}，
      * 使 {@code @RequiresAuthentication/@RequiresRole/@RequiresPermission} 链路真正生效。
-     * 默认不注册，避免影响使用自有认证的存量应用；需要 Nebula RBAC 的应用设
-     * {@code nebula.security.jwt.filter.enabled=true} 开启。
+     * <p>
+     * 注册条件（任一满足即注册）：
+     * <ul>
+     *   <li>{@code nebula.security.jwt.filter.enabled=true}——原 opt-in 独立开关</li>
+     *   <li>{@code nebula.web.auth.enabled=true}——web 层认证拦截器需要 Filter 预填充 SecurityContext</li>
+     * </ul>
      */
     @Bean
     @ConditionalOnMissingBean(JwtAuthenticationFilter.class)
-    @ConditionalOnProperty(prefix = "nebula.security.jwt.filter", name = "enabled", havingValue = "true", matchIfMissing = false)
+    @Conditional(JwtFilterEnabledCondition.class)
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, SecurityProperties properties) {
-        log.info("初始化 JWT 认证过滤器 (nebula.security.jwt.filter.enabled=true)");
+        log.info("初始化 JWT 认证过滤器");
         return new JwtAuthenticationFilter(jwtService, properties.getJwt());
     }
 

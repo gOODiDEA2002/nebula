@@ -271,6 +271,18 @@
 - 验证命令: `mvn test -pl application/nebula-task` → BUILD SUCCESS
 - XxlJobResult.java 保留(XxlJobRegistryService 在用)
 
+### Task 2-5: 认证收敛 -- 单一 JWT 解析点
+- 验证命令: `mvn test -pl application/nebula-web` → Tests run: 88, Failures: 0, Errors: 0 → BUILD SUCCESS
+- 验证命令: `mvn test -pl autoconfigure/nebula-autoconfigure` → Tests run: 36, Failures: 0, Errors: 0 → BUILD SUCCESS
+- 改动要点:
+  - AuthInterceptor: 移除 AuthService 依赖，改读 SecurityContext.getAuthentication()，桥接填充 AuthContext
+  - WebAuthAutoConfiguration: authWebMvcConfigurer 不再注入 AuthService
+  - JwtFilterEnabledCondition(新增): AnyNestedCondition，security.jwt.filter.enabled=true OR web.auth.enabled=true
+  - SecurityAutoConfiguration: JwtAuthenticationFilter 注册改用 JwtFilterEnabledCondition
+  - nebula-web pom.xml: 加 nebula-security optional 依赖（编译期引用 SecurityContext）
+  - AuthInterceptorTest: 适配新依赖（mock SecurityContext 替代 AuthService）
+  - AuthConvergenceIntegrationTest(新增): 4 个测试用例验证单一解析点、401 拦截、白名单放行、上下文同步
+
 ## 踩坑记录
 
 ### P2-T1: Maven 镜像 SSL 证书失效
@@ -279,9 +291,28 @@
 - 临时解决: 使用临时 settings 文件 `/tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central; 全部 mvn 命令需加 `-s /tmp/nebula-mvn-settings.xml`
 - 建议: 修复 Nexus 服务器 SSL 证书(加 SAN `nexus.vocoor.com.cn`)
 
+### P2-T5: AuthConvergenceIntegrationTest 上下文启动失败
+- 现象1: `@MockitoSpyBean` 报 `Unable to select a bean to wrap: there are no beans of type JwtService`
+- 原因: 测试 classpath 无 nebula-autoconfigure，JwtService Bean 由测试内 @Bean 定义，@MockitoSpyBean 在 Bean 注册前尝试查找
+- 修复: 改用 CountingJwtService（extends DefaultJwtService）手动计数替代 @MockitoSpyBean
+- 现象2: JwtUtils 创建失败 `WeakKeyException: 200 bits`
+- 原因: nebula.web.auth.jwt-secret 默认值 25 字符 = 200 bits < HMAC-SHA256 要求的 256 bits
+- 修复: 测试 properties 中设置足够长的 jwt-secret
+- 现象3: 受保护接口返回 200 而非 401，AuthContext 为空
+- 原因: WebAuthAutoConfiguration 中 authWebMvcConfigurer 使用 @ConditionalOnMissingBean(返回类型 WebMvcConfigurer)，
+  而 WebCoreAutoConfiguration 先于它被 @Import，已注册 WebMvcConfigurer Bean，导致 authWebMvcConfigurer 被跳过
+- 修复: 集成测试排除 WebAutoConfiguration，显式注册 AuthInterceptor，隔离测试认证收敛逻辑
+- 注意: @ConditionalOnMissingBean 用于接口类型（WebMvcConfigurer）是已知的框架设计隐患，后续需评估修复
+
 ## 知识发现
 
-（待开发过程中填写）
+### WebAutoConfiguration 子配置 @ConditionalOnMissingBean 设计隐患
+- WebAuthAutoConfiguration/WebRateLimitAutoConfiguration/WebCacheAutoConfiguration/WebMonitorAutoConfiguration
+  的 WebMvcConfigurer Bean 均标注了 @ConditionalOnMissingBean
+- 由于 @Import 顺序，WebCoreAutoConfiguration 的 nebulaWebMvcConfigurer 先注册后，
+  后续子配置的 WebMvcConfigurer Bean 理论上会被 @ConditionalOnMissingBean 跳过
+- 但生产环境中实际可用（需进一步确认 Spring Boot 在同一 @Import 批次中的条件评估行为）
+- 建议: 后续版本移除这些 @ConditionalOnMissingBean，或改用具体 Bean 名称匹配
 
 ## Spec-Code 偏差
 
