@@ -283,6 +283,25 @@
   - AuthInterceptorTest: 适配新依赖（mock SecurityContext 替代 AuthService）
   - AuthConvergenceIntegrationTest(新增): 4 个测试用例验证单一解析点、401 拦截、白名单放行、上下文同步
 
+### 阶段二对账审计（2026-07-08，用户侧复核）
+
+按附录 A 对账清单执行，结论：**10 任务（含 2-0a/2-0b）提交序列完整（a2b469bb → 3b759bb6），抽查全部通过，仅一处勾选遗漏（已补）**。
+
+- 提交对账：11 个提交（10 任务 + 1 方案文档提交 4a011eba），一任务一提交合规；本次提交在本地，无需远端同步。
+- 代码抽查通过：2-5（`AuthInterceptor` 改读 `SecurityContext`、`JwtFilterEnabledCondition extends AnyNestedCondition` 实现 OR 注册、`AuthConvergenceIntegrationTest` 用计数版 JwtService 断言单次解析）；2-3（anonymousUrls/heartbeat/grpc 遗留参数主代码零命中——task 模块的 heartbeatInterval 是 xxl-job 在用配置，非删除对象，正确保留）；2-2（`PoolingHttpClientConnectionManager` + setMaxTotal/setDefaultMaxPerRoute 真实接通）；2-4（`Result.of` 双工厂 + `ResultCode.getByName`，码值取 name() 符合拍板选项 1）；2-6（dto 目录仅剩 XxlJobResult）；2-0a（README/AGENTS 已 4.1.0）；2-0b（`@Qualifier("rpcExecutor") ObjectProvider<Executor>` 已接通）。
+- HARD-GATE 合规：Task 2-1 盘点表（11 类/38 字段）产出后停下等用户裁决，裁决通过才执行 2-2/2-3，流程正确。
+- 全仓本地重跑：`mvn clean compile` + `mvn test` BUILD SUCCESS（01:11 min）。
+- 勾选遗漏：Task 2-0 两个子项已勾但总"完成"项漏勾，审计时补勾并注明。
+
+### D6（2026-07-08）：阶段三开工前事实核定（写入 implementation.md 3.2 节）
+
+- 第三方 Jackson 3 支持逐一核实本地 jar：spring-data-redis 4.1（`GenericJacksonJsonRedisSerializer`）、spring-amqp 4.1（`JacksonJsonMessageConverter`）、elasticsearch-java 9.4.2（`Jackson3JsonpMapper`）均有 Jackson 3 变体可平移；Boot 4.1 定制入口为 `JsonMapperBuilderCustomizer`（spring-boot-jackson 4.1.0 解包确认）。
+- **jjwt 0.13.0 无 Jackson 3 支持**（官方 issue #1029：Jackson 3 适配将在 JDK 17 基线的后续版本发布）——拆桥后允许的唯一 Jackson 2 运行时残留即 jjwt 传递依赖，Task 3-0 盘点表核销。
+- `spring-boot-jackson2` 桥位于根 pom :338-341 的全模块 `<dependencies>`（非 dependencyManagement），拆桥影响全仓。
+- `nebula-ai-core` 模型类仅用 `com.fasterxml.jackson.annotation`（Jackson 3 保留原包名），无需迁移。
+- websocket 两模块（netty 5 文件 + spring 4 文件）tasks.md 阶段三未单列，归入 Task 3-3 执行。
+- Task 3-0 取消 HARD-GATE：第三方策略已被上述核定锁死，仅出现未覆盖的新约束时才停下汇报。
+
 ## 踩坑记录
 
 ### P2-T1: Maven 镜像 SSL 证书失效

@@ -552,13 +552,41 @@ new ApplicationContextRunner()
 
 **重要修正**（对 spec/tasks 验收标准的口径澄清）：由于注解包不改名，"`rg com.fasterxml.jackson` 主代码零命中"应修正为"**零 `com.fasterxml.jackson.databind` / `com.fasterxml.jackson.core` / `com.fasterxml.jackson.datatype` import**；`com.fasterxml.jackson.annotation` 允许保留"。执行 Task 3-6 时以此口径验收，并同步修正 spec.md 第 2.3 节与验收标准（偏差记 log.md）。
 
-### 3.2 执行要点
+### 3.2 已核实的关键事实（2026-07-08，基线 = 阶段二收尾提交 `3b759bb6`，省去执行时重复调研）
 
-- Task 3-0 盘点先行，**必须全仓扫描生成清单，不得只按预列条目**：`rg -n "jackson|jjwt-jackson" -g 'pom.xml'` 逐文件登记（2026-07-08 外部审查 P2-1 复核：gateway/storage/search/websocket/crawler/rpc-async/messaging/foundation/cache/mongodb/payment/task 等 20+ 个 pom 均有显式 `jackson-databind`/`jackson-datatype-jsr310`/`jjwt-jackson` 声明，远多于最初预列的 5 处）。每项定策略：换 `tools.jackson` 坐标 / 删除（jsr310 并入 databind）/ 保留（第三方桥接需要）。jjwt 的 Jackson 3 支持情况上网核实（JJWT 0.13+ release notes），无则按 tasks.md 预判二选一。
-- 每模块迁移 = 一次提交；迁移顺序 foundation → data → messaging/rpc/lock → web → search/ai/task/autoconfigure；全程 `mvn clean compile` 保持绿。
-- web 层脱敏 customizer 重写后，Task 2 的 MockMvc 哨兵测试把测试属性从 `jackson2` 切到默认（Jackson 3 路径）必须仍绿——这是整个阶段的回归闸门。
-- Redis 缓存序列化：Q5 已拍板"升级清缓存"，多态白名单（PolymorphicTypeValidator）安全语义不得减弱；升级指南写清缓存步骤。
-- 收尾拆桥：根 POM 删 `spring-boot-jackson2`（:355）、三份 starter defaults 删 `preferred-json-mapper=jackson2`（Task 1 注入项）。
+**代码面（`com.fasterxml.jackson.(databind|core.|datatype|module)` import 的文件数，按模块）**：
+
+| 模块 | 文件数 | 关键文件 |
+|---|---|---|
+| autoconfigure | 12 | `CacheAutoConfiguration`（Redis 序列化器装配）、`ElasticsearchAutoConfiguration`、各 RPC/AI 自动配置 |
+| nebula-web | 11 | `SensitiveDataAnnotationIntrospector`（extends Jackson2 `AnnotationIntrospector`）、`JacksonConfig`、拦截器 |
+| nebula-rpc-http / nebula-rpc-grpc | 7+7 | RpcRequest/Response 序列化、`HttpRpcClient`/`GrpcRpcClient` |
+| websocket-netty / websocket-spring | 5+4 | 消息编解码 |
+| nebula-foundation | 3 | `JsonUtils`（全仓 7 个模块引用）、`Beans`、`Result`/`PageResult` |
+| rpc-async / task / messaging-core / messaging-redis / data-cache / ai-spring | 各 1-2 | 序列化器与工具类 |
+| **nebula-ai-core** | 0（仅 `com.fasterxml.jackson.annotation`） | 模型类只用注解，**无需迁移** |
+
+**第三方约束（决定 Task 3-0 策略的硬事实，已逐一核实本地 jar）**：
+
+| 第三方 | Jackson 3 支持 | 迁移动作 |
+|---|---|---|
+| spring-data-redis 4.1.0 | 有 `GenericJacksonJsonRedisSerializer`（与 Jackson2 版并存） | `CacheAutoConfiguration:38,133` 的 `GenericJackson2JsonRedisSerializer` 换新类；多态白名单对应 Jackson 3 `PolymorphicTypeValidator` API |
+| spring-amqp 4.1.0 | 有 `JacksonJsonMessageConverter`（与 Jackson2 版并存） | `RabbitDelayMessageConfig:8` 的 `Jackson2JsonMessageConverter` 换新类 |
+| elasticsearch-java 9.4.2 | 有 `Jackson3JsonpMapper`（与 `JacksonJsonpMapper` 并存） | `ElasticsearchAutoConfiguration` 换 `Jackson3JsonpMapper`（阶段一 Task 12.2 的 `objectMapper.copy()` 段落随之改写为 JsonMapper.builder 风格） |
+| **jjwt 0.13.0（根 pom :148）** | **无 Jackson 3 支持**（官方 issue #1029 确认，0.13.0 是最后的 Java 7 分支，Jackson 3 适配在未来版本） | **保留 `jjwt-jackson` + 其传递的 Jackson 2**——这是拆桥后唯一允许的 Jackson 2 运行时残留（孤立在 JWT 序列化内部，不经过框架 ObjectMapper）；执行时上网复查 0.14+ 是否已发布 Jackson 3 适配，有则直接升级消除残留 |
+| Spring AI 2.0 / MCP SDK 2.0 | 混合：自身依赖 Jackson 2（`spring-ai-model` 传递 `jackson-databind:2.21.4`），MCP 走 `mcp-json-jackson3` | `McpToolAdapter`（ai-spring 唯一 fasterxml import）随模块迁移；Spring AI 自身的 Jackson 2 传递依赖属第三方，记录不处理 |
+| Boot 4.1 Jackson 3 定制入口 | `org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer`（`spring-boot-jackson:4.1.0` 已解包确认） | web 层 `Jackson2ObjectMapperBuilderCustomizer` 重写用它 |
+
+**POM 面**：`spring-boot-jackson2` 桥在根 pom `:338-341`（**全模块 `<dependencies>`**，不是 dependencyManagement——拆桥即删除该条目，影响全仓）；jjwt 三坐标 `:279-290`；20+ 个模块 pom 有显式 `jackson-databind`/`jackson-datatype-jsr310` 声明（Task 3-0 全仓扫描定策略：换 `tools.jackson.core:jackson-databind` / 删除 jsr310 条目 / 保留）。
+
+### 3.3 执行要点
+
+- **Task 3-0 盘点先行**：`rg -n "jackson|jjwt" -g 'pom.xml'` 全仓扫描生成清单记入 log.md，上表第三方约束直接并入盘点表；每项策略三选一（换 tools.jackson 坐标 / 删除 / 保留并记录理由）。盘点表产出后**不设 HARD-GATE**（策略已被上表锁定大半），仅当出现上表未覆盖的新第三方约束时停下汇报。
+- **迁移顺序与提交**：3-1 foundation → 3-2 data → 3-3 messaging/rpc/lock → 3-4 web → 3-5 search/ai/task/autoconfigure → 3-6 拆桥；每模块一提交，全程 `mvn clean compile` 绿。websocket 两模块（5+4 文件）归入 Task 3-3 一并迁移（tasks.md 未单列，记 log.md 澄清）。
+- **foundation 先行注意**（Task 3-1）：`JsonUtils` 被 7 个模块引用，其公开方法签名若暴露 `ObjectMapper`/`JsonProcessingException` 类型，迁移即破坏下游——先 `rg "JsonUtils\." --type java` 看清全部调用面再定签名策略（内部持有 `JsonMapper`、对外签名尽量不暴露 Jackson 类型）。
+- **web 层回归闸门**（Task 3-4）：`SensitiveDataAnnotationIntrospector` 重写为 Jackson 3 `tools.jackson.databind.introspect.AnnotationIntrospector` 体系 + `JsonMapperBuilderCustomizer` 装配；完成后把阶段一 Task 2 的 `SensitiveDataMvcMaskingTest` 测试属性从 `jackson2` 切到默认（Jackson 3 路径）必须仍绿——**这是整个阶段的回归闸门**，切完属性红了就是迁移不完整，禁止把属性改回去交差。
+- **Redis 缓存**（Task 3-2）：Q5 已拍板"升级清缓存"，不做双读兼容；多态白名单安全语义不得减弱（Jackson 3 的 PolymorphicTypeValidator 等价配置）；`docs/` 升级指南写清"部署前清 `nebula:cache:*`"步骤。
+- **收尾拆桥**（Task 3-6）：根 pom 删 `spring-boot-jackson2`（:338-341）→ 三份 starter defaults 删 `spring.http.converters.preferred-json-mapper=jackson2` → 同步改三个 `StarterDefaultsInjectionTest`（它们断言该属性=jackson2，不改必红）→ 全仓验收。验收口径按 3.1 节修正版：databind/core/datatype 三包前缀 import 零命中，`com.fasterxml.jackson.annotation` 允许保留，运行时 Jackson 2 残留仅允许 jjwt 传递（盘点表核销）。
 
 ---
 

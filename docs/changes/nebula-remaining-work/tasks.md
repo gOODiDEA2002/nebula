@@ -34,7 +34,7 @@
 - **依赖**: 无（阶段二开工第一动作）
 - **验收标准**: 两项各自独立提交；`rg "3\.5\.8" README.md AGENTS.md` 零命中
 - **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure`
-- [ ] 完成
+- [x] 完成（a2b469bb + 304791eb；2026-07-08 审计对账时补勾——两个子项当时已勾选，总项遗漏）
 
 ### Task 2-1: 死配置全量盘点（只盘点不改码）
 
@@ -172,7 +172,7 @@
   - `core/nebula-security/pom.xml:74`、`application/nebula-web/pom.xml:73` -- `jjwt-jackson:0.12.3`
   - `integration/nebula-integration-payment/pom.xml:56` -- `jackson-databind`（直接依赖）
 - **策略预判**（盘点时逐项核实定稿）:
-  - `jjwt-jackson`：**待核验** JJWT 是否已发布 Jackson 3 变体（查 0.13+ 版本说明）；若无，可选项为 (a) 保留 Jackson 2 作为 JWT 序列化的孤立第三方传递依赖（记录清单）或 (b) 换 `jjwt-gson` 消除 Jackson 2 运行时
+  - `jjwt-jackson`：**已核验（2026-07-08）**——JJWT 0.13.0 无 Jackson 3 支持（官方 issue #1029，适配在未来版本），采用选项 (a) 保留 Jackson 2 作为 JWT 序列化的孤立第三方传递依赖（记录清单）；执行时复查 0.14+ 是否已发布，有则直接升级消除残留
   - payment 的 `jackson-databind`：随 Task 3-5 代码迁移改为 Jackson 3 坐标或删除（若仅传递可用）
 - **产出**: 盘点表记入 `log.md`；各项策略并入对应模块迁移任务执行
 - **依赖**: 无（阶段三开工首个任务）
