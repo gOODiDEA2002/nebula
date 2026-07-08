@@ -234,14 +234,17 @@
 
 - [x] **Task 4-0a: [nebula 侧] 阶段三审计欠账清理**（log.md D7，6 项：upgrade-guide-jackson3.md 补写、payment/crawler-captcha/storage-core/gateway-core POM Jackson 2 残留换坐标、examples 两文件 import 迁移）
 - [x] **Task 4-0b: [nebula 侧] 版本号升代 `2.0.1-SNAPSHOT` → `2.1.0-SNAPSHOT`**（根 pom `<revision>`，Q7 已确认；同步 CLAUDE.md/project.mdc；`mvn install -DskipTests` BUILD SUCCESS）
-- [ ] **Task 4-1: [proud-day 侧] 按其仓库 tasks.md 执行三任务**（版本对齐 → 数据源/Mapper 扫描迁移 → 全量回归；框架侧若暴露问题回流本清单）
+- [x] **Task 4-1: [proud-day 侧] 按其仓库 tasks.md 执行三任务**（完成于 2026-07-08：parent 升 SB4.1 + nebula 2.1.0 + 数据源/Mapper 迁移 + 22T/0F 全量回归；暴露并回流修复 1 个框架问题——RedisMessageListenerContainer 双 Bean 歧义，nebula commit `188011e4`；审计修正发布说明 prod 缓存前缀错误）
 
 ---
 
 ## 变更摘要
 
-> 全部阶段完成后填写
+> 全部阶段完成（2026-07-08）
 
-- 总文件数:
-- Spec-Plan 偏差记录:
+- 总文件数: nebula 侧自基线 `1f49a363` 起 39 提交、139 文件（+4061/-1239）；proud-day 侧 7 提交（feature/nebula-persistence-adoption 分支）
+- Spec-Plan 偏差记录: 均已登记 log.md——Task 1 测试实现方式修正、Task 3-3 websocket 归并、Task 4-0a"删除依赖"改"换坐标"（等价）、RPC 自动配置自建 JsonMapper（拆桥后保留，隔离正确）
 - 遗留问题:
+  - jjwt 0.13.0 无 Jackson 3 变体，jjwt-jackson 传递 Jackson 2 为唯一运行时残留（待 jjwt 0.14+ 发布后升级消除）
+  - spring-ai-model 传递 Jackson 2（第三方依赖，框架不直接使用）
+  - proud-day 上线前必须按其 log.md 发布说明执行：清 Redis 旧缓存 `nebula:cache:*`（prod 原实际前缀）+ 知悉 DB 不可达启动语义变化

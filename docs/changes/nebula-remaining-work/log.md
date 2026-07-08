@@ -635,6 +635,12 @@
 - **验证**：`mvn test -pl autoconfigure`（62 tests, 0 failures, BUILD SUCCESS）；全仓 `mvn clean install -DskipTests` BUILD SUCCESS，`~/.m2` 快照已刷新。
 - **附注**：proud-day 侧代理遵守了"框架问题回流不就地打补丁"纪律，处置正确。其 Task 2 之前的首次失败（`ClassNotFoundException: JsonMapperBuilderCustomizer`）为误诊——实际是其 Task 1 漏升 parent 到 4.1.0，SB3.5 消费 SB4 框架属预期失败，已责成补全。
 
+### Task 4-1 交付审计（2026-07-08，全部阶段收官）
+
+- **对账**：proud-day 侧 6 提交（72e3cfb → 061626a，位于 xtech/feature/nebula-persistence-adoption），本地已签出同名分支。本地重跑：`mvn clean test` 22T/0F、依赖树确认 mybatis-plus boot4 starter 3.5.16 经 nebula 传递、dev 启动成功（Started in 4.048s；前两次尝试因测试库网络抖动握手失败，属环境波动）。
+- **审计发现并修正（上线级错误）**：发布说明写"清 `pd:cache:*`"，但 prod 的 cache 配置从未设 `key-prefix`，实际前缀是 nebula 默认 `nebula:cache:`（`pd:cache:` 仅 dev 有）——照原说明上线会漏清全部 prod 旧缓存，触发 Jackson 3 反序列化故障。修正（proud-day commit `20c5153`）：prod 显式声明 `key-prefix: "pd:cache:"` 与 dev 对齐（借清缓存窗口零成本切换），发布说明改为清旧前缀 `nebula:cache:*` 并连带清新前缀。
+- **全程收官**：阶段一 13 任务 + 阶段二 10 任务 + 阶段三 7 任务 + 阶段四 3 任务全部完成；nebula 侧自基线 `1f49a363` 共 39 提交、139 文件；变更摘要已填入 tasks.md。
+
 ---
 
 ## Spec-Code 偏差
