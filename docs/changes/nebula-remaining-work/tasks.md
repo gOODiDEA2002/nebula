@@ -1,6 +1,7 @@
 # 任务拆分 -- 剩余工作总体清单（nebula-remaining-work）
 
 > 来源 Spec：`docs/changes/nebula-remaining-work/spec.md`
+> 实现细节：`docs/changes/nebula-remaining-work/implementation.md`（编码代理执行手册：代码现场/精确改法/执行顺序，先读它再动手）
 > 阶段顺序：一（审查修复）→ 二（EPIC-C2 治理）→ 三（Jackson 2→3）→ 四（proud-day，外部）
 > 每个任务 = 可独立提交的原子变更；完成即勾选并 git commit
 

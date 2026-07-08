@@ -22,8 +22,8 @@
   - `application/nebula-web/src/main/java/io/nebula/web/config/JacksonConfig.java` -- 类 Javadoc 补充说明：SB4.1 下需 preferred-json-mapper=jackson2 方能作用于 MVC（starter 已注入，裸依赖 nebula-web 需自行配置）
 - **依赖**: 无
 - **验收标准**: 引入 starter-web 的应用中 `Environment.getProperty("spring.http.converters.preferred-json-mapper")` 为 `jackson2`；用户 application.yml 显式配置可覆盖
-- **验证方式**: 扩展 `autoconfigure/nebula-autoconfigure/src/test/java/io/nebula/autoconfigure/env/NebulaStarterDefaultsIntegrationTest.java`——直接断言 web/all/mcp 三份 defaults 注入 `preferred-json-mapper=jackson2` 成功、且用户属性可覆盖（仅编译 starter 证明不了注入生效，2026-07-07 外部审查意见 P1-3）
-- **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=NebulaStarterDefaultsIntegrationTest`
+- **验证方式**: 拆两半验证（2026-07-08 修正：autoconfigure 测试模块不能反向依赖 starter，否则 Maven 循环依赖）——机制半：既有 `NebulaStarterDefaultsIntegrationTest`（autoconfigure）证明 EPP 注入与覆盖语义；内容半：在 web/all/mcp 三个 starter 模块各新增最小 `StarterDefaultsInjectionTest`，断言 `preferred-json-mapper=jackson2` 被注入（starter 自己的 defaults 文件天然在其测试 classpath 上）。详见 `nebula-remaining-work/implementation.md` Task 1
+- **验证命令**: `mvn test -pl autoconfigure/nebula-autoconfigure -Dtest=NebulaStarterDefaultsIntegrationTest && mvn test -pl starter/nebula-starter-web,starter/nebula-starter-all,starter/nebula-starter-mcp`
 - [ ] 完成
 
 ## Task 2: [C-1] MockMvc 脱敏回归哨兵测试

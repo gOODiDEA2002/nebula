@@ -70,7 +70,8 @@
 - 当前靠根 POM `spring-boot-jackson2` 桥模块 + （阶段一注入的）`preferred-json-mapper=jackson2` 维持 Jackson 2 全链路。
 - Jackson 3 坐标 `tools.jackson.*`（包名同变），`JsonMapper` 取代 `ObjectMapper` 为主入口；ES `JacksonJsonpMapper` 9.x 已有 Jackson 3 变体；Spring AI 2.0 内部已用 Jackson 3（T-B3-1 记录 ChromaApi 为 Jackson 3）。
 - 除代码 import 外，POM 显式声明的 Jackson 2 系依赖也在迁移范围（2026-07-07 外部审查补充）：根 POM `jjwt-jackson`(:290)/`spring-boot-jackson2`(:355)、security/web 模块的 `jjwt-jackson:0.12.3`、payment 的 `jackson-databind`——由 Task 3-0 盘点定策（jjwt 的 Jackson 3 变体可用性待核验）。
-- 迁移完成的标志：根 POM 移除 `spring-boot-jackson2` 依赖、defaults 移除 `preferred-json-mapper` 注入、主代码零 `com.fasterxml.jackson` import、POM 无未裁决的 Jackson 2 系显式依赖。
+- 迁移完成的标志：根 POM 移除 `spring-boot-jackson2` 依赖、defaults 移除 `preferred-json-mapper` 注入、主代码零 `com.fasterxml.jackson.databind/core/datatype` import、POM 无未裁决的 Jackson 2 系显式依赖。
+- 口径修正（2026-07-08）：Jackson 3 的注解包**保留** `com.fasterxml.jackson.annotation` 原包名（jackson-annotations 3.x 兼容设计），`@JsonProperty`/`@JsonIgnore` 等 import 无需也不应改动；因此"零 com.fasterxml.jackson 命中"不成立，验收以 databind/core/datatype 三个包前缀为准。
 
 ### 2.4 阶段四（T-D-1）现状
 
@@ -145,5 +146,5 @@ proud-day 仓库：`/Users/andy/DevOps/SourceCode/business-projects/proud-day-pr
 - [ ] 阶段二：同一请求 JWT 只解析一次（集成测试断言 JwtService 调用次数）；`AuthContext` 与 `SecurityContext` 内容一致
 - [ ] 阶段二：`ResultCode.getByCode()` 修复且有测试；`Result` 既有码值回归测试通过
 - [ ] 阶段二：8 个核心 AutoConfiguration 均有 `ApplicationContextRunner` 开/关/缺类三态测试
-- [ ] 阶段三：`rg -l "com.fasterxml.jackson" --type java` 主代码零命中；根 POM 无 `spring-boot-jackson2`；MockMvc 脱敏哨兵测试在 Jackson 3 下仍绿
+- [ ] 阶段三：`rg -l "com.fasterxml.jackson.(databind|core|datatype)" --type java` 主代码零命中（annotation 包保留，见 2.3 口径修正）；根 POM 无 `spring-boot-jackson2`；MockMvc 脱敏哨兵测试在 Jackson 3 下仍绿
 - [ ] 每阶段收尾：`mvn clean compile` + `mvn test` 全仓通过

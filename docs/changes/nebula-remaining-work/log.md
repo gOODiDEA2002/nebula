@@ -20,6 +20,11 @@
 - Q6 落地：proud-day 仓库 `/Users/andy/DevOps/SourceCode/business-projects/proud-day-projects/proud-day-backend`，已完成现状调研并在该仓库另立三件套 `docs/changes/nebula-persistence-adoption/`（spec + tasks + log）。
 - Q7（2026-07-07 已确认）：b 分支 `revision` 升 `2.1.0-SNAPSHOT`。调研发现 proud-day 依赖坐标 `io.nebula:*:2.0.1-SNAPSHOT` 且 parent 为 Boot 3.5.8，与 b 分支（Boot 4.1）版本号相同——快照仓库一旦被 b 产物覆盖，proud-day 重构建即静默吃到跨代际类库。升代号是最低成本的隔离手段。
 
+### D4（2026-07-08）：实现文档编写期发现的两处方案修正
+
+- **Task 1 验证方式修正**：原计划"扩展 autoconfigure 的 NebulaStarterDefaultsIntegrationTest 断言 starter defaults 注入"不可行——autoconfigure 测试若依赖 starter 会形成 Maven 循环依赖（starter → autoconfigure）。改为两半验证：autoconfigure 既有测试证机制，三个 starter 模块各加最小测试证内容。review-fixes tasks.md Task 1 已同步。
+- **Jackson 3 验收口径修正**：jackson-annotations 3.x 保留 `com.fasterxml.jackson.annotation` 原包名（官方兼容设计），注解 import 无需迁移；"零 com.fasterxml.jackson 命中"验收不成立，改为 databind/core/datatype 三包前缀零命中。spec.md 2.3 与验收标准已同步。
+
 ## 知识发现（proud-day 调研，2026-07-07）
 
 - 33 个 Mapper 全部继承 MP 原生 `BaseMapper`——T-A4-1 的 markerInterface 设计生效，"零改动迁移"成立。
