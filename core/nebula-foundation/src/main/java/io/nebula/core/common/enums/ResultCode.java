@@ -120,4 +120,21 @@ public enum ResultCode implements EnumBase<String> {
     public static boolean hasCode(String code) {
         return EnumBase.EnumUtils.hasCode(ResultCode.class, code);
     }
+
+    /**
+     * 根据枚举名称获取结果码（容错版 valueOf，找不到返回 null）
+     *
+     * @param name 枚举名称（如 "SUCCESS"）
+     * @return 结果码枚举，找不到返回 null
+     */
+    public static ResultCode getByName(String name) {
+        if (name == null) {
+            return null;
+        }
+        try {
+            return valueOf(name);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
 }

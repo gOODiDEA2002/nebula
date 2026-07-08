@@ -168,7 +168,11 @@ public final class Constants {
     
     /**
      * 系统错误码
+     *
+     * @deprecated 请使用 {@link io.nebula.core.common.enums.ResultCode} 作为唯一错误码事实源，
+     *             本类常量将在下一主版本删除
      */
+    @Deprecated
     public static final class ErrorCode {
         // 成功
         public static final String SUCCESS = "0000";

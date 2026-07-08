@@ -237,6 +237,14 @@
 - 新增 RpcDiscoveryExecutorInjectionTest(2 用例): 有 rpcExecutor Bean 时注入它; 无时回落 ForkJoinPool.commonPool()
 - 注意: Maven 镜像 nexus.vocoor.com.cn SSL 证书失效(SAN 不匹配), 需使用 `-s /tmp/nebula-mvn-settings.xml` 绕过镜像直连 Maven Central
 
+### Task 2-4 错误码收敛 ResultCode 为唯一事实源
+- ResultCode.getByCode() 原实现正确(遍历比较数字码)，CF-40 真实问题是跨体系互查不通(偏差已记)
+- 新增 ResultCode.getByName(String) 容错版 valueOf
+- 新增 Result.of(ResultCode) / of(ResultCode, T) 工厂，code 取 name()（用户拍板选项 1）
+- Constants.ErrorCode 整个内部类标 @Deprecated，Javadoc 指向 ResultCode
+- 新增 ResultCodeTest(9 用例): 全枚举 getByCode/getByName 回查、Result.of 码值断言、既有 Result 工厂码值回归
+- 验证命令: `mvn test -pl core/nebula-foundation` → Tests run: 278, Failures: 0, Errors: 0, Skipped: 0 -- BUILD SUCCESS
+
 ### Task 2-6 xxl-job 孤儿 DTO 清理
 - 删除: XxlJobExecuteRequest.java, XxlJobLogRequest.java, XxlJobLogResult.java
 - rg 确认零引用(仅定义处命中)

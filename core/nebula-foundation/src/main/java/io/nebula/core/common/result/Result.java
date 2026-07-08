@@ -1,6 +1,7 @@
 package io.nebula.core.common.result;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.nebula.core.common.enums.ResultCode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -100,6 +101,35 @@ public class Result<T> {
                 .build();
     }
     
+    /**
+     * 根据 ResultCode 创建响应（code 取枚举名，与 Result 现有符号码风格一致）
+     *
+     * @param resultCode 结果码枚举
+     * @param <T>        数据类型
+     * @return 响应结果
+     */
+    public static <T> Result<T> of(ResultCode resultCode) {
+        return of(resultCode, null);
+    }
+
+    /**
+     * 根据 ResultCode 创建响应（带数据）
+     *
+     * @param resultCode 结果码枚举
+     * @param data       响应数据
+     * @param <T>        数据类型
+     * @return 响应结果
+     */
+    public static <T> Result<T> of(ResultCode resultCode, T data) {
+        return Result.<T>builder()
+                .success(resultCode.isSuccess())
+                .code(resultCode.name())
+                .message(resultCode.getDescription())
+                .data(data)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     /**
      * 创建失败响应
      * 

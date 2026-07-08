@@ -90,7 +90,7 @@
 - **依赖**: 无（可与 Task 2-2/2-3 并行）
 - **验收标准**: `Result.success().getCode()` 等既有值不变；`ResultCode.getByCode` 对每个枚举值可回查
 - **验证命令**: `mvn test -pl core/nebula-foundation`
-- [ ] 完成
+- [x] 完成
 
 ### Task 2-5: 认证收敛 -- 单一 JWT 解析点（本批最高风险项）
 
