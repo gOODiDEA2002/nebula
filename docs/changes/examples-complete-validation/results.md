@@ -49,15 +49,19 @@ Elasticsearch 9.4.2 等新增依赖使用隔离容器、独立端口和独立卷
 
 | 服务 | 当前版本或状态 | 完整验证结果 | 备注 |
 | --- | --- | --- | --- |
-| Redis | 8.2.1，healthy | PENDING | 当前未启用密码 |
-| RabbitMQ | 3.12，healthy | PENDING | 管理端口可达，待真实收发 |
-| MinIO | healthy | PENDING | 待对象完整生命周期验证 |
-| Elasticsearch | 7.17.19，healthy | PENDING | 与客户端 9.4.2 不匹配，不能作为有效验证环境 |
-| MySQL | 8.3，healthy | PENDING | 待初始化示例库并执行读写 |
-| XXL-JOB | 服务可访问，容器状态为 starting | PENDING | 镜像健康检查使用了不存在的 `curl` |
-| Nacos | 2.5.1，healthy | PENDING | 待临时实例注册、查询和注销 |
-| Chroma | v2 heartbeat 可访问 | PENDING | 待临时 collection 增删查 |
+| Redis | 8.2.1，healthy | PASS | 临时 Key 完成 SET/GET/DEL，删除后扫描为 0 |
+| RabbitMQ | 3.12.14，healthy | PASS | 临时队列完成创建、发布、消费、删除，删除后返回 404 |
+| MinIO | `RELEASE.2025-04-22T22-12-26Z`，healthy | PASS | 临时 Bucket 和对象完成上传、下载比对、删除，复核为 0 |
+| Elasticsearch | 隔离服务 9.4.2 | PASS | 临时索引完成建索引、写入、搜索、删除；未使用现有 7.17.19 数据卷 |
+| MySQL | 隔离服务 8.3.0 | PASS | 初始化 4 个示例库，执行产品写入、读取和删除；独立卷已删除 |
+| XXL-JOB | HTTP 302，容器 unhealthy | PASS | 宿主机 HTTP 探针通过；容器健康检查缺少 `curl` 的环境问题仍保留 |
+| Nacos | 2.5.1，healthy | PASS | 登录、临时实例注册、查询、注销通过，空服务清理后复核为 0 |
+| Chroma | 1.0.0，v2 API | PASS | 临时 collection 完成写入、读取、向量查询和按名称删除，复核为 0 |
 | Etcd | 3.5，healthy | 不适用 | 当前示例没有直接使用 |
+
+执行命令：`E2E_MODE=full examples/e2e-middleware.sh`。最终结果为 10 PASS、0 FAIL、0 SKIP、
+0 BLOCKED。验证服务使用 [docker/verification/docker-compose.yml](../../../docker/verification/docker-compose.yml)，
+仅监听本机 13306 和 19200，不复用 `nebula-data` 的 MySQL、Elasticsearch 容器或数据卷。
 
 ## 5. E2E 框架验证
 
@@ -98,8 +102,8 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
 | 本轮测试启动的进程 | PASS | 受控端口占用进程和 Web 生命周期进程均已关闭 |
-| 隔离容器和独立卷 | 不适用 | Task 0 尚未创建 |
-| `nebula_e2e_` 临时数据 | 不适用 | Task 0 尚未写入 |
+| 隔离容器和独立卷 | PASS | 容器 0、卷 0；13306 和 19200 端口均已释放 |
+| `nebula_e2e_` 临时数据 | PASS | Redis、RabbitMQ、Nacos、MinIO、Chroma 复核均为 0 |
 
 ## 8. 已知告警
 
@@ -108,3 +112,4 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 3. Vocoor OAuth 提供方 `localhost:8080` 当前不可达，完整授权码流程尚未执行。
 4. Playwright 浏览器容器尚未启动，Browser Crawler 完整验证尚未执行。
 5. `starter-web-example` 默认启动会加载 persistence，但示例没有配置主数据源；Task 3 需修复并重跑。
+6. Nacos 2.5.1 按默认 60 秒周期清理空临时服务，预检会等待服务名消失后才判定通过。

@@ -116,7 +116,8 @@ E2E_MODE=full E2E_ONLY=starter-web-example,starter-service-example examples/e2e-
 ```
 
 `smoke` 仅用于日常快速检查，不能替代发布前的完整验证。中间件端口可连接也不能作为功能通过的
-证据；`full` 模式会继续执行协议读写和示例业务断言。
+证据；`full` 模式会先执行协议读写，再运行示例业务断言。MySQL 8.3 和 Elasticsearch 9.4.2
+使用 [隔离验证环境](../docker/verification/README.md)，测试完成后自动删除容器和独立卷。
 
 ## 版本管理
 

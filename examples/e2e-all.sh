@@ -10,6 +10,10 @@ E2E_RUN_ID="${E2E_RUN_ID:-$(date '+%Y%m%d-%H%M%S')-$$}"
 E2E_RESULTS_ROOT="${E2E_RESULTS_ROOT:-$PROJECT_ROOT/target/example-e2e}"
 E2E_RESULTS_DIR="${E2E_RESULTS_DIR:-$E2E_RESULTS_ROOT/$E2E_RUN_ID}"
 E2E_ONLY="${E2E_ONLY:-}"
+E2E_WITH_MIDDLEWARE="${E2E_WITH_MIDDLEWARE:-}"
+E2E_VERIFICATION_PROJECT="${E2E_VERIFICATION_PROJECT:-nebula-e2e-$E2E_RUN_ID}"
+VERIFICATION_COMPOSE_FILE="$PROJECT_ROOT/docker/verification/docker-compose.yml"
+MIDDLEWARE_ATTEMPTED=false
 
 case "$E2E_MODE" in
     smoke|full) ;;
@@ -62,6 +66,42 @@ for command_name in bash mvn curl jq nc lsof; do
     fi
 done
 
+if [ -z "$E2E_WITH_MIDDLEWARE" ]; then
+    if [ "$E2E_MODE" = full ]; then
+        E2E_WITH_MIDDLEWARE=true
+    else
+        E2E_WITH_MIDDLEWARE=false
+    fi
+fi
+case "$E2E_WITH_MIDDLEWARE" in
+    true|false) ;;
+    *)
+        echo "[FAIL] E2E_WITH_MIDDLEWARE 仅支持 true 或 false，实际值：$E2E_WITH_MIDDLEWARE" >&2
+        exit 2
+        ;;
+esac
+
+cleanup_verification_stack() {
+    local exit_code=${1:-0}
+    if [ "$MIDDLEWARE_ATTEMPTED" = true ]; then
+        docker compose -f "$VERIFICATION_COMPOSE_FILE" -p "$E2E_VERIFICATION_PROJECT" \
+            down --volumes --remove-orphans >/dev/null 2>&1 || true
+        MIDDLEWARE_ATTEMPTED=false
+    fi
+    return "$exit_code"
+}
+
+aggregate_exit() {
+    local exit_code=$?
+    set +e
+    cleanup_verification_stack "$exit_code"
+    return "$exit_code"
+}
+
+trap aggregate_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 should_run() {
     local name=$1
     if [ -z "$E2E_ONLY" ]; then
@@ -71,6 +111,29 @@ should_run() {
         *",$name,"*) return 0 ;;
         *) return 1 ;;
     esac
+}
+
+validate_selection() {
+    local requested
+    local known
+    local found
+    local -a requested_names=()
+
+    [ -n "$E2E_ONLY" ] || return 0
+    IFS=',' read -r -a requested_names <<< "$E2E_ONLY"
+    for requested in "${requested_names[@]}"; do
+        found=false
+        for known in "${EXAMPLE_NAMES[@]}"; do
+            if [ "$requested" = "$known" ]; then
+                found=true
+                break
+            fi
+        done
+        if [ "$found" = false ]; then
+            echo "[FAIL] E2E_ONLY 包含未知示例：$requested" >&2
+            return 1
+        fi
+    done
 }
 
 result_value() {
@@ -85,9 +148,50 @@ SKIP_COUNT=0
 BLOCKED_COUNT=0
 RUN_COUNT=0
 
+validate_selection
+
 echo "[INFO] E2E 模式：$E2E_MODE"
 echo "[INFO] 运行 ID：$E2E_RUN_ID"
 echo "[INFO] 证据目录：$E2E_RESULTS_DIR"
+
+if [ "$E2E_WITH_MIDDLEWARE" = true ]; then
+    middleware_log="$E2E_RESULTS_DIR/groups/middleware-preflight.log"
+    middleware_result="$E2E_RESULTS_DIR/middleware-preflight.result"
+    middleware_started_at=$(date +%s)
+    MIDDLEWARE_ATTEMPTED=true
+
+    echo ""
+    echo "========== middleware-preflight =========="
+    set +e
+    E2E_MODE="$E2E_MODE" \
+        E2E_RUN_ID="$E2E_RUN_ID" \
+        E2E_RESULTS_ROOT="$E2E_RESULTS_ROOT" \
+        E2E_RESULTS_DIR="$E2E_RESULTS_DIR" \
+        E2E_TEST_NAME=middleware-preflight \
+        E2E_VERIFICATION_PROJECT="$E2E_VERIFICATION_PROJECT" \
+        E2E_KEEP_VERIFICATION_CONTAINERS=true \
+        bash "$SCRIPT_DIR/e2e-middleware.sh" 2>&1 | tee "$middleware_log"
+    middleware_exit=${PIPESTATUS[0]}
+    set -e
+    middleware_duration=$(( $(date +%s) - middleware_started_at ))
+
+    if [ -f "$middleware_result" ]; then
+        middleware_status=$(result_value "$middleware_result" status)
+    else
+        middleware_status=FAIL
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\n' middleware-preflight "$middleware_status" \
+        "$middleware_exit" "$middleware_duration" "$middleware_log" >>"$SUMMARY_FILE"
+    if [ "$middleware_exit" -ne 0 ] || [ "$middleware_status" != PASS ]; then
+        echo "[FAIL] 中间件协议级预检失败，停止示例执行" >&2
+        exit 1
+    fi
+
+    export NEBULA_E2E_MYSQL_PORT="${NEBULA_E2E_MYSQL_PORT:-13306}"
+    export NEBULA_E2E_ES_PORT="${NEBULA_E2E_ES_PORT:-19200}"
+    export NEBULA_E2E_MYSQL_URL="jdbc:mysql://127.0.0.1:$NEBULA_E2E_MYSQL_PORT"
+    export NEBULA_E2E_ES_URL="http://127.0.0.1:$NEBULA_E2E_ES_PORT"
+fi
 
 for ((index=0; index<${#EXAMPLE_NAMES[@]}; index++)); do
     name=${EXAMPLE_NAMES[$index]}
@@ -147,6 +251,17 @@ for ((index=0; index<${#EXAMPLE_NAMES[@]}; index++)); do
     esac
     printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$status" "$script_exit" "$duration" "$group_log" >>"$SUMMARY_FILE"
 done
+
+if [ "$MIDDLEWARE_ATTEMPTED" = true ]; then
+    if docker compose -f "$VERIFICATION_COMPOSE_FILE" -p "$E2E_VERIFICATION_PROJECT" \
+        down --volumes --remove-orphans >/dev/null; then
+        MIDDLEWARE_ATTEMPTED=false
+        echo "[PASS] 隔离中间件容器和独立卷已删除"
+    else
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        echo "[FAIL] 隔离中间件容器或独立卷清理失败" >&2
+    fi
+fi
 
 echo ""
 echo "=================================="

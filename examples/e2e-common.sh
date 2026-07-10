@@ -27,6 +27,8 @@ E2E_RUN_ID="${E2E_RUN_ID:-$(date '+%Y%m%d-%H%M%S')-$$}"
 E2E_RESULTS_ROOT="${E2E_RESULTS_ROOT:-$PROJECT_ROOT/target/example-e2e}"
 E2E_RESULTS_DIR="${E2E_RESULTS_DIR:-$E2E_RESULTS_ROOT/$E2E_RUN_ID}"
 E2E_TEST_NAME="${E2E_TEST_NAME:-$(basename "$(cd "$(dirname "$0")" && pwd)")}"
+E2E_CASE_NAME="$(printf '%s' "$E2E_TEST_NAME" | tr '/ :.' '----' | tr -cd '[:alnum:]_-')"
+E2E_CASE_DIR="${E2E_CASE_DIR:-$E2E_RESULTS_DIR/cases/$E2E_CASE_NAME}"
 E2E_START_TIMEOUT="${E2E_START_TIMEOUT:-120}"
 E2E_STOP_TIMEOUT="${E2E_STOP_TIMEOUT:-15}"
 
@@ -38,7 +40,7 @@ case "$E2E_MODE" in
         ;;
 esac
 
-mkdir -p "$E2E_RESULTS_DIR"
+mkdir -p "$E2E_RESULTS_DIR" "$E2E_CASE_DIR"
 
 if [ -t 1 ]; then
     RED='\033[0;31m'
@@ -297,7 +299,7 @@ start_app() {
     local -a mvn_args=()
 
     module_name=$(safe_name "$module_path")
-    log_file="$E2E_RESULTS_DIR/${module_name}-${port}.log"
+    log_file="$E2E_CASE_DIR/${module_name}-${port}.log"
     CURRENT_APP_LOG="$log_file"
 
     if ! ensure_port_available "$port"; then
@@ -385,7 +387,7 @@ perform_request() {
     local -a curl_args
 
     HTTP_REQUEST_COUNT=$((HTTP_REQUEST_COUNT + 1))
-    HTTP_BODY_FILE="$E2E_RESULTS_DIR/http-$(printf '%04d' "$HTTP_REQUEST_COUNT").body"
+    HTTP_BODY_FILE="$E2E_CASE_DIR/http-$(printf '%04d' "$HTTP_REQUEST_COUNT").body"
     curl_args=(--silent --show-error --noproxy '*' --connect-timeout 5 --max-time 30
         -X "$method" -o "$HTTP_BODY_FILE" -w '%{http_code}')
 
@@ -615,11 +617,11 @@ write_result() {
         printf 'skip=%s\n' "$SKIP"
         printf 'blocked=%s\n' "$BLOCKED"
         printf 'total=%s\n' "$TOTAL"
-        printf 'evidence_dir=%s\n' "$E2E_RESULTS_DIR"
+        printf 'evidence_dir=%s\n' "$E2E_CASE_DIR"
     } >"$result_file"
 
     printf 'E2E_RESULT name=%s status=%s exit_code=%s pass=%s fail=%s skip=%s blocked=%s total=%s evidence=%s\n' \
-        "$name" "$status" "$exit_code" "$PASS" "$FAIL" "$SKIP" "$BLOCKED" "$TOTAL" "$E2E_RESULTS_DIR"
+        "$name" "$status" "$exit_code" "$PASS" "$FAIL" "$SKIP" "$BLOCKED" "$TOTAL" "$E2E_CASE_DIR"
 }
 
 print_summary() {
@@ -653,7 +655,7 @@ print_summary() {
     printf ' 跳过: %b%s%b\n' "$YELLOW" "$SKIP" "$NC"
     printf ' 阻塞: %b%s%b\n' "$RED" "$BLOCKED" "$NC"
     printf ' 总计: %s\n' "$TOTAL"
-    printf ' 证据: %s\n' "$E2E_RESULTS_DIR"
+    printf ' 证据: %s\n' "$E2E_CASE_DIR"
     printf '==================================\n'
 
     SUMMARY_PRINTED=1
@@ -662,7 +664,8 @@ print_summary() {
 }
 
 cleanup() {
-    local exit_code=$?
+    local original_exit=$?
+    local exit_code=${1:-$original_exit}
     if [ "$CLEANUP_RUNNING" -eq 1 ]; then
         return "$exit_code"
     fi
