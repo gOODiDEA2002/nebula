@@ -52,17 +52,12 @@ public class HttpRpcProperties {
         /**
          * 服务器端口
          * 
-         * 默认为 null，表示自动使用 Spring Boot 的 server.port。
+         * 默认为 0，表示自动使用 Spring Boot 的 server.port。
          * 如果显式配置，则使用配置值（仅作为元数据，HTTP RPC 实际运行在 Spring Boot 内嵌 Web 服务器中）。
          */
-        //private Integer port;
-
-        /**
-         * 范围: 1 - 65535
-         */
-        @Min(value = 1, message = "端口号不能小于 1")
+        @Min(value = 0, message = "端口号不能小于 0")
         @Max(value = 65535, message = "端口号不能大于 65535")
-        private int port = 8080;
+        private int port;
         
         /**
          * 上下文路径

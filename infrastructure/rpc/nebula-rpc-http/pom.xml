@@ -33,6 +33,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
+
+        <!-- HttpRpcAutoConfiguration 使用的连接池实现 -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+        </dependency>
         
         <!-- OpenFeign for declarative HTTP clients -->
         <dependency>

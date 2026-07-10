@@ -4,6 +4,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.http.client.HttpRpcClient;
 import io.nebula.rpc.http.server.HttpRpcController;
+import io.nebula.rpc.http.server.HttpRpcServer;
 import io.nebula.rpc.http.config.HttpRpcProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -92,6 +93,22 @@ class HttpRpcClientConfigTest {
             assertThat(ReflectionTestUtils.getField(client, "objectMapper")).isSameAs(expected);
             assertThat(ReflectionTestUtils.getField(controller, "objectMapper")).isSameAs(expected);
         });
+    }
+
+    @Test
+    void httpRpcServerUsesApplicationPortByDefault() {
+        contextRunner
+                .withPropertyValues("server.port=18082")
+                .run(ctx -> assertThat(ctx.getBean(HttpRpcServer.class).getPort()).isEqualTo(18082));
+    }
+
+    @Test
+    void explicitHttpRpcServerPortOverridesApplicationPort() {
+        contextRunner
+                .withPropertyValues(
+                        "server.port=18082",
+                        "nebula.rpc.http.server.port=19090")
+                .run(ctx -> assertThat(ctx.getBean(HttpRpcServer.class).getPort()).isEqualTo(19090));
     }
 
     private static boolean hasField(Class<?> clazz, String fieldName) {

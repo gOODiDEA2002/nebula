@@ -159,9 +159,8 @@ public class HttpRpcAutoConfiguration {
     @ConditionalOnProperty(prefix = "nebula.rpc.http.server", name = "enabled", havingValue = "true", matchIfMissing = true)
     public HttpRpcServer httpRpcServer(HttpRpcProperties properties,
             @org.springframework.beans.factory.annotation.Value("${server.port:8080}") int serverPort) {
-        int resolvedPort = properties.getServer().getPort() > 0
-                ? properties.getServer().getPort()
-                : serverPort;
+        int configuredPort = properties.getServer().getPort();
+        int resolvedPort = configuredPort > 0 ? configuredPort : serverPort;
 
         HttpRpcServer server = new HttpRpcServer();
         server.start(resolvedPort);
@@ -209,10 +208,10 @@ public class HttpRpcAutoConfiguration {
         var details = new java.util.LinkedHashMap<String, String>();
 
         // Server Info
-        Integer port = properties.getServer().getPort();
-        if (port == null) {
-            port = env.getProperty("server.port", Integer.class, 8080);
-        }
+        int configuredPort = properties.getServer().getPort();
+        int port = configuredPort > 0
+                ? configuredPort
+                : env.getProperty("server.port", Integer.class, 8080);
         details.put("Server Port", String.valueOf(port));
         details.put("Context Path", properties.getServer().getContextPath());
         details.put("Request Timeout", properties.getServer().getRequestTimeout() + "ms");
