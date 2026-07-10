@@ -62,18 +62,6 @@ public class SpringAIVectorStoreService implements VectorStoreService {
             log.debug("添加文档到向量存储: {}", document.getId());
 
             org.springframework.ai.document.Document springDocument = convertToSpringDocument(document);
-            
-            // 如果文档没有向量，则进行向量化
-            if (!document.hasVector()) {
-                List<Double> vector = embeddingService.embed(document.getContent()).getFirstVector();
-                springDocument = new org.springframework.ai.document.Document(
-                    springDocument.getText(),
-                    springDocument.getMetadata()
-                );
-                // Spring AI Document 的ID在构造函数中设置
-                // Spring AI Document 不直接支持设置向量，向量化由VectorStore内部处理
-            }
-
             vectorStore.add(List.of(springDocument));
             return true;
 

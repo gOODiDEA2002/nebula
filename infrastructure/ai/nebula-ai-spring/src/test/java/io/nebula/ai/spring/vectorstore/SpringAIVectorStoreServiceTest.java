@@ -18,7 +18,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -59,18 +58,6 @@ class SpringAIVectorStoreServiceTest {
     }
     
     /**
-     * 设置 EmbeddingService 的默认 stub 行为
-     * 仅在需要向量化的测试中调用
-     */
-    private void setupEmbeddingServiceStub() {
-        io.nebula.ai.core.model.EmbeddingResponse mockEmbeddingResponse = mock(io.nebula.ai.core.model.EmbeddingResponse.class);
-        List<Double> mockVector = List.of(0.1, 0.2, 0.3);
-        when(mockEmbeddingResponse.getFirstVector()).thenReturn(mockVector);
-        // 使用 lenient 避免 UnnecessaryStubbingException（某些文档可能已有向量）
-        lenient().when(embeddingService.embed(anyString())).thenReturn(mockEmbeddingResponse);
-    }
-
-    /**
      * 测试添加单个文档功能
      * 
      * 场景：添加一个文档到向量存储
@@ -79,8 +66,6 @@ class SpringAIVectorStoreServiceTest {
     @Test
     void testAddDocument() {
         // Given: 准备测试文档
-        setupEmbeddingServiceStub(); // 设置embedding stub
-        
         Document document = Document.builder()
                 .id("doc-1")
                 .content("This is a test document about Spring AI.")
@@ -112,6 +97,7 @@ class SpringAIVectorStoreServiceTest {
         assertThat(addedDoc.getMetadata()).containsKey("nebula_updated_at");
         assertThat(addedDoc.getMetadata()).containsEntry("source", "test");
         assertThat(addedDoc.getMetadata()).containsEntry("category", "tech");
+        verifyNoInteractions(embeddingService);
     }
 
     /**
