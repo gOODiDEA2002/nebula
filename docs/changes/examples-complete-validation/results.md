@@ -92,7 +92,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `starter-ai-example` | AI 应用 | BLOCKED | 禁用模式与 AI Bean 创建通过；真实 OpenAI 调用因测试账号 429 quota 阻塞，首次失败后已停止并清理 |
 | `starter-all-example` | All 应用 | PASS | 零外部依赖模式 7/7 PASS；Hello、健康、性能、OpenAPI 和禁用模块日志均符合预期 |
 | `rpc-async-example` | Service、Client | PASS | 38/38 PASS；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复均通过 |
-| `microservice-example` | User、Order | PENDING | 待执行 |
+| `microservice-example` | User、Order | PASS | 34/34 PASS；REST CRUD、HTTP RPC、gRPC、Nacos metadata 和 Order 到 User 跨服务调用均通过 |
 | `gateway-example` | Gateway | PENDING | 待执行 |
 | `fullstack-example` | Fullstack 应用 | PENDING | 待执行 |
 | `crawler-example` | Crawler、Browser | PENDING | 待执行 |
@@ -165,3 +165,16 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   dataId 删除并复核为 404，两个实例已注销，8081 和 8082 均释放。
 - 运行中发现 `AsyncRpcExecutionManager` 会把已取消的排队任务重新改为 `RUNNING` 并发起 RPC。修复后执行线程
   会在开跑前读取状态并跳过明确的 `CANCELLED`；2 条单元测试同时覆盖取消和 Nacos 刚发布后短暂不可见的情况。
+
+## 13. Task 7 复核记录
+
+- 最终证据：`target/example-e2e/20260711-073534-69263/`，结果为 34 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。
+- `user-api` 和 `order-api` 均安装成功，契约 JAR 分别包含 `UserRpcClient.class` 和
+  `OrderRpcClient.class`。User、Order 的健康检查和 Nacos 注册通过，metadata 中的 gRPC 端口分别为
+  2001 和 2002。
+- User REST 完成创建、详情、筛选列表、更新、非法输入 400、删除和删除后复核。HTTP RPC 完成真实查询和
+  未知服务 404；gRPC 完成真实查询和错误方法响应。
+- Order 通过通用 HTTP RPC 创建订单，并由 `ServiceDiscoveryRpcClient` 使用 User 的 Nacos gRPC metadata
+  调用 2001。Order gRPC 查询订单和未知用户错误均通过，Order 与 User 两端日志包含同一用户 ID。
+- 清理复核：内存测试用户已删除；1001、1002、2001、2002 端口均释放；两个 Nacos 实例均注销。

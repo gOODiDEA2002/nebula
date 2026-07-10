@@ -26,6 +26,9 @@
 | 2026-07-11 | research | 异步 RPC 取消后仍执行远程调用 | `cancel` 只写入 `CANCELLED`，执行线程未在开跑前复核状态 |
 | 2026-07-11 | apply | 修正异步取消并加固完整验证 | 执行线程跳过已取消任务；E2E 覆盖 Nacos、单条、批量、同步、404、取消和重启恢复 |
 | 2026-07-11 | verify | 完成 Task 6 异步 RPC 验证 | 38/38 PASS；Nacos 记录和实例、8081/8082 端口全部清理 |
+| 2026-07-11 | research | 微服务严格基线被默认持久化阻断 | User Service 没有数据源，但 Service Starter 默认启用 persistence |
+| 2026-07-11 | apply | 修正微服务配置、更新接口和敏感日志 | 纯内存服务关闭未使用模块；使用当前 gRPC 端口键；请求体不再重复要求路径 ID；日志不打印密码和 Token |
+| 2026-07-11 | verify | 完成 Task 7 微服务双协议验证 | 34/34 PASS；REST、HTTP RPC、gRPC、发现调用、四端口和两个实例清理通过 |
 
 ## 技术决策
 
@@ -45,6 +48,8 @@
 | AI 外部请求 | 示例通过 `max-retries=0` 禁用 SDK 自动重试 | 使用 SDK 默认重试次数 | 完整验证应限制费用，外部额度不足时首次失败后立即停止 |
 | 异步取消 | 执行线程开跑前复核持久化状态，仅跳过明确的 `CANCELLED` | 从线程池移除任务或把暂时查不到记录视为取消 | 当前执行器不暴露队列句柄；Nacos 发布后存在短暂读取窗口，空结果不能证明任务已删除 |
 | 取消 E2E | 测试时用环境变量临时设置单线程执行器 | 把示例默认线程池永久改为单线程 | 单线程可稳定制造排队，正常示例仍保留 10/50/200 的吞吐配置 |
+| 微服务 gRPC 端口 | 使用 `spring.grpc.server.port`，Nacos metadata 读取同一值 | 继续依赖旧 `grpc.server.port` 和桥接键 | 当前 Spring gRPC 服务器以 `spring.grpc.server.*` 为权威配置 |
+| Order HTTP 入口 | 使用通用 `POST /rpc` 请求 `OrderRpcClient` | 文档中不存在的 `/rpc/orders` REST 路由 | Order 没有 Controller，框架 HTTP RPC 只暴露通用协议入口 |
 
 ## 踩坑记录
 
@@ -65,6 +70,8 @@
 | OpenAI 测试账号返回 429 | 当前环境变量中的测试账号没有可用额度 | 记录 `BLOCKED`，零重试并在首次失败后停止；不把阻塞折算为通过 | [ ] |
 | 异步任务取消后仍被执行 | 执行线程无条件把状态更新为 `RUNNING` | 开跑前读取状态，明确为 `CANCELLED` 时直接返回，并验证服务端没有收到请求 | [x] |
 | Nacos 刚发布的配置短暂读不到 | 发布成功与本客户端读取可见之间存在数毫秒窗口 | 只有明确读到 `CANCELLED` 才跳过；空结果沿用正常执行路径，并补回归测试 | [x] |
+| User 更新接口按 README 调用仍返回 400 | DTO 的 `id` 在方法执行前校验非空，但 Controller 和 RPC 都从独立参数设置 ID | 移除请求体 ID 的非空约束，以路径或 RPC 参数为唯一来源 | [x] |
+| HTTP RPC 请求缺少 primitive 字段时返回 500 | Jackson 3 将缺失的 `long timeout` 作为 `null` 并拒绝映射 | E2E 按完整线格式发送 `timestamp`、`timeout` 和其他字段 | [x] |
 
 ## 知识发现
 

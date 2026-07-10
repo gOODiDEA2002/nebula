@@ -94,6 +94,9 @@ microservice-example/
 - Maven 3.8+
 - Nacos 2.x（localhost:8848）
 
+Nacos 地址和认证信息可通过 `NACOS_SERVER_ADDR`、`NACOS_USERNAME`、`NACOS_PASSWORD`、
+`NACOS_NAMESPACE` 和 `NACOS_GROUP` 环境变量覆盖。
+
 ## 快速开始
 
 ```bash
@@ -109,6 +112,12 @@ mvn -q -f examples/microservice-example/user-service spring-boot:run
 
 # 4. 启动 Order 服务（端口 1002）
 mvn -q -f examples/microservice-example/order-service spring-boot:run
+```
+
+完整验证会检查两个契约 JAR、REST CRUD、HTTP RPC、gRPC、Nacos metadata、跨服务调用和资源清理：
+
+```bash
+E2E_MODE=full examples/microservice-example/e2e-test.sh
 ```
 
 ## 接口测试
@@ -139,14 +148,24 @@ curl -X DELETE http://localhost:1001/rpc/users/1
 ### Order 服务接口（端口 1002，跨服务调用 User 服务）
 
 ```bash
-# 创建订单（内部调用 UserService 验证用户）
-curl -X POST http://localhost:1002/rpc/orders \
+# 创建订单（通用 HTTP RPC 入口，内部通过 Nacos 和 gRPC 调用 UserService）
+curl -X POST http://localhost:1002/rpc \
   -H "Content-Type: application/json" \
-  -d '{"userId":1,"productName":"Nebula License","quantity":1,"price":99.00}'
-
-# 查询订单
-curl http://localhost:1002/rpc/orders/1
+  -d '{
+    "requestId":"order-demo-1",
+    "serviceName":"io.nebula.example.order.api.rpc.OrderRpcClient",
+    "methodName":"createOrder",
+    "parameterTypes":["io.nebula.example.order.api.dto.CreateOrderDto$Request"],
+    "parameters":[{"userId":1,"productName":"Nebula License","quantity":1,"price":99.00}],
+    "headers":{},
+    "timestamp":0,
+    "timeout":30000,
+    "version":"2.1"
+  }'
 ```
+
+Order 示例没有单独的 REST Controller。HTTP 调用统一使用 `POST /rpc`，gRPC 调用统一使用
+`io.nebula.rpc.grpc.GenericRpcService/Call`。
 
 ## RPC 接口设计模式
 
@@ -180,9 +199,10 @@ public interface OrderRpcClient {
 ```yaml
 server:
   port: 1001
-grpc:
-  server:
-    port: 2001
+spring:
+  grpc:
+    server:
+      port: 2001
 
 nebula:
   discovery:
@@ -199,7 +219,7 @@ nebula:
     grpc:
       enabled: true
       server:
-        port: ${grpc.server.port}
+        enabled: true
 ```
 
 ### Order 服务
@@ -207,9 +227,10 @@ nebula:
 ```yaml
 server:
   port: 1002
-grpc:
-  server:
-    port: 2002
+spring:
+  grpc:
+    server:
+      port: 2002
 
 nebula:
   discovery:
