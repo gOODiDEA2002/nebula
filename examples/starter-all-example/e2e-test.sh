@@ -1,34 +1,30 @@
 #!/usr/bin/env bash
 # starter-all-example E2E 测试
-# 验证全量 Starter 在外部服务最小依赖下能正常启动
-# 大部分外部服务已禁用，仅测试基础功能
+# 验证全量 Starter 在零外部依赖配置下正常启动
 source "$(dirname "$0")/../e2e-common.sh"
 
 PORT=8084
 log_info "========== starter-all-example E2E =========="
 
-skip_if_no_service "Redis" "localhost" 6379 "starter-all-example"
-
 start_app "examples/starter-all-example" "$PORT"
 
-assert_contains "GET /hello 返回成功" \
-    "http://localhost:$PORT/hello" '"success":true'
+assert_json "GET /hello 返回统一成功响应" \
+    "http://localhost:$PORT/hello" \
+    '.success == true and .code == "SUCCESS" and .data == "Hello, Nebula All"'
 
-assert_contains "GET /hello 返回数据" \
-    "http://localhost:$PORT/hello" 'Hello, Nebula'
+assert_json "GET /health/ping 健康检查" \
+    "http://localhost:$PORT/health/ping" \
+    '.success == true and .data.status == "pong"'
 
-assert_contains "GET /health/ping 健康检查" \
-    "http://localhost:$PORT/health/ping" '"status":"pong"'
+assert_json "GET /performance/status 性能状态" \
+    "http://localhost:$PORT/performance/status" \
+    '.success == true and (.data.application.status | IN("HEALTHY", "WARNING"))'
 
-# 性能监控可能未启用，仅验证端点存在且不崩溃
-TOTAL=$((TOTAL + 1))
-perf_code=$(curl -s --noproxy '*' -o /dev/null -w "%{http_code}" "http://localhost:$PORT/performance/status" 2>/dev/null || echo "000")
-if [ "$perf_code" = "200" ] || [ "$perf_code" = "503" ]; then
-    log_pass "GET /performance/status 端点可访问 (HTTP $perf_code)"
-    PASS=$((PASS + 1))
-else
-    log_fail "GET /performance/status 意外状态码 (HTTP $perf_code)"
-    FAIL=$((FAIL + 1))
-fi
+assert_json "GET /v3/api-docs 包含 Hello 接口" \
+    "http://localhost:$PORT/v3/api-docs" \
+    '(.openapi | startswith("3.")) and .paths["/hello"].get != null'
+
+assert_file_not_contains "外部模块未建立连接或启动运行组件" "$CURRENT_APP_LOG" \
+    'ConnectionsHolder.*connections initialized|NacosServiceAutoRegistrar|RabbitMQAutoConfiguration|WebSocketAutoConfiguration|TaskEngine|AIAutoConfiguration|配置HTTP RPC服务器'
 
 print_summary "starter-all-example"

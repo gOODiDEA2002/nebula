@@ -335,6 +335,69 @@ start_app() {
     log_info "应用 $module_path 已启动，受管 PID=$APP_PID"
 }
 
+assert_app_startup_failure() {
+    local desc=$1
+    local module_path=$2
+    local port=$3
+    local expected_pattern=$4
+    local timeout=${5:-30}
+    local module_name
+    local log_file
+    local pid
+    local exit_code
+    local elapsed=0
+
+    module_name=$(safe_name "$module_path")
+    log_file="$E2E_CASE_DIR/${module_name}-${port}-expected-failure.log"
+
+    if ! ensure_port_available "$port"; then
+        record_fail "${desc}：测试端口 $port 不可用"
+        return 0
+    fi
+
+    log_info "验证应用启动失败：${module_path}，端口 ${port}，日志 $log_file"
+    (
+        cd "$PROJECT_ROOT"
+        exec mvn -q -f "$module_path" spring-boot:run
+    ) >"$log_file" 2>&1 &
+
+    pid=$!
+    APP_PIDS+=("$pid")
+    APP_PORTS+=("$port")
+
+    while pid_is_running "$pid" && [ "$elapsed" -lt "$timeout" ]; do
+        if nc -z localhost "$port" >/dev/null 2>&1; then
+            terminate_process_tree "$pid"
+            record_fail "${desc}：应用意外监听端口 $port"
+            return 0
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+
+    if pid_is_running "$pid"; then
+        terminate_process_tree "$pid"
+        record_fail "${desc}：应用未在 ${timeout}s 内快速失败"
+        return 0
+    fi
+
+    if wait "$pid"; then
+        exit_code=0
+    else
+        exit_code=$?
+    fi
+
+    if [ "$exit_code" -ne 0 ] &&
+        ! grep -Eq '(^|[[:space:]])Started [^[:space:]]+' "$log_file" 2>/dev/null &&
+        grep -Eq "$expected_pattern" "$log_file" 2>/dev/null; then
+        record_pass "${desc}：非 0 退出，且错误原因符合预期"
+        return 0
+    fi
+
+    record_fail "${desc}：退出码 $exit_code 或失败日志不符合预期，详见 $log_file"
+    return 0
+}
+
 stop_app() {
     local pid=${1:-$APP_PID}
     if [ -z "$pid" ]; then
@@ -515,6 +578,18 @@ assert_file_exists() {
         return 0
     fi
     record_fail "${desc}：文件不存在 $path"
+    return 0
+}
+
+assert_file_contains() {
+    local desc=$1
+    local path=$2
+    local pattern=$3
+    if [ -f "$path" ] && grep -Eq "$pattern" "$path"; then
+        record_pass "$desc"
+        return 0
+    fi
+    record_fail "${desc}：文件缺失或未匹配到「$pattern」"
     return 0
 }
 

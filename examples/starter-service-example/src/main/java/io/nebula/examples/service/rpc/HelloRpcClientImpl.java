@@ -11,9 +11,9 @@ import lombok.extern.slf4j.Slf4j;
  * 演示标准的RPC服务实现方式：
  * 1. 使用 @RpcService 标记实现类（无需指定接口类）
  * 2. 实现 @RemoteService 标记的接口
- * 3. 不使用 @RestController，所有路由由 @RpcCall 定义
+ * 3. RPC 实现不承担前端 HTTP 路由，应用层 Controller 复用此实现
  * 
- * 此实现类同时支持HTTP和gRPC两种协议访问
+ * 此实现类可注册到 HTTP RPC 或 gRPC Server
  * 
  * @author Nebula Framework
  */

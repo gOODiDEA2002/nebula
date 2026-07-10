@@ -76,6 +76,7 @@ Elasticsearch 9.4.2 等新增依赖使用隔离容器、独立端口和独立卷
 | 生命周期 | 临时关闭 persistence 后在 18080 启动 Web 示例 | 0 | PASS | Started、业务 HTTP 200、日志干净、TERM 关闭、端口释放 |
 | 总入口单组执行 | `E2E_MODE=full E2E_ONLY=starter-api-example examples/e2e-all.sh` | 0 | PASS | 1 PASS、0 FAIL、0 SKIP、0 BLOCKED |
 | 当前框架安装 | Full 模式运行总入口 | 0 | PASS | 默认先执行 `mvn -q install -DskipTests`，避免独立示例解析到旧 SNAPSHOT；可用 `E2E_INSTALL_FRAMEWORK=false` 复用已安装产物 |
+| 预期启动失败 | Service 使用不可达 Redis 端口启动 | 0 | PASS | 应用非 0 退出、未监听测试端口，日志明确包含 Redis 连接失败；只清理受管 PID |
 
 E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e2e/<run-id>/`。该目录是临时产物，
 不提交到 Git；可复核结论持续写入本文档。
@@ -87,9 +88,9 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `starter-minimal-example` | Minimal 应用 | PASS | 独立构建退出码为 0，出现 `Started MinimalApplication`，且没有启动 Web Server；3/3 PASS |
 | `starter-api-example` | 契约 JAR | PASS | JAR 包含 `UserApi.class`，运行时依赖树不含 Web Server；5/5 PASS；提供方和消费方的跨服务使用留在 Task 7 |
 | `starter-web-example` | Web 应用 | PASS | `/hello`、健康、性能和 OpenAPI 均返回严格预期，日志干净且 8080 已释放；6/6 PASS |
-| `starter-service-example` | Service 应用 | PENDING | 待执行 |
+| `starter-service-example` | Service 应用 | PASS | 16/16 PASS；三个 GET、通用 HTTP RPC、Redis Lock、模块开关和 Redis 失败路径均通过 |
 | `starter-ai-example` | AI 应用 | PENDING | 待执行 |
-| `starter-all-example` | All 应用 | PENDING | 待执行 |
+| `starter-all-example` | All 应用 | PASS | 零外部依赖模式 7/7 PASS；Hello、健康、性能、OpenAPI 和禁用模块日志均符合预期 |
 | `rpc-async-example` | Service、Client | PENDING | 待执行 |
 | `microservice-example` | User、Order | PENDING | 待执行 |
 | `gateway-example` | Gateway | PENDING | 待执行 |
@@ -121,3 +122,19 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 - Web 首次失败的根因有两层：示例未关闭 Starter 默认启用的数据模块；独立运行时又解析到本地仓库中的旧
   `nebula-web` SNAPSHOT。前者通过示例配置修正，后者通过 Full 模式默认安装当前框架解决。
 - Task 3 完成后，没有遗留受管 Java 进程，8080 端口已释放，且未创建外部中间件数据。
+
+## 10. Task 4 复核记录
+
+- 首次聚合运行 `target/example-e2e/20260710-211711-51774/` 如实失败：Service 因 Starter 默认启用
+  persistence 但没有数据源而退出；All 启动了 Lock、Task、WebSocket，且性能端点返回 500。
+- Service 与 All 最终聚合证据：`target/example-e2e/20260710-213422-14162/`，汇总 2 PASS、
+  0 FAIL、0 SKIP、0 BLOCKED，命令退出码为 0。
+- Service 组为 16 PASS、0 FAIL、0 SKIP、0 BLOCKED。三个 GET 接口、通用 `POST /rpc`、真实
+  Redis Lock 回调、RPC 端口、锁键清理和 Redis 不可达快速失败均通过。
+- All 组为 7 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED。零外部依赖模式下 Hello、健康、性能和 OpenAPI 通过，日志没有被禁用模块的连接或运行组件。
+- `HttpRpcClientConfigTest` 为 7 tests、0 failures、0 errors、0 skipped，覆盖默认跟随
+  `server.port` 和显式 `nebula.rpc.http.server.port` 优先两种端口规则。
+- Service 运行时依赖树确认 `nebula-starter-service -> nebula-rpc-http -> httpclient5:5.6.1`；修复后不再出现
+  `HttpClientConnectionManager` 缺类。
+- 清理复核：8082、8084、18082 均已释放；Redis 中 `nebula_e2e_starter_service_*` 键数量为 0。

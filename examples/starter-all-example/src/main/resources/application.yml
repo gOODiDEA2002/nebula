@@ -11,6 +11,8 @@ nebula:
     nacos:
       enabled: false
   rpc:
+    discovery:
+      enabled: false
     http:
       enabled: false
     grpc:
@@ -19,8 +21,7 @@ nebula:
     rabbitmq:
       enabled: false
   lock:
-    enabled: true
-    enable-aspect: true
+    enabled: false
   data:
     persistence:
       enabled: false
@@ -29,3 +30,15 @@ nebula:
   storage:
     minio:
       enabled: false
+  search:
+    elasticsearch:
+      enabled: false
+  task:
+    enabled: false
+  ai:
+    enabled: false
+  websocket:
+    enabled: false
+  web:
+    performance:
+      enabled: true

@@ -1,7 +1,7 @@
 # 下一次 Codex Goal 提示词
 
-以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 3 已完成，下一阶段从
-Task 4 开始。
+以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 4 已完成，下一阶段从
+Task 5 开始。
 
 ```text
 继续仓库 /Users/andy/DevOps/SourceCode/nebula-projects/nebula 中的 Nebula 2.1 示例应用完全验证。
@@ -19,16 +19,10 @@ Task 4 开始。
 - Task 1：E2E 通用框架和 13 组总入口已加固，Full 模式不允许静默跳过或误杀未知进程。
 - Task 2：Redis、RabbitMQ、Nacos、MinIO、Chroma、隔离 MySQL 8.3 和 Elasticsearch 9.4.2 的协议级预检 10/10 通过。
 - Task 3：starter-api 5/5、starter-minimal 3/3、starter-web 6/6 通过；无残留进程或外部数据。
+- Task 4：starter-service 16/16、starter-all 7/7 通过；HTTP RPC、Redis Lock、失败路径和零依赖模式均有直接证据。
 - Full 模式总入口现在默认执行 mvn -q install -DskipTests，避免独立示例加载旧 SNAPSHOT。确认源码没有变化时可设置 E2E_INSTALL_FRAMEWORK=false 加快局部复跑。
 
-本次 Goal 的第一目标：完成 tasks.md 的 Task 4 和 Task 5，并做阶段提交。
-
-Task 4 要求：
-1. 先核对 starter-service-example 和 starter-all-example 的配置、README、控制器及现有 E2E，不能想当然修改。
-2. 统一 Service 示例的 HTTP RPC 默认行为，验证健康、性能、Redis Lock Bean 和三个 /rpc/hello 接口的真实响应。
-3. 验证 Redis 不可用时显式启用 Lock 会快速、明确地失败，不能把假启动记为通过。
-4. 验证 All 示例的 /hello、健康端点和 Starter 默认值；已关闭模块不得建立外部连接。
-5. 收紧现有脚本，404、500、503、仅端口可达或仅出现 Started 都不得算成功。
+本次 Goal 的第一目标：完成 tasks.md 的 Task 5，并做阶段提交。
 
 Task 5 要求：
 1. AI 禁用模式必须无密钥启动，并确认 /ai/echo 返回 AI disabled，且没有创建远程 AI 客户端。
@@ -47,5 +41,5 @@ Task 5 要求：
 - 每完成一个阶段按“已完成 / 进行中 / 阻塞与风险 / 下一步 / 待拍板”汇报。
 - 使用 Conventional Commits 小步提交；提交前运行相关 E2E、bash -n、git diff --check 和活动 Markdown 链接检查。不要推送。
 
-Task 4 和 Task 5 完成后继续 Task 6 至 Task 16，不要缩小原 Goal。最终门禁仍是：13 组示例、16 个进程和契约 JAR 全部有真实证据；E2E Full 为 0 FAIL、0 SKIP、0 BLOCKED、0 未验证；两个前端构建和浏览器流程通过；整仓测试、Shell、Markdown 链接、资源清理全部通过。只有 tasks.md 全部勾选时才能把 Goal 标记为 complete。
+Task 5 完成后继续 Task 6 至 Task 16，不要缩小原 Goal。最终门禁仍是：13 组示例、16 个进程和契约 JAR 全部有真实证据；E2E Full 为 0 FAIL、0 SKIP、0 BLOCKED、0 未验证；两个前端构建和浏览器流程通过；整仓测试、Shell、Markdown 链接、资源清理全部通过。只有 tasks.md 全部勾选时才能把 Goal 标记为 complete。
 ```

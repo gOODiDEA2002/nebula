@@ -17,6 +17,9 @@
 | 2026-07-10 | verify | 总入口串联中间件和契约示例 | 预检 10/10、示例 1/1；临时容器、卷和协议资源均为 0 |
 | 2026-07-10 | apply | 修正 Minimal、Web 和 API 契约示例验证 | Minimal 明确使用非 Web 模式；Web 明确关闭未使用的数据模块；API 增加运行时依赖检查 |
 | 2026-07-10 | verify | 完成 Task 3 三组基础 Starter 验证 | API 5/5、Minimal 3/3、Web 6/6；无外部依赖、残留进程或占用端口 |
+| 2026-07-10 | research | 首次运行 Service 和 All 均失败 | Service 被无配置数据源阻断；All 实际启动 WebSocket、Task、Redis Lock，且性能端点未注册 |
+| 2026-07-10 | apply | 修正 HTTP RPC 运行时依赖与端口解析 | `nebula-rpc-http` 补充 HttpClient 5；未显式配置 RPC 端口时跟随 `server.port` |
+| 2026-07-10 | verify | 完成 Task 4 Starter 验证 | Service 16/16、All 7/7；Redis 失败路径、端口和临时锁键清理通过 |
 
 ## 技术决策
 
@@ -30,6 +33,8 @@
 | 敏感信息 | 环境变量注入并脱敏记录 | 沿用 YAML 硬编码密钥 | 防止秘密进入 Git 和日志 |
 | 单元测试跳过 | 基线如实记录，最终 E2E 不允许跳过 | 把条件跳过视为完全通过 | 单元测试基线与示例完全验收是两个不同门禁 |
 | 独立示例构建 | Full 模式默认先安装当前框架快照 | 直接使用本地 Maven 仓库中的旧 SNAPSHOT | 避免源码已升级而独立示例仍加载旧框架产物 |
+| Service HTTP 入口 | Controller 提供三个 GET 接口，通用 `POST /rpc` 验证真实 RPC Server | 把 `@RpcCall` 当作动态 MVC 路由 | 当前 HTTP RPC Server 只提供通用协议入口，前端 HTTP 路由属于应用层 |
+| All 默认模式 | 显式关闭所有需要外部服务或独立运行组件的模块 | 依赖 Starter 默认值或只关闭部分模块 | README 承诺零外部依赖，配置必须完整覆盖 Starter 的启用默认值 |
 
 ## 踩坑记录
 
@@ -43,6 +48,8 @@
 | Chroma 删除返回假阳性 | 1.0.0 的 DELETE 实际使用 collection 名称，OpenAPI 参数说明写成 UUID | 按名称删除，并再次列出 collection 确认 0 条 | [x] |
 | Nacos 注销后服务名短暂保留 | 空临时服务默认每 60 秒清理一次 | 先确认实例数为 0，再轮询到服务名消失 | [x] |
 | Web OpenAPI 出现 `NoSuchMethodError` | 独立示例使用了本地仓库中带 Springdoc 2.2.0 的旧 SNAPSHOT，而当前源码已升级到 3.0.3 | Full 模式运行示例前执行当前框架 `mvn install -DskipTests`，并允许后续阶段显式复用已安装产物 | [x] |
+| Service 启用 HTTP RPC 后缺类 | `HttpRpcAutoConfiguration` 使用 HttpClient 5，但依赖只存在于 optional 自动配置依赖中 | 在 `nebula-rpc-http` 声明必需依赖，由实现模块向使用方传递 | [x] |
+| HTTP RPC Server 端口固定为 8080 | `ServerConfig.port` 注释说默认跟随 `server.port`，字段却写死为 8080 | 保留 `int` API 并以 0 表示未配置；默认跟随应用端口，显式值优先，并补两条回归测试 | [x] |
 
 ## 知识发现
 
@@ -57,3 +64,5 @@
 | --- | --- | --- | --- |
 | Web 示例的数据模块 | Web 示例定位为无外部依赖的基础 Web 验证 | Web Starter 默认启用 persistence 和 cache，示例没有数据源 | 在示例配置中显式关闭未使用模块，并在 README 说明 |
 | API Starter 依赖说明 | 当前文档对 MyBatis-Plus 是否属于契约依赖存在冲突 | 实际运行时依赖不包含 Web Server，但包含 MyBatis-Plus Boot4 Starter | 本轮不改变公开依赖；Task 15 统一 `AGENTS.md`、`CLAUDE.md` 和 Starter 指南 |
+| Service HTTP 路由 | 任务要求三个 GET 接口和 HTTP RPC 真实调用 | `@RpcCall` 不会动态注册 MVC GET 路由，框架只暴露通用 `POST /rpc` | 增加应用层 Controller 复用 RPC 实现，并同时验证通用 RPC 协议入口 |
+| All 零依赖说明 | README 声称默认无外部依赖 | 配置仍启用 Lock，且未覆盖 Task、AI、WebSocket 等 Starter 默认值 | 显式关闭全部相关模块，保留 Web 健康、性能和 OpenAPI |

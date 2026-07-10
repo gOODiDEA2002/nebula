@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  * 
  * 演示标准的RPC接口定义方式：
  * 1. 使用 @RemoteService 标记接口
- * 2. 使用 @RpcCall 定义HTTP路由
+ * 2. 使用 @RpcCall 描述 RPC 调用元数据
  * 3. 接口同时支持HTTP和gRPC两种协议
  * 
  * 注意：在实际项目中，此接口应该定义在独立的 *-api 模块中
@@ -44,4 +44,3 @@ public interface HelloRpcClient {
     @RpcCall(value = "/rpc/hello/info", method = "GET")
     ServiceInfoDto getServiceInfo();
 }
-

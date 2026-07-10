@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 生成时间：2026-07-10 21:08 +08
+> 最后更新：2026-07-10 21:28 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -16,6 +16,7 @@
 - Task 2：完成 10 项中间件协议级预检，隔离 MySQL 8.3 与 Elasticsearch 9.4.2；临时容器、卷和数据均已清理。
 - Task 3：API 契约 5/5、Minimal 3/3、Web 6/6 通过。Web 最终证据位于
   `target/example-e2e/20260710-211018-27839/`。
+- Task 4：Service 16/16、All 7/7 通过；HTTP RPC、Redis Lock、失败路径和零依赖模式均有直接证据。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -28,22 +29,23 @@
 - Web 示例不使用数据库和缓存，已在示例配置中显式关闭 Starter 默认启用的数据模块。
 - Minimal 示例明确设置为非 Web 应用。API 契约 JAR 的运行时依赖不含 Web Server。
 - API Starter 实际仍包含 MyBatis-Plus Boot4 Starter；活动文档对此说法不一致。本轮未改变公开依赖，留给 Task 15 统一文档。
+- HTTP RPC 的 HttpClient 5 依赖已归入 `nebula-rpc-http`，端口未显式配置时已改为跟随 `server.port`。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 4 至 Task 16 全部待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段优先处理 Task 4 的 Service/All Starter 和 Task 5 的 AI Starter。
+- Task 5 至 Task 16 全部待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段优先处理 Task 5 的 AI Starter。
 - Gateway、Fullstack、Crawler Browser、WebSocket 浏览器流程和 OAuth 全链路仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 审计 Service/All 的配置、控制器、README 和 E2E，统一 HTTP RPC 与 Redis Lock 的真实行为。
-3. 完成 Task 4 局部 Full E2E，更新三份台账并做阶段提交。
-4. 验证 AI 禁用模式，再用环境变量中的测试密钥和 Chroma 完成最小真实调用，清理临时 collection。
+2. 审计 AI Starter 的配置、Controller、自动配置条件、README 和现有 E2E。
+3. 先完成无密钥禁用模式，再用环境变量中的测试密钥完成最小真实聊天调用。
+4. 使用 Chroma 完成 embedding、临时 collection 写入、查询和删除复核。
 5. 完成 Task 5 后继续 Task 6 至 Task 16；不要用 Smoke 结果替代最终 Full 验收。
 
 ## 风险与约束
@@ -61,4 +63,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与交接提交一致后，从 Task 4 的代码和配置核对开始，不需要重复执行 Task 0 至 Task 3；只有后续改动影响这些范围时才回归。
+确认工作区与最新阶段提交一致后，从 Task 5 的代码和配置核对开始，不需要重复执行 Task 0 至 Task 4；只有后续改动影响这些范围时才回归。

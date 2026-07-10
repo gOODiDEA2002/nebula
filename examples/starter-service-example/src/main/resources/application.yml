@@ -10,12 +10,21 @@ nebula:
   security:
     jwt:
       secret: ${JWT_SECRET:nebula-starter-service-example-dev-secret-key-at-least-32-bytes}
+  data:
+    persistence:
+      enabled: false
+    cache:
+      enabled: false
   discovery:
     nacos:
       enabled: false
   rpc:
-    http:
+    discovery:
       enabled: false
+    http:
+      enabled: true
+      client:
+        enabled: false
     grpc:
       enabled: false
   messaging:
@@ -24,3 +33,11 @@ nebula:
   lock:
     enabled: true
     enable-aspect: true
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:3000}
+  web:
+    performance:
+      enabled: true

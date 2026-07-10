@@ -20,9 +20,11 @@
 | nebula-rpc-grpc | 禁用 | gRPC |
 | nebula-discovery-nacos | 禁用 | Nacos 服务发现 |
 | nebula-messaging-rabbitmq | 禁用 | RabbitMQ 消息队列 |
-| nebula-lock-redis | 启用 | 分布式锁 |
+| nebula-lock-redis | 禁用 | 分布式锁 |
 | nebula-storage-minio | 禁用 | MinIO 对象存储 |
+| nebula-task | 禁用 | 任务调度 |
 | nebula-ai-spring | 禁用 | Spring AI 集成 |
+| nebula-websocket-spring | 禁用 | WebSocket |
 
 ## 项目结构
 
@@ -61,7 +63,7 @@ mvn -q -f examples/starter-all-example spring-boot:run
 ```bash
 # Hello 接口
 curl http://localhost:8084/hello
-# 响应: {"code":200,"message":"success","data":"Hello, Nebula All",...}
+# 响应: {"success":true,"code":"SUCCESS","message":"操作成功","data":"Hello, Nebula All",...}
 
 # 健康检查
 curl http://localhost:8084/health/ping
@@ -79,6 +81,8 @@ nebula:
     nacos:
       enabled: false
   rpc:
+    discovery:
+      enabled: false
     http:
       enabled: false
     grpc:
@@ -95,8 +99,16 @@ nebula:
     minio:
       enabled: false
   lock:
-    enabled: true
-    enable-aspect: true
+    enabled: false
+  task:
+    enabled: false
+  ai:
+    enabled: false
+  websocket:
+    enabled: false
+  web:
+    performance:
+      enabled: true
 ```
 
 ## 按需启用示例
@@ -112,6 +124,15 @@ mvn -q -f examples/starter-all-example spring-boot:run \
     --spring.datasource.username=root \
     --spring.datasource.password=root"
 ```
+
+## E2E 验证
+
+```bash
+E2E_MODE=full E2E_WITH_MIDDLEWARE=false \
+  E2E_ONLY=starter-all-example examples/e2e-all.sh
+```
+
+验证会严格检查 Hello、健康、性能和 OpenAPI，并确认默认关闭的外部模块没有建立连接或启动运行组件。
 
 ## 相关文档
 
