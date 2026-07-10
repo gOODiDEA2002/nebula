@@ -63,6 +63,12 @@ public class AsyncRpcExecutionManager {
      */
     private <T> void executeAsync(String executionId, Callable<T> callable) {
         try {
+            AsyncRpcExecution execution = storage.findById(executionId);
+            if (execution != null && execution.getStatus() == ExecutionStatus.CANCELLED) {
+                log.info("[AsyncRpc] 跳过已取消执行: executionId={}", executionId);
+                return;
+            }
+
             log.info("[AsyncRpc] 开始执行: executionId={}", executionId);
             
             // 更新为运行中
