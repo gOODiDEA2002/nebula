@@ -7,7 +7,7 @@
 ## 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -53,7 +53,7 @@ curl http://localhost:8000/hello
     "message": "Hello from Nebula Framework!",
     "timestamp": "2025-09-25T10:30:00",
     "status": "success",
-    "framework": "Nebula 2.0.1-SNAPSHOT",
+    "framework": "Nebula 2.1.0-SNAPSHOT",
     "requestId": 1,
     "features": [
       "认证系统", "限流控制", "响应缓存", "性能监控", 
@@ -374,4 +374,4 @@ curl -X POST http://localhost:8000/performance/reset
 
 ---
 
-更多详细信息，请参考 [Nebula Web 使用指南](../../nebula/application/nebula-web/README.md)
+更多详细信息，请参考 [Nebula Web 使用指南](../../../application/nebula-web/README.md)

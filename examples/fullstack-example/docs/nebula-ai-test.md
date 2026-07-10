@@ -7,7 +7,7 @@
 ## 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -49,7 +49,7 @@ docker-compose up -d chroma
 
 ### 3. 添加 AI 模块依赖
 
-确保 `nebula-example/pom.xml` 中包含以下依赖：
+确保 `examples/fullstack-example/pom.xml` 中包含以下依赖：
 
 ```xml
 <!-- Nebula AI Spring 模块 -->
@@ -457,7 +457,7 @@ curl -X POST http://localhost:8000/ai/qa \
 curl -X POST http://localhost:8000/ai/documents \
   -H "Content-Type: application/json" \
   -d '{
-    "content": "Nebula是一个现代化的企业级Java后端框架，基于Spring Boot 3.x和Java 21构建",
+    "content": "Nebula是一个现代化的企业级Java后端框架，基于Spring Boot 4.1和Java 21构建",
     "metadata": {"topic": "Nebula简介"}
   }'
 
@@ -677,5 +677,5 @@ for i, chunk in enumerate(split_into_chunks(long_document, chunk_size)):
 
 ---
 
-更多信息，请参考 [Nebula AI Spring 模块文档](../nebula/infrastructure/ai/nebula-ai-spring/README.md)
+更多信息，请参考 [Nebula AI Spring 模块文档](../../../infrastructure/ai/nebula-ai-spring/README.md)
 

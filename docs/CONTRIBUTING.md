@@ -468,14 +468,14 @@ Closes #123
 
 ### 文档类型
 
-每个模块需要提供以下文档：
+每个模块维护一份 `README.md`，说明职责、入口 API、最小配置和验证命令。其余资料按用途集中维护：
 
-1. **README.md**：模块介绍
-2. **CONFIG.md**：配置说明
-3. **EXAMPLE.md**：使用示例
-4. **TESTING.md**：测试指南
-5. **ROADMAP.md**：发展路线图
-6. **API.md**：API 文档（如适用）
+1. 配置总览放在 `docs/Nebula框架配置说明.md`，字段细节由 `@ConfigurationProperties` 源码生成或核对。
+2. 可运行示例放在 `examples/`，不在模块目录复制一份文档版工程。
+3. 通用测试规则放在 `docs/testing/README.md`，模块 README 只保留本模块命令。
+4. 路线图只维护经过确认的项目级文件，不为每个模块生成独立 ROADMAP。
+5. 升级设计、评审和已完成变更在失去当前指导意义后移入 `docs/archive/`。
+6. API 文档优先从源码和 OpenAPI 生成，手写文档只解释无法从签名表达的行为。
 
 ### 文档格式
 
@@ -492,7 +492,7 @@ Closes #123
 
 ```xml
 <dependency>
-    <groupId>com.andy.nebula</groupId>
+    <groupId>io.nebula</groupId>
     <artifactId>nebula-data-persistence</artifactId>
 </dependency>
 ```
@@ -628,4 +628,3 @@ MAJOR.MINOR.PATCH
 
 **最后更新**: 2025-11-20  
 **文档版本**: v1.0
-

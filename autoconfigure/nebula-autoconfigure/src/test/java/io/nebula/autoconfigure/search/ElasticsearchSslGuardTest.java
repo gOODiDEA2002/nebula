@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  * 验证 ES trust-all 在生产环境被拦截:
  * 1) prod profile + sslVerificationEnabled=false -> createSSLContext 返回默认 SSLContext(不是 trust-all)
  * 2) dev profile -> 返回 trust-all SSLContext
- * 3) 无 activeProfile -> 视为非生产, 允许 trust-all
+ * 3) 无 activeProfile 或混合 profile -> 默认安全，拒绝 trust-all
  */
 class ElasticsearchSslGuardTest {
 
@@ -53,14 +53,26 @@ class ElasticsearchSslGuardTest {
     }
 
     @Test
-    void noProfile_trustAllAllowed() throws Exception {
+    void noProfile_trustAllIgnored() throws Exception {
         MockEnvironment env = new MockEnvironment();
         var props = buildProps(false);
 
         var config = new ElasticsearchAutoConfiguration(props, env);
         javax.net.ssl.SSLContext ctx = invokeCreateSSLContext(config);
 
-        assertThat(ctx).isNotEqualTo(javax.net.ssl.SSLContext.getDefault());
+        assertThat(ctx).isEqualTo(javax.net.ssl.SSLContext.getDefault());
+    }
+
+    @Test
+    void mixedProdAndDevProfiles_trustAllIgnored() throws Exception {
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles("prod", "dev");
+        var props = buildProps(false);
+
+        var config = new ElasticsearchAutoConfiguration(props, env);
+        javax.net.ssl.SSLContext ctx = invokeCreateSSLContext(config);
+
+        assertThat(ctx).isEqualTo(javax.net.ssl.SSLContext.getDefault());
     }
 
     @Test

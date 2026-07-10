@@ -27,7 +27,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-ai-spring</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 
 <!-- Spring AI OpenAI Starter（根据需要选择） -->
@@ -501,9 +501,9 @@ logging:
 
 ##  更多功能
 
-- [智能聊天功能演示](../../../nebula-example/docs/nebula-ai-test.md#智能聊天)
-- [文本嵌入功能演示](../../../nebula-example/docs/nebula-ai-test.md#文本嵌入)
-- [文档问答功能演示](../../../nebula-example/docs/nebula-ai-test.md#文档问答)
+- [智能聊天功能演示](../../../examples/fullstack-example/docs/nebula-ai-test.md#智能聊天)
+- [文本嵌入功能演示](../../../examples/fullstack-example/docs/nebula-ai-test.md#文本嵌入)
+- [文档问答功能演示](../../../examples/fullstack-example/docs/nebula-ai-test.md#文档问答)
 - [完整示例项目](../../../nebula-example)
 
 ##  贡献指南
@@ -654,5 +654,4 @@ public class McpResourcesConfig {
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

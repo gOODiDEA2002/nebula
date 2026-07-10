@@ -42,7 +42,7 @@ Nacos 服务注册中心
 
 2. **构建项目**
    ```bash
-   cd nebula-example-service
+   cd examples/microservice-example/user-service
    mvn clean install
    ```
 
@@ -320,7 +320,7 @@ curl -X POST http://localhost:8081/rpc \
   }' | jq
 ```
 
-**更多 RPC 测试示例，请参考：** [RPC 端点测试指南](../docs/RPC_ENDPOINT_TESTING.md)
+**更多 RPC 测试示例，请参考：** [RPC 功能测试指南](../../fullstack-example/docs/nebula-rpc-test.md)
 
 #### 快速测试脚本
 
@@ -494,7 +494,7 @@ grep "gRPC Server started" logs/*.log
 lsof -i :9081
 ```
 
-**更多 gRPC 测试方法，请参考：** [gRPC 测试指南](../docs/GRPC_TESTING_GUIDE.md)
+**更多 gRPC 测试方法，请参考：** [gRPC 功能测试指南](../../fullstack-example/docs/nebula-grpc-test.md)
 
 ##  配置说明
 
@@ -624,9 +624,9 @@ public class UserRpcServiceImpl implements UserRpcService {
 
 ##  相关文档
 
-- [Nebula RPC 文档](../nebula/infrastructure/rpc/nebula-rpc-http/README.md)
-- [服务契约定义](../nebula-example-api/README.md)
-- [客户端使用示例](../nebula-example/docs/nebula-rpc-test.md)
+- [Nebula RPC 文档](../../../infrastructure/rpc/nebula-rpc-http/README.md)
+- [服务契约定义](../user-api/README.md)
+- [客户端使用示例](../../fullstack-example/docs/nebula-rpc-test.md)
 
 ##  与其他模块的关系
 
@@ -649,4 +649,3 @@ nebula-example (消费者)
 ##  许可证
 
 本项目基于 Apache 2.0 许可证开源
-

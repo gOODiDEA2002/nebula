@@ -5,7 +5,6 @@ import io.nebula.discovery.nacos.config.NacosProperties;
 import io.nebula.rpc.core.config.RpcDiscoveryProperties;
 import io.nebula.rpc.http.config.HttpRpcProperties;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -41,7 +40,7 @@ public class NebulaStartupSummaryListener {
         
         // 框架版本
         sb.append(formatSection("Framework Info"));
-        sb.append(formatEntry("Version", "2.0.1-SNAPSHOT"));
+        sb.append(formatEntry("Version", NebulaFrameworkVersion.getVersion()));
         sb.append(formatEntry("Profile", getActiveProfiles(environment)));
         
         // 服务发现配置
@@ -59,7 +58,7 @@ public class NebulaStartupSummaryListener {
     }
     
     private void appendNacosInfo(StringBuilder sb, Environment environment, String lineSeparator) {
-        boolean nacosEnabled = environment.getProperty("nebula.discovery.nacos.enabled", Boolean.class, true);
+        boolean nacosEnabled = environment.getProperty("nebula.discovery.nacos.enabled", Boolean.class, false);
         
         sb.append(formatSection("Service Discovery (Nacos)"));
         
@@ -81,8 +80,8 @@ public class NebulaStartupSummaryListener {
     }
     
     private void appendRpcInfo(StringBuilder sb, Environment environment, String lineSeparator) {
-        boolean httpRpcEnabled = environment.getProperty("nebula.rpc.http.enabled", Boolean.class, true);
-        boolean discoveryEnabled = environment.getProperty("nebula.rpc.discovery.enabled", Boolean.class, true);
+        boolean httpRpcEnabled = environment.getProperty("nebula.rpc.http.enabled", Boolean.class, false);
+        boolean discoveryEnabled = environment.getProperty("nebula.rpc.discovery.enabled", Boolean.class, false);
         
         sb.append(formatSection("RPC Configuration"));
         
@@ -115,7 +114,7 @@ public class NebulaStartupSummaryListener {
     }
     
     private void appendAsyncRpcInfo(StringBuilder sb, Environment environment, String lineSeparator) {
-        boolean asyncEnabled = environment.getProperty("nebula.rpc.async.enabled", Boolean.class, true);
+        boolean asyncEnabled = environment.getProperty("nebula.rpc.async.enabled", Boolean.class, false);
         
         sb.append(formatSection("Async RPC Configuration"));
         

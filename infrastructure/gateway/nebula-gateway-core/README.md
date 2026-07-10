@@ -164,9 +164,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 ## 版本要求
 
 - Java 21+
-- Spring Boot 3.5+
+- Spring Boot 4.1+
 - Spring Cloud 2025.0+
 
 ## 相关模块
 
-- [nebula-starter-gateway](../../starter/nebula-starter-gateway) - Gateway启动器
+- [nebula-starter-gateway](../../../starter/nebula-starter-gateway/README.md) - Gateway 启动器

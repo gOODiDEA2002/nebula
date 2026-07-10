@@ -97,6 +97,8 @@ Nebula Framework
     nebula-starter-service    微服务（RPC + 发现 + 锁）
     nebula-starter-gateway    API 网关
     nebula-starter-ai         AI 应用
+    nebula-starter-mcp        MCP 应用
+    nebula-starter-task       任务执行器
     nebula-starter-all        单体应用（全功能）
     nebula-starter-api        API 契约模块
 ```
@@ -118,6 +120,10 @@ Nebula Framework
 | `nebula-starter-service` | 微服务 | Persistence, Cache, HTTP RPC, Nacos, Lock |
 | `nebula-starter-gateway` | API 网关 | Gateway, Nacos |
 | `nebula-starter-ai` | AI 应用 | AI, Cache |
+| `nebula-starter-mcp` | MCP 服务端或客户端 | AI, MCP |
+| `nebula-starter-task` | XXL-JOB 任务执行器 | Task, HTTP RPC |
+| `nebula-starter-api` | API 契约模块 | RPC 核心接口与注解 |
+| `nebula-starter-all` | 全功能单体应用 | Persistence, Cache, Messaging, HTTP RPC, Nacos, Lock, Task, AI, WebSocket |
 | `nebula-starter-minimal` | CLI / 批处理 | 无（仅 Security 默认） |
 
 ### 2. 添加依赖
@@ -126,7 +132,7 @@ Nebula Framework
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-web</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -245,16 +251,15 @@ curl http://localhost:8080/performance/status
 
 ## 文档
 
-- [框架使用指南](docs/Nebula框架使用指南.md) -- 各模块详细用法与代码示例
-- [配置说明](docs/Nebula框架配置说明.md) -- 配置项完整参考
-- [Starter 选择指南](docs/Nebula%20Starter%20选择指南.md) -- 选型建议与对比
-- [框架审查报告](docs/nebula-framework-review.md) -- 架构评审与优化记录
-- [自动配置指南](docs/framework/AUTO_CONFIGURATION_GUIDE.md) -- 自动配置机制详解
-- [快速开始](docs/framework/QUICK_START.md) -- 分步骤详细教程
-- [架构说明](docs/framework/ARCHITECTURE.md) -- 架构设计与决策
-- [FAQ](docs/FAQ.md) -- 常见问题
-- [贡献指南](docs/CONTRIBUTING.md)
+- [文档索引](docs/INDEX.md) -- 当前有效文档的统一入口
+- [快速开始](docs/framework/QUICK_START.md) -- 最短可运行路径
+- [Starter 选择指南](docs/Nebula%20Starter%20选择指南.md) -- 场景、依赖与默认启用项
+- [配置说明](docs/Nebula框架配置说明.md) -- 配置前缀、安全要求与查找方式
+- [架构说明](docs/framework/ARCHITECTURE.md) -- 模块边界与关键运行链路
+- [自动配置指南](docs/framework/AUTO_CONFIGURATION_GUIDE.md) -- 启用策略和扩展规则
+- [2.1 实现审查](docs/reviews/nebula-2.1-implementation-review-2026-07.md) -- 本次升级审查结论
+- [贡献指南](docs/CONTRIBUTING.md) -- 开发与提交约定
 
 ## 许可证
 
-本项目采用 Apache License 2.0 许可证。详情请查看 [LICENSE](LICENSE) 文件。
+本项目采用 Apache License 2.0 许可证。

@@ -66,7 +66,7 @@ nebula-example-  nebula-example
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-example-rpc-api</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -185,7 +185,6 @@ nebula-example/              客户端层：服务调用
 -  符合最佳实践：遵循业界标准架构模式
 
 **相关文档：**
-- [服务提供者文档](../nebula-example-service/README.md)
-- [服务消费者文档](../nebula-example/README.md)
-- [整体架构说明](../ARCHITECTURE.md)
-
+- [服务提供者文档](../user-service/README.md)
+- [服务消费者示例](../order-service/README.md)
+- [微服务示例总览](../README.md)

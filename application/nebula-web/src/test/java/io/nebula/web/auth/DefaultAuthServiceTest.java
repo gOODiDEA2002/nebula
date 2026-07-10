@@ -1,5 +1,7 @@
 package io.nebula.web.auth;
 
+import io.nebula.security.config.SecurityProperties;
+import io.nebula.security.jwt.DefaultJwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -111,5 +114,27 @@ class DefaultAuthServiceTest {
         assertThat(authService.validateToken(token)).isFalse();
         assertThat(authService.getUser(token)).isNull();
     }
-}
 
+    @Test
+    void generatedTokenIsAcceptedBySecurityFilterJwtService() {
+        SecurityProperties properties = new SecurityProperties();
+        properties.getJwt().setSecret("test-secret-key-with-at-least-32-characters");
+        properties.getJwt().setExpiration(Duration.ofHours(1));
+        DefaultJwtService jwtService = new DefaultJwtService(properties);
+        DefaultAuthService convergedAuthService = new DefaultAuthService(jwtService);
+
+        AuthUser user = new AuthUser("42", "testuser");
+        user.setRoles(Set.of("USER"));
+        user.setPermissions(Set.of("data:read"));
+
+        String token = convergedAuthService.generateToken(user);
+
+        assertThat(jwtService.validateAccessToken(token)).isEqualTo("42");
+        assertThat(convergedAuthService.validateToken(token)).isTrue();
+        assertThat(convergedAuthService.getUser(token))
+                .extracting(AuthUser::getUserId, AuthUser::getUsername)
+                .containsExactly("42", "testuser");
+        assertThat(convergedAuthService.getUser(token).getRoles()).containsExactly("USER");
+        assertThat(convergedAuthService.getUser(token).getPermissions()).containsExactly("data:read");
+    }
+}

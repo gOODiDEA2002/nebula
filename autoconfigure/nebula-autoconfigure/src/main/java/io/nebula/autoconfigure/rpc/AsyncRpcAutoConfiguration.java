@@ -1,5 +1,6 @@
 package io.nebula.autoconfigure.rpc;
 
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.async.execution.AsyncRpcExecutionManager;
 import io.nebula.rpc.async.storage.AsyncExecutionStorage;
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -62,9 +64,11 @@ public class AsyncRpcAutoConfiguration {
     @ConditionalOnBean(AsyncExecutionStorage.class)
     public AsyncRpcExecutionManager asyncRpcExecutionManager(
             AsyncExecutionStorage storage,
-            Executor asyncRpcExecutor) {
+            Executor asyncRpcExecutor,
+            ObjectProvider<ObjectMapper> objectMapperProvider) {
 
         log.info("[AsyncRpc] 配置执行管理器: storage={}", storage.getClass().getSimpleName());
-        return new AsyncRpcExecutionManager(storage, asyncRpcExecutor, JsonMapper.builder().build());
+        ObjectMapper objectMapper = objectMapperProvider.getIfAvailable(() -> JsonMapper.builder().build());
+        return new AsyncRpcExecutionManager(storage, asyncRpcExecutor, objectMapper);
     }
 }

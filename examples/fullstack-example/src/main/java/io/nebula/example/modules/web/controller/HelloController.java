@@ -37,7 +37,7 @@ public class HelloController extends BaseController {
         response.put("message", "Hello from Nebula Framework!");
         response.put("timestamp", LocalDateTime.now());
         response.put("status", "success");
-        response.put("framework", "Nebula 2.0.1-SNAPSHOT");
+        response.put("framework", "Nebula 2.1.0-SNAPSHOT");
         response.put("requestId", requestId);
         response.put("features", Arrays.asList(
             "认证系统", "限流控制", "响应缓存", "性能监控", 

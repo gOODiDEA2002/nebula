@@ -28,7 +28,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-messaging-rabbitmq</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -589,7 +589,7 @@ logging:
 ##  完整示例
 
 详细的功能演示请参考：
-- [Nebula Messaging RabbitMQ 功能测试指南](../../../nebula-example/docs/nebula-messaging-rabbitmq-test.md)
+- [Nebula Messaging RabbitMQ 功能测试指南](../../../examples/fullstack-example/docs/nebula-messaging-rabbitmq-test.md)
 - [完整示例项目](../../../nebula-example)
 
 ##  最佳实践
@@ -719,5 +719,4 @@ public class PriorityMessageService {
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

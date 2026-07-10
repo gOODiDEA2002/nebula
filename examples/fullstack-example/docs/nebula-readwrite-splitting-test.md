@@ -37,7 +37,7 @@ source sql/data-demo-tables.sql
 ### 2. 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 
 # 使用读写分离配置启动
 mvn spring-boot:run -Dspring.profiles.active=dev,readwrite
@@ -469,7 +469,7 @@ curl http://localhost:8000/readwrite/status | jq '.data'
 
 ---
 
-更多详细信息，请参考 [Nebula Data Persistence 使用指南](../../nebula/infrastructure/data/nebula-data-persistence/README.md)
+更多详细信息，请参考 [Nebula Data Persistence 使用指南](../../../infrastructure/data/nebula-data-persistence/README.md)
 
 
 ## 5. DTO 规范说明

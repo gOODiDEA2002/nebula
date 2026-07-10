@@ -1,25 +1,88 @@
 package io.nebula.data.mongodb.repository;
 
-import io.nebula.data.access.repository.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.geo.Distance;
-import org.springframework.data.geo.GeoResult;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * MongoDB仓储接口
- * 扩展基础Repository，添加MongoDB特有的功能
+ * 提供通用 CRUD 与 MongoDB 特有操作。
  * 
  * @param <T>  实体类型
  * @param <ID> 主键类型
  */
-public interface MongoRepository<T, ID> extends Repository<T, ID> {
+public interface MongoRepository<T, ID> {
+
+    Optional<T> findById(ID id);
+
+    List<T> findAll();
+
+    Page<T> findAll(Pageable pageable);
+
+    List<T> findAllById(Iterable<ID> ids);
+
+    <S extends T> S save(S entity);
+
+    /**
+     * 保存实体集合，每个实体按主键执行新增或更新。
+     *
+     * <p>该方法为保持 upsert 语义会逐项写入。仅需批量新增时使用
+     * {@link #insertAll(Collection)}，以减少数据库往返次数。</p>
+     *
+     * @param entities 待保存实体
+     * @param <S> 实体子类型
+     * @return 保存后的实体列表
+     */
+    <S extends T> List<S> saveAll(Iterable<S> entities);
+
+    /**
+     * 批量插入实体，不更新已存在的同主键文档。
+     *
+     * @param entities 待插入实体
+     * @param <S> 实体子类型
+     * @return 插入后的实体列表
+     * @throws org.springframework.dao.DuplicateKeyException 存在重复主键时抛出
+     */
+    <S extends T> List<S> insertAll(Collection<? extends S> entities);
+
+    <S extends T> S saveAndFlush(S entity);
+
+    <S extends T> List<S> saveAllAndFlush(Iterable<S> entities);
+
+    void deleteById(ID id);
+
+    void delete(T entity);
+
+    void deleteAll(Iterable<? extends T> entities);
+
+    void deleteAllById(Iterable<? extends ID> ids);
+
+    void deleteAll();
+
+    boolean existsById(ID id);
+
+    long count();
+
+    void flush();
+
+    void deleteInBatch(Iterable<T> entities);
+
+    void deleteAllInBatch();
+
+    void deleteAllByIdInBatch(Iterable<ID> ids);
+
+    T getReference(ID id);
+
+    T getReferenceById(ID id);
     
     /**
      * 根据字段查询

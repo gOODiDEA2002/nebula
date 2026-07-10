@@ -158,6 +158,19 @@ public class HttpRpcProperties {
         private long keepAliveTime = 60000; // 60s
 
         /**
+         * 空闲连接驱逐时间（毫秒）。
+         * 未配置时沿用 {@link #keepAliveTime}，保持旧配置行为不变。
+         * 范围: 10000ms - 3600000ms
+         */
+        @Min(value = 10000, message = "空闲连接驱逐时间不能小于 10000 毫秒")
+        @Max(value = 3600000, message = "空闲连接驱逐时间不能大于 3600000 毫秒")
+        private Long idleEvictTime;
+
+        public long getIdleEvictTime() {
+            return idleEvictTime != null ? idleEvictTime : keepAliveTime;
+        }
+
+        /**
          * 调用下游 /rpc 端点时携带的鉴权 token(可选,默认空=不携带)。
          * 下游服务端配置 nebula.rpc.http.server.auth-token 后,本端必须配置一致的值才能调通。
          */

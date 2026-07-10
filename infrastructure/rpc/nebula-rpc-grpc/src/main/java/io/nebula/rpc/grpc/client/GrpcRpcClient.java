@@ -2,8 +2,9 @@ package io.nebula.rpc.grpc.client;
 
 import tools.jackson.databind.ObjectMapper;
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.stub.MetadataUtils;
 import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.core.discovery.ServiceDiscoveryRpcClient;
 import io.nebula.rpc.grpc.config.GrpcRpcProperties;
@@ -11,6 +12,7 @@ import io.nebula.rpc.core.context.RpcContext;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
 import io.nebula.rpc.grpc.proto.RpcRequest;
 import io.nebula.rpc.grpc.proto.RpcResponse;
+import io.nebula.rpc.grpc.server.GrpcAuthTokenInterceptor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Method;
@@ -67,6 +69,11 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
         channel = channelBuilder.build();
         // 注意：不在这里设置deadline，而是在每次调用时设置，避免deadline过期问题
         blockingStub = GenericRpcServiceGrpc.newBlockingStub(channel);
+        if (clientConfig.getAuthToken() != null && !clientConfig.getAuthToken().isEmpty()) {
+            Metadata headers = new Metadata();
+            headers.put(GrpcAuthTokenInterceptor.AUTH_TOKEN_KEY, clientConfig.getAuthToken());
+            blockingStub = blockingStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
+        }
     }
     
     /**
@@ -77,7 +84,7 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     }
 
     @Override
-    public <T> T call(Class<T> serviceClass, String methodName, Object... args) {
+    public <T> T call(Class<?> serviceClass, String methodName, Object... args) {
         String requestId = UUID.randomUUID().toString();
         
         log.debug("执行 gRPC RPC 调用: requestId={}, service={}, method={}", 
@@ -142,7 +149,7 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     }
 
     @Override
-    public <T> CompletableFuture<T> callAsync(Class<T> serviceClass, String methodName, Object... args) {
+    public <T> CompletableFuture<T> callAsync(Class<?> serviceClass, String methodName, Object... args) {
         return CompletableFuture.supplyAsync(() -> call(serviceClass, methodName, args));
     }
 
@@ -392,4 +399,3 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
         return false;
     }
 }
-

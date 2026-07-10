@@ -1,10 +1,14 @@
 package io.nebula.autoconfigure.messaging;
 
 import io.nebula.messaging.redis.config.RedisMessagingAutoConfiguration;
+import io.nebula.messaging.redis.annotation.RedisMessageHandlerProcessor;
 import io.nebula.messaging.redis.consumer.RedisMessageConsumer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -21,6 +25,7 @@ import static org.mockito.Mockito.mock;
  * redisMessageConsumer 必须通过 @Qualifier 精确注入自己的容器, 不得因
  * 同类型双 Bean 产生歧义导致启动失败(proud-day 接入时暴露, 2026-07-08)
  */
+@ExtendWith(OutputCaptureExtension.class)
 class RedisMessagingContainerAmbiguityTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
@@ -28,16 +33,18 @@ class RedisMessagingContainerAmbiguityTest {
             .withUserConfiguration(CoexistingContainerDeps.class);
 
     @Test
-    void consumerBindsOwnContainer_whenCacheInvalidationContainerCoexists() {
+    void consumerBindsOwnContainer_whenCacheInvalidationContainerCoexists(CapturedOutput output) {
         runner.run(ctx -> {
             assertThat(ctx).hasNotFailed();
             assertThat(ctx.getBeansOfType(RedisMessageListenerContainer.class)).hasSize(2);
             assertThat(ctx).hasSingleBean(RedisMessageConsumer.class);
+            assertThat(ctx).hasSingleBean(RedisMessageHandlerProcessor.class);
 
             // 消费者内部持有的必须是 messaging 模块自建容器, 而非缓存失效容器
             Object bound = ReflectionTestUtils.getField(
                     ctx.getBean(RedisMessageConsumer.class), "listenerContainer");
             assertThat(bound).isSameAs(ctx.getBean("redisMessageListenerContainer"));
+            assertThat(output).doesNotContain("not eligible for getting processed by all BeanPostProcessors");
         });
     }
 

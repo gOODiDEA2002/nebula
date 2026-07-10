@@ -3,9 +3,9 @@ package io.nebula.messaging.redis.annotation;
 import io.nebula.messaging.core.consumer.MessageHandler;
 import io.nebula.messaging.core.message.Message;
 import io.nebula.messaging.redis.consumer.RedisMessageConsumer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.ReflectionUtils;
@@ -21,11 +21,23 @@ import java.util.concurrent.Executor;
  * </p>
  */
 @Slf4j
-@RequiredArgsConstructor
 public class RedisMessageHandlerProcessor implements BeanPostProcessor {
 
-    private final RedisMessageConsumer<?> messageConsumer;
-    private final Executor asyncExecutor;
+    private final ObjectFactory<RedisMessageConsumer<?>> messageConsumerFactory;
+    private final ObjectFactory<Executor> asyncExecutorFactory;
+
+    public RedisMessageHandlerProcessor(ObjectFactory<RedisMessageConsumer<?>> messageConsumerFactory,
+                                        ObjectFactory<Executor> asyncExecutorFactory) {
+        this.messageConsumerFactory = messageConsumerFactory;
+        this.asyncExecutorFactory = asyncExecutorFactory;
+    }
+
+    /**
+     * 兼容直接构造处理器的旧用法。
+     */
+    public RedisMessageHandlerProcessor(RedisMessageConsumer<?> messageConsumer, Executor asyncExecutor) {
+        this(() -> messageConsumer, () -> asyncExecutor);
+    }
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
@@ -61,8 +73,9 @@ public class RedisMessageHandlerProcessor implements BeanPostProcessor {
             return;
         }
 
-        // 创建消息处理器
-        MessageHandler<?> handler = createHandler(bean, method, annotation);
+        RedisMessageConsumer<?> messageConsumer = messageConsumerFactory.getObject();
+        Executor asyncExecutor = annotation.async() ? asyncExecutorFactory.getObject() : null;
+        MessageHandler<?> handler = createHandler(bean, method, annotation, asyncExecutor);
 
         // 注册订阅
         if (StringUtils.hasText(channel)) {
@@ -80,7 +93,8 @@ public class RedisMessageHandlerProcessor implements BeanPostProcessor {
      * 创建消息处理器
      */
     @SuppressWarnings("unchecked")
-    private <T> MessageHandler<T> createHandler(Object bean, Method method, RedisMessageHandler annotation) {
+    private <T> MessageHandler<T> createHandler(Object bean, Method method, RedisMessageHandler annotation,
+                                                Executor asyncExecutor) {
         boolean async = annotation.async();
         boolean throwOnError = annotation.throwOnError();
         Class<?> payloadType = annotation.payloadType();
@@ -145,4 +159,3 @@ public class RedisMessageHandlerProcessor implements BeanPostProcessor {
         };
     }
 }
-

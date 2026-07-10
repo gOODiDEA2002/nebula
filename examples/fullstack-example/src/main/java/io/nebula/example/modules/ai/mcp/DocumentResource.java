@@ -37,7 +37,7 @@ public class DocumentResource implements McpResource {
         return """
                 # Nebula框架
                 
-                Nebula是一个基于Spring Boot 3.x和Java 21的企业级后端框架。
+                Nebula 是一个基于 Spring Boot 4.1 和 Java 21 的企业级后端框架。
                 
                 ## 特性
                 
@@ -59,4 +59,3 @@ public class DocumentResource implements McpResource {
                 """;
     }
 }
-

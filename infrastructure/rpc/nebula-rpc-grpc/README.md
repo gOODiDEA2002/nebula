@@ -479,5 +479,4 @@ public class LoggingInterceptor implements ServerInterceptor {
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

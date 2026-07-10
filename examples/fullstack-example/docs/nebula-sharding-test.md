@@ -15,10 +15,10 @@
 
 ### 1.1 执行数据库脚本
 
-执行 `nebula-example/sql/sharding-tables.sql` 脚本创建分片数据库和表：
+执行 `examples/fullstack-example/sql/sharding-tables.sql` 脚本创建分片数据库和表：
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mysql -u root -p < sql/sharding-tables.sql
 ```
 
@@ -38,7 +38,7 @@ nebula_sharding_1
 使用 `sharding` profile 启动 `nebula-example` 应用这将加载 `application-sharding.yml` 中的分片配置
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run -Dspring-boot.run.profiles=dev,sharding
 mvn spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dev,sharding"
 ```

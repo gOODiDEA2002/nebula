@@ -15,23 +15,6 @@
     <name>Nebula AutoConfiguration</name>
     <description>Centralized auto-configuration for all Nebula modules</description>
 
-    <properties>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <!-- Spring Cloud BOM -->
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
         <!-- Spring Boot Starter -->
         <dependency>
@@ -322,6 +305,12 @@
         </dependency>
 
         <!-- Lock Redis (可选) -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-lock-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>io.nebula</groupId>
             <artifactId>nebula-lock-redis</artifactId>

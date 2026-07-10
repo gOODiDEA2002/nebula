@@ -3,29 +3,38 @@ package io.nebula.data.mongodb.template;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.nebula.data.mongodb.repository.MongoRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.bson.conversions.Bson;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.geo.Circle;
 import org.springframework.data.geo.Distance;
-import org.springframework.data.geo.GeoResult;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeospatialIndex;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.index.IndexInfo;
+import org.springframework.data.mongodb.core.index.TextIndexDefinition;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.TextCriteria;
+import org.springframework.data.mongodb.core.query.TextQuery;
 import org.springframework.data.mongodb.core.query.Update;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
@@ -35,7 +44,6 @@ import java.util.stream.StreamSupport;
  * @param <T>  实体类型
  * @param <ID> 主键类型
  */
-@Slf4j
 public class MongoTemplate<T, ID extends Serializable> implements MongoRepository<T, ID> {
     
     private final MongoOperations mongoOperations;
@@ -88,12 +96,14 @@ public class MongoTemplate<T, ID extends Serializable> implements MongoRepositor
     
     @Override
     public <S extends T> List<S> saveAll(Iterable<S> entities) {
-        // 转换为Collection以符合insertAll API要求
-        Collection<S> collection = StreamSupport.stream(entities.spliterator(), false)
-                .collect(Collectors.toList());
-        @SuppressWarnings("unchecked")
-        List<S> result = (List<S>) mongoOperations.insertAll(collection);
-        return result;
+        return StreamSupport.stream(entities.spliterator(), false)
+                .map(entity -> mongoOperations.save(entity, collectionName))
+                .toList();
+    }
+
+    @Override
+    public <S extends T> List<S> insertAll(Collection<? extends S> entities) {
+        return new ArrayList<>(mongoOperations.insert(entities, collectionName));
     }
     
     @Override
@@ -201,8 +211,7 @@ public class MongoTemplate<T, ID extends Serializable> implements MongoRepositor
     
     @Override
     public Optional<T> findFirst(Query query) {
-        query.limit(1);
-        T result = mongoOperations.findOne(query, entityClass, collectionName);
+        T result = mongoOperations.findOne(Query.of(query).limit(1), entityClass, collectionName);
         return Optional.ofNullable(result);
     }
     
@@ -220,8 +229,11 @@ public class MongoTemplate<T, ID extends Serializable> implements MongoRepositor
     
     @Override
     public List<T> findByText(String searchText) {
-        // 简化的文本搜索实现
-        Query query = new Query();
+        if (searchText == null || searchText.isBlank()) {
+            throw new IllegalArgumentException("searchText 不能为空");
+        }
+        TextCriteria criteria = TextCriteria.forDefaultLanguage().matching(searchText);
+        Query query = TextQuery.queryText(criteria).sortByScore();
         return mongoOperations.find(query, entityClass, collectionName);
     }
     
@@ -245,27 +257,43 @@ public class MongoTemplate<T, ID extends Serializable> implements MongoRepositor
     
     @Override
     public List<T> findWithLimit(Query query, int limit) {
-        query.limit(limit);
-        return mongoOperations.find(query, entityClass, collectionName);
+        if (limit <= 0) {
+            throw new IllegalArgumentException("limit 必须大于 0");
+        }
+        return mongoOperations.find(Query.of(query).limit(limit), entityClass, collectionName);
     }
     
     @Override
     public List<T> findWithSkipAndLimit(Query query, int skip, int limit) {
-        query.skip(skip).limit(limit);
-        return mongoOperations.find(query, entityClass, collectionName);
+        if (skip < 0) {
+            throw new IllegalArgumentException("skip 不能小于 0");
+        }
+        if (limit <= 0) {
+            throw new IllegalArgumentException("limit 必须大于 0");
+        }
+        return mongoOperations.find(Query.of(query).skip(skip).limit(limit), entityClass, collectionName);
     }
     
     @Override
     public <R> List<R> aggregate(List<Object> pipeline, Class<R> resultClass) {
-        // 简化实现，暂时返回空列表
-        log.warn("Aggregate operation not implemented");
-        return List.of();
+        Objects.requireNonNull(pipeline, "pipeline 不能为空");
+        Objects.requireNonNull(resultClass, "resultClass 不能为空");
+
+        List<AggregationOperation> operations = pipeline.stream()
+                .map(this::toAggregationOperation)
+                .toList();
+        AggregationResults<R> results = mongoOperations.aggregate(
+                Aggregation.newAggregation(operations), collectionName, resultClass);
+        return results.getMappedResults();
     }
     
     @Override
     public GeoResults<T> findNear(Point point, Distance distance) {
         NearQuery nearQuery = NearQuery.near(point).maxDistance(distance);
-        return mongoOperations.geoNear(nearQuery, entityClass, collectionName);
+        return mongoOperations.query(entityClass)
+                .inCollection(collectionName)
+                .near(nearQuery)
+                .all();
     }
     
     @Override
@@ -358,7 +386,7 @@ public class MongoTemplate<T, ID extends Serializable> implements MongoRepositor
     
     @Override
     public void createIndex(String field) {
-        mongoOperations.indexOps(collectionName).ensureIndex(new Index(field, Sort.Direction.ASC));
+        mongoOperations.indexOps(collectionName).createIndex(new Index(field, Sort.Direction.ASC));
     }
     
     @Override
@@ -367,22 +395,23 @@ public class MongoTemplate<T, ID extends Serializable> implements MongoRepositor
         for (String field : fields) {
             index = index.on(field, Sort.Direction.ASC);
         }
-        mongoOperations.indexOps(collectionName).ensureIndex(index);
+        mongoOperations.indexOps(collectionName).createIndex(index);
     }
     
     @Override
     public void createTextIndex(String... fields) {
-        // 简化的文本索引实现
-        Index index = new Index();
-        for (String field : fields) {
-            index = index.on(field, Sort.Direction.ASC);
-        }
-        mongoOperations.indexOps(collectionName).ensureIndex(index);
+        requireFields(fields);
+        mongoOperations.indexOps(collectionName)
+                .createIndex(TextIndexDefinition.builder().onFields(fields).build());
     }
     
     @Override
     public void createGeoIndex(String field) {
-        mongoOperations.indexOps(collectionName).ensureIndex(new Index(field, Sort.Direction.ASC));
+        if (field == null || field.isBlank()) {
+            throw new IllegalArgumentException("field 不能为空");
+        }
+        mongoOperations.indexOps(collectionName)
+                .createIndex(new GeospatialIndex(field).typed(GeoSpatialIndexType.GEO_2DSPHERE));
     }
     
     @Override
@@ -395,5 +424,40 @@ public class MongoTemplate<T, ID extends Serializable> implements MongoRepositor
         return mongoOperations.indexOps(collectionName).getIndexInfo().stream()
                 .map(IndexInfo::getName)
                 .toList();
+    }
+
+    private AggregationOperation toAggregationOperation(Object stage) {
+        if (stage instanceof AggregationOperation operation) {
+            return operation;
+        }
+        if (stage instanceof Bson bson) {
+            return Aggregation.stage(bson);
+        }
+        if (stage instanceof String json) {
+            return Aggregation.stage(json);
+        }
+        if (stage instanceof Map<?, ?> map) {
+            org.bson.Document document = new org.bson.Document();
+            map.forEach((key, value) -> {
+                if (!(key instanceof String stringKey)) {
+                    throw new IllegalArgumentException("聚合阶段的 Map key 必须是字符串");
+                }
+                document.put(stringKey, value);
+            });
+            return Aggregation.stage(document);
+        }
+        throw new IllegalArgumentException("不支持的聚合阶段类型: "
+                + (stage == null ? "null" : stage.getClass().getName()));
+    }
+
+    private void requireFields(String... fields) {
+        if (fields == null || fields.length == 0) {
+            throw new IllegalArgumentException("fields 不能为空");
+        }
+        for (String field : fields) {
+            if (field == null || field.isBlank()) {
+                throw new IllegalArgumentException("fields 不能包含空值");
+            }
+        }
     }
 }

@@ -1,235 +1,88 @@
-# Nebula Framework 自动配置注册指南
+# Nebula 自动配置指南
 
-本文档说明如何在 Nebula Framework 中正确注册自动配置类，避免常见的 `ClassNotFoundException` 问题。
+## 注册入口
 
-## 问题背景
+集中自动配置清单位于：
 
-在 Spring Boot 3.x 中，自动配置类通过 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 文件注册。当一个模块被引入时，其中注册的所有配置类都会被尝试加载。
-
-### 常见问题
-
-当在 `nebula-autoconfigure` 中注册位于其他模块的配置类时，如果该模块未被引入，会出现：
-
-```
-java.lang.IllegalStateException: Unable to read meta-data for class xxx.AutoConfiguration
-Caused by: java.io.FileNotFoundException: class path resource [xxx/AutoConfiguration.class] cannot be opened because it does not exist
+```text
+autoconfigure/nebula-autoconfigure/src/main/resources/
+  META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 ```
 
-## 解决方案对比
+Starter 默认值处理器通过 Spring Boot 4 的 EnvironmentPostProcessor imports 注册：
 
-### 方案一：配置类定义在 autoconfigure 内部（推荐）
-
-将配置类直接定义在 `nebula-autoconfigure` 模块内部，使用 `@ConditionalOnClass(name = "...")` 进行条件判断：
-
-```java
-package io.nebula.autoconfigure.security;
-
-@AutoConfiguration
-@ConditionalOnClass(name = {
-    "io.nebula.security.jwt.JwtService",
-    "io.nebula.security.config.SecurityProperties"
-})
-@ConditionalOnProperty(prefix = "nebula.security", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(SecurityProperties.class)
-public class SecurityAutoConfiguration {
-    
-    @Bean
-    @ConditionalOnMissingBean(JwtService.class)
-    public JwtService jwtService(SecurityProperties properties) {
-        return new DefaultJwtService(properties);
-    }
-}
+```text
+autoconfigure/nebula-autoconfigure/src/main/resources/
+  META-INF/spring/org.springframework.boot.env.EnvironmentPostProcessor.imports
 ```
 
-**优点**：
-- 集中管理所有自动配置
-- 类不存在时优雅跳过
-- 符合框架架构理念
-- 无需额外的代理类
+各 Starter 的默认开关位于自身的 `META-INF/nebula-defaults.properties`。
 
-**缺点**：
-- 配置类与实现类分离（但这是可接受的）
+## 启用规则
 
-### 方案二：模块内部注册
+框架采用三级启用策略：
 
-在各模块内部创建自己的 `AutoConfiguration.imports` 文件：
+| 级别 | `matchIfMissing` | 默认策略 | 代表模块 |
+| --- | --- | --- | --- |
+| Level 1 | `true` | 默认启用 | Security 等纯内存基础能力 |
+| Level 2 | `false` | 默认关闭 | Persistence、Redis Lock、RabbitMQ、Nacos、Elasticsearch、MinIO、OSS、Neo4j 等外部服务 |
+| Level 3 | `false` | 默认关闭 | HTTP/gRPC/Async RPC、RPC Discovery、Gateway、AI、Crawler、Task 等特定部署形态 |
 
-```
-# nebula-security/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
-io.nebula.security.config.SecurityAutoConfiguration
-```
+核心原则是「依赖决定是否具备能力，配置决定是否启动能力」。直接引入实现 JAR 不应造成
+数据库、Redis、消息队列或远程服务连接。
 
-**优点**：
-- 实现简单
-- 模块自包含
+## Starter 默认值
 
-**缺点**：
-- 配置分散在各模块
-- 难以统一管理依赖顺序
+| Starter | 默认注入的开关 |
+| --- | --- |
+| `nebula-starter-minimal` | 无 |
+| `nebula-starter-web` | `nebula.data.persistence.enabled=true`、`nebula.data.cache.enabled=true` |
+| `nebula-starter-service` | Web 默认项、HTTP RPC、RPC Discovery、Nacos、Redis Lock |
+| `nebula-starter-gateway` | Gateway、Nacos |
+| `nebula-starter-ai` | AI、Cache |
+| `nebula-starter-mcp` | AI、MCP |
+| `nebula-starter-task` | Task、HTTP RPC |
+| `nebula-starter-all` | Persistence、Cache、RabbitMQ、HTTP RPC、RPC Discovery、Nacos、Lock、Task、AI、WebSocket |
+| `nebula-starter-api` | 无 |
 
-### 方案三：条件配置类定义在 autoconfigure 内部
+`NebulaStarterDefaultsPostProcessor` 把这些属性放在 Environment 最低优先级。优先级从高到低为：
 
-将配置类定义在 `nebula-autoconfigure` 模块内部，使用条件注解：
+1. 命令行参数
+2. 环境变量和系统属性
+3. 应用配置文件
+4. Starter 默认值
+5. 配置属性类中的 Java 默认值
 
-```java
-@AutoConfiguration
-@ConditionalOnClass(name = {"io.nebula.rpc.grpc.client.GrpcRpcClient"})
-public class GrpcRpcAutoConfiguration {
-    // ...
-}
-```
+## Bean 定制
 
-**优点**：
-- 最佳实践
-- 完全集中管理
-- 条件加载不会抛异常
+自动配置遵守以下规则：
 
-**缺点**：
-- 需要将配置类从原模块移动到 autoconfigure
+- 公共服务 Bean 使用 `@ConditionalOnMissingBean`，允许应用替换实现。
+- JSON 组件通过 `ObjectProvider<ObjectMapper>` 复用应用定制，缺失时再创建 Jackson 3 `JsonMapper`。
+- 同类型 Bean 超过一个时使用明确的 `@Qualifier`，避免启动顺序决定注入结果。
+- 长期资源单独声明为 Bean，并设置 `destroyMethod` 或实现 `AutoCloseable`。
+- 配置类本身不使用组件扫描兜底，避免绕过 `@ConditionalOnProperty`。
 
-## 为什么其他模块可以正常工作？
+## 新增自动配置检查表
 
-以 `GrpcRpcAutoConfiguration` 为例：
+1. 顶层开关是否与 `@ConfigurationProperties` 前缀一致。
+2. 外部服务和特定部署形态是否 `matchIfMissing=false`。
+3. `@ConditionalOnClass` 是否只引用对应模块的稳定入口类型。
+4. 应用自定义 Bean 是否能覆盖默认 Bean。
+5. 资源是否能随 Spring 上下文关闭。
+6. 是否复用应用的 `ObjectMapper`、线程池或连接工厂。
+7. Starter 默认键是否确实被某个条件读取，避免写入无效配置。
+8. 是否增加「默认关闭、显式启用、显式关闭、缺类」四类条件测试。
+9. 是否在组件摘要中暴露启用状态和关键非敏感参数。
 
-```java
-@AutoConfiguration
-@ConditionalOnClass(name = {"io.nebula.rpc.grpc.client.GrpcRpcClient", ...})
-public class GrpcRpcAutoConfiguration {
-    // 配置类定义在 nebula-autoconfigure 内部
-}
-```
+## 排查
 
-关键点：
-1. 配置类定义在 `nebula-autoconfigure` 模块内部
-2. 使用 `@ConditionalOnClass(name = "...")` 字符串形式
-3. 当 `nebula-rpc-grpc` 未引入时，条件不满足，配置被跳过
+启用 Spring Boot 条件报告：
 
-而 `SecurityAutoConfiguration` 之前的问题：
-1. 配置类定义在 `nebula-security` 模块中
-2. `nebula-autoconfigure` 的 imports 文件直接引用该类的全限定名
-3. Spring Boot 尝试加载类时，如果模块未引入，类不存在，抛出异常
-
-## 最佳实践
-
-### 1. 所有自动配置类统一放在 nebula-autoconfigure
-
-无论是核心模块还是基础设施模块，所有自动配置类都应该定义在 `nebula-autoconfigure` 中：
-
-```java
-// 正确：配置类定义在 nebula-autoconfigure 中
-package io.nebula.autoconfigure.security;
-
-@AutoConfiguration
-@ConditionalOnClass(name = "io.nebula.security.jwt.JwtService")
-public class SecurityAutoConfiguration {
-    // ...
-}
+```yaml
+debug: true
 ```
 
-```java
-// 错误：配置类定义在原模块中，然后在 autoconfigure 中引用
-// 这会导致类不存在时抛出 ClassNotFoundException
-```
-
-### 2. 使用字符串形式的 @ConditionalOnClass
-
-```java
-// 正确：使用 name = "..." 字符串形式
-@ConditionalOnClass(name = "io.nebula.security.jwt.JwtService")
-
-// 错误：使用 .class 引用形式（当类不存在时会抛出异常）
-@ConditionalOnClass(JwtService.class)
-```
-
-### 3. 可选依赖配置
-
-对于可选依赖模块：
-- 在 `nebula-autoconfigure` 的 pom.xml 中使用 `<optional>true</optional>`
-- 在配置类中使用 `@ConditionalOnClass(name = "...")` 条件判断
-
-### 4. 代理模式（适用于模块内已有 @Configuration 的情况）
-
-当基础设施模块内部已有完整的 `@Configuration` 类时，可在 `nebula-autoconfigure` 创建代理类：
-
-```java
-// nebula-autoconfigure 中的代理类
-@AutoConfiguration
-@ConditionalOnClass(name = "io.nebula.websocket.spring.config.WebSocketAutoConfiguration")
-@Import(io.nebula.websocket.spring.config.WebSocketAutoConfiguration.class)
-public class SpringWebSocketAutoConfiguration {
-}
-```
-
-对应的模块内部配置类使用 `@Configuration`（而非 `@AutoConfiguration`），由代理类统一注册：
-
-```java
-// 基础设施模块中的配置类
-@Configuration  // 注意：不是 @AutoConfiguration
-@ConditionalOnProperty(prefix = "nebula.websocket", name = "enabled", havingValue = "true")
-public class WebSocketAutoConfiguration {
-    // ...
-}
-```
-
-### 5. 三级启用策略
-
-所有自动配置类使用 `@ConditionalOnProperty` 控制启用，遵循三级策略：
-
-| 级别 | matchIfMissing | 适用范围 |
-|------|---------------|---------|
-| Level 1 | `true` | Security（纯内存组件） |
-| Level 2 | `false` | 需要外部服务（DB/Redis/MQ/ES） |
-| Level 3 | `false` | 特定部署形态（RPC/Gateway/AI/Crawler） |
-
-各 Starter 通过 `META-INF/nebula-defaults.properties` 声明默认启用模块，
-由 `NebulaStarterDefaultsPostProcessor`（`EnvironmentPostProcessor`）以最低优先级注入，
-用户 `application.yml` 始终可以覆盖。
-
-## 当前实现
-
-```
-nebula-autoconfigure/
-  src/main/java/io/nebula/autoconfigure/
-    env/
-      NebulaStarterDefaultsPostProcessor.java  # Starter 默认值注入
-    security/
-      SecurityAutoConfiguration.java           # 安全配置（直接定义）
-    rpc/
-      GrpcRpcAutoConfiguration.java            # gRPC 配置
-      HttpRpcAutoConfiguration.java            # HTTP RPC 配置
-      AsyncRpcAutoConfiguration.java           # 异步 RPC 配置
-      RpcDiscoveryAutoConfiguration.java       # RPC 发现配置
-    data/
-      CacheAutoConfiguration.java              # 缓存配置
-      DataPersistenceAutoConfiguration.java    # 数据持久化配置
-      Neo4jAutoConfiguration.java              # Neo4j 配置
-    websocket/
-      SpringWebSocketAutoConfiguration.java    # Spring WebSocket 代理
-      NettyWebSocketAutoConfiguration.java     # Netty WebSocket 代理
-    discovery/
-      NacosDiscoveryAutoConfiguration.java     # Nacos 发现配置
-    gateway/
-      GatewayAutoConfiguration.java            # 网关配置
-    lock/
-      RedisLockAutoConfiguration.java          # Redis 锁配置
-    ai/
-      AIAutoConfiguration.java                 # AI 配置
-      
-  src/main/resources/META-INF/spring/
-    org.springframework.boot.autoconfigure.AutoConfiguration.imports
-    org.springframework.boot.env.EnvironmentPostProcessor.imports
-```
-
-## 验证方法
-
-测试配置是否正确：
-
-```bash
-# 1. 不引入 nebula-security 的应用
-# 应该正常启动，无 ClassNotFoundException
-
-# 2. 引入 nebula-security 的应用
-# 应该正常启动，SecurityAutoConfiguration 被加载
-# 日志应显示: "初始化JWT服务"
-```
-
+检查某个属性的最终值时，优先查看启动摘要和 Actuator Environment；不要只看
+`application.yml`，Starter 默认值也属于 Environment 的一部分。详细步骤见
+[排查指南](../Nebula%20Framework%20排查指南.md)。

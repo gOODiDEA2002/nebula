@@ -239,6 +239,6 @@ AsyncRpcExecutionManager
 
 ## 更多信息
 
-- [设计文档](./docs/DESIGN.md)
-- [API文档](./docs/API.md)
-- [示例项目](../../../nebula-example/nebula-rpc-async/) - 完整的客户端和服务端示例
+- [框架架构说明](../../../docs/framework/ARCHITECTURE.md)
+- [测试说明](../../../docs/testing/README.md)
+- [异步 RPC 示例](../../../examples/rpc-async-example/README.md)

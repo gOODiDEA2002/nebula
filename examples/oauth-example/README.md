@@ -72,7 +72,7 @@ npm run dev
 
 ### 后端
 - Java 21
-- Spring Boot 3.x
+- Spring Boot 4.1
 - Nebula Framework
 - MyBatis-Plus
 - MySQL
@@ -141,5 +141,4 @@ sequenceDiagram
 - [Nebula Examples 总览](../README.md)
 - [后端 README](backend/README.md)
 - [前端 README](frontend/README.md)
-- [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
-
+- [Nebula 文档索引](../../docs/INDEX.md)

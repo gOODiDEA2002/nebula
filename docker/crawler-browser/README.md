@@ -388,7 +388,7 @@ nebula:
 
 ## 相关文档
 
-- [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
+- [Nebula 文档索引](../../docs/INDEX.md)
 - [Nebula 框架配置说明](../../docs/Nebula框架配置说明.md)
 - [爬虫模块设计文档](../../infrastructure/crawler/DESIGN.md)
 - [Playwright 官方文档](https://playwright.dev/)

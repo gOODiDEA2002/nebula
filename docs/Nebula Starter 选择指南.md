@@ -1,35 +1,43 @@
 # Nebula Starter 选择指南
 
-本指南帮助你选择最适合项目需求的 Nebula Starter。
+Starter 负责组合依赖并提供最低优先级的默认开关。应用只选择一个最接近自身形态的
+主 Starter，再按需增加独立模块，避免同时引入多个职责重叠的 Starter。
 
-## 场景选择
+## 选择表
 
-### 我需要开发一个简单的 Web 应用
+| Starter | 适用场景 | 主要能力 |
+| --- | --- | --- |
+| `nebula-starter-minimal` | CLI、批处理、只需要基础能力的服务 | Foundation、自动配置、基础 Spring Boot |
+| `nebula-starter-web` | REST API、管理后台、单体 Web 应用 | Web、Security、Persistence、Cache |
+| `nebula-starter-service` | 需要注册发现和服务间调用的业务服务 | Web、HTTP/gRPC RPC、Nacos、RabbitMQ、Redis Lock |
+| `nebula-starter-gateway` | API 网关 | Gateway WebFlux、Nacos、Redis 限流、Resilience4j |
+| `nebula-starter-ai` | LLM、Embedding、RAG 应用 | Spring AI、AI Core、Cache |
+| `nebula-starter-mcp` | MCP Server 或 MCP Client 应用 | AI Starter、MCP、WebMVC |
+| `nebula-starter-task` | XXL-JOB 执行器 | Task、Web、HTTP RPC，可选 Nacos |
+| `nebula-starter-api` | 服务间共享契约 | RPC 接口与注解、Validation、MyBatis-Plus 类型 |
+| `nebula-starter-all` | 需要大部分框架能力的全功能单体 | Web、数据、RPC、发现、消息、存储、搜索、任务、AI、锁、WebSocket |
 
-**推荐：** `nebula-starter-web`
+## 决策顺序
 
-```xml
-<dependency>
-    <groupId>io.nebula</groupId>
-    <artifactId>nebula-starter-web</artifactId>
-    <version>${nebula.version}</version>
-</dependency>
+```text
+只定义接口和 DTO                 -> nebula-starter-api
+只需要基础工具                   -> nebula-starter-minimal
+需要 MCP                         -> nebula-starter-mcp
+主要运行定时或调度任务           -> nebula-starter-task
+需要 AI，但不需要完整业务服务栈  -> nebula-starter-ai
+作为统一入口转发 HTTP 请求       -> nebula-starter-gateway
+需要 Nacos 和 RPC                -> nebula-starter-service
+普通 REST API                    -> nebula-starter-web
+明确需要大部分模块               -> nebula-starter-all
 ```
 
-适用于：
-- REST API 服务
-- 管理后台
-- 单体应用
-
-包含：Web 模块、缓存、基础自动配置
-
----
-
-### 我需要开发微服务
-
-**推荐：** `nebula-starter-service`
+## 添加依赖
 
 ```xml
+<properties>
+    <nebula.version>2.1.0-SNAPSHOT</nebula.version>
+</properties>
+
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-service</artifactId>
@@ -37,210 +45,75 @@
 </dependency>
 ```
 
-适用于：
-- 微服务架构
-- 需要服务注册发现
-- 需要服务间 RPC 通信
+## 默认启用项
 
-包含：
-- 服务发现（Nacos）
-- HTTP RPC
-- 分布式锁（Redis）
-- 消息队列支持
+| Starter | 默认开关 |
+| --- | --- |
+| Minimal | 无；Security 本身为默认启用的纯内存能力 |
+| Web | Persistence、Cache |
+| Service | Persistence、Cache、HTTP RPC、RPC Discovery、Nacos、Redis Lock |
+| Gateway | Gateway、Nacos |
+| AI | AI、Cache |
+| MCP | AI、MCP |
+| Task | Task、HTTP RPC |
+| API | 无 |
+| All | Persistence、Cache、RabbitMQ、HTTP RPC、RPC Discovery、Nacos、Redis Lock、Task、AI、Spring WebSocket |
 
----
+依赖存在不等于功能一定启用。例如 Service Starter 携带 gRPC 和 RabbitMQ 实现，但默认只
+启用 HTTP RPC；需要使用 gRPC 或 RabbitMQ 时应显式配置对应开关。
 
-### 我需要开发 API 契约模块
+## 覆盖默认值
 
-**推荐：** `nebula-starter-api`
-
-```xml
-<dependency>
-    <groupId>io.nebula</groupId>
-    <artifactId>nebula-starter-api</artifactId>
-    <version>${nebula.version}</version>
-</dependency>
-```
-
-适用于：
-- RPC 接口定义模块
-- DTO 定义模块
-- 服务间共享的契约
-
-包含：RPC 核心注解、验证 API
-
----
-
-### 我需要开发 API 网关
-
-**推荐：** `nebula-starter-gateway`
-
-```xml
-<dependency>
-    <groupId>io.nebula</groupId>
-    <artifactId>nebula-starter-gateway</artifactId>
-    <version>${nebula.version}</version>
-</dependency>
-```
-
-适用于：
-- API 网关
-- 路由转发
-- 统一认证
-- 限流熔断
-
-包含：
-- Spring Cloud Gateway
-- 服务发现（Nacos）
-- Resilience4j 熔断
-- Redis 限流（可选）
-
----
-
-### 我需要最小化依赖
-
-**推荐：** `nebula-starter-minimal`
-
-```xml
-<dependency>
-    <groupId>io.nebula</groupId>
-    <artifactId>nebula-starter-minimal</artifactId>
-    <version>${nebula.version}</version>
-</dependency>
-```
-
-适用于：
-- CLI 应用
-- 批处理任务
-- 工具类库
-
-包含：基础模块、自动配置
-
----
-
-### 我需要 AI 功能
-
-**推荐：** `nebula-starter-ai`
-
-```xml
-<dependency>
-    <groupId>io.nebula</groupId>
-    <artifactId>nebula-starter-ai</artifactId>
-    <version>${nebula.version}</version>
-</dependency>
-```
-
-适用于：
-- AI 应用
-- 大语言模型集成
-- RAG 应用
-
----
-
-## 决策树
-
-```
-你的项目是什么类型？
-│
-├─ 微服务
-│   │
-│   ├─ 业务服务 → nebula-starter-service
-│   │
-│   ├─ API 契约模块 → nebula-starter-api
-│   │
-│   └─ API 网关 → nebula-starter-gateway
-│
-├─ 单体应用
-│   │
-│   └─ Web 应用 → nebula-starter-web
-│
-├─ 工具/批处理
-│   │
-│   └─ nebula-starter-minimal
-│
-└─ AI 应用
-    │
-    └─ nebula-starter-ai
-```
-
-## Starter 对比表
-
-| Starter | 服务发现 | RPC | 分布式锁 | 消息队列 | 网关 | AI |
-|---------|---------|-----|---------|---------|------|-----|
-| nebula-starter-minimal | - | - | - | - | - | - |
-| nebula-starter-web | - | - | - | - | - | - |
-| nebula-starter-api | - | 核心 | - | - | - | - |
-| nebula-starter-service | Nacos | HTTP | Redis | 核心 | - | - |
-| nebula-starter-gateway | Nacos | - | - | - | 是 | - |
-| nebula-starter-ai | - | - | - | - | - | 是 |
-
-## 自动启用的模块
-
-各 Starter 通过 `META-INF/nebula-defaults.properties` 声明默认启用的模块。
-引入 Starter 后对应模块自动激活，无需在 `application.yml` 中重复声明 `enabled: true`。
-用户配置始终可以覆盖 Starter 默认值。
-
-| Starter | 默认启用的模块 |
-|---------|---------------|
-| nebula-starter-minimal | 无（仅 Security 默认生效） |
-| nebula-starter-web | Data Persistence, Data Cache |
-| nebula-starter-service | Data Persistence, Data Cache, HTTP RPC, RPC Discovery, Nacos, Redis Lock |
-| nebula-starter-gateway | Gateway, Nacos |
-| nebula-starter-ai | AI, Data Cache |
-| nebula-starter-all | Persistence, Cache, HTTP RPC, RPC Discovery, Nacos, Lock, AI |
-
-## 继承关系
-
-```
-nebula-starter-minimal
-    │
-    └── nebula-starter-web
-            │
-            └── nebula-starter-service
-```
-
-## 常见问题
-
-### Q: 我应该选择 nebula-starter-web 还是 nebula-starter-service？
-
-如果你的应用需要：
-- 服务注册发现 → `nebula-starter-service`
-- 服务间 RPC 调用 → `nebula-starter-service`
-- 只是简单的 REST API → `nebula-starter-web`
-
-### Q: 可以在运行时禁用某些功能吗？
-
-是的，所有功能都可以通过配置禁用。Starter 默认启用的模块也可以在 `application.yml` 中覆盖：
+Starter 默认值优先级低于应用配置，可以直接关闭：
 
 ```yaml
 nebula:
+  data:
+    persistence:
+      enabled: false
   discovery:
     nacos:
-      enabled: false  # 禁用 Nacos（覆盖 Starter 默认值）
-  rpc:
-    http:
-      enabled: false  # 禁用 HTTP RPC（覆盖 Starter 默认值）
+      enabled: false
+  lock:
+    enabled: false
 ```
 
-### Q: 如何排除不需要的传递依赖？
+`nebula-starter-all` 默认启用较多外部组件。开发环境缺少 RabbitMQ、Nacos 或 Redis 时，
+需要在应用配置中逐项关闭，仓库中的 `examples/starter-all-example` 提供了可运行示例。
 
-使用 Maven 的 exclusion：
+## API 契约模块
+
+API 模块只放以下内容：
+
+- RPC 服务接口
+- DTO、枚举和校验注解
+- 与接口签名直接相关的通用类型
+
+API 模块不放 Controller、Repository、服务实现、数据库连接配置或 Starter 默认开关。
+
+## 依赖排除
+
+确实不需要某个传递实现时，可使用 Maven exclusion：
 
 ```xml
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-service</artifactId>
+    <version>${nebula.version}</version>
     <exclusions>
         <exclusion>
             <groupId>io.nebula</groupId>
-            <artifactId>nebula-lock-redis</artifactId>
+            <artifactId>nebula-messaging-rabbitmq</artifactId>
         </exclusion>
     </exclusions>
 </dependency>
 ```
 
+排除实现后同步关闭对应开关，避免配置表达的能力与 classpath 不一致。
+
 ## 相关文档
 
-- [Nebula 框架使用指南](Nebula框架使用指南.md)
+- [快速开始](framework/QUICK_START.md)
 - [配置说明](Nebula框架配置说明.md)
-- [排查指南](TROUBLESHOOTING.md)
+- [自动配置指南](framework/AUTO_CONFIGURATION_GUIDE.md)
+- [示例应用](../examples/README.md)

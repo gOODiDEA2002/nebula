@@ -20,7 +20,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-security</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -249,5 +249,4 @@ public class AuthService {
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../docs/testing/README.md)。

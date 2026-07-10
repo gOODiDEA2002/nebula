@@ -120,7 +120,7 @@ spring:
 
 ## 相关文档
 
-- [Starter 选择指南](../../docs/STARTER_SELECTION_GUIDE.md)
+- [Starter 选择指南](../../docs/Nebula%20Starter%20选择指南.md)
 - [配置说明](../../docs/Nebula框架配置说明.md)
-- [RPC 架构说明](../../docs/rpc/ARCHITECTURE.md)
-- [排查指南](../../docs/TROUBLESHOOTING.md)
+- [框架架构说明](../../docs/framework/ARCHITECTURE.md)
+- [排查指南](../../docs/Nebula%20Framework%20排查指南.md)

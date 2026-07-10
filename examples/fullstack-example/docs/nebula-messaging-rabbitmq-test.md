@@ -31,7 +31,7 @@ docker-compose up -d rabbitmq
 ### 3. 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -630,6 +630,5 @@ public void handleOrderNotification(Message<OrderEvent> message) {
 ---
 
 更多详细信息，请参考：
-- [Nebula Messaging RabbitMQ README](../../nebula/infrastructure/messaging/nebula-messaging-rabbitmq/README.md)
-- [Nebula 框架使用指南](../../nebula/docs/Nebula框架使用指南.md)
-
+- [Nebula Messaging RabbitMQ README](../../../infrastructure/messaging/nebula-messaging-rabbitmq/README.md)
+- [Nebula 文档索引](../../../docs/INDEX.md)

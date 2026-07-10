@@ -148,7 +148,7 @@ mvn spring-boot:run
 
 ### 自动配置启用策略
 
-框架采用三级启用策略（详见 `docs/nebula-framework-review.md` 第 10 章）：
+框架采用三级启用策略（详见[自动配置指南](docs/framework/AUTO_CONFIGURATION_GUIDE.md#启用规则)）：
 
 | 级别 | matchIfMissing | 策略 | 适用范围 |
 |------|---------------|------|---------|

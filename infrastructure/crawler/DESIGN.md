@@ -1522,7 +1522,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <parent>
         <groupId>io.nebula</groupId>
         <artifactId>nebula-parent</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     
@@ -1580,7 +1580,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <parent>
         <groupId>io.nebula</groupId>
         <artifactId>nebula-parent</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     
@@ -1633,7 +1633,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <parent>
         <groupId>io.nebula</groupId>
         <artifactId>nebula-parent</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     
@@ -1687,7 +1687,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <parent>
         <groupId>io.nebula</groupId>
         <artifactId>nebula-parent</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     
@@ -1851,10 +1851,10 @@ class HttpCrawlerEngineTest {
 
 | 模块 | 版本 | 说明 |
 |------|------|------|
-| nebula-crawler-core | 2.0.1-SNAPSHOT | 核心抽象层 |
-| nebula-crawler-http | 2.0.1-SNAPSHOT | HTTP爬虫 |
-| nebula-crawler-browser | 2.0.1-SNAPSHOT | 浏览器爬虫 |
-| nebula-crawler-proxy | 2.0.1-SNAPSHOT | 代理池 |
+| nebula-crawler-core | 2.1.0-SNAPSHOT | 核心抽象层 |
+| nebula-crawler-http | 2.1.0-SNAPSHOT | HTTP爬虫 |
+| nebula-crawler-browser | 2.1.0-SNAPSHOT | 浏览器爬虫 |
+| nebula-crawler-proxy | 2.1.0-SNAPSHOT | 代理池 |
 
 ### 9.2 第三方依赖
 

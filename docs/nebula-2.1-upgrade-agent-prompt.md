@@ -7,8 +7,8 @@
 
 ## 派发前用户自查（每次派发前确认）
 
-- [ ] nebula 仓库 `nebula-remaining-work` 分支（或已合并的主线）已在本机 `mvn clean install -DskipTests`，
-      `~/.m2/repository/io/nebula/` 下有 2.1.0-SNAPSHOT 产物（必须包含 commit `188011e4` 的双 Bean 修复）
+- [ ] Nebula 仓库主线或目标发布标签已在本机执行 `mvn clean install -DskipTests`，
+      `~/.m2/repository/io/nebula/` 下存在最新的 2.1.0-SNAPSHOT 产物
 - [ ] 目标项目本地可编译、工作区干净
 - [ ] 目标项目依赖的中间件（MySQL/Redis 等）本地或测试环境可达（启动验证需要）
 
@@ -28,7 +28,7 @@
 
 1. 确认工作区干净后，从主分支新建分支 nebula-2.1-upgrade。
 2. 通读 nebula 仓库的升级指南：
-   /Users/andy/DevOps/SourceCode/nebula-projects/nebula/docs/upgrade-guide-jackson3.md
+   【Nebula 仓库绝对路径】/docs/upgrade-guide-jackson3.md
 3. 在本项目创建 docs/changes/nebula-2.1-upgrade/log.md，
    全程记录：每个任务的验证命令关键输出行、技术决策、踩坑、偏差。
    只写"已通过"三个字不算数，要留能对账的证据。
@@ -146,7 +146,7 @@
 | 症状 | 根因 | 处置 |
 |---|---|---|
 | `ClassNotFoundException: JsonMapperBuilderCustomizer` | parent 没升 4.1.0，SB3.5 消费 SB4 框架 | 补升 parent，不是 nebula 的 Bug |
-| `redisMessageConsumer required a single bean, but 2 were found` | 旧快照缺双 Bean 修复 | 确认 ~/.m2 快照含 nebula commit `188011e4`，重新 install |
+| `redisMessageConsumer required a single bean, but 2 were found` | 本地仍在使用旧 Nebula 快照 | 在 Nebula 当前主线重新执行 `mvn clean install -DskipTests` |
 | 上线后缓存反序列化 `InvalidTypeIdException` | 旧缓存没清干净（多为前缀核对错） | 按各环境实际 key-prefix 重清 |
 | DB 不可达应用起不来（原来能起） | DataSourceManager 无 initialization-fail-timeout 语义 | 预期行为，靠编排层重启补救 |
 | `mvn test` 绿但启动失败 | 单测不拉起完整上下文 | 启动验证是独立闸门，两者都必须过 |

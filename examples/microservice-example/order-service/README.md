@@ -127,8 +127,8 @@ authRpcClient.auth(request);
 
 ##  文档
 
-- [文档索引](docs/INDEX.md) - 所有文档的索引和归档
-- [历史文档](docs/archive/) - 开发过程中的问题修复和优化记录
+- [微服务示例总览](../README.md)
+- [Nebula 文档索引](../../../docs/INDEX.md)
 
 ##  常见问题
 
@@ -171,9 +171,9 @@ INFO  - RPC调用成功: duration=50ms
 
 ##  相关项目
 
-- [Nebula Framework](../../../nebula/) - 核心框架
-- [User Service](../../nebula-example-user-service/) - 用户服务
-- [User API](../../nebula-example-user-api/) - 用户服务 API 定义
+- [Nebula Framework](../../../README.md) - 核心框架
+- [User Service](../user-service/README.md) - 用户服务
+- [User API](../user-api/README.md) - 用户服务 API 定义
 
 ##  更新日志
 

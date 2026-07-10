@@ -32,6 +32,14 @@ class StarterDefaultsInjectionTest {
     }
 
     @Test
+    void rabbitMqEnabledByDefault() {
+        assertThat(environment.getProperty("nebula.messaging.rabbitmq.enabled"))
+                .isEqualTo("true");
+        assertThat(environment.getProperty("nebula.messaging.enabled"))
+                .isNull();
+    }
+
+    @Test
     void preferredJsonMapperNotForcedToJackson2() {
         assertThat(environment.getProperty("spring.http.converters.preferred-json-mapper"))
                 .isNull();

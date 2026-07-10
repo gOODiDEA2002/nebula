@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 3.x 与 Java 21 构建，提供企业级应用开发的完整解决方案。
+Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 4.1 与 Java 21 构建，提供企业级应用开发的完整解决方案。
 
 ## 技术栈
 
@@ -148,7 +148,7 @@ mvn spring-boot:run
 
 ### 自动配置启用策略
 
-框架采用三级启用策略（详见 `docs/nebula-framework-review.md` 第 10 章）：
+框架采用三级启用策略（详见[自动配置指南](docs/framework/AUTO_CONFIGURATION_GUIDE.md#启用规则)）：
 
 | 级别 | matchIfMissing | 策略 | 适用范围 |
 |------|---------------|------|---------|

@@ -673,12 +673,12 @@ kubectl logs -f nebula-example-xxx
 
 - [Nebula Examples 总览](../README.md)
 - [Nebula 框架文档](../../docs/INDEX.md)
-- [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
+- [Nebula 文档索引](../../docs/INDEX.md)
 - [自动配置文档](../../autoconfigure/nebula-autoconfigure/README.md)
 
 ## 技术栈
 
-- **核心**: Java 21, Spring Boot 3.5.8
+- **核心**: Java 21, Spring Boot 4.1.0
 - **数据访问**: MyBatis-Plus, ShardingSphere
 - **缓存**: Caffeine, Redis
 - **消息队列**: RabbitMQ

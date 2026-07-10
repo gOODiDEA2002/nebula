@@ -164,8 +164,8 @@ public class ElasticsearchAutoConfiguration {
      */
     private SSLContext createSSLContext() throws Exception {
         if (!properties.isSslVerificationEnabled()) {
-            if (isProductionProfile()) {
-                logger.error("生产环境禁止跳过 SSL 证书校验(sslVerificationEnabled=false), 已忽略该配置, 使用默认 SSL 校验");
+            if (!isTrustAllAllowed()) {
+                logger.error("仅 dev/test/local 环境允许跳过 SSL 证书校验，已忽略 sslVerificationEnabled=false");
             } else {
                 logger.warn("SSL 证书校验已禁用, 当前环境: {}, 仅限非生产环境使用",
                         String.join(",", environment.getActiveProfiles()));
@@ -205,13 +205,13 @@ public class ElasticsearchAutoConfiguration {
         return SSLContext.getDefault();
     }
 
-    private boolean isProductionProfile() {
+    private boolean isTrustAllAllowed() {
         String[] activeProfiles = environment.getActiveProfiles();
         if (activeProfiles.length == 0) {
             return false;
         }
         for (String profile : activeProfiles) {
-            if (SAFE_PROFILES.contains(profile.toLowerCase())) {
+            if (!SAFE_PROFILES.contains(profile.toLowerCase(java.util.Locale.ROOT))) {
                 return false;
             }
         }

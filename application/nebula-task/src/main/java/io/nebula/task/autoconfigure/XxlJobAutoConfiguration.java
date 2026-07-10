@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.StringUtils;
 
@@ -28,8 +29,9 @@ public class XxlJobAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public XxlJobHttpClient xxlJobHttpClient() {
-        return new XxlJobHttpClient(JsonMapper.builder().build());
+    public XxlJobHttpClient xxlJobHttpClient(ObjectProvider<ObjectMapper> objectMapperProvider) {
+        ObjectMapper objectMapper = objectMapperProvider.getIfAvailable(() -> JsonMapper.builder().build());
+        return new XxlJobHttpClient(objectMapper);
     }
 
     /**

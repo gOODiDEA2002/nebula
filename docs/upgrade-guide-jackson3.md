@@ -21,10 +21,10 @@ Jackson 3 的序列化格式与 Jackson 2 不完全兼容（类型标识、日�
 ```bash
 # 使用 SCAN 遍历删除（KEYS 命令会阻塞 Redis，生产环境禁用）
 # keyPrefix 默认为 nebula:cache:
-redis-cli --scan --pattern "nebula:cache:*" | xargs -r redis-cli DEL
+redis-cli --scan --pattern "nebula:cache:*" | while IFS= read -r key; do redis-cli UNLINK "$key"; done
 
 # proud-day 应用的缓存前缀
-redis-cli --scan --pattern "pd:cache:*" | xargs -r redis-cli DEL
+redis-cli --scan --pattern "app:cache:*" | while IFS= read -r key; do redis-cli UNLINK "$key"; done
 ```
 
 如果使用了自定义 `keyPrefix`，请替换为实际前缀。
@@ -124,4 +124,4 @@ ES 客户端的 JSON 映射器从 `JacksonJsonpMapper` 切换到 `Jackson3JsonpM
 | `io.jsonwebtoken:jjwt-jackson:0.13.0` | JJWT 尚无 Jackson 3 适配（issue #1029） | 仅影响 JWT 内部序列化，不经过框架 ObjectMapper，无外部可见影响 |
 | `org.springframework.ai:spring-ai-model` | Spring AI 2.0 传递 Jackson 2 databind | 第三方传递依赖，框架代码不直接使用 |
 
-待 JJWT 发布 Jackson 3 适配版本后（0.14+），可通过升级 JJWT 版本彻底消除 Jackson 2 残留。
+后续升级 JJWT 前，应重新核对其 Jackson 3 支持状态和迁移说明，再决定是否移除该兼容依赖。

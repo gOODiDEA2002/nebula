@@ -1,24 +1,26 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 创建所有必要的目录
-ROOT_DIR=/Users/andy/DevOps/SourceCode/nebula-projects/nebula-data
-mkdir -p $ROOT_DIR/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,nacos,mongodb,chroma}
-mkdir -p $ROOT_DIR/mysql/data
-mkdir -p $ROOT_DIR/mysql/conf
-# mkdir -p $ROOT_DIR/mongodb/backup
-mkdir -p $ROOT_DIR/nacos/logs
-mkdir -p $ROOT_DIR/mysql/init 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="${NEBULA_DATA_DIR:-${SCRIPT_DIR}/data}"
+mkdir -p "$ROOT_DIR"/{redis,rabbitmq,minio,elasticsearch,mysql,xxl-job,nacos,mongodb,chroma}
+mkdir -p "$ROOT_DIR/mysql/data"
+mkdir -p "$ROOT_DIR/mysql/conf"
+# mkdir -p "$ROOT_DIR/mongodb/backup"
+mkdir -p "$ROOT_DIR/nacos/logs"
+mkdir -p "$ROOT_DIR/mysql/init"
+mkdir -p "$ROOT_DIR/etcd/data"
 # 拷贝数据库初始化脚本
-cp sql/xxl-job.sql $ROOT_DIR/mysql/init/xxl-job.sql
-cp sql/nacos.sql $ROOT_DIR/mysql/init/nacos.sql 
+cp "$SCRIPT_DIR/sql/xxl-job.sql" "$ROOT_DIR/mysql/init/xxl-job.sql"
+cp "$SCRIPT_DIR/sql/nacos.sql" "$ROOT_DIR/mysql/init/nacos.sql"
 
 # 设置目录权限
-sudo chmod -R 755 $ROOT_DIR/
+chmod -R 755 "$ROOT_DIR/"
 
 # 设置各个服务的版本号
 REDIS_VERSION=8.2.1
 RABBITMQ_VERSION=3.12-management
 MINIO_VERSION=RELEASE.2025-04-22T22-12-26Z
-ELASTICSEARCH_VERSION=7.17.19
+ELASTICSEARCH_VERSION=9.4.2
 MYSQL_VERSION=8.3.0 
 XXL_JOB_VERSION=2.4.1
 MONGO_VERSION=8.0
@@ -32,6 +34,7 @@ RABBITMQ_PORT_MANAGEMENT=15672
 MINIO_PORT=9000
 MINIO_PORT_MANAGEMENT=9090
 ELASTICSEARCH_PORT=9200
+ELASTICSEARCH_PORT_TRANSPORT=9300
 MYSQL_PORT=3306
 XXL_JOB_PORT=9001
 MONGO_PORT=27017
@@ -60,7 +63,7 @@ NACOS_USERNAME=root
 NACOS_PASSWORD=root
 
 # 创建 MySQL 初始化脚本（为 XXL-Job 和 Nacos 创建数据库）
-sudo tee $ROOT_DIR/mysql/init/init-databases.sql > /dev/null <<'EOF'
+tee "$ROOT_DIR/mysql/init/init-databases.sql" > /dev/null <<'EOF'
 -- 创建 XXL-Job 数据库
 CREATE DATABASE IF NOT EXISTS `xxl_job` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -71,11 +74,12 @@ CREATE DATABASE IF NOT EXISTS `nacos` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8
 SHOW DATABASES;
 EOF
 
-# 拷贝scripts目录
-cp -r scripts $ROOT_DIR/scripts
+# 拷贝 scripts 目录
+mkdir -p "$ROOT_DIR/scripts"
+cp -R "$SCRIPT_DIR/scripts/." "$ROOT_DIR/scripts/"
 
 # 创建 docker-compose.yml 文件
-cat <<EOF > $ROOT_DIR/docker-compose.yml
+cat <<EOF > "$ROOT_DIR/docker-compose.yml"
 services:
   # Redis缓存
   redis:
@@ -150,7 +154,7 @@ services:
     volumes:
       - $ROOT_DIR/elasticsearch:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:$ELASTICSEARCH_PORT"]
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
       interval: 30s
       timeout: 10s
       retries: 5

@@ -5,7 +5,7 @@ import io.nebula.messaging.core.serializer.MessageSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -52,11 +52,11 @@ public class RabbitDelayMessageConfig {
     
     /**
      * 配置消息转换器
-     * 使用Jackson2进行JSON序列化
+     * 使用 Jackson 3 进行 JSON 序列化
      */
     @Bean
     public MessageConverter messageConverter() {
-        return new Jackson2JsonMessageConverter();
+        return new JacksonJsonMessageConverter();
     }
     
     /**
@@ -96,4 +96,3 @@ public class RabbitDelayMessageConfig {
         return rabbitTemplate;
     }
 }
-

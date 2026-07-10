@@ -9,8 +9,8 @@ Vocoor OAuth 2.0 客户端示例 - 后端服务
 ## 技术栈
 
 - Java 21
-- Spring Boot 3.x
-- Nebula Framework 2.0.1
+- Spring Boot 4.1
+- Nebula Framework 2.1.0
 - MyBatis-Plus
 - MySQL 8.x
 
@@ -119,7 +119,5 @@ src/main/java/io/nebula/examples/oauth/
 
 ## 相关链接
 
-- [Vocoor OAuth 接入指南](../../vocoor-service/docs/vocoor_oauth_integration_guide.md)
-- [Nebula 框架文档](../../nebula/docs/Nebula框架使用指南.md)
-
-
+- Vocoor OAuth 接入说明由对应服务仓库维护
+- [Nebula 文档索引](../../../docs/INDEX.md)

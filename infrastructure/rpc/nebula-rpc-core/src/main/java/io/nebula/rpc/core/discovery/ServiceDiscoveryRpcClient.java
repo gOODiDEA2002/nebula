@@ -68,7 +68,7 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     }
     
     @Override
-    public <T> T call(Class<T> serviceClass, String methodName, Object... args) {
+    public <T> T call(Class<?> serviceClass, String methodName, Object... args) {
         // 优先从 ThreadLocal 获取服务名（由 RpcClientFactoryBean 设置）
         String serviceName = io.nebula.rpc.core.context.RpcContextHolder.getServiceName();
         
@@ -100,7 +100,7 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
     }
     
     @Override
-    public <T> CompletableFuture<T> callAsync(Class<T> serviceClass, String methodName, Object... args) {
+    public <T> CompletableFuture<T> callAsync(Class<?> serviceClass, String methodName, Object... args) {
         return CompletableFuture.supplyAsync(() -> call(serviceClass, methodName, args), asyncExecutor);
     }
     
@@ -285,7 +285,7 @@ public class ServiceDiscoveryRpcClient implements io.nebula.rpc.core.client.RpcC
          * 默认实现同步 {@code setTargetAddress + call}，避免并发调用不同实例时共享可变 target 被互相覆盖
          * (导致请求打到错误实例)。无共享可变状态的实现(如 HTTP 用 per-request ThreadLocal)应重写为无锁版本。
          */
-        default <T> T callWithTarget(String targetAddress, Class<T> serviceClass, String methodName, Object... args) {
+        default <T> T callWithTarget(String targetAddress, Class<?> serviceClass, String methodName, Object... args) {
             synchronized (this) {
                 setTargetAddress(targetAddress);
                 return call(serviceClass, methodName, args);

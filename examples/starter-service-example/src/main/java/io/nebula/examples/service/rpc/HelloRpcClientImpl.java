@@ -38,9 +38,8 @@ public class HelloRpcClientImpl implements HelloRpcClient {
         log.info("RPC调用: getServiceInfo");
         return ServiceInfoDto.create(
             "starter-service-example",
-            "2.0.1-SNAPSHOT",
+            "2.1.0-SNAPSHOT",
             "Nebula Starter Service Example - 演示RPC服务实现"
         );
     }
 }
-

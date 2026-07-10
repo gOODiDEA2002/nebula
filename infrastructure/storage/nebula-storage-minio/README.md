@@ -32,14 +32,14 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-storage-minio</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 
 <!-- 如果使用自动配置 -->
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-autoconfigure</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -646,13 +646,13 @@ public void processBatchFiles(String bucket, String prefix) {
 
 ##  测试指南
 
-详细的功能测试指南请参考：[Nebula Storage 功能测试指南](../../../nebula-example/docs/nebula-storage-test.md)
+详细的功能测试指南请参考：[Nebula Storage 功能测试指南](../../../examples/fullstack-example/docs/nebula-storage-test.md)
 
 ##  更多资源
 
 - [MinIO 官方文档](https://min.io/docs/minio/linux/index.html)
 - [MinIO Java SDK](https://min.io/docs/minio/linux/developers/java/minio-java.html)
-- [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
+- [Nebula 文档索引](../../../docs/INDEX.md)
 - [完整示例项目](../../../nebula-example)
 
 ##  贡献指南
@@ -666,5 +666,4 @@ public void processBatchFiles(String bucket, String prefix) {
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

@@ -98,7 +98,7 @@ public class UserRpcServiceImpl implements UserRpcService {
 
 1. 启动 `nebula-example` 应用:
    ```bash
-   cd /Users/andy/DevOps/SourceCode/nebula-projects/nebula-example
+   cd examples/fullstack-example
    mvn spring-boot:run
    ```
 
@@ -330,20 +330,19 @@ Nebula RPC 框架还可以扩展支持:
 - **消息队列 RPC**: 异步解耦
 - **Service Mesh 集成**: Istio, Linkerd 等
 
-查看 `ROADMAP.md` 了解更多计划
+当前架构约束见框架架构说明。
 
 ## 相关文档
 
-- [Nebula RPC HTTP 模块文档](../infrastructure/rpc/nebula-rpc-http/README.md)
-- [Nebula RPC gRPC 模块文档](../infrastructure/rpc/nebula-rpc-grpc/README.md)
+- [Nebula RPC HTTP 模块文档](../../../infrastructure/rpc/nebula-rpc-http/README.md)
+- [Nebula RPC gRPC 模块文档](../../../infrastructure/rpc/nebula-rpc-grpc/README.md)
 - [Nebula RPC HTTP 测试文档](./nebula-rpc-test.md)
 - [Nebula RPC gRPC 测试文档](./nebula-grpc-test.md)
-- [Nebula RPC Roadmap](../infrastructure/rpc/ROADMAP.md)
+- [框架架构说明](../../../docs/framework/ARCHITECTURE.md)
 
 ---
 
 **文档版本**: 2.0.0  
 **最后更新**: 2025-10-09  
 **维护者**: Nebula Framework Team
-
 

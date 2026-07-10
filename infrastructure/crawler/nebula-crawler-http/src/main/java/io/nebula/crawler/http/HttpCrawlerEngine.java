@@ -90,8 +90,8 @@ public class HttpCrawlerEngine implements CrawlerEngine {
                 .retryOnConnectionFailure(true);
 
         if (properties.isTrustAllCerts()) {
-            if (isProductionProfile()) {
-                log.error("生产环境禁止使用 trustAllCerts=true，已忽略该配置");
+            if (!isTrustAllAllowed()) {
+                log.error("仅 dev/test/local 环境允许使用 trustAllCerts=true，已忽略该配置");
             } else {
                 log.warn("SSL证书验证已禁用，当前环境: {}，仅限非生产环境使用",
                         environment != null ? String.join(",", environment.getActiveProfiles()) : "unknown");
@@ -416,7 +416,7 @@ public class HttpCrawlerEngine implements CrawlerEngine {
                 pool.idleConnectionCount());
     }
 
-    private boolean isProductionProfile() {
+    private boolean isTrustAllAllowed() {
         if (environment == null) {
             return false;
         }
@@ -425,7 +425,7 @@ public class HttpCrawlerEngine implements CrawlerEngine {
             return false;
         }
         for (String profile : activeProfiles) {
-            if (SAFE_PROFILES.contains(profile.toLowerCase())) {
+            if (!SAFE_PROFILES.contains(profile.toLowerCase(java.util.Locale.ROOT))) {
                 return false;
             }
         }

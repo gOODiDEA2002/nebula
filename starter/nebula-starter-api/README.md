@@ -80,7 +80,7 @@ RPC 契约模块专用 Starter，提供 API 定义所需的标准依赖，确保
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <nebula.version>2.0.1-SNAPSHOT</nebula.version>
+        <nebula.version>2.1.0-SNAPSHOT</nebula.version>
     </properties>
 
     <dependencies>
@@ -230,7 +230,7 @@ my-service-api/
     <dependency>
         <groupId>io.nebula</groupId>
         <artifactId>nebula-rpc-core</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -258,7 +258,7 @@ my-service-api/
 **迁移后**：
 ```xml
 <properties>
-    <nebula.version>2.0.1-SNAPSHOT</nebula.version>
+    <nebula.version>2.1.0-SNAPSHOT</nebula.version>
 </properties>
 
 <dependencies>
@@ -314,6 +314,5 @@ API 模块应该保持轻量，不要引入：
 ## 相关文档
 
 - [Nebula RPC 核心模块](../../infrastructure/rpc/nebula-rpc-core/README.md)
-- [RPC 使用指南](../../docs/Nebula框架使用指南.md#rpc-模块)
-- [其他 Starter 说明](../README.md)
-
+- [RPC Core 使用说明](../../infrastructure/rpc/nebula-rpc-core/README.md)
+- [Starter 选择指南](../../docs/Nebula%20Starter%20选择指南.md)

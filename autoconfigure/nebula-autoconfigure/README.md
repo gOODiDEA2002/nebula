@@ -66,7 +66,7 @@ nebula-autoconfigure/
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-autoconfigure</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -344,14 +344,14 @@ nebula:
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-autoconfigure</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 
 <!-- 按需添加功能模块 -->
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-discovery-nacos</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -510,9 +510,9 @@ logging:
 
 ##  相关文档
 
-- [迁移计划文档](MIGRATION_PLAN.md)
-- [实施状态文档](IMPLEMENTATION_STATUS.md)
-- [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
+- [Nebula 文档索引](../../docs/INDEX.md)
+- [自动配置指南](../../docs/framework/AUTO_CONFIGURATION_GUIDE.md)
+- [Nebula 2.1 实现审查](../../docs/reviews/nebula-2.1-implementation-review-2026-07.md)
 - [各功能模块 README](../../infrastructure/)
   - [Nacos Discovery](../../infrastructure/discovery/nebula-discovery-nacos/README.md)
   - [HTTP RPC](../../infrastructure/rpc/nebula-rpc-http/README.md)
@@ -532,6 +532,5 @@ logging:
 
 ---
 
-**版本**: 2.0.1-SNAPSHOT  
+**版本**: 2.1.0-SNAPSHOT
 **最后更新**: 2025-01-11
-

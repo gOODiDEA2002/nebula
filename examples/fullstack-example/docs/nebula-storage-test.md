@@ -45,7 +45,7 @@ nebula:
 ### 3. 启动示例应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -689,6 +689,5 @@ chmod +x test-storage.sh
 8.  异常处理（各种错误场景）
 
 更多详细信息，请参考：
-- [Nebula Storage MinIO 模块 README](../../nebula/infrastructure/storage/nebula-storage-minio/README.md)
-- [Nebula 框架使用指南](../../nebula/docs/Nebula框架使用指南.md)
-
+- [Nebula Storage MinIO 模块 README](../../../infrastructure/storage/nebula-storage-minio/README.md)
+- [Nebula 文档索引](../../../docs/INDEX.md)

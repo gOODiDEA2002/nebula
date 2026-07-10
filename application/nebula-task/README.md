@@ -20,7 +20,7 @@ Nebula Task 是一个基于 XXL-JOB 的统一任务调度框架，提供了简�
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-task</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -396,5 +396,4 @@ nebula:
 - [Nebula Framework 文档](../../../docs/)
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../docs/testing/README.md)。

@@ -373,10 +373,9 @@ nebula:
 
 ## 相关文档
 
-- [EXAMPLE.md](./EXAMPLE.md) - 使用示例
-- [CONFIG.md](./CONFIG.md) - 配置指南
-- [TESTING.md](./TESTING.md) - 测试指南
-- [ROADMAP.md](./ROADMAP.md) - 发展路线图
+- [示例索引](../../../examples/README.md) - 可运行工程
+- [配置说明](../../../docs/Nebula框架配置说明.md) - 当前配置入口
+- [测试说明](../../../docs/testing/README.md) - 测试命令与原则
 - [nebula-storage-core](../nebula-storage-core/README.md) - 核心抽象
 
 ---
@@ -399,4 +398,3 @@ nebula:
 
 **最后更新**: 2025-11-20  
 **文档版本**: v1.0
-

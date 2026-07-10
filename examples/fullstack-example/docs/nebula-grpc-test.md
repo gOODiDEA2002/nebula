@@ -49,7 +49,7 @@ nebula:
 ### 3. 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 

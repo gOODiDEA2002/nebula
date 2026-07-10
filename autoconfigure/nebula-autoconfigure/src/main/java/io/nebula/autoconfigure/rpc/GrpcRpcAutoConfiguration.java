@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
@@ -41,9 +42,10 @@ public class GrpcRpcAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(GrpcRpcServer.class)
     @ConditionalOnProperty(prefix = "nebula.rpc.grpc.server", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public GrpcRpcServer grpcRpcServer(GrpcRpcProperties properties) {
+    public GrpcRpcServer grpcRpcServer(GrpcRpcProperties properties,
+                                       ObjectProvider<ObjectMapper> objectMapperProvider) {
         log.info("配置 gRPC RPC 服务器: port={}", properties.getServer().getPort());
-        return new GrpcRpcServer(rpcObjectMapper());
+        return new GrpcRpcServer(resolveObjectMapper(objectMapperProvider));
     }
 
     /**
@@ -54,13 +56,14 @@ public class GrpcRpcAutoConfiguration {
     @Primary // 如果 gRPC 启用，优先使用它
     @ConditionalOnMissingBean(name = "grpcRpcClient")
     @ConditionalOnProperty(prefix = "nebula.rpc.grpc.client", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public GrpcRpcClient grpcRpcClient(GrpcRpcProperties properties) {
+    public GrpcRpcClient grpcRpcClient(GrpcRpcProperties properties,
+                                       ObjectProvider<ObjectMapper> objectMapperProvider) {
         log.info("配置 gRPC RPC 客户端: target={}", properties.getClient().getTarget());
-        return new GrpcRpcClient(rpcObjectMapper(), properties.getClient());
+        return new GrpcRpcClient(resolveObjectMapper(objectMapperProvider), properties.getClient());
     }
 
-    private static ObjectMapper rpcObjectMapper() {
-        return JsonMapper.builder().build();
+    private static ObjectMapper resolveObjectMapper(ObjectProvider<ObjectMapper> objectMapperProvider) {
+        return objectMapperProvider.getIfAvailable(() -> JsonMapper.builder().build());
     }
 
     /**
@@ -91,6 +94,7 @@ public class GrpcRpcAutoConfiguration {
 
         // Client
         details.put("Target", properties.getClient().getTarget());
+        details.put("Client Auth Token", properties.getClient().getAuthToken().isEmpty() ? "disabled" : "enabled");
         details.put("Negotiation", properties.getClient().getNegotiationType());
         details.put("Load Balancing", properties.getClient().getLoadBalancingPolicy());
         details.put("Connect Timeout", properties.getClient().getConnectTimeout() + "ms");

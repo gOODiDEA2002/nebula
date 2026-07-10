@@ -6,7 +6,6 @@ import io.nebula.discovery.nacos.config.NacosProperties;
 import io.nebula.rpc.core.config.RpcDiscoveryProperties;
 import io.nebula.rpc.http.config.HttpRpcProperties;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -73,7 +72,7 @@ public class NebulaDiagnosticEndpoint {
         private Map<String, Object> getFrameworkInfo() {
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("name", "Nebula Framework");
-            info.put("version", "2.0.1-SNAPSHOT");
+            info.put("version", NebulaFrameworkVersion.getVersion());
             info.put("javaVersion", System.getProperty("java.version"));
             info.put("springBootVersion", org.springframework.boot.SpringBootVersion.getVersion());
             info.put("activeProfiles", environment.getActiveProfiles().length > 0 
@@ -85,7 +84,7 @@ public class NebulaDiagnosticEndpoint {
             Map<String, Object> info = new LinkedHashMap<>();
             
             boolean enabled = environment.getProperty(
-                "nebula.discovery.nacos.enabled", Boolean.class, true);
+                "nebula.discovery.nacos.enabled", Boolean.class, false);
             info.put("enabled", enabled);
             
             if (!enabled) {
@@ -123,7 +122,7 @@ public class NebulaDiagnosticEndpoint {
             
             // HTTP RPC
             boolean httpEnabled = environment.getProperty(
-                "nebula.rpc.http.enabled", Boolean.class, true);
+                "nebula.rpc.http.enabled", Boolean.class, false);
             
             Map<String, Object> httpInfo = new LinkedHashMap<>();
             httpInfo.put("enabled", httpEnabled);
@@ -151,7 +150,7 @@ public class NebulaDiagnosticEndpoint {
             
             // RPC Discovery Integration
             boolean discoveryEnabled = environment.getProperty(
-                "nebula.rpc.discovery.enabled", Boolean.class, true);
+                "nebula.rpc.discovery.enabled", Boolean.class, false);
             
             Map<String, Object> discoveryInfo = new LinkedHashMap<>();
             discoveryInfo.put("enabled", discoveryEnabled);
@@ -175,7 +174,7 @@ public class NebulaDiagnosticEndpoint {
             Map<String, Object> info = new LinkedHashMap<>();
             
             boolean enabled = environment.getProperty(
-                "nebula.rpc.async.enabled", Boolean.class, true);
+                "nebula.rpc.async.enabled", Boolean.class, false);
             info.put("enabled", enabled);
             
             if (!enabled) {

@@ -7,7 +7,7 @@
 ## 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -552,4 +552,4 @@ mybatis-plus:
 - **DTO 映射**: 每个接口严格使用对应的专用 DTO，不复用其他功能的 DTO
 
 
-更多详细信息，请参考 [Nebula Data Persistence 使用指南](../../nebula/infrastructure/data/nebula-data-persistence/README.md)
+更多详细信息，请参考 [Nebula Data Persistence 使用指南](../../../infrastructure/data/nebula-data-persistence/README.md)

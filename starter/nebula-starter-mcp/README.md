@@ -234,7 +234,7 @@ flowchart TB
 ## 版本要求
 
 - Java 21+
-- Spring Boot 3.2+
+- Spring Boot 4.1+
 - Spring AI 1.1.0+
 
 ## 示例项目

@@ -20,19 +20,19 @@ flowchart LR
   Source[同一份 Git Commit] --> XTech[XTech GitLab]
   Source --> Vocoor[Vocoor GitLab]
 
-  XTech --> XVerify[verify]
-  XVerify --> XPublish[publish]
+  XTech --> XVerify[功能分支和 MR：verify]
+  XTech --> XPublish[默认分支和受保护 Tag：publish]
   XPublish --> XMaven[XTech Maven 仓库]
 
-  Vocoor --> VVerify[verify]
-  VVerify --> VPublish[publish]
+  Vocoor --> VVerify[功能分支和 MR：verify]
+  Vocoor --> VPublish[默认分支和受保护 Tag：publish]
   VPublish --> VMaven[Vocoor Maven 仓库]
 ```
 
 流水线包含两个阶段：
 
-1. `verify`：所有分支运行测试和构建验证。
-2. `publish`：仅默认分支和受保护的 Tag 运行，向当前环境自己的 Maven 仓库发布制品。
+1. `verify`：功能分支和 Merge Request 运行测试与构建验证。
+2. `publish`：默认分支和受保护 Tag 运行 `mvn deploy`；该命令会先执行测试，再向当前环境的 Maven 仓库发布制品。
 
 ## GitLab 项目变量
 
@@ -50,8 +50,8 @@ flowchart LR
 | `MAVEN_DEPLOY_SETTINGS_XML` | File | 是 | 用于默认分支和 Tag 发布的 Maven 配置 |
 | `MAVEN_RELEASE_REPOSITORY_URL` | Variable | 是 | 当前环境 Maven Release 仓库部署地址 |
 | `MAVEN_SNAPSHOT_REPOSITORY_URL` | Variable | 是 | 当前环境 Maven Snapshot 仓库部署地址 |
-| `MAVEN_RELEASE_REPOSITORY_ID` | Variable | 否 | 与发布 settings 中 `<server><id>` 一致的 Release 仓库 ID |
-| `MAVEN_SNAPSHOT_REPOSITORY_ID` | Variable | 否 | 与发布 settings 中 `<server><id>` 一致的 Snapshot 仓库 ID |
+| `MAVEN_RELEASE_REPOSITORY_ID` | Variable | 是 | 与发布 settings 中 `<server><id>` 一致的 Release 仓库 ID |
+| `MAVEN_SNAPSHOT_REPOSITORY_ID` | Variable | 是 | 与发布 settings 中 `<server><id>` 一致的 Snapshot 仓库 ID |
 
 ### File 类型变量如何工作
 
@@ -136,10 +136,10 @@ Merge Request 使用，因此不能包含发布权限。
 </settings>
 ```
 
-`server.id` 必须与根目录 `pom.xml` 中 `distributionManagement` 的 ID 保持一致：
-
-- Release：`nebula-release`
-- Snapshot：`nebula-snapshot`
+`server.id` 必须分别与 `MAVEN_RELEASE_REPOSITORY_ID`、
+`MAVEN_SNAPSHOT_REPOSITORY_ID` 的值保持一致。示例使用 `nebula-release` 和
+`nebula-snapshot`，实际环境可以使用其他 ID，但三个位置必须一致：项目变量、
+`settings.xml` 和根 `pom.xml` 解析后的 `distributionManagement`。
 
 两个 GitLab 环境必须分别配置自己的 `MAVEN_DEPLOY_SETTINGS_XML`，不能共享另一个隔离
 环境的 Maven 地址或发布凭据。
@@ -156,6 +156,8 @@ Merge Request 使用，因此不能包含发布权限。
 | `NEBULA_RUNNER_TAG` | `java-build` |
 | `MAVEN_RELEASE_REPOSITORY_URL` | `https://nexus.xtech.example/repository/maven-releases/` |
 | `MAVEN_SNAPSHOT_REPOSITORY_URL` | `https://nexus.xtech.example/repository/maven-snapshots/` |
+| `MAVEN_RELEASE_REPOSITORY_ID` | `nebula-release` |
+| `MAVEN_SNAPSHOT_REPOSITORY_ID` | `nebula-snapshot` |
 | `MAVEN_VERIFY_SETTINGS_XML` | XTech Maven 仓库只读配置 |
 | `MAVEN_DEPLOY_SETTINGS_XML` | XTech Maven 仓库发布配置 |
 
@@ -167,6 +169,8 @@ Merge Request 使用，因此不能包含发布权限。
 | `NEBULA_RUNNER_TAG` | `java-build` |
 | `MAVEN_RELEASE_REPOSITORY_URL` | `https://nexus.vocoor.example/repository/maven-releases/` |
 | `MAVEN_SNAPSHOT_REPOSITORY_URL` | `https://nexus.vocoor.example/repository/maven-snapshots/` |
+| `MAVEN_RELEASE_REPOSITORY_ID` | `nebula-release` |
+| `MAVEN_SNAPSHOT_REPOSITORY_ID` | `nebula-snapshot` |
 | `MAVEN_VERIFY_SETTINGS_XML` | Vocoor Maven 仓库只读配置 |
 | `MAVEN_DEPLOY_SETTINGS_XML` | Vocoor Maven 仓库发布配置 |
 
@@ -199,7 +203,7 @@ git ls-remote vocoor refs/heads/main
 
 1. 推送一个非默认分支，确认只执行 `verify`。
 2. 创建 Merge Request，确认 `verify` 成功。
-3. 合并到默认分支，确认依次执行 `verify` 和 `publish`。
+3. 合并到默认分支，确认执行 `publish`，并在 Maven 日志中确认测试阶段成功。
 4. 确认 Snapshot 制品只发布到当前环境的 Snapshot 仓库。
 5. 发布受保护的正式版本 Tag，确认制品发布到当前环境的 Release 仓库。
 6. 对比两个 GitLab 默认分支的 Commit SHA，确认代码和 CI 配置一致。

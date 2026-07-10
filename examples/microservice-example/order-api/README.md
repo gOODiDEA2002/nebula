@@ -68,7 +68,7 @@ order-service           (client)
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-example-order-api</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -495,7 +495,7 @@ CreateOrderDto.Response createOrder(@RequestBody CreateOrderDto.Request request)
     <dependency>
         <groupId>io.nebula</groupId>
         <artifactId>nebula-rpc-core</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
     </dependency>
     
     <!-- Spring Web (注解支持) -->
@@ -522,10 +522,10 @@ CreateOrderDto.Response createOrder(@RequestBody CreateOrderDto.Request request)
 
 ##  相关文档
 
-- [订单服务实现](../nebula-example-order-service/README.md) - 服务提供方文档
-- [用户服务 API](../nebula-example-user-api/README.md) - 类似的 API 契约示例
-- [Nebula RPC 文档](../../nebula/infrastructure/rpc/) - RPC 框架核心文档
-- [服务发现文档](../../nebula/infrastructure/discovery/) - Nacos 服务发现
+- [订单服务实现](../order-service/README.md) - 服务提供方文档
+- [用户服务 API](../user-api/README.md) - 类似的 API 契约示例
+- [Nebula RPC Core](../../../infrastructure/rpc/nebula-rpc-core/README.md) - RPC 框架核心文档
+- [Nacos 服务发现](../../../infrastructure/discovery/nebula-discovery-nacos/README.md) - 服务发现实现
 
 ##  更新日志
 
@@ -540,4 +540,3 @@ Apache License 2.0
 ---
 
 **Nebula Example Order API** - 订单服务契约层，支持零配置 RPC 调用
-

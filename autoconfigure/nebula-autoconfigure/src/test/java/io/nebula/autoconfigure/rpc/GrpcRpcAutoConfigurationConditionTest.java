@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -59,6 +60,18 @@ class GrpcRpcAutoConfigurationConditionTest {
                 .run(ctx -> {
                     assertThat(ctx).doesNotHaveBean(GrpcRpcClient.class);
                     assertThat(ctx).doesNotHaveBean(GrpcRpcServer.class);
+                });
+    }
+
+    @Test
+    void grpcComponentsReuseApplicationObjectMapper() {
+        runner.withPropertyValues("nebula.rpc.grpc.enabled=true")
+                .run(ctx -> {
+                    ObjectMapper expected = ctx.getBean(ObjectMapper.class);
+                    assertThat(ReflectionTestUtils.getField(ctx.getBean(GrpcRpcClient.class), "objectMapper"))
+                            .isSameAs(expected);
+                    assertThat(ReflectionTestUtils.getField(ctx.getBean(GrpcRpcServer.class), "objectMapper"))
+                            .isSameAs(expected);
                 });
     }
 

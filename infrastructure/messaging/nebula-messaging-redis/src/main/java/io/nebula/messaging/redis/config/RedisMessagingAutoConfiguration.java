@@ -10,6 +10,7 @@ import io.nebula.messaging.redis.support.RedisMessageSerializer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -26,6 +27,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.time.Duration;
 import java.util.concurrent.Executor;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Redis 消息自动配置
@@ -45,8 +47,11 @@ public class RedisMessagingAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public RedisMessageSerializer redisMessageSerializer() {
-        return new RedisMessageSerializer();
+    public RedisMessageSerializer redisMessageSerializer(ObjectProvider<ObjectMapper> objectMapperProvider) {
+        ObjectMapper objectMapper = objectMapperProvider.getIfAvailable();
+        return objectMapper != null
+                ? new RedisMessageSerializer(objectMapper)
+                : new RedisMessageSerializer();
     }
 
     /**
@@ -117,10 +122,12 @@ public class RedisMessagingAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean(RedisMessageConsumer.class)
-    public RedisMessageHandlerProcessor redisMessageHandlerProcessor(RedisMessageConsumer<?> messageConsumer,
-                                                                      Executor redisMessageExecutor) {
+    public static RedisMessageHandlerProcessor redisMessageHandlerProcessor(
+            ObjectProvider<RedisMessageConsumer<?>> messageConsumerProvider,
+            @Qualifier("redisMessageExecutor") ObjectProvider<Executor> redisMessageExecutorProvider) {
         log.info("初始化 Redis 消息处理器注解处理器");
-        return new RedisMessageHandlerProcessor(messageConsumer, redisMessageExecutor);
+        return new RedisMessageHandlerProcessor(messageConsumerProvider::getObject,
+                redisMessageExecutorProvider::getObject);
     }
 
     /**
@@ -204,4 +211,3 @@ public class RedisMessagingAutoConfiguration {
         }
     }
 }
-

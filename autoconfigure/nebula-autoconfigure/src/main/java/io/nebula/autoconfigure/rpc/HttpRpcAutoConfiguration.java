@@ -2,6 +2,7 @@ package io.nebula.autoconfigure.rpc;
 
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.core.client.RpcClient;
 import io.nebula.rpc.http.client.HttpRpcClient;
@@ -23,6 +24,8 @@ import org.apache.hc.core5.util.Timeout;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -50,9 +53,9 @@ public class HttpRpcAutoConfiguration {
     /**
      * 配置HTTP RPC专用的RestClient（HttpComponents 连接池）
      */
-    @Bean(name = "rpcRestClient")
-    @ConditionalOnMissingBean(name = "rpcRestClient")
-    public RestClient rpcRestClient(HttpRpcProperties properties) {
+    @Bean(name = "rpcHttpClient", destroyMethod = "close")
+    @ConditionalOnMissingBean(name = {"rpcRestClient", "rpcHttpClient"})
+    public CloseableHttpClient rpcHttpClient(HttpRpcProperties properties) {
         HttpRpcProperties.ClientConfig clientConfig = properties.getClient();
 
         ConnectionConfig connectionConfig = ConnectionConfig.custom()
@@ -70,18 +73,28 @@ public class HttpRpcAutoConfiguration {
                 .setConnectionRequestTimeout(Timeout.ofMilliseconds(clientConfig.getConnectTimeout()))
                 .build();
 
-        CloseableHttpClient httpClient = HttpClients.custom()
+        return HttpClients.custom()
                 .setConnectionManager(connManager)
                 .setDefaultRequestConfig(requestConfig)
+                .evictExpiredConnections()
+                .evictIdleConnections(TimeValue.ofMilliseconds(clientConfig.getIdleEvictTime()))
                 .build();
+    }
+
+    @Bean(name = "rpcRestClient")
+    @ConditionalOnMissingBean(name = "rpcRestClient")
+    public RestClient rpcRestClient(
+            @Qualifier("rpcHttpClient") CloseableHttpClient httpClient,
+            HttpRpcProperties properties) {
+        HttpRpcProperties.ClientConfig clientConfig = properties.getClient();
 
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
 
         log.info("配置HTTP RPC RestClient: connectTimeout={}ms, readTimeout={}ms, " +
-                        "maxConnections={}, maxConnectionsPerRoute={}, keepAliveTime={}ms",
+                        "maxConnections={}, maxConnectionsPerRoute={}, keepAliveTime={}ms, idleEvictTime={}ms",
                 clientConfig.getConnectTimeout(), clientConfig.getReadTimeout(),
                 clientConfig.getMaxConnections(), clientConfig.getMaxConnectionsPerRoute(),
-                clientConfig.getKeepAliveTime());
+                clientConfig.getKeepAliveTime(), clientConfig.getIdleEvictTime());
 
         return RestClient.builder()
                 .requestFactory(factory)
@@ -120,13 +133,15 @@ public class HttpRpcAutoConfiguration {
     public HttpRpcClient httpRpcClient(RestClient rpcRestClient,
             Executor rpcExecutor,
             HttpRpcProperties properties,
+            ObjectProvider<ObjectMapper> objectMapperProvider,
             @org.springframework.beans.factory.annotation.Value("${server.port:8080}") int serverPort) {
         String baseUrl = properties.getClient().getBaseUrl();
         if (baseUrl == null || baseUrl.isEmpty()) {
             baseUrl = "http://localhost:" + serverPort;
         }
 
-        HttpRpcClient client = new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor, JsonMapper.builder().build(),
+        HttpRpcClient client = new HttpRpcClient(rpcRestClient, baseUrl, rpcExecutor,
+                resolveObjectMapper(objectMapperProvider),
                 properties.getClient().getAuthToken());
 
         log.info("配置HTTP RPC客户端: baseUrl={}", baseUrl);
@@ -165,9 +180,15 @@ public class HttpRpcAutoConfiguration {
     @ConditionalOnMissingBean(HttpRpcController.class)
     @ConditionalOnProperty(prefix = "nebula.rpc.http.server", name = "enabled", havingValue = "true", matchIfMissing = true)
     public HttpRpcController httpRpcController(HttpRpcServer httpRpcServer,
+                                              ObjectProvider<ObjectMapper> objectMapperProvider,
                                               HttpRpcProperties properties) {
         log.info("配置HTTP RPC控制器");
-        return new HttpRpcController(httpRpcServer, JsonMapper.builder().build(), properties.getServer().getAuthToken());
+        return new HttpRpcController(httpRpcServer, resolveObjectMapper(objectMapperProvider),
+                properties.getServer().getAuthToken());
+    }
+
+    private static ObjectMapper resolveObjectMapper(ObjectProvider<ObjectMapper> objectMapperProvider) {
+        return objectMapperProvider.getIfAvailable(() -> JsonMapper.builder().build());
     }
 
     /**
@@ -202,6 +223,7 @@ public class HttpRpcAutoConfiguration {
         details.put("Max Connections", String.valueOf(properties.getClient().getMaxConnections()));
         details.put("Max Connections Per Route", String.valueOf(properties.getClient().getMaxConnectionsPerRoute()));
         details.put("Keep Alive Time", properties.getClient().getKeepAliveTime() + "ms");
+        details.put("Idle Evict Time", properties.getClient().getIdleEvictTime() + "ms");
 
         return new SimpleComponentSummary("RPC", "HTTP RPC", true, 200, details);
     }

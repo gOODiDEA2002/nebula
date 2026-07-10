@@ -7,7 +7,7 @@
 ## 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -441,6 +441,5 @@ logging:
 ---
 
 更多详细信息，请参考：
-- [Nebula RPC HTTP 模块文档](../../nebula/infrastructure/rpc/nebula-rpc-http/README.md)
-- [Nebula 框架使用指南](../../nebula/docs/Nebula框架使用指南.md)
-
+- [Nebula RPC HTTP 模块文档](../../../infrastructure/rpc/nebula-rpc-http/README.md)
+- [Nebula 文档索引](../../../docs/INDEX.md)

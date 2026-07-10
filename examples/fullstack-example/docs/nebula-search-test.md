@@ -20,7 +20,7 @@ curl http://localhost:9200
 ### 2. 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn clean install
 mvn spring-boot:run
 ```
@@ -716,7 +716,7 @@ curl http://localhost:9200/nebula_example_products/_stats
 ## 参考资料
 
 - [Elasticsearch 官方文档](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
-- [Nebula Search 模块文档](../../nebula/infrastructure/search/nebula-search-elasticsearch/README.md)
+- [Nebula Search 模块文档](../../../infrastructure/search/nebula-search-elasticsearch/README.md)
 - [Spring Data Elasticsearch](https://docs.spring.io/spring-data/elasticsearch/docs/current/reference/html/)
 
 ---

@@ -920,7 +920,7 @@ public class OrderService {
 ## 版本要求
 
 - Java 21+
-- Spring Boot 3.x
+- Spring Boot 4.1
 - Maven 3.6+
 
 ## 许可证
@@ -934,5 +934,4 @@ MIT License
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../docs/testing/README.md)。

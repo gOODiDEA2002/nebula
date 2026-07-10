@@ -69,6 +69,12 @@ public class GrpcRpcProperties {
         private String target = "localhost:9090";
 
         /**
+         * 调用下游 gRPC 端点时携带的鉴权 token。
+         * 下游配置 {@code nebula.rpc.grpc.server.auth-token} 后，本端必须配置相同值。
+         */
+        private String authToken = "";
+
+        /**
          * 协商类型(plaintext, tls)
          */
         private String negotiationType = "plaintext";
@@ -116,4 +122,3 @@ public class GrpcRpcProperties {
         private boolean loggingEnabled = true;
     }
 }
-

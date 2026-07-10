@@ -668,7 +668,7 @@ public class KafkaMessagingAutoConfiguration {
 ## 版本要求
 
 - Java 21+
-- Spring Boot 3.x
+- Spring Boot 4.1
 - Maven 3.6+
 
 ## 许可证

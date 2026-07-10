@@ -28,7 +28,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-data-persistence</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -476,7 +476,7 @@ public class ReportService {
 
 ### 演示和测试
 
-详细的读写分离功能演示请参考：[Nebula 读写分离功能测试指南](../../../nebula-example/docs/nebula-readwrite-splitting-test.md)
+详细的读写分离功能演示请参考：[Nebula 读写分离功能测试指南](../../../examples/fullstack-example/docs/nebula-readwrite-splitting-test.md)
 
 ---
 
@@ -639,7 +639,7 @@ public class ShardingDemoServiceImpl implements ShardingDemoService {
 
 ### 演示和测试
 
-完整的分库分表功能演示请参考：[Nebula 分库分表功能测试指南](../../../nebula-example/docs/nebula-sharding-test.md)
+完整的分库分表功能演示请参考：[Nebula 分库分表功能测试指南](../../../examples/fullstack-example/docs/nebula-sharding-test.md)
 
 ---
 
@@ -808,9 +808,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order>
 
 ##  更多功能
 
-- [基础数据访问测试指南](../../../nebula-example/docs/nebula-data-access-test.md)
-- [读写分离功能测试指南](../../../nebula-example/docs/nebula-readwrite-splitting-test.md)  
-- [分库分表功能测试指南](../../../nebula-example/docs/nebula-sharding-test.md)  
+- [基础数据访问测试指南](../../../examples/fullstack-example/docs/nebula-data-access-test.md)
+- [读写分离功能测试指南](../../../examples/fullstack-example/docs/nebula-readwrite-splitting-test.md)
+- [分库分表功能测试指南](../../../examples/fullstack-example/docs/nebula-sharding-test.md)
 - [完整示例项目](../../../nebula-example)
 
 ---
@@ -927,5 +927,4 @@ public class XxxController {
 本项目基于 MIT 许可证开源
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

@@ -50,7 +50,7 @@ nebula:
 ### 3. 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -682,9 +682,9 @@ public void deregister() {
 
 ## 更多功能
 
-- [Nebula Discovery Nacos 使用指南](../../nebula/infrastructure/discovery/nebula-discovery-nacos/README.md)
-- [Nebula Discovery Core 核心抽象](../../nebula/infrastructure/discovery/nebula-discovery-core/README.md)
-- [完整示例项目](../../nebula-example)
+- [Nebula Discovery Nacos 使用指南](../../../infrastructure/discovery/nebula-discovery-nacos/README.md)
+- [Nebula Discovery Core 核心抽象](../../../infrastructure/discovery/nebula-discovery-core/README.md)
+- [完整示例项目](../README.md)
 
 ---
 

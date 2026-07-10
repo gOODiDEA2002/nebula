@@ -117,5 +117,5 @@ nebula:
 
 ## 相关文档
 
-- [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
-- [Nebula 框架审查报告](../../docs/nebula-framework-review.md)
+- [Nebula 文档索引](../../docs/INDEX.md)
+- [Nebula 2.1 实现审查](../../docs/reviews/nebula-2.1-implementation-review-2026-07.md)

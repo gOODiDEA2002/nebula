@@ -2,6 +2,8 @@ package io.nebula.autoconfigure.rpc;
 
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+import io.nebula.rpc.http.client.HttpRpcClient;
+import io.nebula.rpc.http.server.HttpRpcController;
 import io.nebula.rpc.http.config.HttpRpcProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -9,6 +11,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,7 +46,8 @@ class HttpRpcClientConfigTest {
                         "nebula.rpc.http.client.read-timeout=10000",
                         "nebula.rpc.http.client.max-connections=50",
                         "nebula.rpc.http.client.max-connections-per-route=25",
-                        "nebula.rpc.http.client.keep-alive-time=30000"
+                        "nebula.rpc.http.client.keep-alive-time=30000",
+                        "nebula.rpc.http.client.idle-evict-time=15000"
                 )
                 .run(ctx -> {
                     assertThat(ctx).hasBean("rpcRestClient");
@@ -53,6 +57,17 @@ class HttpRpcClientConfigTest {
                     assertThat(props.getClient().getMaxConnections()).isEqualTo(50);
                     assertThat(props.getClient().getMaxConnectionsPerRoute()).isEqualTo(25);
                     assertThat(props.getClient().getKeepAliveTime()).isEqualTo(30000);
+                    assertThat(props.getClient().getIdleEvictTime()).isEqualTo(15000);
+                });
+    }
+
+    @Test
+    void idleEvictTimeFallsBackToKeepAliveTime() {
+        contextRunner
+                .withPropertyValues("nebula.rpc.http.client.keep-alive-time=45000")
+                .run(ctx -> {
+                    HttpRpcProperties props = ctx.getBean(HttpRpcProperties.class);
+                    assertThat(props.getClient().getIdleEvictTime()).isEqualTo(45000);
                 });
     }
 
@@ -65,6 +80,18 @@ class HttpRpcClientConfigTest {
                     .as("字段 %s 应已删除", fieldName)
                     .isFalse();
         }
+    }
+
+    @Test
+    void rpcComponentsReuseApplicationObjectMapper() {
+        contextRunner.run(ctx -> {
+            ObjectMapper expected = ctx.getBean(ObjectMapper.class);
+            HttpRpcClient client = ctx.getBean(HttpRpcClient.class);
+            HttpRpcController controller = ctx.getBean(HttpRpcController.class);
+
+            assertThat(ReflectionTestUtils.getField(client, "objectMapper")).isSameAs(expected);
+            assertThat(ReflectionTestUtils.getField(controller, "objectMapper")).isSameAs(expected);
+        });
     }
 
     private static boolean hasField(Class<?> clazz, String fieldName) {

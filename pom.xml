@@ -25,7 +25,7 @@
 
         <!-- 数据访问层 -->
         <module>infrastructure/data/nebula-data-persistence</module>
-        <!-- <module>infrastructure/data/nebula-data-mongodb</module> -->
+        <module>infrastructure/data/nebula-data-mongodb</module>
         <module>infrastructure/data/nebula-data-cache</module>
         <module>infrastructure/data/nebula-data-neo4j</module>
         
@@ -137,6 +137,7 @@
         <!-- 服务发现 -->
         <nacos.version>2.5.1</nacos.version>
         <spring-cloud.version>2025.1.2</spring-cloud.version>
+        <springdoc.version>3.0.3</springdoc.version>
         
         <!-- AI -->
         <spring-ai.version>2.0.0</spring-ai.version>
@@ -157,7 +158,7 @@
         <mockito.version>5.14.2</mockito.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         
-        <!-- 监控 - Spring Boot 3.5 管理 Micrometer 版本 -->
+        <!-- 监控 - Spring Boot 4.1 管理 Micrometer 版本 -->
 
         <!-- gRPC (与 Boot 4.1 BOM 托管的 grpc-bom 版本对齐, protobuf 插件坐标仍引用此属性) -->
         <grpc.version>1.80.0</grpc.version>

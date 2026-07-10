@@ -8,6 +8,7 @@ import io.nebula.web.interceptor.AuthInterceptor;
 import io.nebula.web.interceptor.InterceptorOrders;
 import io.nebula.web.mask.DataMaskingStrategyManager;
 import io.nebula.web.mask.SensitiveDataAnnotationIntrospector;
+import io.nebula.security.jwt.JwtService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
@@ -35,8 +36,8 @@ class WebAuthAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "nebula.web.auth.enabled", havingValue = "true")
-    public AuthService authService(JwtUtils jwtUtils) {
-        return new DefaultAuthService(jwtUtils);
+    public AuthService authService(JwtService jwtService) {
+        return new DefaultAuthService(jwtService);
     }
 
     @Bean

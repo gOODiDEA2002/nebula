@@ -149,7 +149,7 @@ curl -X POST "http://localhost:8080/api/mcp/resources/read" \
   "code": 200,
   "message": "操作成功",
   "data": {
-    "content": "# Nebula框架\n\nNebula是一个基于Spring Boot 3.x和Java 21的企业级后端框架...",
+    "content": "# Nebula框架\n\nNebula是一个基于Spring Boot 4.1和Java 21的企业级后端框架...",
     "mimeType": "text/markdown"
   }
 }

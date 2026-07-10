@@ -3,6 +3,7 @@ package io.nebula.autoconfigure.rpc;
 import com.alibaba.nacos.api.NacosFactory;
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.exception.NacosException;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import io.nebula.rpc.async.storage.AsyncExecutionStorage;
 import io.nebula.rpc.async.storage.nacos.NacosAsyncExecutionStorage;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -42,6 +44,7 @@ public class NacosAsyncStorageAutoConfiguration {
     @ConditionalOnMissingBean(AsyncExecutionStorage.class)
     public AsyncExecutionStorage nacosAsyncExecutionStorage(
             AsyncRpcProperties properties,
+            ObjectProvider<ObjectMapper> objectMapperProvider,
             Environment environment) {
 
         // 获取有效的 Nacos 配置（优先使用显式配置，否则复用服务发现配置）
@@ -66,7 +69,8 @@ public class NacosAsyncStorageAutoConfiguration {
             log.info("[AsyncRpc] 配置 Nacos 存储: serverAddr={}, namespace={}, appName={}, configSource={}",
                     effectiveConfig.serverAddr(), effectiveConfig.namespace(), appName, effectiveConfig.source());
 
-            return new NacosAsyncExecutionStorage(configService, JsonMapper.builder().build(), appName);
+            ObjectMapper objectMapper = objectMapperProvider.getIfAvailable(() -> JsonMapper.builder().build());
+            return new NacosAsyncExecutionStorage(configService, objectMapper, appName);
         } catch (NacosException e) {
             log.error("[AsyncRpc] 创建 Nacos ConfigService 失败", e);
             throw new RuntimeException("创建 Nacos ConfigService 失败，请检查 Nacos 配置", e);

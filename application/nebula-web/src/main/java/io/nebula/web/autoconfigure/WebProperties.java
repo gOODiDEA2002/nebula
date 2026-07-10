@@ -221,7 +221,7 @@ public class WebProperties {
         /**
          * API 版本
          */
-        private String version = "2.0.0";
+        private String version = "2.1.0";
         
         /**
          * 联系人信息

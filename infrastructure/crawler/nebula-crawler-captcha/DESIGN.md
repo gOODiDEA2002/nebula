@@ -2,7 +2,7 @@
 
 ## 文档信息
 - 模块名称：nebula-crawler-captcha
-- 版本：2.0.1-SNAPSHOT
+- 版本：2.1.0-SNAPSHOT
 - 创建日期：2026-01-06
 - 所属项目：Nebula Framework
 

@@ -39,7 +39,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-minimal</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -115,7 +115,7 @@ logging:
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-starter-web</artifactId>  <!-- 改为web -->
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -138,11 +138,10 @@ logging:
 
 ## 文档
 
-- [Nebula框架使用指南](../../docs/Nebula框架使用指南.md)
+- [Nebula 文档索引](../../docs/INDEX.md)
 - [Foundation模块文档](../../core/nebula-foundation/README.md)
 
 ---
 
-**版本**: 2.0.1-SNAPSHOT  
+**版本**: 2.1.0-SNAPSHOT
 **维护**: Nebula Framework Team
-

@@ -69,12 +69,34 @@ public class RedisMessageSerializer {
      * @param <T>         载荷泛型
      * @return 消息对象
      */
-    @SuppressWarnings("unchecked")
     public <T> Message<T> deserialize(String json, Class<T> payloadType) {
         try {
-            return objectMapper.readValue(json, Message.class);
+            return objectMapper.readValue(json,
+                    objectMapper.getTypeFactory().constructParametricType(Message.class, payloadType));
         } catch (JacksonException e) {
             throw new MessageSerializationException("消息反序列化失败: payloadType=" + payloadType.getName(), e);
+        }
+    }
+
+    /**
+     * 序列化普通对象。
+     */
+    public String serializeObject(Object object) {
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (JacksonException e) {
+            throw new MessageSerializationException("对象序列化失败", e);
+        }
+    }
+
+    /**
+     * 反序列化普通对象。
+     */
+    public <T> T deserializeObject(String json, Class<T> type) {
+        try {
+            return objectMapper.readValue(json, type);
+        } catch (JacksonException e) {
+            throw new MessageSerializationException("对象反序列化失败", e);
         }
     }
 

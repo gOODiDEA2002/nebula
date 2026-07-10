@@ -17,8 +17,8 @@ Nebula 框架的 Elasticsearch 搜索服务实现模块
 ## 依赖要求
 
 - Java 21+
-- Spring Boot 3.x
-- Elasticsearch 8.x+
+- Spring Boot 4.1
+- Elasticsearch 9.4.x（当前 Spring Boot BOM 管理的 Java Client 为 9.4.2）
 - Nebula Search Core
 
 ## 快速开始
@@ -399,5 +399,4 @@ logging:
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

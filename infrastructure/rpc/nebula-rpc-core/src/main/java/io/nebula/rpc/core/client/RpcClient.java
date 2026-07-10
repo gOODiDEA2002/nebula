@@ -17,7 +17,7 @@ public interface RpcClient {
      * @param <T>          返回类型
      * @return 调用结果
      */
-    <T> T call(Class<T> serviceClass, String methodName, Object... args);
+    <T> T call(Class<?> serviceClass, String methodName, Object... args);
     
     /**
      * 异步调用
@@ -28,7 +28,7 @@ public interface RpcClient {
      * @param <T>          返回类型
      * @return Future结果
      */
-    <T> CompletableFuture<T> callAsync(Class<T> serviceClass, String methodName, Object... args);
+    <T> CompletableFuture<T> callAsync(Class<?> serviceClass, String methodName, Object... args);
     
     /**
      * 创建服务代理

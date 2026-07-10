@@ -56,7 +56,7 @@ Nebula Web 是一个基于 Spring Boot 的现代化 Web 框架，提供了认证
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-web</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -547,11 +547,16 @@ public class RedisResponseCache implements ResponseCache {
 
 ## 版本兼容性
 
-- Spring Boot 3.x
-- Java 17+
-- Jakarta EE 9+
+- Spring Boot 4.1
+- Java 21+
+- Jakarta EE 11+
 
 ## 更新日志
+
+### 2.1.0-SNAPSHOT
+- 升级到 Spring Boot 4.1 和 Jackson 3
+- 统一使用 `JwtService` 生成和校验访问令牌
+- 升级 Springdoc 3.x
 
 ### 2.0.1-SNAPSHOT
 - 全面重构，支持 Spring Boot 3
@@ -565,5 +570,4 @@ public class RedisResponseCache implements ResponseCache {
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../docs/testing/README.md)。

@@ -16,6 +16,8 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.nebula.rpc.grpc.proto.GenericRpcServiceGrpc;
 import io.nebula.rpc.grpc.proto.RpcRequest;
 import io.nebula.rpc.grpc.proto.RpcResponse;
+import io.nebula.rpc.grpc.client.GrpcRpcClient;
+import io.nebula.rpc.grpc.config.GrpcRpcProperties;
 import io.nebula.rpc.grpc.server.GrpcAuthTokenInterceptor;
 import io.nebula.rpc.grpc.server.GrpcRpcServer;
 import io.nebula.rpc.grpc.test.TestRpcService;
@@ -149,6 +151,22 @@ class GrpcServerLoopbackIntegrationTest {
             assertThat(response.getResult()).isEqualTo("30");
         } finally {
             channel.shutdownNow().awaitTermination(3, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void frameworkClientAddsConfiguredAuthToken() {
+        GrpcRpcProperties.ClientConfig config = new GrpcRpcProperties.ClientConfig();
+        config.setTarget("localhost:" + grpcPort);
+        config.setAuthToken("test-token");
+        config.setRequestTimeout(5_000);
+
+        GrpcRpcClient client = new GrpcRpcClient(objectMapper, config);
+        try {
+            String result = client.call(TestRpcService.class, "sayHello", "World");
+            assertThat(result).isEqualTo("Hello, World");
+        } finally {
+            client.close();
         }
     }
 

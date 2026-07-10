@@ -70,12 +70,12 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     }
 
     @Override
-    public <T> T callWithTarget(String targetAddress, Class<T> serviceClass, String methodName, Object... args) {
+    public <T> T callWithTarget(String targetAddress, Class<?> serviceClass, String methodName, Object... args) {
         return runWithTarget(targetAddress, () -> call(serviceClass, methodName, args));
     }
     
     @Override
-    public <T> T call(Class<T> serviceClass, String methodName, Object... args) {
+    public <T> T call(Class<?> serviceClass, String methodName, Object... args) {
         String serviceName = serviceClass.getName();
         
         try {
@@ -203,7 +203,7 @@ public class HttpRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     }
     
     @Override
-    public <T> CompletableFuture<T> callAsync(Class<T> serviceClass, String methodName, Object... args) {
+    public <T> CompletableFuture<T> callAsync(Class<?> serviceClass, String methodName, Object... args) {
         return CompletableFuture.supplyAsync(() -> call(serviceClass, methodName, args), executor);
     }
     

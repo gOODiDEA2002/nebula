@@ -63,7 +63,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- ShardingSphere JDBC (for Spring Boot 3.x) -->
+        <!-- ShardingSphere JDBC -->
         <!-- 注意：从5.3.0开始，artifact名称从shardingsphere-jdbc-core-spring-boot-starter改为shardingsphere-jdbc -->
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>

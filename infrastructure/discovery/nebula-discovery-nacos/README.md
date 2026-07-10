@@ -321,7 +321,7 @@ nebula:
     nacos:
       weight: 0.1  # 10% 流量
       metadata:
-        version: 2.0.1-SNAPSHOT
+        version: 2.1.0-SNAPSHOT
         gray: true
 
 # 稳定实例
@@ -341,5 +341,4 @@ nebula:
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

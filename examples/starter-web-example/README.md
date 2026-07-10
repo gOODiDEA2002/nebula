@@ -83,4 +83,4 @@ public class HelloController {
 
 - [Nebula Examples 总览](../README.md)
 - [nebula-starter-web](../../starter/nebula-starter-web/pom.xml)
-- [Nebula 框架使用指南](../../docs/Nebula框架使用指南.md)
+- [Nebula 文档索引](../../docs/INDEX.md)

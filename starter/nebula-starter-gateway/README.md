@@ -235,7 +235,7 @@ sequenceDiagram
 ## 版本要求
 
 - Java 21+
-- Spring Boot 3.5+
+- Spring Boot 4.1+
 - Spring Cloud 2025.0+
 
 ## 依赖说明
@@ -251,5 +251,5 @@ sequenceDiagram
 
 ## 相关文档
 
-- [Nebula框架文档](../../docs/README.md)
+- [Nebula 文档索引](../../docs/INDEX.md)
 - [Spring Cloud Gateway文档](https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/)

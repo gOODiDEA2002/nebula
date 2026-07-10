@@ -28,8 +28,8 @@ import java.util.Set;
  * <ul>
  *   <li><b>只填充、不拦截</b>：无 token / token 无效时不返回 401，仅不填充上下文，请求照常放行；
  *       是否拒绝由 {@code SecurityAspect}(@RequiresAuthentication 等) 决定。这样不会破坏使用自有认证的应用。</li>
- *   <li><b>默认关闭(opt-in)</b>：由 SecurityAutoConfiguration 依 {@code nebula.security.jwt.filter.enabled=true} 注册，
- *       默认不注册，避免影响已有自建认证的存量应用。</li>
+ *   <li><b>按需注册</b>：显式开启 {@code nebula.security.jwt.filter.enabled}，或启用
+ *       {@code nebula.web.auth.enabled} 时由自动配置注册。</li>
  * </ul>
  * roles/permissions 的 claim 键沿用框架既有约定({@code roles} / {@code permissions})。
  *

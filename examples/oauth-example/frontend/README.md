@@ -141,6 +141,5 @@ const api = axios.create({
 ## 相关链接
 
 - [后端项目](../backend/README.md)
-- [Vocoor OAuth 接入指南](../../../vocoor-service/docs/vocoor_oauth_integration_guide.md)
-
+- Vocoor OAuth 接入说明由对应服务仓库维护
 

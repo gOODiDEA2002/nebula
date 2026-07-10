@@ -54,12 +54,11 @@ nebula:
 
 ### 3. 使用示例
 
-详见 [EXAMPLE.md](./EXAMPLE.md)。
+可运行工程见 [Nebula 示例索引](../../examples/README.md)。
 
 ## 依赖说明
 
 - JDK 21+
-- Spring Boot 3.x
+- Spring Boot 4.1
 - Alipay SDK
 - WeChat Pay SDK
-

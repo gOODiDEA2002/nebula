@@ -29,7 +29,7 @@
 <dependency>
     <groupId>io.nebula</groupId>
     <artifactId>nebula-rpc-http</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -54,8 +54,14 @@ nebula:
         base-url: http://localhost:8080
         connect-timeout: 30000
         read-timeout: 60000
-        retry-count: 3
+        max-connections: 200
+        max-connections-per-route: 100
+        keep-alive-time: 60000
+        idle-evict-time: 60000
 ```
+
+`keep-alive-time` 控制连接最大存活时间，`idle-evict-time` 控制空闲连接清理时间。
+未配置 `idle-evict-time` 时沿用 `keep-alive-time`，旧配置无需调整。
 
 ##  使用方式
 
@@ -537,13 +543,13 @@ public class CreateUserDto {
 
 ### 完整示例
 
-更多 DTO 示例请参考 [nebula-example-api](../../../nebula-example-api) 模块
+更多 DTO 示例请参考 [nebula-example-api](../../../examples/microservice-example/user-api) 模块
 
 ##  更多示例
 
 详细的使用示例请参考：
-- [基础 RPC 调用示例](../../../nebula-example/docs/nebula-rpc-test.md)
-- [RPC API 定义示例](../../../nebula-example-api/README.md)
+- [基础 RPC 调用示例](../../../examples/fullstack-example/docs/nebula-rpc-test.md)
+- [RPC API 定义示例](../../../examples/microservice-example/user-api/README.md)
 - [完整示例项目](../../../nebula-example)
 
 ##  贡献指南
@@ -557,5 +563,4 @@ public class CreateUserDto {
 
 ## 🧪 测试
 
-本模块提供完整的单元测试文档和示例，详见 [TESTING.md](./TESTING.md)
-
+测试命令和覆盖原则见 [Nebula 测试说明](../../../docs/testing/README.md)。

@@ -7,7 +7,7 @@
 ## 启动应用
 
 ```bash
-cd nebula-example
+cd examples/fullstack-example
 mvn spring-boot:run
 ```
 
@@ -479,4 +479,4 @@ nebula:
 
 ---
 
-更多详细信息，请参考 [Nebula Data Cache 使用指南](../../nebula/infrastructure/data/nebula-data-cache/README.md)
+更多详细信息，请参考 [Nebula Data Cache 使用指南](../../../infrastructure/data/nebula-data-cache/README.md)
