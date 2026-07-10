@@ -52,15 +52,15 @@ public class OrderRpcClientImpl implements OrderRpcClient {
         log.info("RPC服务端: createOrder, userId={}, productName={}", 
             request.getUserId(), request.getProductName());
         
-        log.info("→ 调用AuthRpcClient认证: username={}, password={}", "username", "password");
+        log.info("调用 AuthRpcClient 认证: username={}", "username");
         AuthDto.Request authRequest = new AuthDto.Request();
         authRequest.setUsername("username");
         authRequest.setPassword("password");
-        AuthDto.Response authResponse = authRpcClient.auth(authRequest);
-        log.info("← AuthRpcClient返回认证信息: {}", authResponse.getToken());
+        authRpcClient.auth(authRequest);
+        log.info("AuthRpcClient 认证成功");
 
         // 【服务间交互】调用UserService验证用户是否存在
-        log.info("→ 调用UserService验证用户: userId={}", request.getUserId());
+        log.info("调用 UserService 验证用户: userId={}", request.getUserId());
         GetUserDto.Response userResponse = userRpcClient.getUserById(request.getUserId());
         
         if (userResponse.getUser() == null) {
@@ -68,7 +68,7 @@ public class OrderRpcClientImpl implements OrderRpcClient {
             throw new IllegalArgumentException("用户不存在: " + request.getUserId());
         }
         
-        log.info("← UserService返回用户信息: {}", userResponse.getUser().getName());
+        log.info("UserService 返回用户信息: {}", userResponse.getUser().getName());
         
         // 创建订单
         return orderDemoService.createOrder(request);
@@ -80,4 +80,3 @@ public class OrderRpcClientImpl implements OrderRpcClient {
         return orderDemoService.getOrderById(id);
     }
 }
-

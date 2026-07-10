@@ -2,7 +2,6 @@ package io.nebula.example.user.api.dto;
 
 import io.nebula.example.user.api.vo.UserVo;
 import lombok.Data;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -23,7 +22,6 @@ public class UpdateUserDto {
         /**
          * 用户ID
          */
-        @NotNull(message = "用户ID不能为空")
         private Long id;
         
         /**
@@ -62,4 +60,3 @@ public class UpdateUserDto {
         private UserVo user;
     }
 }
-
