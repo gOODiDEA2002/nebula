@@ -386,7 +386,7 @@ public class AIProperties {
         /**
          * 基础 URL
          */
-        private String baseUrl = "https://api.openai.com";
+        private String baseUrl = "https://api.openai.com/v1";
         
         /**
          * 聊天配置
@@ -481,6 +481,11 @@ public class AIProperties {
          * 最大令牌数
          */
         private Integer maxTokens = 1000;
+
+        /**
+         * 请求失败后的最大重试次数
+         */
+        private Integer maxRetries = 2;
         
         public String getModel() {
             return model;
@@ -504,6 +509,14 @@ public class AIProperties {
         
         public void setMaxTokens(Integer maxTokens) {
             this.maxTokens = maxTokens;
+        }
+
+        public Integer getMaxRetries() {
+            return maxRetries;
+        }
+
+        public void setMaxRetries(Integer maxRetries) {
+            this.maxRetries = maxRetries;
         }
     }
     
@@ -547,6 +560,11 @@ public class AIProperties {
          * 模型名称
          */
         private String model = "text-embedding-ada-002";
+
+        /**
+         * 请求失败后的最大重试次数
+         */
+        private Integer maxRetries = 2;
         
         public String getModel() {
             return model;
@@ -554,6 +572,14 @@ public class AIProperties {
         
         public void setModel(String model) {
             this.model = model;
+        }
+
+        public Integer getMaxRetries() {
+            return maxRetries;
+        }
+
+        public void setMaxRetries(Integer maxRetries) {
+            this.maxRetries = maxRetries;
         }
     }
     
@@ -682,4 +708,3 @@ public class AIProperties {
         }
     }
 }
-

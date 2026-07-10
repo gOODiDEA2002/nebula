@@ -99,7 +99,7 @@ nebula:
     # OpenAI配置
     openai:
       api-key: ${OPENAI_API_KEY}
-      base-url: https://api.openai.com
+      base-url: https://api.openai.com/v1
       chat:
         options:
           model: gpt-4

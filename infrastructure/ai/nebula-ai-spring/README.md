@@ -379,7 +379,7 @@ nebula:
       providers:
         openai:
           api-key: ${OPENAI_API_KEY}
-          base-url: https://api.openai.com  # 可选，自定义API端点
+          base-url: https://api.openai.com/v1  # 可选，自定义API端点
           model: gpt-3.5-turbo
           options:
             temperature: 0.7

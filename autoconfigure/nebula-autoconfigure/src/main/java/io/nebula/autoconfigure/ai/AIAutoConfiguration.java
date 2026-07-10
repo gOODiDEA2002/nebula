@@ -79,6 +79,7 @@ public class AIAutoConfiguration {
                 .model(chatOpts.getModel())
                 .temperature(chatOpts.getTemperature())
                 .maxTokens(chatOpts.getMaxTokens())
+                .maxRetries(chatOpts.getMaxRetries())
                 .build();
 
         return OpenAiChatModel.builder()
@@ -106,6 +107,7 @@ public class AIAutoConfiguration {
                 .apiKey(openAIConfig.getApiKey())
                 .baseUrl(openAIConfig.getBaseUrl())
                 .model(embOpts.getModel())
+                .maxRetries(embOpts.getMaxRetries())
                 .build();
 
         return OpenAiEmbeddingModel.builder()
