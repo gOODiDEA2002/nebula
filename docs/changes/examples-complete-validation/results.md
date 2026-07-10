@@ -59,13 +59,29 @@ Elasticsearch 9.4.2 等新增依赖使用隔离容器、独立端口和独立卷
 | Chroma | v2 heartbeat 可访问 | PENDING | 待临时 collection 增删查 |
 | Etcd | 3.5，healthy | 不适用 | 当前示例没有直接使用 |
 
-## 5. 示例结果
+## 5. E2E 框架验证
+
+| 验证项 | 命令或方式 | 退出码 | 结果 | 证据 |
+| --- | --- | ---: | --- | --- |
+| Shell 语法 | `bash -n examples/e2e-common.sh examples/e2e-all.sh examples/*/e2e-test.sh` | 0 | PASS | 全部脚本语法有效 |
+| 失败传播 | 对不可达地址执行状态码断言 | 1 | PASS | 结果为 `FAIL`，统一摘要保留失败数 |
+| Full 依赖缺失 | 对不可达测试服务执行 `skip_if_no_service` | 2 | PASS | 结果为 `BLOCKED`，没有折算为成功 |
+| Smoke 依赖缺失 | 对不可达测试服务执行 `skip_if_no_service` | 0 | PASS | 结果明确为 `SKIP` |
+| 未知筛选 | `E2E_MODE=full E2E_ONLY=does-not-exist examples/e2e-all.sh` | 1 | PASS | 未执行任何示例时拒绝返回成功 |
+| 端口安全 | 用受控 HTTP 服务占用 18999 后调用 `start_app` | 0 | PASS | 拒绝启动应用，原服务仍返回 HTTP 200 |
+| 生命周期 | 临时关闭 persistence 后在 18080 启动 Web 示例 | 0 | PASS | Started、业务 HTTP 200、日志干净、TERM 关闭、端口释放 |
+| 总入口单组执行 | `E2E_MODE=full E2E_ONLY=starter-api-example examples/e2e-all.sh` | 0 | PASS | 1 PASS、0 FAIL、0 SKIP、0 BLOCKED |
+
+E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e2e/<run-id>/`。该目录是临时产物，
+不提交到 Git；可复核结论持续写入本文档。
+
+## 6. 示例结果
 
 | 示例组 | 进程或产物 | 状态 | 证据 |
 | --- | --- | --- | --- |
 | `starter-minimal-example` | Minimal 应用 | PENDING | 待执行 |
-| `starter-api-example` | 契约 JAR | PENDING | 待执行 |
-| `starter-web-example` | Web 应用 | PENDING | 待执行 |
+| `starter-api-example` | 契约 JAR | PENDING | JAR 构建及 `UserApi.class` 检查已 PASS；提供方、消费方使用待验证 |
+| `starter-web-example` | Web 应用 | FAIL | 默认启动因缺少 `primary` 数据源失败；临时关闭 persistence 后生命周期 PASS |
 | `starter-service-example` | Service 应用 | PENDING | 待执行 |
 | `starter-ai-example` | AI 应用 | PENDING | 待执行 |
 | `starter-all-example` | All 应用 | PENDING | 待执行 |
@@ -77,17 +93,18 @@ Elasticsearch 9.4.2 等新增依赖使用隔离容器、独立端口和独立卷
 | `websocket-example` | Backend、Frontend | PENDING | 待执行 |
 | `oauth-example` | Backend、Frontend、OAuth 提供方 | PENDING | 待执行 |
 
-## 6. 清理审计
+## 7. 清理审计
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
-| 本轮测试启动的进程 | PASS | Task 0 未启动示例应用，无新增常驻进程 |
+| 本轮测试启动的进程 | PASS | 受控端口占用进程和 Web 生命周期进程均已关闭 |
 | 隔离容器和独立卷 | 不适用 | Task 0 尚未创建 |
 | `nebula_e2e_` 临时数据 | 不适用 | Task 0 尚未写入 |
 
-## 7. 已知告警
+## 8. 已知告警
 
 1. Fullstack 编译存在 Lombok `@Builder` 默认值告警及少量弃用、未检查操作告警，基线测试未失败。
 2. Elasticsearch 7.17.19 不能用于验证框架的 9.4.2 客户端，后续使用隔离的 9.4.2 服务。
 3. Vocoor OAuth 提供方 `localhost:8080` 当前不可达，完整授权码流程尚未执行。
 4. Playwright 浏览器容器尚未启动，Browser Crawler 完整验证尚未执行。
+5. `starter-web-example` 默认启动会加载 persistence，但示例没有配置主数据源；Task 3 需修复并重跑。

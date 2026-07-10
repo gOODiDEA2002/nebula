@@ -42,7 +42,7 @@
   6. 总入口汇总每组示例的 PASS/FAIL/SKIP、耗时和日志路径。
 - **验证命令**：`bash -n examples/e2e-common.sh examples/e2e-all.sh examples/*/e2e-test.sh`
 - **验收标准**：人为制造一个失败断言时总入口返回非 0；正常运行不会清理非测试进程。
-- [ ] 完成
+- [x] 完成
 
 ## Task 2：中间件协议级预检与隔离环境
 

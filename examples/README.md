@@ -54,7 +54,7 @@ mvn -q -f examples/starter-minimal-example spring-boot:run
 ### 运行进阶示例
 
 ```bash
-# API 网关（端口 8090，需 Nacos + Redis）
+# API 网关（端口 8000，需 Nacos + Redis）
 mvn -q -f examples/gateway-example spring-boot:run
 
 # 异步 RPC（需 Nacos）
@@ -98,6 +98,25 @@ mvn compile -f examples/pom.xml
 # 编译单个示例
 mvn compile -f examples/starter-web-example/pom.xml
 ```
+
+## E2E 验证
+
+所有脚本都会把应用日志、HTTP 响应和结果摘要保存到
+`target/example-e2e/<run-id>/`。端口被占用时，脚本会报告占用进程并失败，不会停止未知进程。
+
+```bash
+# 快速检查；依赖缺失时会明确记录 SKIP
+E2E_MODE=smoke examples/e2e-all.sh
+
+# 完整验证；任何 FAIL、SKIP 或 BLOCKED 都会返回非 0
+E2E_MODE=full examples/e2e-all.sh
+
+# 只运行指定示例，多个名称使用逗号分隔
+E2E_MODE=full E2E_ONLY=starter-web-example,starter-service-example examples/e2e-all.sh
+```
+
+`smoke` 仅用于日常快速检查，不能替代发布前的完整验证。中间件端口可连接也不能作为功能通过的
+证据；`full` 模式会继续执行协议读写和示例业务断言。
 
 ## 版本管理
 
