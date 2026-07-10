@@ -15,6 +15,8 @@
 | 2026-07-10 | apply | 首次真实启动 `starter-web-example` 失败 | Web Starter 默认开启持久化，但示例没有主数据源配置 |
 | 2026-07-10 | apply | 完成中间件协议级预检 | 10 项全部通过；隔离 MySQL 8.3、Elasticsearch 9.4.2 和独立卷已删除 |
 | 2026-07-10 | verify | 总入口串联中间件和契约示例 | 预检 10/10、示例 1/1；临时容器、卷和协议资源均为 0 |
+| 2026-07-10 | apply | 修正 Minimal、Web 和 API 契约示例验证 | Minimal 明确使用非 Web 模式；Web 明确关闭未使用的数据模块；API 增加运行时依赖检查 |
+| 2026-07-10 | verify | 完成 Task 3 三组基础 Starter 验证 | API 5/5、Minimal 3/3、Web 6/6；无外部依赖、残留进程或占用端口 |
 
 ## 技术决策
 
@@ -27,6 +29,7 @@
 | 外部仓库 | 默认只读使用 `nebula-data` | 自动修改 Compose 和数据 | 独立仓库修改需要明确授权 |
 | 敏感信息 | 环境变量注入并脱敏记录 | 沿用 YAML 硬编码密钥 | 防止秘密进入 Git 和日志 |
 | 单元测试跳过 | 基线如实记录，最终 E2E 不允许跳过 | 把条件跳过视为完全通过 | 单元测试基线与示例完全验收是两个不同门禁 |
+| 独立示例构建 | Full 模式默认先安装当前框架快照 | 直接使用本地 Maven 仓库中的旧 SNAPSHOT | 避免源码已升级而独立示例仍加载旧框架产物 |
 
 ## 踩坑记录
 
@@ -36,9 +39,10 @@
 | 搜索端口可达但版本错误 | 现有脚本只执行 TCP 检查 | 读取服务端版本并执行真实索引操作 | [ ] |
 | Gateway 返回 404/503 也被判通过 | 脚本只证明网关进程可达 | 必须返回后端业务 200，并核对响应内容 | [ ] |
 | Fullstack 看似通过但关闭多个模块 | 脚本主动禁用 RabbitMQ 和 AI | Full 模式禁止通过关闭目标功能绕过 | [ ] |
-| Web Starter 示例无法默认启动 | Starter 默认值开启 persistence，示例没有 `primary` 数据源 | Task 3 核对 Starter 定位后修正示例配置并补运行验证 | [ ] |
+| Web Starter 示例无法默认启动 | Starter 默认值开启 persistence，示例没有 `primary` 数据源 | Task 3 核对 Starter 定位后修正示例配置并补运行验证 | [x] |
 | Chroma 删除返回假阳性 | 1.0.0 的 DELETE 实际使用 collection 名称，OpenAPI 参数说明写成 UUID | 按名称删除，并再次列出 collection 确认 0 条 | [x] |
 | Nacos 注销后服务名短暂保留 | 空临时服务默认每 60 秒清理一次 | 先确认实例数为 0，再轮询到服务名消失 | [x] |
+| Web OpenAPI 出现 `NoSuchMethodError` | 独立示例使用了本地仓库中带 Springdoc 2.2.0 的旧 SNAPSHOT，而当前源码已升级到 3.0.3 | Full 模式运行示例前执行当前框架 `mvn install -DskipTests`，并允许后续阶段显式复用已安装产物 | [x] |
 
 ## 知识发现
 
@@ -51,4 +55,5 @@
 
 | 偏差点 | Spec 预期 | 实际情况 | 处理方式 |
 | --- | --- | --- | --- |
-| 待执行 | | | |
+| Web 示例的数据模块 | Web 示例定位为无外部依赖的基础 Web 验证 | Web Starter 默认启用 persistence 和 cache，示例没有数据源 | 在示例配置中显式关闭未使用模块，并在 README 说明 |
+| API Starter 依赖说明 | 当前文档对 MyBatis-Plus 是否属于契约依赖存在冲突 | 实际运行时依赖不包含 Web Server，但包含 MyBatis-Plus Boot4 Starter | 本轮不改变公开依赖；Task 15 统一 `AGENTS.md`、`CLAUDE.md` 和 Starter 指南 |

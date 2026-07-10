@@ -11,6 +11,7 @@ E2E_RESULTS_ROOT="${E2E_RESULTS_ROOT:-$PROJECT_ROOT/target/example-e2e}"
 E2E_RESULTS_DIR="${E2E_RESULTS_DIR:-$E2E_RESULTS_ROOT/$E2E_RUN_ID}"
 E2E_ONLY="${E2E_ONLY:-}"
 E2E_WITH_MIDDLEWARE="${E2E_WITH_MIDDLEWARE:-}"
+E2E_INSTALL_FRAMEWORK="${E2E_INSTALL_FRAMEWORK:-}"
 E2E_VERIFICATION_PROJECT="${E2E_VERIFICATION_PROJECT:-nebula-e2e-$E2E_RUN_ID}"
 VERIFICATION_COMPOSE_FILE="$PROJECT_ROOT/docker/verification/docker-compose.yml"
 MIDDLEWARE_ATTEMPTED=false
@@ -73,10 +74,24 @@ if [ -z "$E2E_WITH_MIDDLEWARE" ]; then
         E2E_WITH_MIDDLEWARE=false
     fi
 fi
+if [ -z "$E2E_INSTALL_FRAMEWORK" ]; then
+    if [ "$E2E_MODE" = full ]; then
+        E2E_INSTALL_FRAMEWORK=true
+    else
+        E2E_INSTALL_FRAMEWORK=false
+    fi
+fi
 case "$E2E_WITH_MIDDLEWARE" in
     true|false) ;;
     *)
         echo "[FAIL] E2E_WITH_MIDDLEWARE 仅支持 true 或 false，实际值：$E2E_WITH_MIDDLEWARE" >&2
+        exit 2
+        ;;
+esac
+case "$E2E_INSTALL_FRAMEWORK" in
+    true|false) ;;
+    *)
+        echo "[FAIL] E2E_INSTALL_FRAMEWORK 仅支持 true 或 false，实际值：$E2E_INSTALL_FRAMEWORK" >&2
         exit 2
         ;;
 esac
@@ -153,6 +168,30 @@ validate_selection
 echo "[INFO] E2E 模式：$E2E_MODE"
 echo "[INFO] 运行 ID：$E2E_RUN_ID"
 echo "[INFO] 证据目录：$E2E_RESULTS_DIR"
+
+if [ "$E2E_INSTALL_FRAMEWORK" = true ]; then
+    install_log="$E2E_RESULTS_DIR/groups/framework-install.log"
+    install_started_at=$(date +%s)
+    echo ""
+    echo "========== framework-install =========="
+    set +e
+    (
+        cd "$PROJECT_ROOT"
+        mvn -q install -DskipTests
+    ) 2>&1 | tee "$install_log"
+    install_exit=${PIPESTATUS[0]}
+    set -e
+    install_duration=$(( $(date +%s) - install_started_at ))
+    if [ "$install_exit" -ne 0 ]; then
+        printf '%s\t%s\t%s\t%s\t%s\n' framework-install FAIL "$install_exit" \
+            "$install_duration" "$install_log" >>"$SUMMARY_FILE"
+        echo "[FAIL] 当前工作区框架安装失败，停止示例执行" >&2
+        exit 1
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\n' framework-install PASS 0 \
+        "$install_duration" "$install_log" >>"$SUMMARY_FILE"
+    echo "[PASS] 当前工作区框架已安装到本地 Maven 仓库"
+fi
 
 if [ "$E2E_WITH_MIDDLEWARE" = true ]; then
     middleware_log="$E2E_RESULTS_DIR/groups/middleware-preflight.log"

@@ -44,10 +44,19 @@ mvn -q -f examples/starter-minimal-example spring-boot:run
 spring:
   application:
     name: starter-minimal-example
+  main:
+    web-application-type: none
 
 logging:
   level:
     io.nebula: INFO
+```
+
+## E2E 验证
+
+```bash
+E2E_MODE=full E2E_WITH_MIDDLEWARE=false \
+  E2E_ONLY=starter-minimal-example examples/e2e-all.sh
 ```
 
 ## 适用场景

@@ -29,6 +29,10 @@ starter-api-example/
 ```bash
 # 编译并安装到本地仓库
 mvn install -f examples/starter-api-example
+
+# 验证契约产物和运行时依赖
+E2E_MODE=full E2E_WITH_MIDDLEWARE=false \
+  E2E_ONLY=starter-api-example examples/e2e-all.sh
 ```
 
 ## 接口定义示例

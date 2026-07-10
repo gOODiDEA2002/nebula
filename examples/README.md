@@ -119,6 +119,10 @@ E2E_MODE=full E2E_ONLY=starter-web-example,starter-service-example examples/e2e-
 证据；`full` 模式会先执行协议读写，再运行示例业务断言。MySQL 8.3 和 Elasticsearch 9.4.2
 使用 [隔离验证环境](../docker/verification/README.md)，测试完成后自动删除容器和独立卷。
 
+Full 模式默认先执行 `mvn install -DskipTests`，保证独立示例使用当前工作区的框架产物，而不是本地
+Maven 仓库中的旧快照。确认本地快照已经是当前提交时，可设置 `E2E_INSTALL_FRAMEWORK=false`
+缩短重复验证时间。
+
 ## 版本管理
 
 所有示例使用 `${revision}` 引用框架版本，与框架主版本保持同步，无需手动管理版本号。

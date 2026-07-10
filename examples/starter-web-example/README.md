@@ -8,6 +8,7 @@
 - 统一响应格式（`Result<T>`）
 - 内置健康检查、性能监控端点
 - JWT 安全认证（已配置开发密钥）
+- 示例不使用数据库和缓存，已显式关闭对应 Starter 默认模块
 
 ## 项目结构
 
@@ -45,7 +46,7 @@ mvn -q -f examples/starter-web-example spring-boot:run
 ```bash
 # Hello 接口
 curl http://localhost:8080/hello
-# 响应: {"code":200,"message":"success","data":"Hello, Nebula Web","timestamp":...}
+# 响应: {"success":true,"code":"SUCCESS","message":"操作成功","data":"Hello, Nebula Web","timestamp":...}
 
 # 健康检查
 curl http://localhost:8080/health/ping
@@ -65,6 +66,18 @@ nebula:
     jwt:
       secret: ${JWT_SECRET:nebula-starter-web-example-dev-secret-key-at-least-32-bytes}
       expiration: 86400   # Token 过期时间（秒）
+  data:
+    persistence:
+      enabled: false      # 示例无数据库依赖
+    cache:
+      enabled: false      # 示例无 Redis 依赖
+```
+
+## E2E 验证
+
+```bash
+E2E_MODE=full E2E_WITH_MIDDLEWARE=false \
+  E2E_ONLY=starter-web-example examples/e2e-all.sh
 ```
 
 ## 核心代码

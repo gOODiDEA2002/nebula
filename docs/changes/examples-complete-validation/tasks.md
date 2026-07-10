@@ -77,7 +77,7 @@
   3. `starter-web-example` 的 `/hello`、`/health/ping`、`/performance/status` 和 `/v3/api-docs` 返回预期状态及字段。
   4. 关闭 Web 应用后确认 8080 端口释放。
 - **验收标准**：3 组示例全部 PASS，无外部依赖和残留进程。
-- [ ] 完成
+- [x] 完成
 
 ## Task 4：验证 Service 和 All Starter
 

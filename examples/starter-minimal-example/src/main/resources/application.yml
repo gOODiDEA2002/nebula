@@ -1,6 +1,8 @@
 spring:
   application:
     name: starter-minimal-example
+  main:
+    web-application-type: none
 logging:
   level:
     io.nebula: INFO

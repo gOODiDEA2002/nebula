@@ -518,6 +518,18 @@ assert_file_exists() {
     return 0
 }
 
+assert_file_not_contains() {
+    local desc=$1
+    local path=$2
+    local pattern=$3
+    if [ -f "$path" ] && ! grep -Eq "$pattern" "$path"; then
+        record_pass "$desc"
+        return 0
+    fi
+    record_fail "${desc}：文件缺失或匹配到「$pattern」"
+    return 0
+}
+
 assert_archive_contains() {
     local desc=$1
     local archive=$2

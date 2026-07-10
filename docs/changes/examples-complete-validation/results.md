@@ -19,7 +19,7 @@
 | 项目 | 实际值 | 结论 |
 | --- | --- | --- |
 | Git 提交 | `6ddf69ff5594f3f3a62d418651a3f9a6fd641d54` | 已固定 |
-| 分支 | `main`，与 `vocoor/main` 同步 | 已固定 |
+| 分支 | `main`，基线提交与 `vocoor/main` 同步 | 已固定；后续修复以阶段提交继续累积 |
 | Java | 21.0.7 | 满足 Java 21 要求 |
 | Maven | 3.9.9 | 可用 |
 | Node.js | v22.16.0 | 可用 |
@@ -75,6 +75,7 @@ Elasticsearch 9.4.2 等新增依赖使用隔离容器、独立端口和独立卷
 | 端口安全 | 用受控 HTTP 服务占用 18999 后调用 `start_app` | 0 | PASS | 拒绝启动应用，原服务仍返回 HTTP 200 |
 | 生命周期 | 临时关闭 persistence 后在 18080 启动 Web 示例 | 0 | PASS | Started、业务 HTTP 200、日志干净、TERM 关闭、端口释放 |
 | 总入口单组执行 | `E2E_MODE=full E2E_ONLY=starter-api-example examples/e2e-all.sh` | 0 | PASS | 1 PASS、0 FAIL、0 SKIP、0 BLOCKED |
+| 当前框架安装 | Full 模式运行总入口 | 0 | PASS | 默认先执行 `mvn -q install -DskipTests`，避免独立示例解析到旧 SNAPSHOT；可用 `E2E_INSTALL_FRAMEWORK=false` 复用已安装产物 |
 
 E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e2e/<run-id>/`。该目录是临时产物，
 不提交到 Git；可复核结论持续写入本文档。
@@ -83,9 +84,9 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 
 | 示例组 | 进程或产物 | 状态 | 证据 |
 | --- | --- | --- | --- |
-| `starter-minimal-example` | Minimal 应用 | PENDING | 待执行 |
-| `starter-api-example` | 契约 JAR | PENDING | JAR 构建及 `UserApi.class` 检查已 PASS；提供方、消费方使用待验证 |
-| `starter-web-example` | Web 应用 | FAIL | 默认启动因缺少 `primary` 数据源失败；临时关闭 persistence 后生命周期 PASS |
+| `starter-minimal-example` | Minimal 应用 | PASS | 独立构建退出码为 0，出现 `Started MinimalApplication`，且没有启动 Web Server；3/3 PASS |
+| `starter-api-example` | 契约 JAR | PASS | JAR 包含 `UserApi.class`，运行时依赖树不含 Web Server；5/5 PASS；提供方和消费方的跨服务使用留在 Task 7 |
+| `starter-web-example` | Web 应用 | PASS | `/hello`、健康、性能和 OpenAPI 均返回严格预期，日志干净且 8080 已释放；6/6 PASS |
 | `starter-service-example` | Service 应用 | PENDING | 待执行 |
 | `starter-ai-example` | AI 应用 | PENDING | 待执行 |
 | `starter-all-example` | All 应用 | PENDING | 待执行 |
@@ -111,5 +112,12 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 2. Elasticsearch 7.17.19 不能用于验证框架的 9.4.2 客户端，后续使用隔离的 9.4.2 服务。
 3. Vocoor OAuth 提供方 `localhost:8080` 当前不可达，完整授权码流程尚未执行。
 4. Playwright 浏览器容器尚未启动，Browser Crawler 完整验证尚未执行。
-5. `starter-web-example` 默认启动会加载 persistence，但示例没有配置主数据源；Task 3 需修复并重跑。
-6. Nacos 2.5.1 按默认 60 秒周期清理空临时服务，预检会等待服务名消失后才判定通过。
+5. Nacos 2.5.1 按默认 60 秒周期清理空临时服务，预检会等待服务名消失后才判定通过。
+
+## 9. Task 3 复核记录
+
+- API、Minimal、Web 最终聚合运行证据：`target/example-e2e/20260710-211018-27839/`。API 5/5、
+  Minimal 3/3、Web 6/6；汇总为 3 PASS、0 FAIL、0 SKIP、0 BLOCKED，命令退出码为 0。
+- Web 首次失败的根因有两层：示例未关闭 Starter 默认启用的数据模块；独立运行时又解析到本地仓库中的旧
+  `nebula-web` SNAPSHOT。前者通过示例配置修正，后者通过 Full 模式默认安装当前框架解决。
+- Task 3 完成后，没有遗留受管 Java 进程，8080 端口已释放，且未创建外部中间件数据。

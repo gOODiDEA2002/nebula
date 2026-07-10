@@ -4,6 +4,11 @@ spring:
 server:
   port: 8080
 nebula:
+  data:
+    persistence:
+      enabled: false
+    cache:
+      enabled: false
   web:
     performance:
       enabled: true
