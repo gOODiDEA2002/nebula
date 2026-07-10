@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 07:00 +08
+> 最后更新：2026-07-11 07:22 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -19,10 +19,16 @@
 - Task 4：Service 16/16、All 7/7 通过；HTTP RPC、Redis Lock、失败路径和零依赖模式均有直接证据。
 - Task 5 可执行部分：AI 禁用模式、启用时三项 Bean、依赖传递、`/v1` 地址、零重试和资源清理已验证。
   当前测试账号返回 OpenAI 429 quota，真实聊天、embedding 和 Chroma 读写仍为 `BLOCKED`。
+- Task 6：异步 RPC 38/38 通过；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复
+  均有真实证据，临时记录、实例和端口已清理。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
   - `c2b3d6e5 test(examples): 增加中间件协议级预检`
+  - `82e56465 perf(ai): 避免向量写入重复生成 embedding`
+  - `0d4f712f fix(ai): 修复 Starter 依赖与 OpenAI 配置`
+  - `54755646 test(examples): 加固 AI Starter 完整验证`
+  - `9dd7cd36 fix(rpc): 阻止已取消异步任务继续执行`
 
 ## 关键上下文
 
@@ -32,21 +38,25 @@
 - Minimal 示例明确设置为非 Web 应用。API 契约 JAR 的运行时依赖不含 Web Server。
 - API Starter 实际仍包含 MyBatis-Plus Boot4 Starter；活动文档对此说法不一致。本轮未改变公开依赖，留给 Task 15 统一文档。
 - HTTP RPC 的 HttpClient 5 依赖已归入 `nebula-rpc-http`，端口未显式配置时已改为跟随 `server.port`。
+- 异步 RPC 执行线程现在会跳过明确标记为 `CANCELLED` 的排队任务。Nacos 发布后存在短暂读取窗口，
+  `findById` 返回空时仍需继续正常执行，不能把暂时不可见当成取消或删除。
+- Task 6 最终证据位于 `target/example-e2e/20260711-072653-44853/`，结果为 38 PASS、0 FAIL、
+  0 SKIP、0 BLOCKED。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 6 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段先执行 Task 6 异步 RPC；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
+- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 7 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段先执行 Task 7 微服务 HTTP RPC、gRPC 和发现；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
 - Gateway、Fullstack、Crawler Browser、WebSocket 浏览器流程和 OAuth 全链路仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 从 Task 6 的异步 RPC Service、Client、Nacos 配置和现有 E2E 核对开始。
-3. 验证任务状态、结果、取消和 Client 重启后的记录读取，并清理 Nacos 临时数据。
+2. 从 Task 7 的 User、Order、两个 API 契约模块和现有 E2E 脚本核对开始。
+3. 分别验证 HTTP RPC 与 gRPC 的成功、错误和跨服务调用，并用 Nacos metadata 与服务端日志交叉复核。
 4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
 5. 继续 Task 7 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
@@ -66,4 +76,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 6 开始，不需要重复执行 Task 0 至 Task 4；Task 5 在外部额度恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 7 开始，不需要重复执行 Task 0 至 Task 6；Task 5 在外部额度恢复后复跑。

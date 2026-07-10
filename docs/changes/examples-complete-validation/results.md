@@ -1,7 +1,7 @@
 # 示例应用完全验证结果
 
 > 状态：执行中
-> 执行日期：2026-07-10
+> 执行日期：2026-07-10 至 2026-07-11
 > 基线提交：`6ddf69ff5594f3f3a62d418651a3f9a6fd641d54`
 > 事实来源：[spec.md](spec.md)、[tasks.md](tasks.md)、[log.md](log.md)
 
@@ -91,7 +91,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `starter-service-example` | Service 应用 | PASS | 16/16 PASS；三个 GET、通用 HTTP RPC、Redis Lock、模块开关和 Redis 失败路径均通过 |
 | `starter-ai-example` | AI 应用 | BLOCKED | 禁用模式与 AI Bean 创建通过；真实 OpenAI 调用因测试账号 429 quota 阻塞，首次失败后已停止并清理 |
 | `starter-all-example` | All 应用 | PASS | 零外部依赖模式 7/7 PASS；Hello、健康、性能、OpenAPI 和禁用模块日志均符合预期 |
-| `rpc-async-example` | Service、Client | PENDING | 待执行 |
+| `rpc-async-example` | Service、Client | PASS | 38/38 PASS；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复均通过 |
 | `microservice-example` | User、Order | PENDING | 待执行 |
 | `gateway-example` | Gateway | PENDING | 待执行 |
 | `fullstack-example` | Fullstack 应用 | PENDING | 待执行 |
@@ -152,3 +152,16 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 - 示例将聊天和 embedding 的 `max-retries` 设为 0。额度错误后只执行 1 个测试动作，不再继续向量写入和查询。
 - 清理复核：8083 和 18083 均已释放；Chroma 中 `nebula_e2e_ai_` 临时 collection 数量为 0；
   应用日志没有出现 API Key。
+
+## 12. Task 6 复核记录
+
+- 最终证据：`target/example-e2e/20260711-072653-44853/`，结果为 38 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。
+- API 契约安装、Service 8081、Client 8082、健康检查以及两个 Nacos 实例注册全部通过。单条异步任务经历
+  非终态并进入 `SUCCESS`，结果中的任务 ID、处理类型和成功标记来自真实服务端。
+- 批量异步、同步 RPC、不存在 ID 的 404、`PENDING` 取消均通过。取消任务保持 `CANCELLED`，客户端日志明确
+  记录跳过执行，服务端日志中没有对应任务 ID。
+- Client 重启后仍能从 Nacos 读取此前的 `SUCCESS` 状态和结果。4 条 namespaced 执行记录均按精确
+  dataId 删除并复核为 404，两个实例已注销，8081 和 8082 均释放。
+- 运行中发现 `AsyncRpcExecutionManager` 会把已取消的排队任务重新改为 `RUNNING` 并发起 RPC。修复后执行线程
+  会在开跑前读取状态并跳过明确的 `CANCELLED`；2 条单元测试同时覆盖取消和 Nacos 刚发布后短暂不可见的情况。

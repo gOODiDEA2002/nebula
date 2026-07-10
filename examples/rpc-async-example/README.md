@@ -84,6 +84,9 @@ sequenceDiagram
 确保以下服务已启动：
 - Nacos：`localhost:8848`
 
+Nacos 地址和认证信息可通过 `NACOS_SERVER_ADDR`、`NACOS_USERNAME`、`NACOS_PASSWORD`、
+`NACOS_NAMESPACE` 和 `NACOS_GROUP` 环境变量覆盖。
+
 ### 2. 编译项目
 
 ```bash
@@ -107,6 +110,12 @@ mvn -q -f examples/rpc-async-example/client spring-boot:run
 ```
 
 ### 4. 测试接口
+
+也可以直接运行完整验证。脚本会使用独立的 Client 服务名和 Nacos 配置组，结束后删除执行记录、注销实例并关闭受管进程：
+
+```bash
+E2E_MODE=full examples/rpc-async-example/e2e-test.sh
+```
 
 #### 快速测试
 
@@ -235,6 +244,9 @@ curl -X POST http://localhost:8082/api/tasks/sync \
 | CANCELLED | 已取消 |
 | TIMEOUT | 超时 |
 
+只有仍处于 `PENDING` 的任务可以取消。取消成功后，排队任务不会再发起 RPC 调用；已经进入
+`RUNNING` 的任务不会被强制中断。
+
 ## 配置说明
 
 ### 客户端配置
@@ -247,9 +259,9 @@ nebula:
       storage:
         type: nacos           # 存储类型：nacos/redis/database
       executor:
-        core-pool-size: 10    # 核心线程数
-        max-pool-size: 50     # 最大线程数
-        queue-capacity: 200   # 队列容量
+        core-pool-size: ${ASYNC_CORE_POOL_SIZE:10}
+        max-pool-size: ${ASYNC_MAX_POOL_SIZE:50}
+        queue-capacity: ${ASYNC_QUEUE_CAPACITY:200}
 ```
 
 ### 服务端配置

@@ -19,6 +19,7 @@ HTTP_BODY_FILE=""
 SUMMARY_PRINTED=0
 LOGS_CHECKED=0
 CLEANUP_RUNNING=0
+APP_LAUNCH_COUNT=0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -331,7 +332,8 @@ start_app() {
     local -a mvn_args=()
 
     module_name=$(safe_name "$module_path")
-    log_file="$E2E_CASE_DIR/${module_name}-${port}.log"
+    APP_LAUNCH_COUNT=$((APP_LAUNCH_COUNT + 1))
+    log_file="$E2E_CASE_DIR/${module_name}-${port}-$(printf '%02d' "$APP_LAUNCH_COUNT").log"
     CURRENT_APP_LOG="$log_file"
 
     if ! ensure_port_available "$port"; then

@@ -4,14 +4,14 @@
 # ==================================================
 
 server:
-  port: 8081
+  port: ${SERVICE_PORT:8081}
 
 grpc:
   server:
     port: -1
 spring:
   application:
-    name: data-process-service
+    name: ${SERVICE_APP_NAME:data-process-service}
 
 # ==================================================
 # Nebula 框架配置
@@ -20,19 +20,26 @@ nebula:
   security:
     jwt:
       secret: ${JWT_SECRET:nebula-rpc-async-service-dev-secret-key-at-least-32-bytes}
+  data:
+    persistence:
+      enabled: false
+    cache:
+      enabled: false
   # 服务发现配置（Nacos）
   discovery:
     nacos:
       enabled: true
-      server-addr: localhost:8848
-      namespace: public
-      group-name: DEFAULT_GROUP
-      username: nacos
-      password: nacos
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:public}
+      group-name: ${NACOS_GROUP:DEFAULT_GROUP}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
       auto-register: true  # 启用服务自动注册
 
   # RPC 配置
   rpc:
+    discovery:
+      enabled: false
     http:
       enabled: true
       server:
@@ -40,9 +47,16 @@ nebula:
         port: ${server.port}
         context-path: /rpc
       client:
-        enabled: true
+        enabled: false
         connect-timeout: 30000
         read-timeout: 60000
+    grpc:
+      enabled: false
+  messaging:
+    rabbitmq:
+      enabled: false
+  lock:
+    enabled: false
 
 # ==================================================
 # 日志配置
