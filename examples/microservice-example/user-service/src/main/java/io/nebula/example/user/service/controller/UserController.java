@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/rpc/users")
+@RequestMapping({"/api/users", "/rpc/users"})
 @RequiredArgsConstructor
 public class UserController {
     
@@ -87,4 +87,3 @@ public class UserController {
         return rpcDemoService.deleteUser(request);
     }
 }
-

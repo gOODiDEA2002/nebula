@@ -4,7 +4,7 @@
 # ==================================================
 
 server:
-  port: 8000
+  port: ${GATEWAY_PORT:8000}
 
 spring:
   application:
@@ -22,11 +22,11 @@ nebula:
   discovery:
     nacos:
       enabled: true
-      server-addr: localhost:8848
-      namespace: public
-      username: nacos
-      password: nacos
-      group-name: DEFAULT_GROUP
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      namespace: ${NACOS_NAMESPACE:public}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      group-name: ${NACOS_GROUP:DEFAULT_GROUP}
       auto-register: false  # Gateway 不需要注册自己
 
   # Gateway 框架配置
@@ -37,7 +37,7 @@ nebula:
     auth:
       jwt:
         enabled: true
-        secret: nebula-jwt-secret-key-2024-must-be-at-least-32-bytes
+        secret: ${GATEWAY_JWT_SECRET:nebula-jwt-secret-key-2024-must-be-at-least-32-bytes}
         header: Authorization
         prefix: "Bearer "
         whitelist:
@@ -45,7 +45,6 @@ nebula:
           - /api/users/login
           - /api/users/register
           - /api/users          # 用户列表（示例用）
-          - /api/orders         # 订单列表（示例用）
           - /actuator/**
           - /health/**
     
@@ -58,14 +57,14 @@ nebula:
     rate-limit:
       enabled: true
       strategy: ip
-      replenish-rate: 100
-      burst-capacity: 200
-      requested-tokens: 1
+      replenish-rate: ${GATEWAY_RATE_REPLENISH:100}
+      burst-capacity: ${GATEWAY_RATE_BURST:200}
+      requested-tokens: ${GATEWAY_RATE_TOKENS:1}
       redis:
         enabled: true
-        host: localhost
-        port: 6379
-        database: 0
+        host: ${REDIS_HOST:localhost}
+        port: ${REDIS_PORT:6379}
+        database: ${GATEWAY_REDIS_DATABASE:0}
     
     # 路由配置
     routes:
@@ -97,10 +96,10 @@ nebula:
       enabled: true
       use-discovery: true  # 从 Nacos 获取服务地址
       services:
-        user-service:
+        nebula-example-user-service:
           api-paths:
             - /api/users/**
-        order-service:
+        nebula-example-order-service:
           api-paths:
             - /api/orders/**
 
@@ -108,9 +107,9 @@ nebula:
 # Redis 配置（限流）
 # ==================================================
 spring.data.redis:
-  host: localhost
-  port: 6379
-  database: 0
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  database: ${GATEWAY_REDIS_DATABASE:0}
 
 # ==================================================
 # Resilience4j 熔断配置
