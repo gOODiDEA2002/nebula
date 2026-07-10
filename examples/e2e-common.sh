@@ -103,6 +103,38 @@ require_service() {
     return 1
 }
 
+require_env() {
+    local variable_name=$1
+    if [ -n "${!variable_name:-}" ]; then
+        log_info "环境变量 $variable_name 已设置"
+        return 0
+    fi
+    log_warn "环境变量 $variable_name 未设置"
+    return 1
+}
+
+skip_if_no_env() {
+    local variable_name=$1
+    local test_name=$2
+
+    if require_env "$variable_name"; then
+        return 0
+    fi
+
+    TOTAL=$((TOTAL + 1))
+    if [ "$E2E_MODE" = "full" ]; then
+        BLOCKED=$((BLOCKED + 1))
+        log_fail "完整验证缺少环境变量：$variable_name"
+        print_summary "$test_name" || true
+        exit 2
+    fi
+
+    SKIP=$((SKIP + 1))
+    log_skip "跳过 ${test_name}：需要环境变量 $variable_name"
+    print_summary "$test_name"
+    exit 0
+}
+
 skip_if_no_service() {
     local name=$1
     local host=$2
@@ -589,7 +621,7 @@ assert_file_contains() {
         record_pass "$desc"
         return 0
     fi
-    record_fail "${desc}：文件缺失或未匹配到「$pattern」"
+    record_fail "${desc}：文件缺失或未匹配到「${pattern}」"
     return 0
 }
 
@@ -601,7 +633,7 @@ assert_file_not_contains() {
         record_pass "$desc"
         return 0
     fi
-    record_fail "${desc}：文件缺失或匹配到「$pattern」"
+    record_fail "${desc}：文件缺失或匹配到「${pattern}」"
     return 0
 }
 

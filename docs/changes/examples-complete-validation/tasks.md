@@ -109,6 +109,8 @@
   3. 核对 Chroma 地址与 `nebula-data` 的 9002 映射，执行一次 embedding、写入、相似度查询和清理。
   4. 记录调用次数，不记录密钥和完整敏感响应。
 - **验收标准**：禁用模式和启用模式都 PASS，Chroma 临时 collection 已删除。
+- **当前状态**：禁用模式、启用时 Bean 创建、依赖传递和清理已验证；测试账号返回 OpenAI 429
+  quota 错误，真实聊天、embedding 和 Chroma 读写暂记 `BLOCKED`。待提供有额度的测试密钥后复跑。
 - [ ] 完成
 
 ## Task 6：验证异步 RPC

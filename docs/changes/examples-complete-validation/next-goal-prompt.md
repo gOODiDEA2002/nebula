@@ -1,7 +1,7 @@
 # 下一次 Codex Goal 提示词
 
-以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 4 已完成，下一阶段从
-Task 5 开始。
+以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 4 已完成，Task 5 因
+OpenAI 测试账号额度不足暂时阻塞，下一阶段从 Task 6 开始。
 
 ```text
 继续仓库 /Users/andy/DevOps/SourceCode/nebula-projects/nebula 中的 Nebula 2.1 示例应用完全验证。
@@ -20,15 +20,18 @@ Task 5 开始。
 - Task 2：Redis、RabbitMQ、Nacos、MinIO、Chroma、隔离 MySQL 8.3 和 Elasticsearch 9.4.2 的协议级预检 10/10 通过。
 - Task 3：starter-api 5/5、starter-minimal 3/3、starter-web 6/6 通过；无残留进程或外部数据。
 - Task 4：starter-service 16/16、starter-all 7/7 通过；HTTP RPC、Redis Lock、失败路径和零依赖模式均有直接证据。
+- Task 5：禁用模式、AI Bean 创建、Starter 依赖、OpenAI `/v1` 地址、零重试和清理已验证；当前
+  `OPENAI_API_KEY` 返回 429 quota，真实聊天、embedding 和 Chroma 读写仍为 BLOCKED。
 - Full 模式总入口现在默认执行 mvn -q install -DskipTests，避免独立示例加载旧 SNAPSHOT。确认源码没有变化时可设置 E2E_INSTALL_FRAMEWORK=false 加快局部复跑。
 
-本次 Goal 的第一目标：完成 tasks.md 的 Task 5，并做阶段提交。
+本次 Goal 的第一目标：完成 tasks.md 的 Task 6，并做阶段提交；有额度的 OpenAI 密钥可用后复跑 Task 5。
 
-Task 5 要求：
-1. AI 禁用模式必须无密钥启动，并确认 /ai/echo 返回 AI disabled，且没有创建远程 AI 客户端。
-2. AI 启用模式只从环境变量读取测试密钥，用最少请求完成一次真实聊天调用，不打印密钥或完整敏感响应。
-3. 修正并验证 Chroma 地址，完成 embedding、临时 collection 写入、相似度查询和删除复核。
-4. 环境条件暂时不足时，先完成能够完成的代码、禁用模式和其他任务；记录 BLOCKED，但不得把 Goal 标记为 complete。
+Task 6 要求：
+1. 构建并安装 rpc-async-example 的 API 模块，启动 Service 8081 和 Client 8082。
+2. 核对 Nacos 中真实服务名、实例地址和临时注册数据，不以端口可达替代协议证据。
+3. 提交异步任务并轮询 PENDING/RUNNING 到 SUCCESS，核对最终结果内容。
+4. 验证批量任务、同步调用、不存在 ID、取消任务和 Client 重启后记录仍可读取。
+5. 使用 nebula_e2e_ 前缀，结束后只关闭受管 PID，并清理 Nacos 临时实例和测试记录。
 
 执行纪律：
 - 先执行 git status --short --branch，遇到已有改动要识别来源并保留，禁止回退用户或前序 Agent 的改动。
@@ -41,5 +44,5 @@ Task 5 要求：
 - 每完成一个阶段按“已完成 / 进行中 / 阻塞与风险 / 下一步 / 待拍板”汇报。
 - 使用 Conventional Commits 小步提交；提交前运行相关 E2E、bash -n、git diff --check 和活动 Markdown 链接检查。不要推送。
 
-Task 5 完成后继续 Task 6 至 Task 16，不要缩小原 Goal。最终门禁仍是：13 组示例、16 个进程和契约 JAR 全部有真实证据；E2E Full 为 0 FAIL、0 SKIP、0 BLOCKED、0 未验证；两个前端构建和浏览器流程通过；整仓测试、Shell、Markdown 链接、资源清理全部通过。只有 tasks.md 全部勾选时才能把 Goal 标记为 complete。
+Task 6 完成后继续 Task 7 至 Task 16，并保留 Task 5 的复跑要求，不要缩小原 Goal。最终门禁仍是：13 组示例、16 个进程和契约 JAR 全部有真实证据；E2E Full 为 0 FAIL、0 SKIP、0 BLOCKED、0 未验证；两个前端构建和浏览器流程通过；整仓测试、Shell、Markdown 链接、资源清理全部通过。只有 tasks.md 全部勾选时才能把 Goal 标记为 complete。
 ```

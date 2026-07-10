@@ -89,7 +89,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `starter-api-example` | 契约 JAR | PASS | JAR 包含 `UserApi.class`，运行时依赖树不含 Web Server；5/5 PASS；提供方和消费方的跨服务使用留在 Task 7 |
 | `starter-web-example` | Web 应用 | PASS | `/hello`、健康、性能和 OpenAPI 均返回严格预期，日志干净且 8080 已释放；6/6 PASS |
 | `starter-service-example` | Service 应用 | PASS | 16/16 PASS；三个 GET、通用 HTTP RPC、Redis Lock、模块开关和 Redis 失败路径均通过 |
-| `starter-ai-example` | AI 应用 | PENDING | 待执行 |
+| `starter-ai-example` | AI 应用 | BLOCKED | 禁用模式与 AI Bean 创建通过；真实 OpenAI 调用因测试账号 429 quota 阻塞，首次失败后已停止并清理 |
 | `starter-all-example` | All 应用 | PASS | 零外部依赖模式 7/7 PASS；Hello、健康、性能、OpenAPI 和禁用模块日志均符合预期 |
 | `rpc-async-example` | Service、Client | PENDING | 待执行 |
 | `microservice-example` | User、Order | PENDING | 待执行 |
@@ -138,3 +138,17 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 - Service 运行时依赖树确认 `nebula-starter-service -> nebula-rpc-http -> httpclient5:5.6.1`；修复后不再出现
   `HttpClientConnectionManager` 缺类。
 - 清理复核：8082、8084、18082 均已释放；Redis 中 `nebula_e2e_starter_service_*` 键数量为 0。
+
+## 11. Task 5 复核记录
+
+- 当前最终证据：`target/example-e2e/20260711-065908-67620/`，结果为 12 PASS、0 FAIL、0 SKIP、
+  1 BLOCKED，退出码为 2。
+- 无密钥禁用模式严格返回 `AI disabled`，`ChatService`、`EmbeddingService`、`VectorStoreService`
+  均未创建，日志没有 OpenAI 或 Chroma 客户端初始化记录。
+- AI 启用模式已证明三项服务 Bean 全部创建。运行时依赖树确认
+  `nebula-ai-spring` 传递 Spring AI 2.0 的 OpenAI 和 Chroma Starter。
+- OpenAI Java SDK 4.39.1 的生产基础地址需要 `/v1`。修正后错误由 404 变为 429 quota，证明请求已到达
+  正确 API，但当前测试账号没有可用额度，真实聊天和 embedding 尚不能标记为 PASS。
+- 示例将聊天和 embedding 的 `max-retries` 设为 0。额度错误后只执行 1 个测试动作，不再继续向量写入和查询。
+- 清理复核：8083 和 18083 均已释放；Chroma 中 `nebula_e2e_ai_` 临时 collection 数量为 0；
+  应用日志没有出现 API Key。

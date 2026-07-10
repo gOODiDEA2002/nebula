@@ -20,6 +20,9 @@
 | 2026-07-10 | research | 首次运行 Service 和 All 均失败 | Service 被无配置数据源阻断；All 实际启动 WebSocket、Task、Redis Lock，且性能端点未注册 |
 | 2026-07-10 | apply | 修正 HTTP RPC 运行时依赖与端口解析 | `nebula-rpc-http` 补充 HttpClient 5；未显式配置 RPC 端口时跟随 `server.port` |
 | 2026-07-10 | verify | 完成 Task 4 Starter 验证 | Service 16/16、All 7/7；Redis 失败路径、端口和临时锁键清理通过 |
+| 2026-07-11 | research | AI Starter 启用后没有创建任何 AI Bean | `nebula-ai-spring` 将 OpenAI 和 Chroma 两个必需依赖错误标记为 optional |
+| 2026-07-11 | apply | 修正 AI 依赖、OpenAI 基础地址和请求重试 | Starter 已传递 Spring AI 2.0 实现；默认地址补 `/v1`；示例禁用自动重试 |
+| 2026-07-11 | verify | Task 5 可执行部分通过，真实调用阻塞 | 禁用模式和三项 AI Bean 通过；测试账号返回 429 quota，脚本在首次请求后停止并清理 |
 
 ## 技术决策
 
@@ -35,6 +38,8 @@
 | 独立示例构建 | Full 模式默认先安装当前框架快照 | 直接使用本地 Maven 仓库中的旧 SNAPSHOT | 避免源码已升级而独立示例仍加载旧框架产物 |
 | Service HTTP 入口 | Controller 提供三个 GET 接口，通用 `POST /rpc` 验证真实 RPC Server | 把 `@RpcCall` 当作动态 MVC 路由 | 当前 HTTP RPC Server 只提供通用协议入口，前端 HTTP 路由属于应用层 |
 | All 默认模式 | 显式关闭所有需要外部服务或独立运行组件的模块 | 依赖 Starter 默认值或只关闭部分模块 | README 承诺零外部依赖，配置必须完整覆盖 Starter 的启用默认值 |
+| AI 实现依赖 | `nebula-ai-spring` 传递 OpenAI 和 Chroma 两个必需实现 | 在每个示例中重复声明依赖 | AI 自动配置直接引用两者，缺少任一依赖都会使 Starter 静默失效 |
+| AI 外部请求 | 示例通过 `max-retries=0` 禁用 SDK 自动重试 | 使用 SDK 默认重试次数 | 完整验证应限制费用，外部额度不足时首次失败后立即停止 |
 
 ## 踩坑记录
 
@@ -50,6 +55,9 @@
 | Web OpenAPI 出现 `NoSuchMethodError` | 独立示例使用了本地仓库中带 Springdoc 2.2.0 的旧 SNAPSHOT，而当前源码已升级到 3.0.3 | Full 模式运行示例前执行当前框架 `mvn install -DskipTests`，并允许后续阶段显式复用已安装产物 | [x] |
 | Service 启用 HTTP RPC 后缺类 | `HttpRpcAutoConfiguration` 使用 HttpClient 5，但依赖只存在于 optional 自动配置依赖中 | 在 `nebula-rpc-http` 声明必需依赖，由实现模块向使用方传递 | [x] |
 | HTTP RPC Server 端口固定为 8080 | `ServerConfig.port` 注释说默认跟随 `server.port`，字段却写死为 8080 | 保留 `int` API 并以 0 表示未配置；默认跟随应用端口，显式值优先，并补两条回归测试 | [x] |
+| AI Starter 启用后仍返回 disabled | OpenAI 和 Chroma Starter 被 `nebula-ai-spring` 标记为 optional，没有传递到应用 | 两个核心实现改为必需依赖，MCP 和 Ollama 等扩展仍保持可选 | [x] |
+| OpenAI 请求统一返回 404 | OpenAI Java SDK 4.39.1 需要包含 `/v1` 的基础地址 | 默认值和活动示例改为 `https://api.openai.com/v1`，并补默认值测试 | [x] |
+| OpenAI 测试账号返回 429 | 当前环境变量中的测试账号没有可用额度 | 记录 `BLOCKED`，零重试并在首次失败后停止；不把阻塞折算为通过 | [ ] |
 
 ## 知识发现
 

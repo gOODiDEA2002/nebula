@@ -2,22 +2,32 @@ spring:
   application:
     name: starter-ai-example
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
 nebula:
   security:
     jwt:
       secret: ${JWT_SECRET:nebula-starter-ai-example-dev-secret-key-at-least-32-bytes}
+  data:
+    cache:
+      enabled: false
   ai:
-    enabled: false
+    enabled: ${AI_ENABLED:false}
     openai:
-      api-key: 
-      base-url: https://api.openai.com
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
       chat:
-        enabled: true
+        options:
+          model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+          temperature: 0.1
+          max-tokens: 64
+          max-retries: ${OPENAI_MAX_RETRIES:0}
       embedding:
-        enabled: true
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+          max-retries: ${OPENAI_MAX_RETRIES:0}
     vector-store:
       chroma:
-        url: http://localhost:8000
-        collection-name: nebula_vectors
+        host: ${CHROMA_HOST:localhost}
+        port: ${CHROMA_PORT:9002}
+        collection-name: ${CHROMA_COLLECTION:nebula_vectors}
         initialize-schema: true

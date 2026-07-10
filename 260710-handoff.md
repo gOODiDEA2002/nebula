@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-10 21:28 +08
+> 最后更新：2026-07-11 07:00 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -17,6 +17,8 @@
 - Task 3：API 契约 5/5、Minimal 3/3、Web 6/6 通过。Web 最终证据位于
   `target/example-e2e/20260710-211018-27839/`。
 - Task 4：Service 16/16、All 7/7 通过；HTTP RPC、Redis Lock、失败路径和零依赖模式均有直接证据。
+- Task 5 可执行部分：AI 禁用模式、启用时三项 Bean、依赖传递、`/v1` 地址、零重试和资源清理已验证。
+  当前测试账号返回 OpenAI 429 quota，真实聊天、embedding 和 Chroma 读写仍为 `BLOCKED`。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -35,22 +37,23 @@
 
 ## 未完成
 
-- Task 5 至 Task 16 全部待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段优先处理 Task 5 的 AI Starter。
+- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 6 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段先执行 Task 6 异步 RPC；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
 - Gateway、Fullstack、Crawler Browser、WebSocket 浏览器流程和 OAuth 全链路仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 审计 AI Starter 的配置、Controller、自动配置条件、README 和现有 E2E。
-3. 先完成无密钥禁用模式，再用环境变量中的测试密钥完成最小真实聊天调用。
-4. 使用 Chroma 完成 embedding、临时 collection 写入、查询和删除复核。
-5. 完成 Task 5 后继续 Task 6 至 Task 16；不要用 Smoke 结果替代最终 Full 验收。
+2. 从 Task 6 的异步 RPC Service、Client、Nacos 配置和现有 E2E 核对开始。
+3. 验证任务状态、结果、取消和 Client 重启后的记录读取，并清理 Nacos 临时数据。
+4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
+5. 继续 Task 7 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
 ## 风险与约束
 
 - Vocoor OAuth 提供方 `localhost:8080` 当前不可达，后续需要可用提供方及已轮换的测试凭据。
+- 当前 `OPENAI_API_KEY` 对正确的 `/v1` 地址返回 429 quota，需要有额度的测试账号才能完成 Task 5。
 - Playwright 浏览器容器尚未启动，Crawler Browser 和两个前端浏览器流程仍待验证。
 - XXL-JOB 镜像健康检查缺少 `curl`，但宿主机 HTTP 探针返回 302；启用该模块时应使用镜像支持的探针。
 - 任何密钥、Token 和密码只能通过环境变量注入，不能写入 Git 或测试证据。
@@ -63,4 +66,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 5 的代码和配置核对开始，不需要重复执行 Task 0 至 Task 4；只有后续改动影响这些范围时才回归。
+确认工作区与最新阶段提交一致后，从 Task 6 开始，不需要重复执行 Task 0 至 Task 4；Task 5 在外部额度恢复后复跑。
