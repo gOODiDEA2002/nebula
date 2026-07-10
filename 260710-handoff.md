@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 07:38 +08
+> 最后更新：2026-07-11 07:43 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -23,6 +23,8 @@
   均有真实证据，临时记录、实例和端口已清理。
 - Task 7：微服务 34/34 通过；两个契约 JAR、User REST CRUD、HTTP RPC、gRPC、Nacos metadata、
   Order 到 User 跨服务调用和清理均有真实证据。
+- Task 8：Gateway 23/23 通过；真实后端代理、无 Token 401、有效 JWT、Redis 429、令牌恢复和
+  Redis/端口清理均有真实证据。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -33,6 +35,8 @@
   - `9dd7cd36 fix(rpc): 阻止已取消异步任务继续执行`
   - `c8f7aa45 test(examples): 完成异步 RPC 运行验证`
   - `d4a0fbc7 fix(examples): 修复微服务运行配置与更新接口`
+  - `db164b4e test(examples): 完成微服务双协议验证`
+  - `01a46d76 fix(gateway): 对齐真实服务路由与后端 API`
 
 ## 关键上下文
 
@@ -48,21 +52,23 @@
   0 SKIP、0 BLOCKED。
 - Task 7 最终证据位于 `target/example-e2e/20260711-073534-69263/`，结果为 34 PASS、0 FAIL、
   0 SKIP、0 BLOCKED。Order 通过 Nacos 的 `grpcPort=2001` metadata 调用 User。
+- Task 8 最终证据位于 `target/example-e2e/20260711-074039-81648/`，结果为 23 PASS、0 FAIL、
+  0 SKIP、0 BLOCKED。限流使用 Redis 15 号测试库，结束后键数量为 0。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 8 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段先执行 Task 8 Gateway 真实代理、认证和限流；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
+- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 9 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段先执行 Task 9 Fullstack 数据库、缓存和四种数据模式；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
 - Gateway、Fullstack、Crawler Browser、WebSocket 浏览器流程和 OAuth 全链路仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 从 Task 8 的 Gateway 路由、认证过滤器、限流配置、服务名和现有 E2E 脚本核对开始。
-3. 启动受控真实后端，分别验证代理 200、无 Token 401、有效 Token 200、限流 429 和令牌恢复。
+2. 从 Task 9 的 Fullstack SQL、默认/readwrite/sharding/combined 配置和现有 E2E 脚本核对开始。
+3. 使用隔离 MySQL 8.3 与 namespaced Redis 数据验证 CRUD、逻辑删除、缓存 TTL 和四种数据模式。
 4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
 5. 继续 Task 7 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
@@ -82,4 +88,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 8 开始，不需要重复执行 Task 0 至 Task 7；Task 5 在外部额度恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 9 开始，不需要重复执行 Task 0 至 Task 8；Task 5 在外部额度恢复后复跑。

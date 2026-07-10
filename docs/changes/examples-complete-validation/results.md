@@ -93,7 +93,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `starter-all-example` | All 应用 | PASS | 零外部依赖模式 7/7 PASS；Hello、健康、性能、OpenAPI 和禁用模块日志均符合预期 |
 | `rpc-async-example` | Service、Client | PASS | 38/38 PASS；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复均通过 |
 | `microservice-example` | User、Order | PASS | 34/34 PASS；REST CRUD、HTTP RPC、gRPC、Nacos metadata 和 Order 到 User 跨服务调用均通过 |
-| `gateway-example` | Gateway | PENDING | 待执行 |
+| `gateway-example` | Gateway | PASS | 23/23 PASS；真实代理、无 Token 401、有效 JWT、Redis 429 和令牌恢复均通过 |
 | `fullstack-example` | Fullstack 应用 | PENDING | 待执行 |
 | `crawler-example` | Crawler、Browser | PENDING | 待执行 |
 | `websocket-example` | Backend、Frontend | PENDING | 待执行 |
@@ -178,3 +178,14 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 - Order 通过通用 HTTP RPC 创建订单，并由 `ServiceDiscoveryRpcClient` 使用 User 的 Nacos gRPC metadata
   调用 2001。Order gRPC 查询订单和未知用户错误均通过，Order 与 User 两端日志包含同一用户 ID。
 - 清理复核：内存测试用户已删除；1001、1002、2001、2002 端口均释放；两个 Nacos 实例均注销。
+
+## 14. Task 8 复核记录
+
+- 最终证据：`target/example-e2e/20260711-074039-81648/`，结果为 23 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。
+- Gateway 路由已改用 Nacos 真实服务名。User 和 Order Controller 同时提供 `/api/**` 前端入口，
+  白名单用户列表经 `lb://nebula-example-user-service` 返回真实业务 JSON，后端日志确认收到请求。
+- User 和 Order 受保护路径无 Token 均返回 401；测试现场签发的 HS256 JWT 可查询 User 并创建 Order，
+  Order 随后通过 Nacos `grpcPort` metadata 调用 User。
+- E2E 使用 Redis 15 号空测试库和 1/5 的临时令牌桶参数，连续请求出现 4 次 429，等待 2 秒后恢复 200。
+  测试结束后限流键为 0，8000、1001、1002、2001、2002 端口全部释放。

@@ -29,6 +29,9 @@
 | 2026-07-11 | research | 微服务严格基线被默认持久化阻断 | User Service 没有数据源，但 Service Starter 默认启用 persistence |
 | 2026-07-11 | apply | 修正微服务配置、更新接口和敏感日志 | 纯内存服务关闭未使用模块；使用当前 gRPC 端口键；请求体不再重复要求路径 ID；日志不打印密码和 Token |
 | 2026-07-11 | verify | 完成 Task 7 微服务双协议验证 | 34/34 PASS；REST、HTTP RPC、gRPC、发现调用、四端口和两个实例清理通过 |
+| 2026-07-11 | research | Gateway 路由无法命中真实后端 | 配置服务名与 Nacos 不一致，且 `/api/**` 在后端没有对应 Controller |
+| 2026-07-11 | apply | 对齐 Gateway 服务名和应用层 API | User、Order 增加 `/api/**` 入口；JWT、Redis 和限流参数支持环境变量 |
+| 2026-07-11 | verify | 完成 Task 8 Gateway 验证 | 23/23 PASS；代理、401、有效 JWT、429、令牌恢复和资源清理通过 |
 
 ## 技术决策
 
@@ -49,7 +52,9 @@
 | 异步取消 | 执行线程开跑前复核持久化状态，仅跳过明确的 `CANCELLED` | 从线程池移除任务或把暂时查不到记录视为取消 | 当前执行器不暴露队列句柄；Nacos 发布后存在短暂读取窗口，空结果不能证明任务已删除 |
 | 取消 E2E | 测试时用环境变量临时设置单线程执行器 | 把示例默认线程池永久改为单线程 | 单线程可稳定制造排队，正常示例仍保留 10/50/200 的吞吐配置 |
 | 微服务 gRPC 端口 | 使用 `spring.grpc.server.port`，Nacos metadata 读取同一值 | 继续依赖旧 `grpc.server.port` 和桥接键 | 当前 Spring gRPC 服务器以 `spring.grpc.server.*` 为权威配置 |
-| Order HTTP 入口 | 使用通用 `POST /rpc` 请求 `OrderRpcClient` | 文档中不存在的 `/rpc/orders` REST 路由 | Order 没有 Controller，框架 HTTP RPC 只暴露通用协议入口 |
+| Order HTTP 入口 | `/api/orders`、`/rpc/orders` 由应用 Controller 提供，通用 RPC 仍使用 `POST /rpc` | 把 `@RpcCall` 当成自动 MVC 路由 | 前端和直连 HTTP 路径属于应用层，RPC 协议入口由框架提供 |
+| Gateway 前端路径 | 应用 Controller 显式提供 `/api/**`，Gateway 保持原路径代理 | 在 Gateway 猜测并重写 `/api` 到 `/rpc` | 前端 HTTP 路径属于应用层，后端路由清晰且可直接测试 |
+| Gateway 限流隔离 | E2E 使用 Redis 15 号空测试库，结束后删除本轮限流键 | 在默认数据库扫描并删除共享键 | 避免碰触其他开发进程的限流状态 |
 
 ## 踩坑记录
 
@@ -72,6 +77,7 @@
 | Nacos 刚发布的配置短暂读不到 | 发布成功与本客户端读取可见之间存在数毫秒窗口 | 只有明确读到 `CANCELLED` 才跳过；空结果沿用正常执行路径，并补回归测试 | [x] |
 | User 更新接口按 README 调用仍返回 400 | DTO 的 `id` 在方法执行前校验非空，但 Controller 和 RPC 都从独立参数设置 ID | 移除请求体 ID 的非空约束，以路径或 RPC 参数为唯一来源 | [x] |
 | HTTP RPC 请求缺少 primitive 字段时返回 500 | Jackson 3 将缺失的 `long timeout` 作为 `null` 并拒绝映射 | E2E 按完整线格式发送 `timestamp`、`timeout` 和其他字段 | [x] |
+| Gateway 返回 404/503 仍被旧脚本判通过 | 脚本只检查网关可达，服务名和后端路径均不正确 | 启动真实后端，只接受业务 200，并交叉检查后端日志 | [x] |
 
 ## 知识发现
 

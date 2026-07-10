@@ -53,8 +53,8 @@
 
 | 路径 | 目标服务 | 说明 |
 |------|----------|------|
-| /api/users/** | user-service (1001) | 用户相关 API |
-| /api/orders/** | order-service (1002) | 订单相关 API |
+| /api/users/** | nebula-example-user-service (1001) | 用户相关 API |
+| /api/orders/** | nebula-example-order-service (1002) | 订单相关 API |
 
 ## 快速开始
 
@@ -85,6 +85,12 @@ mvn -q -f examples/microservice-example/order-service spring-boot:run
 mvn -q -f examples/gateway-example spring-boot:run
 ```
 
+完整验证会启动两个真实后端，检查代理、JWT、Redis 限流和资源清理：
+
+```bash
+E2E_MODE=full examples/gateway-example/e2e-test.sh
+```
+
 ### 测试
 
 ```bash
@@ -112,7 +118,7 @@ nebula:
     auth:
       jwt:
         enabled: true
-        secret: your-secret-key-at-least-32-bytes
+        secret: ${GATEWAY_JWT_SECRET}
         header: Authorization
         prefix: "Bearer "
         whitelist:
@@ -130,10 +136,10 @@ nebula:
       enabled: true
       use-discovery: true  # 从 Nacos 获取服务地址
       services:
-        user-service:
+        nebula-example-user-service:
           api-paths:
             - /api/users/**
-        order-service:
+        nebula-example-order-service:
           api-paths:
             - /api/orders/**
 ```

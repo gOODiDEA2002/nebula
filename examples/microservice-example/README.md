@@ -164,8 +164,8 @@ curl -X POST http://localhost:1002/rpc \
   }'
 ```
 
-Order 示例没有单独的 REST Controller。HTTP 调用统一使用 `POST /rpc`，gRPC 调用统一使用
-`io.nebula.rpc.grpc.GenericRpcService/Call`。
+Order 同时提供 `/api/orders`、`/rpc/orders` Controller 和通用 `POST /rpc`；gRPC 调用统一使用
+`io.nebula.rpc.grpc.GenericRpcService/Call`。`/api/**` 供 Gateway 代理，`/rpc/**` 保留直接调用兼容。
 
 ## RPC 接口设计模式
 
