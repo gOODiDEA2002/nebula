@@ -32,12 +32,12 @@ mvn install -DskipTests -f ../../pom.xml
 mvn spring-boot:run -f pom.xml
 
 # 3. 启动远程 Playwright Server（需要 Docker）
-docker run -d --name crawler-browser -p 9222:9222 --shm-size=2g harbor.vocoor.com/ci/browser-playwright:latest
+docker compose -f ../../docker/crawler-browser/docker-compose.yml up -d crawler-browser-01
 
 # 4. 启动爬虫示例（同时启用浏览器引擎）
 BROWSER_CRAWLER_ENABLED=true mvn spring-boot:run -f pom.xml
 # 或者连接远程服务器
-BROWSER_CRAWLER_ENABLED=true PLAYWRIGHT_SERVER=your-server-ip mvn spring-boot:run -f pom.xml
+BROWSER_CRAWLER_ENABLED=true PLAYWRIGHT_SERVER=your-server-ip PLAYWRIGHT_PORT=9222 mvn spring-boot:run -f pom.xml
 ```
 
 ## 使用示例
@@ -112,7 +112,15 @@ nebula:
       remote:
         endpoints:                   # 远程 Playwright Server 端点列表
           - ws://localhost:9222
-        use-cdp: true                # 使用 Chrome DevTools Protocol 连接
+        use-cdp: false               # 官方 Playwright Server 使用 WebSocket 协议
+```
+
+宿主机 `9222` 已被占用时，可同时覆盖 Compose 映射端口和应用连接端口：
+
+```bash
+CRAWLER_BROWSER_PORT=19222 docker compose \
+  -f ../../docker/crawler-browser/docker-compose.yml up -d crawler-browser-01
+BROWSER_CRAWLER_ENABLED=true PLAYWRIGHT_PORT=19222 mvn spring-boot:run -f pom.xml
 ```
 
 ## 相关文档

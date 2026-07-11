@@ -7,7 +7,7 @@ services:
     image: harbor.vocoor.com/ci/browser-playwright:latest
     container_name: crawler-browser-01
     ports:
-      - "9222:9222"
+      - "${CRAWLER_BROWSER_PORT:-9222}:9222"
     # 共享内存，避免浏览器崩溃
     shm_size: '2gb'
     # 安全配置
@@ -26,7 +26,7 @@ services:
     image: harbor.vocoor.com/ci/browser-playwright:latest
     container_name: crawler-browser-02
     ports:
-      - "9223:9222"
+      - "${CRAWLER_BROWSER_SECONDARY_PORT:-9223}:9222"
     # 共享内存，避免浏览器崩溃
     shm_size: '2gb'
     # 安全配置

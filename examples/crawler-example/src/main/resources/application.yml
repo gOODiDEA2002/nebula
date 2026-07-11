@@ -13,6 +13,11 @@ spring:
 nebula:
   security:
     enabled: false
+  data:
+    persistence:
+      enabled: false
+    cache:
+      enabled: false
   crawler:
     enabled: true
     http:
@@ -39,7 +44,7 @@ nebula:
         enabled: true
       remote:
         endpoints:
-          - ws://${PLAYWRIGHT_SERVER:localhost}:9222
+          - ws://${PLAYWRIGHT_SERVER:localhost}:${PLAYWRIGHT_PORT:9222}
         use-cdp: ${PLAYWRIGHT_USE_CDP:false}
         connections-per-endpoint: ${PLAYWRIGHT_CONNECTIONS:1}
         max-retries: 3

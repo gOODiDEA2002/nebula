@@ -1,164 +1,45 @@
 # Crawler Browser 服务
 
-## 概述
-
-Crawler Browser 是 Nebula 爬虫模块组的浏览器服务组件，基于 Playwright Server 构建，为 `nebula-crawler-browser` 模块提供远程浏览器连接能力。
-
-该服务将浏览器实例容器化部署，Java 应用通过 WebSocket 协议连接远程浏览器，实现：
-- 动态页面渲染（JavaScript 执行）
-- 分布式浏览器集群
-- 资源隔离与弹性伸缩
-
-## 架构
-
-```mermaid
-graph LR
-    subgraph Java 应用
-        A[nebula-crawler-browser] --> B[BrowserCrawlerEngine]
-    end
-    
-    subgraph Docker 容器集群
-        C[crawler-browser-01<br/>:9222]
-        D[crawler-browser-02<br/>:9223]
-    end
-    
-    B -->|WebSocket| C
-    B -->|WebSocket| D
-    
-    C --> E[Chromium]
-    D --> F[Chromium]
-```
+本目录提供与 `nebula-crawler-browser` 配套的远程 Playwright Browser Server。Java 客户端和容器均使用
+Playwright `1.41.0`，通过 Playwright WebSocket 协议连接，不是 Chrome DevTools Protocol（CDP）服务。
 
 ## 环境要求
 
-| 组件 | 版本要求 |
-|------|---------|
-| Docker | 20.10+ |
-| Docker Compose | 2.0+ |
-| 内存 | 每实例 2GB+ |
-| 端口 | 9222, 9223（可配置） |
+- Docker 20.10+
+- Docker Compose v2
+- 每个实例至少 2 GB 共享内存
+- 默认宿主端口：主实例 `9222`，备用实例 `9223`
 
-## 快速开始
+## 启停与验证
 
-### 1. 启动服务
+默认只启动主实例：
 
 ```bash
-cd nebula/docker/crawler-browser
-
-# 使用启动脚本
 ./start.sh
-
-# 或直接使用 docker-compose
-docker-compose up -d
-```
-
-启动成功后输出：
-```
-==========================================
-  浏览器服务已就绪！
-==========================================
-
-CDP 端点: http://localhost:9222
-WebSocket: ws://localhost:9222
-
-查看状态: docker-compose logs -f
-停止服务: docker-compose down
-
-浏览器信息:
-{
-    "Browser": "Chrome/XXX",
-    "Protocol-Version": "1.3",
-    "webSocketDebuggerUrl": "ws://localhost:9222"
-}
-```
-
-### 2. 验证服务
-
-```bash
-# 检查服务状态
-docker-compose ps
-
-# 查看服务日志
-docker-compose logs -f
-
-# 测试连接
-curl http://localhost:9222/json/version
-```
-
-### 3. 停止服务
-
-```bash
+curl --noproxy '*' http://localhost:9222/
+docker compose logs crawler-browser-01
 ./stop.sh
-
-# 或
-docker-compose down
 ```
 
-## 配置说明
+HTTP 存活入口应严格返回 `Running`，容器日志会记录实际监听地址
+`Listening on ws://0.0.0.0:9222/`。应用连接地址为 `ws://localhost:9222`。
 
-### Docker Compose 配置
+宿主端口冲突时可覆盖映射端口：
 
-`docker-compose.yml` 默认启动两个实例：
-
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| crawler-browser-01 | 9222 | 主实例 |
-| crawler-browser-02 | 9223 | 备用实例 |
-
-### 关键配置项
-
-```yaml
-services:
-  crawler-browser-01:
-    image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
-    ports:
-      - "9222:9222"
-    shm_size: '2gb'           # 共享内存，防止浏览器崩溃
-    security_opt:
-      - seccomp:unconfined    # 安全配置，允许 Chromium 运行
-    restart: unless-stopped   # 自动重启
+```bash
+CRAWLER_BROWSER_PORT=19222 ./start.sh
+curl --noproxy '*' http://localhost:19222/
 ```
 
-### 配置调整
+需要两个实例时直接使用 Compose，并按需覆盖两个宿主端口：
 
-#### 调整实例数量
-
-复制服务配置，修改端口：
-
-```yaml
-  crawler-browser-03:
-    image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
-    container_name: crawler-browser-03
-    ports:
-      - "9224:9222"
-    shm_size: '2gb'
-    security_opt:
-      - seccomp:unconfined
-    restart: unless-stopped
-    networks:
-      - crawler-network
+```bash
+CRAWLER_BROWSER_PORT=19222 \
+CRAWLER_BROWSER_SECONDARY_PORT=19223 \
+docker compose up -d
 ```
 
-#### 调整内存
-
-根据页面复杂度调整共享内存：
-
-```yaml
-shm_size: '4gb'  # 复杂页面建议 4GB
-```
-
-## 与 Nebula 框架集成
-
-### 1. 添加依赖
-
-```xml
-<dependency>
-    <groupId>io.nebula</groupId>
-    <artifactId>nebula-crawler-browser</artifactId>
-</dependency>
-```
-
-### 2. 配置应用
+## 应用配置
 
 ```yaml
 nebula:
@@ -166,229 +47,36 @@ nebula:
     enabled: true
     browser:
       enabled: true
-      mode: REMOTE                     # 使用远程模式
-      pool-size: 5
-      page-timeout: 30000
-      remote:
-        endpoints:                     # 配置远程端点
-          - ws://localhost:9222
-          - ws://localhost:9223
-        load-balance-strategy: ROUND_ROBIN
-        health-check-interval: 30000
-        max-retries: 3
-```
-
-### 3. 使用示例
-
-```java
-@Service
-public class PageCrawler {
-    
-    @Autowired
-    private BrowserCrawlerEngine browserEngine;
-    
-    public String crawlDynamicPage(String url) {
-        CrawlerRequest request = CrawlerRequest.renderPage(url)
-            .waitSelector(".content")
-            .waitTimeout(5000)
-            .build();
-            
-        CrawlerResponse response = browserEngine.crawl(request);
-        return response.getContent();
-    }
-}
-```
-
-## 镜像构建
-
-如需自定义镜像或更新 Playwright 版本：
-
-```bash
-# 构建镜像
-docker build -t curlawler-browser:1.0.0 .
-
-# 推送到私有仓库
-docker tag curlawler-browser:1.0.0 harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
-docker push harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
-```
-
-### Dockerfile 说明
-
-```dockerfile
-FROM node:20-slim
-
-# 安装 Chromium 依赖
-RUN apt-get update && apt-get install -y \
-    libnss3 libnspr4 libdbus-1-3 ...
-
-# 安装 Playwright（版本必须与 Java 客户端匹配）
-RUN npm install playwright@1.41.0 && \
-    npx playwright install chromium
-
-# 启动 Playwright Server
-CMD ["npx", "playwright", "run-server", "--port", "9222", "--host", "0.0.0.0"]
-```
-
-> **版本匹配**：Playwright Server 版本必须与 `nebula-crawler-browser` 使用的客户端版本一致，当前版本为 `1.41.0`。
-
-## Kubernetes 部署
-
-### Deployment 示例
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: crawler-browser
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: crawler-browser
-  template:
-    metadata:
-      labels:
-        app: crawler-browser
-    spec:
-      containers:
-      - name: browser
-        image: harbor.vocoor.com.cn/ci/curlawler-browser:1.0.0
-        ports:
-        - containerPort: 9222
-        resources:
-          requests:
-            memory: "2Gi"
-            cpu: "500m"
-          limits:
-            memory: "4Gi"
-            cpu: "2"
-        livenessProbe:
-          httpGet:
-            path: /json/version
-            port: 9222
-          initialDelaySeconds: 10
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /json/version
-            port: 9222
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        securityContext:
-          seccompProfile:
-            type: Unconfined
-        volumeMounts:
-        - name: shm
-          mountPath: /dev/shm
-      volumes:
-      - name: shm
-        emptyDir:
-          medium: Memory
-          sizeLimit: 2Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: crawler-browser
-spec:
-  selector:
-    app: crawler-browser
-  ports:
-  - port: 9222
-    targetPort: 9222
-  type: ClusterIP
-```
-
-### 应用配置（K8s 环境）
-
-```yaml
-nebula:
-  crawler:
-    browser:
       mode: REMOTE
+      pool-size: 2
       remote:
         endpoints:
-          - ws://crawler-browser:9222
+          - ws://localhost:9222
+        use-cdp: false
+        connections-per-endpoint: 1
 ```
 
-## 故障排查
+`use-cdp` 必须保持为 `false`。只有目标服务是以远程调试端口启动的 Chrome 时，才使用 CDP 模式。
 
-### 常见问题
+## 版本核对
 
-#### 1. 服务启动失败
+服务端与 Java 客户端的 Playwright 版本必须一致：
 
 ```bash
-# 检查端口占用
-lsof -i :9222
-
-# 查看详细日志
-docker-compose logs crawler-browser-01
+docker exec crawler-browser-01 npx playwright --version
+mvn -q -f ../../examples/crawler-example dependency:tree \
+  -Dincludes=com.microsoft.playwright:playwright
 ```
 
-#### 2. 浏览器崩溃
+当前两端应均为 `1.41.0`。镜像标签为
+`harbor.vocoor.com/ci/browser-playwright:latest`，镜像元数据版本为 `1.0.0`。
 
-通常是共享内存不足导致：
+## 资源与故障排查
 
-```yaml
-shm_size: '4gb'  # 增大共享内存
-```
+- 浏览器崩溃：提高 `shm_size`，并检查容器内存限制。
+- 连接超时：核对宿主端口、容器日志和应用的 WebSocket 地址。
+- 版本不匹配：同步 Dockerfile 中的 npm Playwright 与 Maven 客户端版本。
+- 测试结束：执行 `docker compose down`，确认容器、网络和宿主端口均已释放。
 
-#### 3. 连接超时
-
-```bash
-# 检查网络连通性
-curl -v http://localhost:9222/json/version
-
-# 检查防火墙
-telnet localhost 9222
-```
-
-#### 4. 版本不匹配
-
-错误信息：`Browser version mismatch`
-
-确保 Playwright Server 版本与 Java 客户端版本一致：
-
-```xml
-<!-- pom.xml 中的版本 -->
-<playwright.version>1.41.0</playwright.version>
-```
-
-### 健康检查
-
-服务提供 HTTP 健康检查端点：
-
-| 端点 | 说明 |
-|------|------|
-| `http://localhost:9222/` | 基础存活检查 |
-| `http://localhost:9222/json/version` | 详细版本信息 |
-| `http://localhost:9222/json/list` | 活动页面列表 |
-
-## 性能调优
-
-### 资源配置建议
-
-| 场景 | 实例数 | 内存/实例 | CPU/实例 |
-|------|--------|----------|---------|
-| 开发测试 | 1-2 | 2GB | 1核 |
-| 生产环境 | 3-5 | 4GB | 2核 |
-| 高并发 | 5+ | 4GB | 2核 |
-
-### 页面优化
-
-在 Java 应用中配置禁用不必要的资源：
-
-```yaml
-nebula:
-  crawler:
-    browser:
-      disable-images: true   # 禁用图片
-      disable-css: false     # 保留 CSS（某些选择器依赖）
-```
-
-## 相关文档
-
-- [Nebula 文档索引](../../docs/INDEX.md)
-- [Nebula 框架配置说明](../../docs/Nebula框架配置说明.md)
-- [爬虫模块设计文档](../../infrastructure/crawler/DESIGN.md)
-- [Playwright 官方文档](https://playwright.dev/)
+完整的 HTTP 与 Browser 引擎验证见
+[Crawler 示例](../../examples/crawler-example/README.md)和 `examples/crawler-example/e2e-test.sh`。

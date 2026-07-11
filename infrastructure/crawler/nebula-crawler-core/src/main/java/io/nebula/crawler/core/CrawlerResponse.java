@@ -228,7 +228,8 @@ public class CrawlerResponse {
         if (content == null) {
             throw new IllegalStateException("响应内容为空");
         }
-        return Jsoup.parse(content);
+        String baseUri = finalUrl != null && !finalUrl.isBlank() ? finalUrl : url;
+        return Jsoup.parse(content, baseUri == null ? "" : baseUri);
     }
     
     /**
@@ -377,4 +378,3 @@ public class CrawlerResponse {
         return 0;
     }
 }
-

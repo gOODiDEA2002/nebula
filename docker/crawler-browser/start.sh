@@ -1,52 +1,31 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# 启动 Chrome 浏览器服务
-# 用法: ./start.sh
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT="${CRAWLER_BROWSER_PORT:-9222}"
 cd "$SCRIPT_DIR"
 
-echo "=========================================="
-echo "  Chrome 浏览器服务"
-echo "=========================================="
-
-# 检查 Docker
 if ! docker info >/dev/null 2>&1; then
-    echo "错误: Docker 未运行，请先启动 Docker"
+    echo "错误: Docker 未运行，请先启动 Docker" >&2
     exit 1
 fi
 
-# 构建并启动
-echo "正在启动浏览器服务..."
-docker-compose up -d
+echo "正在启动 Playwright Browser Server，宿主端口: $PORT"
+CRAWLER_BROWSER_PORT="$PORT" docker compose up -d crawler-browser-01
 
-# 等待服务就绪
-echo "等待服务就绪..."
-for i in {1..30}; do
-    if curl -s http://localhost:9222/json/version >/dev/null 2>&1; then
-        echo ""
-        echo "=========================================="
-        echo "  浏览器服务已就绪！"
-        echo "=========================================="
-        echo ""
-        echo "CDP 端点: http://localhost:9222"
-        echo "WebSocket: ws://localhost:9222"
-        echo ""
-        echo "查看状态: docker-compose logs -f"
-        echo "停止服务: docker-compose down"
-        echo ""
-        
-        # 显示版本信息
-        echo "浏览器信息:"
-        curl -s http://localhost:9222/json/version | python3 -m json.tool 2>/dev/null || \
-            curl -s http://localhost:9222/json/version
+for _ in $(seq 1 30); do
+    if [ "$(curl -fsS --noproxy '*' "http://localhost:$PORT/" 2>/dev/null || true)" = "Running" ]; then
+        echo "Playwright Browser Server 已就绪"
+        echo "WebSocket: ws://localhost:$PORT"
+        docker exec crawler-browser-01 npx playwright --version
+        echo "查看日志: docker compose logs -f crawler-browser-01"
+        echo "停止服务: ./stop.sh"
         exit 0
     fi
-    echo -n "."
     sleep 1
 done
 
-echo ""
-echo "错误: 服务启动超时"
-docker-compose logs
+echo "错误: 服务未在 30 秒内就绪" >&2
+docker compose logs crawler-browser-01 >&2
 exit 1

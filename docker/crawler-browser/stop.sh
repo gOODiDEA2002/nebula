@@ -1,12 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# 停止 Chrome 浏览器服务
-# 用法: ./stop.sh
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "正在停止浏览器服务..."
-docker-compose down
-
-echo "浏览器服务已停止"
+echo "正在停止 Playwright Browser Server"
+docker compose down
+echo "Playwright Browser Server 已停止"
