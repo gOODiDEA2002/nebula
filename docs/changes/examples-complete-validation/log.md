@@ -41,6 +41,9 @@
 | 2026-07-11 | research | Fullstack RPC、AI 和 MCP 配置包含过期字段 | gRPC 使用旧顶层键；MCP 使用旧传输字段；AI 混用 DeepSeek 聊天地址和 OpenAI embedding 模型 |
 | 2026-07-11 | apply | 迁移 Fullstack 远程能力配置并补真实验证 | 显式选择 optional gRPC 实现；增加 Echo 服务、MCP 双开关和向量文档删除入口 |
 | 2026-07-11 | verify | Task 11 可执行部分完成 | 119 PASS、0 FAIL、0 SKIP、1 BLOCKED；唯一阻塞为 OpenAI 429 quota |
+| 2026-07-11 | research | Crawler 旧脚本没有验证 Browser，运维文档误把 Playwright Server 当成 CDP | 旧 E2E 只请求公共网站；`/json/version` 在当前容器中不存在；本机 9222 已被 Chrome 占用 |
+| 2026-07-11 | apply | 加固双引擎验证并修复相对链接解析 | 增加受控页面、可配置容器端口和 17 项严格断言；Jsoup 使用最终响应 URL 作为 base URI |
+| 2026-07-11 | verify | 完成 Task 12 Crawler 验证 | 17/17 PASS；Playwright 1.41.0、WebSocket、JS DOM、截图和全部资源清理通过 |
 
 ## 技术决策
 
@@ -71,6 +74,7 @@
 | MinIO 对象列表 | 按前缀递归列出对象，目录占位项不读取缺失的修改时间 | 只返回一层目录并由示例过滤 | `StorageService.listObjects` 的调用方需要获得实际对象，且目录项可能没有修改时间 |
 | Fullstack HTTP RPC Server | 保持关闭，Controller 提供 HTTP API，发现客户端负责调用下游 | 同时打开本地 `/rpc` Server | Fullstack 当前是 User RPC 消费方；本地提供方能力由独立 gRPC Echo 服务验证 |
 | Fullstack gRPC 依赖 | 示例显式依赖 `nebula-rpc-grpc` | 期待 `nebula-starter-all` 传递 optional 实现 | Starter 只提供可选能力，示例必须明确选择实际协议实现 |
+| Crawler Browser 协议 | 使用 Playwright WebSocket Server，`use-cdp=false` | 把服务当作 Chrome CDP 并请求 `/json/version` | 当前镜像运行 `playwright run-server`，根入口返回 `Running`，监听地址由容器日志给出 |
 
 ## 踩坑记录
 
@@ -103,6 +107,8 @@
 | 响应缓存与限流不能同时工作 | 五个 Web 功能配置器都按 `WebMvcConfigurer` 类型使用 `@ConditionalOnMissingBean` | 移除同类型互斥条件，并用上下文测试确认核心、缓存、限流配置器同时存在 | [x] |
 | Nacos 有 gRPC metadata 但端口未监听 | Fullstack 未显式引入 Starter All 的 optional gRPC 实现 | 示例直接依赖 `nebula-rpc-grpc`，并验证 2100 端口 Echo 成功 | [x] |
 | MCP 工具和资源可能未注册 | 应用配置在自动配置 Bean 创建前使用 `@ConditionalOnBean` 判断 | 改为 AI 与 MCP Server 双属性条件，真实验证列表、调用和读取 | [x] |
+| Crawler 相对链接解析结果为空 | `CrawlerResponse.asDocument()` 没有向 Jsoup 传入页面 URL | 优先使用 `finalUrl`、回退 `url` 作为 base URI，并补重定向回归测试 | [x] |
+| Playwright 正常运行却被启动脚本判超时 | 脚本访问 CDP 专用 `/json/version`，实际服务根入口只返回 `Running` | 启停脚本改用 Docker Compose v2 和真实存活入口，并输出运行时版本 | [x] |
 
 ## 知识发现
 
@@ -119,3 +125,4 @@
 | API Starter 依赖说明 | 当前文档对 MyBatis-Plus 是否属于契约依赖存在冲突 | 实际运行时依赖不包含 Web Server，但包含 MyBatis-Plus Boot4 Starter | 本轮不改变公开依赖；Task 15 统一 `AGENTS.md`、`CLAUDE.md` 和 Starter 指南 |
 | Service HTTP 路由 | 任务要求三个 GET 接口和 HTTP RPC 真实调用 | `@RpcCall` 不会动态注册 MVC GET 路由，框架只暴露通用 `POST /rpc` | 增加应用层 Controller 复用 RPC 实现，并同时验证通用 RPC 协议入口 |
 | All 零依赖说明 | README 声称默认无外部依赖 | 配置仍启用 Lock，且未覆盖 Task、AI、WebSocket 等 Starter 默认值 | 显式关闭全部相关模块，保留 Web 健康、性能和 OpenAPI |
+| Crawler Browser 说明 | README 声称容器提供 CDP `/json/version` | 镜像实际提供 Playwright WebSocket Server，且 Java 客户端版本为 1.41.0 | 重写活动说明，统一协议、版本、端口覆盖和启停命令 |

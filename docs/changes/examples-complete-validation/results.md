@@ -95,7 +95,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `microservice-example` | User、Order | PASS | 34/34 PASS；REST CRUD、HTTP RPC、gRPC、Nacos metadata 和 Order 到 User 跨服务调用均通过 |
 | `gateway-example` | Gateway | PASS | 23/23 PASS；真实代理、无 Token 401、有效 JWT、Redis 429 和令牌恢复均通过 |
 | `fullstack-example` | Fullstack 应用 | BLOCKED | Task 11 当前 119 PASS、0 FAIL、0 SKIP、1 BLOCKED；RPC/gRPC/MCP 通过，OpenAI 账号 quota 阻塞 AI 与向量流程 |
-| `crawler-example` | Crawler、Browser | PENDING | 待执行 |
+| `crawler-example` | Crawler、Browser | PASS | 17/17 PASS；受控 HTTP 页面、Playwright WebSocket、JS 渲染 DOM、截图和清理均通过 |
 | `websocket-example` | Backend、Frontend | PENDING | 待执行 |
 | `oauth-example` | Backend、Frontend、OAuth 提供方 | PENDING | 待执行 |
 
@@ -112,7 +112,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 1. Fullstack 编译存在 Lombok `@Builder` 默认值告警及少量弃用、未检查操作告警，基线测试未失败。
 2. Elasticsearch 7.17.19 不能用于验证框架的 9.4.2 客户端，后续使用隔离的 9.4.2 服务。
 3. Vocoor OAuth 提供方 `localhost:8080` 当前不可达，完整授权码流程尚未执行。
-4. Playwright 浏览器容器尚未启动，Browser Crawler 完整验证尚未执行。
+4. Playwright Browser Server 已按 `1.41.0` 完成验证；后续前端浏览器流程仍待执行。
 5. Nacos 2.5.1 按默认 60 秒周期清理空临时服务，预检会等待服务名消失后才判定通过。
 
 ## 9. Task 3 复核记录
@@ -237,3 +237,16 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   脚本立即停止后续 embedding、文档、搜索和 RAG 请求，模型请求计数为 1，日志未出现 API Key。
 - 清理复核：User 与 Fullstack Nacos 实例、Chroma 临时 collection、Redis 14 号库、隔离容器与卷均为 0；
   1000、1101、2100、2101、13306、19200 端口和 7 个受管进程均已释放。
+
+## 18. Task 12 复核记录
+
+- 最终证据：`target/example-e2e/20260711-142401-29430/`，结果为 17 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。
+- HTTP 引擎使用本地受控页面完成单页、双页批量、标题/描述/绝对链接解析、100ms 超时和非法 URL。
+  公共网站不参与通过判定，测试结果不再受外部网络内容变化影响。
+- Browser 引擎连接 Playwright `1.41.0` WebSocket Server，等待延迟 JavaScript 写入
+  `nebula_e2e_browser_rendered` 后读取 DOM，并确认截图字节数大于 0。镜像元数据版本为 `1.0.0`。
+- 运行验证发现 `CrawlerResponse.asDocument()` 没有设置 Jsoup base URI，导致相对链接的 `abs:href`
+  为空。修复后优先使用 `finalUrl`、回退 `url`，两条单元测试覆盖普通请求和重定向。
+- 本机 9222 由现有 Chrome 占用，测试没有关闭非受管进程，而是通过新端口配置使用 19222。
+  Playwright 容器、Compose 网络、受控页面服务、8085/18085/19222 端口和受管 Java 进程均已清理。

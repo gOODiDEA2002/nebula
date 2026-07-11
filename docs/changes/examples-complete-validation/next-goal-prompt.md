@@ -1,7 +1,7 @@
 # 下一次 Codex Goal 提示词
 
 以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 4、Task 6 至 Task 10 已完成，
-Task 5 和 Task 11 因 OpenAI 测试账号额度不足暂时阻塞，下一阶段从 Task 12 开始。
+Task 5 和 Task 11 因 OpenAI 测试账号额度不足暂时阻塞，下一阶段从 Task 13 开始。
 
 ```text
 继续仓库 /Users/andy/DevOps/SourceCode/nebula-projects/nebula 中的 Nebula 2.1 示例应用完全验证。
@@ -23,23 +23,24 @@ spec.md、tasks.md、log.md、results.md。
 - Task 11：可执行部分 119 PASS、0 FAIL、0 SKIP、1 BLOCKED，证据为
   target/example-e2e/20260711-130632-40522/。发现客户端、Fullstack gRPC Server 和 MCP tools/resources
   均有真实证据；OpenAI 测试账号仍返回 429 quota，因此 AI、向量存储和 RAG 未折算为 PASS。
+- Task 12：crawler-example 17/17 通过，证据为 target/example-e2e/20260711-142401-29430/。
+  HTTP 单页、批量、解析、超时、非法 URL，以及 Playwright WebSocket、JS 渲染 DOM 和截图均有真实证据。
 
-本次 Goal 的第一目标：完成 tasks.md 的 Task 12，并做阶段提交；有额度的 OpenAI 密钥可用后复跑 Task 5 和 Task 11。
+本次 Goal 的第一目标：完成 tasks.md 的 Task 13，并做阶段提交；有额度的 OpenAI 密钥可用后复跑 Task 5 和 Task 11。
 
-Task 12 要求：
-1. HTTP 模式完成单页、批量、解析、超时和非法 URL 验证。
-2. 使用本地受控页面作为主要证据，公共网站只能作为补充，不能决定 Full 结果。
-3. 启动 docker/crawler-browser/docker-compose.yml 的 Playwright 容器，核对镜像版本和 WebSocket/CDP 地址。
-4. Browser 模式抓取 JavaScript 渲染内容，并保存可核对的 DOM 或截图证据。
-5. Browser 不可用时可以验证清晰降级，但不得把 Task 12 Full 标记为完成。
-6. Full 必须为 0 FAIL、0 SKIP、0 BLOCKED；清理浏览器容器、端口、临时页面和受管进程。
-7. 同步 tasks.md、log.md、results.md、260710-handoff.md 和下一次 Goal 提示词。
+Task 13 要求：
+1. 后端状态、广播、指定用户和指定会话 REST 接口严格通过。
+2. 使用仓库内声明的测试依赖建立两个真实 WebSocket 客户端，不得因本机缺少 Python 包跳过。
+3. 验证连接通知、双客户端广播、指定用户、指定会话、心跳和断开后的在线数。
+4. 前端执行 npm ci 和 npm run build，再通过浏览器完成连接和发送消息。
+5. Full 必须为 0 FAIL、0 SKIP、0 BLOCKED；清理 3000/8086 端口、依赖产物和受管进程。
+6. 同步 tasks.md、log.md、results.md、260710-handoff.md 和下一次 Goal 提示词。
 
 执行纪律：保留已有改动；只关闭受管 PID；不打印或提交密钥；先定位根因再最小修复；使用
 Conventional Commits 小步提交；提交前运行相关测试、E2E、bash -n、git diff --check 和活动 Markdown
 链接检查；禁止推送。
 
-Task 12 完成后继续 Task 13 至 Task 16，并保留 Task 5 和 Task 11 的复跑要求。只有 13 组示例、16 个进程、
+Task 13 完成后继续 Task 14 至 Task 16，并保留 Task 5 和 Task 11 的复跑要求。只有 13 组示例、16 个进程、
 契约 JAR、两个前端和浏览器流程、整仓测试、Shell、Markdown 链接及资源清理全部通过，且 tasks.md
 全部勾选时，才能把 Goal 标记为 complete。
 ```
