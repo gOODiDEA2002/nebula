@@ -298,7 +298,10 @@
   5. 每个 README 给出最小启动、完整启动、验证命令和外部依赖。
 - **验证命令**：活动 Markdown 本地链接检查；对文档中的命令抽样执行。
 - **验收标准**：文档不再与代码冲突，0 失效本地链接。
-- [ ] 完成
+- **最终证据**：Starter API 契约 JAR 抽样打包、Fullstack Maven 测试、Crawler Compose 解析和全部
+  E2E Shell 语法通过；活动 Markdown 链接 187 个、0 失效。15 份过期 Fullstack 测试手册已归档，
+  Gateway 8000、OAuth 4010、AI/Chroma、Fullstack Redis/ES 与当前配置和 E2E 一致。
+- [x] 完成
 
 ## Task 16：最终全量回归和交付审计
 

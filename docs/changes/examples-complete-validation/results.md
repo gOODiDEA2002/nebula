@@ -112,7 +112,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 1. Fullstack 编译存在 Lombok `@Builder` 默认值告警及少量弃用、未检查操作告警，基线测试未失败。
 2. Elasticsearch 7.17.19 不能用于验证框架的 9.4.2 客户端，后续使用隔离的 9.4.2 服务。
 3. Vocoor OAuth 提供方 `localhost:8080` 当前不可达，完整授权码流程尚未执行。
-4. Playwright Browser Server 已按 `1.41.0` 完成验证；后续前端浏览器流程仍待执行。
+4. Playwright Browser Server 和 WebSocket 前端浏览器流程已通过；OAuth 浏览器流程仍受提供方阻塞。
 5. Nacos 2.5.1 按默认 60 秒周期清理空临时服务，预检会等待服务名消失后才判定通过。
 
 ## 9. Task 3 复核记录
@@ -272,3 +272,14 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 - 后端健康、授权 URL/state、无 code 错误回调和未登录用户通过；前端锁文件已提交，`npm ci` 和生产构建通过。
 - Vocoor 提供方当前不可达。外部仓库还依赖现有 MySQL、Redis、RabbitMQ、Nacos 和 Seata，不能在本轮以非隔离
   方式启动，因此真实登录、用户绑定、JWT 会话和退出保持 BLOCKED。
+
+## 21. Task 15 复核记录
+
+- 15 份 Fullstack 历史测试手册共 7763 行，因包含旧端口、旧配置键、旧 Compose 命令和固定业务地址，
+  已移至 `docs/archive/examples/fullstack-example/`。当前 README 和统一 E2E 是唯一活动入口。
+- 示例总览补齐 Crawler 与 WebSocket；Gateway 统一为 8000/1001/1002，OAuth 前端统一为 4010；
+  AI 的 Chroma host/port 与 Fullstack 的 Redis、Elasticsearch、Profile 和远程能力配置均与源码一致。
+- `AGENTS.md` 与 `CLAUDE.md` 已如实说明 API Starter 包含 MyBatis-Plus Boot4 Starter，且运行时依赖不含
+  Web Server；gRPC 权威端口键为 `spring.grpc.server.port`。
+- 抽样执行 Starter API 打包和 Fullstack 测试，Crawler Compose 可解析；全部 E2E Shell 语法通过，
+  活动 Markdown 本地链接检查为 187 个、0 失效。

@@ -50,6 +50,9 @@
 | 2026-07-11 | research | OAuth 示例硬编码业务数据库与秘密，前端干净构建失败 | 旧 E2E 指向 192.168 地址；vue-tsc 1.8 与当前 TypeScript 不兼容；Vite 缺少后端代理 |
 | 2026-07-11 | apply | 环境变量化 OAuth 配置并改用隔离 MySQL | 移除默认秘密和敏感日志，修正错误回调、退出路径、前端类型检查与 4010 代理 |
 | 2026-07-11 | verify | Task 14 可执行部分完成 | 11 PASS、0 FAIL、0 SKIP、1 BLOCKED；唯一阻塞为不可安全隔离启动的 Vocoor 提供方 |
+| 2026-07-11 | research | 活动示例文档仍保留两套 Fullstack 验证口径 | 15 份旧手册共 7763 行，包含旧端口、旧配置键、固定业务地址和已删除端点 |
+| 2026-07-11 | apply | 统一示例说明并归档 Fullstack 历史手册 | 重写 Fullstack README，补齐每个 README 的依赖、启动和 E2E 入口，修正跨模块链接 |
+| 2026-07-11 | verify | 完成 Task 15 文档与配置核对 | 契约 JAR、Fullstack 测试、Compose、Shell 和 187 个活动链接全部通过 |
 
 ## 技术决策
 
@@ -82,6 +85,7 @@
 | Fullstack gRPC 依赖 | 示例显式依赖 `nebula-rpc-grpc` | 期待 `nebula-starter-all` 传递 optional 实现 | Starter 只提供可选能力，示例必须明确选择实际协议实现 |
 | Crawler Browser 协议 | 使用 Playwright WebSocket Server，`use-cdp=false` | 把服务当作 Chrome CDP 并请求 `/json/version` | 当前镜像运行 `playwright run-server`，根入口返回 `Running`，监听地址由容器日志给出 |
 | WebSocket 用户身份 | 框架优先使用 Principal，其次读取握手拦截器写入的 `userId` 属性 | 框架直接信任任意查询参数 | 生产认证仍由应用负责，示例可用查询参数演示定向发送 |
+| Fullstack 功能手册 | 整体归档，由 README 和统一 E2E 作为权威入口 | 继续维护 15 份逐功能手册 | 旧手册已与当前端口、配置和资源隔离规则冲突，逐句修补会保留重复验收口径 |
 
 ## 踩坑记录
 
@@ -131,7 +135,7 @@
 | 偏差点 | Spec 预期 | 实际情况 | 处理方式 |
 | --- | --- | --- | --- |
 | Web 示例的数据模块 | Web 示例定位为无外部依赖的基础 Web 验证 | Web Starter 默认启用 persistence 和 cache，示例没有数据源 | 在示例配置中显式关闭未使用模块，并在 README 说明 |
-| API Starter 依赖说明 | 当前文档对 MyBatis-Plus 是否属于契约依赖存在冲突 | 实际运行时依赖不包含 Web Server，但包含 MyBatis-Plus Boot4 Starter | 本轮不改变公开依赖；Task 15 统一 `AGENTS.md`、`CLAUDE.md` 和 Starter 指南 |
+| API Starter 依赖说明 | 当前文档对 MyBatis-Plus 是否属于契约依赖存在冲突 | 实际运行时依赖不包含 Web Server，但包含 MyBatis-Plus Boot4 Starter | 已统一 `AGENTS.md` 与 `CLAUDE.md`，本轮不改变公开依赖 |
 | Service HTTP 路由 | 任务要求三个 GET 接口和 HTTP RPC 真实调用 | `@RpcCall` 不会动态注册 MVC GET 路由，框架只暴露通用 `POST /rpc` | 增加应用层 Controller 复用 RPC 实现，并同时验证通用 RPC 协议入口 |
 | All 零依赖说明 | README 声称默认无外部依赖 | 配置仍启用 Lock，且未覆盖 Task、AI、WebSocket 等 Starter 默认值 | 显式关闭全部相关模块，保留 Web 健康、性能和 OpenAPI |
 | Crawler Browser 说明 | README 声称容器提供 CDP `/json/version` | 镜像实际提供 Playwright WebSocket Server，且 Java 客户端版本为 1.41.0 | 重写活动说明，统一协议、版本、端口覆盖和启停命令 |

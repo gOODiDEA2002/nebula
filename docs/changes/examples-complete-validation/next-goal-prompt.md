@@ -1,7 +1,8 @@
 # 下一次 Codex Goal 提示词
 
 以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 4、Task 6 至 Task 10 已完成，
-Task 5、Task 11 因 OpenAI 额度阻塞，Task 14 因隔离 Vocoor 提供方不可用而阻塞，下一阶段从 Task 15 开始。
+Task 5、Task 11 因 OpenAI 额度阻塞，Task 14 因隔离 Vocoor 提供方不可用而阻塞，Task 15 已完成，
+下一阶段执行 Task 16。
 
 ```text
 继续仓库 /Users/andy/DevOps/SourceCode/nebula-projects/nebula 中的 Nebula 2.1 示例应用完全验证。
@@ -29,22 +30,24 @@ spec.md、tasks.md、log.md、results.md。
   REST、双客户端、定向发送、心跳、前端构建、Playwright 和应用内浏览器流程均通过。
 - Task 14：可执行部分 11 PASS、0 FAIL、0 SKIP、1 BLOCKED，证据为
   target/example-e2e/20260711-144556-75187/；唯一阻塞为真实 Vocoor 提供方。
+- Task 15：示例文档与配置统一完成；187 个活动 Markdown 链接 0 失效，15 份旧 Fullstack 手册已归档。
 
-本次 Goal 的第一目标：完成 tasks.md 的 Task 15，并做阶段提交；外部条件恢复后复跑 Task 5、Task 11 和 Task 14。
+本次 Goal 的第一目标：执行 tasks.md 的 Task 16；外部条件恢复后复跑 Task 5、Task 11 和 Task 14。
 
-Task 15 要求：
-1. 核对 examples/README.md、各示例 README 和 application.yml 与真实端口、命令、服务名和配置键一致。
-2. Gateway 统一为 8000，OAuth 前端统一为 4010，AI/Chroma、Fullstack Redis/ES 与实际配置一致。
-3. 删除不存在的配置键、端点和过期启动方式；每个 README 给出最小启动、完整启动、验证命令和外部依赖。
-4. 核对 AGENTS.md、CLAUDE.md 与 Starter/API 依赖的实际状态，消除 Task 3 留下的说明冲突。
-5. 执行活动 Markdown 本地链接检查，并抽样运行文档命令。
-6. 同步 tasks.md、log.md、results.md、260710-handoff.md 和下一次 Goal 提示词。
+Task 16 要求：
+1. 运行 `mvn clean test` 和 `mvn -f infrastructure/crawler/pom.xml test`。
+2. 运行 `E2E_MODE=full examples/e2e-all.sh`，13 组结果必须如实汇总。
+3. WebSocket 与 OAuth 前端分别执行 `npm ci && npm run build`。
+4. 对全部 Shell 执行 `bash -n`，再运行 `git diff --check` 和活动 Markdown 链接检查。
+5. 审计 16 个进程、契约 JAR、端口、临时容器、卷和 namespaced 数据清理情况。
+6. Task 5、Task 11、Task 14 的外部阻塞不得折算为通过；条件未恢复时 Goal 保持未完成。
+7. 同步 tasks.md、log.md、results.md、260710-handoff.md 和下一次 Goal 提示词。
 
 执行纪律：保留已有改动；只关闭受管 PID；不打印或提交密钥；先定位根因再最小修复；使用
 Conventional Commits 小步提交；提交前运行相关测试、E2E、bash -n、git diff --check 和活动 Markdown
 链接检查；禁止推送。
 
-Task 15 完成后继续 Task 16，并保留 Task 5、Task 11 和 Task 14 的复跑要求。只有 13 组示例、16 个进程、
+只有 13 组示例、16 个进程、
 契约 JAR、两个前端和浏览器流程、整仓测试、Shell、Markdown 链接及资源清理全部通过，且 tasks.md
 全部勾选时，才能把 Goal 标记为 complete。
 ```

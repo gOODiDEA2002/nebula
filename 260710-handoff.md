@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 14:50 +08
+> 最后更新：2026-07-11 15:10 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -36,6 +36,7 @@
 - Task 13：WebSocket 19/19 通过；REST、双客户端、定向发送、心跳、前端构建、Playwright 和
   应用内浏览器均有真实证据。
 - Task 14 可执行部分：11 PASS、0 FAIL、0 SKIP、1 BLOCKED；隔离客户端通过，真实 Vocoor 提供方不可达。
+- Task 15：示例文档与配置统一完成；187 个活动链接 0 失效，15 份 Fullstack 旧手册已归档。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -63,6 +64,9 @@
   - `46f31827 fix(websocket): 完成双客户端与浏览器验证`
   - `a37c3ee4 docs(validation): 记录 WebSocket 完整验证`
   - `6f74e51c fix(oauth): 隔离配置并加固客户端验证`
+  - `303e20a6 docs(validation): 记录 OAuth 隔离验证`
+  - `1e4df82a docs(examples): 对齐 OAuth 与 Starter 说明`
+  - `d24280c0 docs(examples): 统一运行说明并归档旧手册`
 
 ## 关键上下文
 
@@ -70,7 +74,7 @@
 - Web OpenAPI 曾因旧 SNAPSHOT 中的 Springdoc 2.2.0 出现 `NoSuchMethodError`；安装当前框架后使用 3.0.3，问题消失。
 - Web 示例不使用数据库和缓存，已在示例配置中显式关闭 Starter 默认启用的数据模块。
 - Minimal 示例明确设置为非 Web 应用。API 契约 JAR 的运行时依赖不含 Web Server。
-- API Starter 实际仍包含 MyBatis-Plus Boot4 Starter；活动文档对此说法不一致。本轮未改变公开依赖，留给 Task 15 统一文档。
+- API Starter 实际包含 MyBatis-Plus Boot4 Starter，但运行时依赖不含 Web Server；活动说明已统一。
 - HTTP RPC 的 HttpClient 5 依赖已归入 `nebula-rpc-http`，端口未显式配置时已改为跟随 `server.port`。
 - 异步 RPC 执行线程现在会跳过明确标记为 `CANCELLED` 的排队任务。Nacos 发布后存在短暂读取窗口，
   `findById` 返回空时仍需继续正常执行，不能把暂时不可见当成取消或删除。
@@ -102,16 +106,16 @@
 
 ## 未完成
 
-- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 尚缺隔离的 Vocoor 提供方，Task 15 至 Task 16 待执行。
-- 下一阶段先执行 Task 15 文档统一；外部条件恢复后复跑 Task 5、Task 11 和 Task 14 Full E2E。
+- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 尚缺隔离的 Vocoor 提供方，Task 16 待执行。
+- 下一阶段执行 Task 16 全量回归；外部条件恢复后复跑 Task 5、Task 11 和 Task 14 Full E2E。
 - OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 从 Task 14 的 OAuth 配置、隔离 MySQL、前端构建和真实授权码流程开始。
-3. 先清除硬编码地址与秘密，再启动提供方并通过浏览器验证登录、回调、会话和退出。
+2. 执行 Task 16 的 Maven、Crawler、前端、Shell、链接和清理审计。
+3. 运行 Full E2E，保留三个外部阻塞的真实结果，不得把 BLOCKED 改写为 PASS。
 4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
 5. 继续 Task 11 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
@@ -131,4 +135,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 15 开始；Task 5、Task 11 和 Task 14 在外部条件恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 16 开始；Task 5、Task 11 和 Task 14 在外部条件恢复后复跑。
