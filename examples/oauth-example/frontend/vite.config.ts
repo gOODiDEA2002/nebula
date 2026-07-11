@@ -11,7 +11,17 @@ export default defineConfig({
     }
   },
   server: {
-    port: 4010
+    port: 4010,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8081'
+      },
+      '/health': {
+        target: 'http://localhost:8081'
+      },
+      '/performance': {
+        target: 'http://localhost:8081'
+      }
+    }
   }
 })
-

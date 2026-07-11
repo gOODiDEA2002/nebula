@@ -11,21 +11,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${vocoor.oauth.frontend-url:http://localhost:5173}")
+    @Value("${vocoor.oauth.frontend-url}")
     private String frontendUrl;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOriginPatterns(
-                "http://192.168.*:[*]", 
-                "http://localhost:[*]"
-            )
+            .allowedOrigins(frontendUrl)
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .allowCredentials(true)
             .maxAge(3600);
     }
 }
-
 

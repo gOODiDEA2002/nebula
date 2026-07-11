@@ -18,7 +18,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret:oauth-client-secret-key-must-be-at-least-32-characters}")
+    @Value("${jwt.secret}")
     private String secret;
 
     @Value("${jwt.expiration:7200}")
@@ -114,5 +114,4 @@ public class JwtUtil {
                 .getPayload();
     }
 }
-
 

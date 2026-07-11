@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import io.nebula.examples.oauth.entity.dto.AuthorizeDto;
 /**
  * OAuth 客户端控制器
@@ -73,8 +72,8 @@ public class OAuthController {
     @GetMapping("/callback")
     @Operation(summary = "Vocoor 授权回调")
     public void callback(
-            @Parameter(description = "授权码") @RequestParam String code,
-            @Parameter(description = "状态参数") @RequestParam String state,
+            @Parameter(description = "授权码") @RequestParam(required = false) String code,
+            @Parameter(description = "状态参数") @RequestParam(required = false) String state,
             @Parameter(description = "错误码") @RequestParam(required = false) String error,
             @Parameter(description = "错误描述") @RequestParam(required = false, name = "error_description") String errorDescription,
             HttpServletResponse response) throws IOException {
@@ -85,6 +84,14 @@ public class OAuthController {
             String redirectUrl = String.format("%s/oauth/result?success=false&error=%s",
                     config.getFrontendUrl(),
                     URLEncoder.encode(errorDescription != null ? errorDescription : error, StandardCharsets.UTF_8));
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        if (!StringUtils.hasText(code) || !StringUtils.hasText(state)) {
+            String redirectUrl = String.format("%s/oauth/result?success=false&error=%s",
+                    config.getFrontendUrl(),
+                    URLEncoder.encode("缺少授权码或 state", StandardCharsets.UTF_8));
             response.sendRedirect(redirectUrl);
             return;
         }
@@ -159,4 +166,3 @@ public class OAuthController {
     }
 
 }
-

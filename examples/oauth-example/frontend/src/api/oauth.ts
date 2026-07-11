@@ -108,7 +108,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
  * 退出登录
  */
 export async function logout(): Promise<void> {
-  await api.post('/oauth/logout')
+  await api.post('/api/oauth/logout')
   localStorage.removeItem('access_token')
 }
 
@@ -132,4 +132,3 @@ export async function healthCheck(): Promise<HealthResult> {
   
   throw new Error(response.data.message || '健康检查失败')
 }
-

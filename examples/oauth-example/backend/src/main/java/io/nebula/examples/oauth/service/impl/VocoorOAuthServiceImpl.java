@@ -58,13 +58,13 @@ public class VocoorOAuthServiceImpl implements VocoorOAuthService {
                 state
         );
 
-        log.info("生成授权 URL: {}", authUrl);
+        log.info("已生成 Vocoor OAuth 授权地址");
         return authUrl;
     }
 
     @Override
     public AuthResultVo handleCallback(String code, String state) {
-        log.info("处理授权回调，code: {}, state: {}", code, state);
+        log.info("处理 Vocoor OAuth 授权回调");
 
         // 1. 验证 state
         Long stateTime = stateStore.remove(state);
@@ -206,5 +206,4 @@ public class VocoorOAuthServiceImpl implements VocoorOAuthService {
         }
     }
 }
-
 

@@ -17,7 +17,7 @@ public class OAuthClientConfig {
     /**
      * Vocoor OAuth 服务器地址
      */
-    private String serverUrl = "http://localhost:8080";
+    private String serverUrl;
 
     /**
      * 客户端ID
@@ -42,7 +42,7 @@ public class OAuthClientConfig {
     /**
      * 前端应用地址
      */
-    private String frontendUrl = "http://localhost:5173";
+    private String frontendUrl;
 
     /**
      * 创建 WebClient 用于调用 Vocoor OAuth API
@@ -54,5 +54,4 @@ public class OAuthClientConfig {
                 .build();
     }
 }
-
 
