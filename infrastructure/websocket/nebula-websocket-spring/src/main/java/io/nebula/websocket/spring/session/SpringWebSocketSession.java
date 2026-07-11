@@ -11,6 +11,7 @@ import org.springframework.web.socket.BinaryMessage;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.Principal;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -40,6 +41,15 @@ public class SpringWebSocketSession implements WebSocketSession {
         this.objectMapper = objectMapper;
         this.connectTime = LocalDateTime.now();
         this.lastActiveTime = this.connectTime;
+        this.attributes.putAll(nativeSession.getAttributes());
+
+        Principal principal = nativeSession.getPrincipal();
+        Object attributeUserId = nativeSession.getAttributes().get("userId");
+        if (principal != null && principal.getName() != null && !principal.getName().isBlank()) {
+            this.userId = principal.getName();
+        } else if (attributeUserId instanceof String value && !value.isBlank()) {
+            this.userId = value;
+        }
     }
 
     @Override
@@ -176,4 +186,3 @@ public class SpringWebSocketSession implements WebSocketSession {
         return (T) nativeSession;
     }
 }
-

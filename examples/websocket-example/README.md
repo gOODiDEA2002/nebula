@@ -56,7 +56,7 @@ mvn spring-boot:run -f backend/pom.xml
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -67,6 +67,19 @@ npm run dev
 1. 打开浏览器访问 `http://localhost:3000`
 2. 输入昵称后点击 **Connect**
 3. 多个浏览器标签页可同时连接，体验实时聊天
+
+示例会把昵称作为 `userId` 握手参数，用于演示按用户发送。该参数不具备认证能力，生产应用应使用
+Spring Security 提供的已认证 `Principal`。
+
+## 完整验证
+
+```bash
+E2E_MODE=full bash e2e-test.sh
+```
+
+完整模式会执行前端 `npm ci` 和生产构建，建立两个真实 WebSocket 客户端，验证广播、按用户、按会话、
+心跳和断开状态，再通过 Playwright 打开前端完成连接与消息发送。浏览器截图和协议结果保存在本轮
+`target/example-e2e/` 证据目录中。
 
 ## REST API
 

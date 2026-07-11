@@ -1,84 +1,68 @@
 #!/usr/bin/env bash
-# websocket-example E2E 测试
-# 验证 WebSocket 后端 REST API 和 WebSocket 连接
-# 无外部依赖
+# websocket-example E2E：验证 REST、双客户端协议、前端构建和浏览器流程。
 source "$(dirname "$0")/../e2e-common.sh"
 
-PORT=8086
+PORT="${WEBSOCKET_BACKEND_PORT:-8086}"
+FRONTEND_PORT="${WEBSOCKET_FRONTEND_PORT:-3000}"
+FRONTEND_DIR="$PROJECT_ROOT/examples/websocket-example/frontend"
+
 log_info "========== websocket-example E2E =========="
+require_command node
+require_command npm
+require_command jq
+ensure_port_available "$PORT"
+ensure_port_available "$FRONTEND_PORT"
+
+run_checked "前端 npm ci 成功" npm --prefix "$FRONTEND_DIR" ci
+run_checked "前端生产构建成功" npm --prefix "$FRONTEND_DIR" run build
 
 start_app "examples/websocket-example/backend" "$PORT"
 
-# REST API 验证（控制器路径为 /ws-api）
-assert_contains "GET /ws-api/status WebSocket 状态" \
-    "http://localhost:$PORT/ws-api/status" '"success":true'
+assert_json "初始 WebSocket 状态为空" \
+    "http://localhost:$PORT/ws-api/status" \
+    '.success == true and .data.onlineSessions == 0 and .data.onlineUsers == 0'
 
-assert_contains "GET /ws-api/status 返回在线数" \
-    "http://localhost:$PORT/ws-api/status" '"onlineSessions"'
+PROTOCOL_EVIDENCE="$E2E_CASE_DIR/websocket-protocol.json"
+run_checked "双客户端 WebSocket 协议流程成功" \
+    sh -c "node '$FRONTEND_DIR/e2e-websocket.mjs' 'http://localhost:$PORT' > '$PROTOCOL_EVIDENCE'"
+run_checked "两个用户和会话均完成连接" \
+    jq -e '.connected == true and .initialSessions == 2 and .initialUsers == 2' "$PROTOCOL_EVIDENCE"
+run_checked "聊天和 REST 广播送达两个客户端" \
+    jq -e '.chatDelivered == true and .broadcastSentTo == 2' "$PROTOCOL_EVIDENCE"
+run_checked "按用户发送仅命中目标用户" \
+    jq -e '.userSentTo == 1 and .userAOnline == true' "$PROTOCOL_EVIDENCE"
+run_checked "按会话发送仅命中目标会话" \
+    jq -e '.sessionSent == true' "$PROTOCOL_EVIDENCE"
+run_checked "应用层心跳返回 pong" \
+    jq -e '.heartbeat == "pong"' "$PROTOCOL_EVIDENCE"
+run_checked "客户端断开后在线状态正确" \
+    jq -e '.userBOnlineAfterClose == false and .finalSessions == 1 and .finalUsers == 1' "$PROTOCOL_EVIDENCE"
 
-# 广播消息（无在线用户时也应正常返回）
-assert_contains "POST /ws-api/broadcast 广播消息" \
-    "http://localhost:$PORT/ws-api/broadcast" '"success":true' \
-    "POST" '{"content":"e2e-test-broadcast","type":"SYSTEM"}'
-
-# WebSocket 连接测试（通过 python3）
-TOTAL=$((TOTAL + 1))
-if command -v python3 >/dev/null 2>&1; then
-    ws_result=$(NO_PROXY='*' no_proxy='*' python3 -c "
-import asyncio, sys
-try:
-    import websockets
-except ImportError:
-    print('NO_WEBSOCKETS_MODULE')
-    sys.exit(0)
-
-async def test():
-    try:
-        async with websockets.connect('ws://localhost:$PORT/ws?userId=e2e-test-user') as ws:
-            await ws.send('{\"type\":\"CHAT\",\"content\":\"hello\"}')
-            msg = await asyncio.wait_for(ws.recv(), timeout=5)
-            print('WS_OK:' + msg[:80])
-    except Exception as e:
-        print('WS_FAIL:' + str(e)[:80])
-
-asyncio.run(test())
-" 2>/dev/null || echo "PYTHON_FAILED")
-
-    if echo "$ws_result" | grep -q "WS_OK\|NO_WEBSOCKETS_MODULE"; then
-        if echo "$ws_result" | grep -q "NO_WEBSOCKETS_MODULE"; then
-            log_skip "WebSocket 连接测试 (缺少 websockets 模块)"
-            SKIP=$((SKIP + 1))
-            TOTAL=$((TOTAL - 1))
-        else
-            log_pass "WebSocket 连接并收发消息"
-            PASS=$((PASS + 1))
-        fi
-    else
-        log_fail "WebSocket 连接失败: $ws_result"
-        FAIL=$((FAIL + 1))
-    fi
-else
-    log_skip "WebSocket 连接测试 (缺少 python3)"
-    SKIP=$((SKIP + 1))
-    TOTAL=$((TOTAL - 1))
-fi
-
-# 前端构建验证
-TOTAL=$((TOTAL + 1))
-FRONTEND_DIR="$PROJECT_ROOT/examples/websocket-example/frontend"
-if [ -f "$FRONTEND_DIR/package.json" ]; then
-    log_info "验证前端 npm install..."
+FRONTEND_LOG="$E2E_CASE_DIR/websocket-frontend.log"
+log_info "启动 WebSocket 前端，端口 ${FRONTEND_PORT}，日志 ${FRONTEND_LOG}"
+(
     cd "$FRONTEND_DIR"
-    if npm install --silent 2>/dev/null; then
-        log_pass "前端 npm install 成功"
-        PASS=$((PASS + 1))
-    else
-        log_fail "前端 npm install 失败"
-        FAIL=$((FAIL + 1))
-    fi
+    exec npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT"
+) >"$FRONTEND_LOG" 2>&1 &
+FRONTEND_PID=$!
+APP_PIDS+=("$FRONTEND_PID")
+APP_PORTS+=("$FRONTEND_PORT")
+APP_LOGS+=("$FRONTEND_LOG")
+if wait_for_port "$FRONTEND_PORT" 30 "$FRONTEND_PID"; then
+    record_pass "WebSocket 前端开发服务器已启动"
 else
-    log_skip "前端 package.json 不存在"
-    SKIP=$((SKIP + 1))
+    record_fail "WebSocket 前端开发服务器启动失败"
 fi
+
+assert_contains "前端页面可访问" \
+    "http://localhost:$FRONTEND_PORT" '<title>Nebula WebSocket Demo</title>'
+
+UI_EVIDENCE="$E2E_CASE_DIR/websocket-ui.json"
+UI_SCREENSHOT="$E2E_CASE_DIR/websocket-ui.png"
+run_checked "浏览器完成连接和发送消息" \
+    sh -c "node '$FRONTEND_DIR/e2e-ui.mjs' 'http://localhost:$FRONTEND_PORT' '$UI_SCREENSHOT' > '$UI_EVIDENCE'"
+run_checked "浏览器流程结果完整" \
+    jq -e '.connected == true and .messageDelivered == true' "$UI_EVIDENCE"
+assert_file_exists "浏览器截图证据已保存" "$UI_SCREENSHOT"
 
 print_summary "websocket-example"

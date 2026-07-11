@@ -12,6 +12,11 @@ spring:
 nebula:
   security:
     enabled: false
+  data:
+    persistence:
+      enabled: false
+    cache:
+      enabled: false
   websocket:
     enabled: true
     endpoint: /ws
@@ -20,8 +25,8 @@ nebula:
     sock-js-enabled: false
     heartbeat:
       enabled: true
-      interval-seconds: 30
-      timeout-seconds: 60
+      interval-seconds: ${WEBSOCKET_HEARTBEAT_INTERVAL:30}
+      timeout-seconds: ${WEBSOCKET_HEARTBEAT_TIMEOUT:60}
     cluster:
       enabled: false
   web:

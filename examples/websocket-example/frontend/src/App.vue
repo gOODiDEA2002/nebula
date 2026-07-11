@@ -71,7 +71,8 @@ let ws = null
 
 function connect() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const wsUrl = `${protocol}//${location.host}/ws`
+  const userId = encodeURIComponent(nickname.value.trim() || 'anonymous')
+  const wsUrl = `${protocol}//${location.host}/ws?userId=${userId}`
 
   ws = new WebSocket(wsUrl)
 

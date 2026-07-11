@@ -18,12 +18,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
+import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.util.Collections;
 import java.util.List;
@@ -44,6 +46,7 @@ public class WebSocketAutoConfiguration implements WebSocketConfigurer {
     private final WebSocketProperties properties;
     private final List<WebSocketEventHandler> eventHandlers;
     private final List<WebSocketMessageHandler<?>> messageHandlers;
+    private final ObjectProvider<HandshakeInterceptor> handshakeInterceptors;
 
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
@@ -117,6 +120,12 @@ public class WebSocketAutoConfiguration implements WebSocketConfigurer {
                 .addHandler(handler, properties.getEndpoint())
                 .setAllowedOrigins(properties.getAllowedOrigins());
 
+        HandshakeInterceptor[] interceptors = handshakeInterceptors.orderedStream()
+                .toArray(HandshakeInterceptor[]::new);
+        if (interceptors.length > 0) {
+            registration.addInterceptors(interceptors);
+        }
+
         if (properties.isSockJsEnabled()) {
             registration.withSockJS();
         }
@@ -181,4 +190,3 @@ public class WebSocketAutoConfiguration implements WebSocketConfigurer {
         }
     }
 }
-
