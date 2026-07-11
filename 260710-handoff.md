@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 22:33 +08
+> 最后更新：2026-07-12 07:35 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -17,8 +17,8 @@
 - Task 3：API 契约 5/5、Minimal 3/3、Web 6/6 通过。Web 最终证据位于
   `target/example-e2e/20260710-211018-27839/`。
 - Task 4：Service 16/16、All 7/7 通过；HTTP RPC、Redis Lock、失败路径和零依赖模式均有直接证据。
-- Task 5 可执行部分：AI 禁用模式、启用时三项 Bean、依赖传递、`/v1` 地址、零重试和资源清理已验证。
-  当前测试账号返回 OpenAI 429 quota，真实聊天、embedding 和 Chroma 读写仍为 `BLOCKED`。
+- Task 5：Starter AI 19/19 通过；禁用模式、Hy3 真实聊天、1024 维 embedding、Chroma 写入、
+  相似度查询、删除复核和资源清理均有真实证据。
 - Task 6：异步 RPC 38/38 通过；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复
   均有真实证据，临时记录、实例和端口已清理。
 - Task 7：微服务 34/34 通过；两个契约 JAR、User REST CRUD、HTTP RPC、gRPC、Nacos metadata、
@@ -29,16 +29,17 @@
   多级缓存与实际 SQL 路由均有真实证据。
 - Task 10：Fullstack 93/93 通过；RabbitMQ、Elasticsearch、MinIO、Task、支付、通知和 Web 通用能力
   均有真实证据，5 个进程和全部临时资源已清理。
-- Task 11 可执行部分：119 PASS、0 FAIL、0 SKIP、1 BLOCKED。RPC 发现调用、Fullstack gRPC Echo 和
-  MCP 四类操作通过；OpenAI 429 quota 仍阻塞 AI、向量存储和 RAG 完整流程。
+- Task 11：Fullstack 125/125 通过；RPC 发现调用、gRPC Echo、MCP 四类操作、Hy3、Chroma 和
+  RAG 完整流程均有真实证据。
 - Task 12：Crawler 17/17 通过；受控 HTTP 页面、Playwright WebSocket、JS 渲染 DOM、截图和
   全部临时资源清理均有真实证据。
 - Task 13：WebSocket 19/19 通过；REST、双客户端、定向发送、心跳、前端构建、Playwright 和
   应用内浏览器均有真实证据。
 - Task 14 可执行部分：11 PASS、0 FAIL、0 SKIP、1 BLOCKED；隔离客户端通过，真实 Vocoor 提供方不可达。
 - Task 15：示例文档与配置统一完成；187 个活动链接 0 失效，15 份 Fullstack 旧手册已归档。
-- Task 16 可执行部分：Maven 合计 928 tests、0 failures、0 errors、3 skips；最终 Full E2E
-  13 组为 10 PASS、0 FAIL、0 SKIP、3 BLOCKED。两个前端、浏览器、Shell、链接和资源审计通过。
+- Task 16 可执行部分：Maven 合计 928 tests、0 failures、0 errors、3 skips；上一轮 Full E2E
+  13 组为 10 PASS、0 FAIL、0 SKIP、3 BLOCKED。AI 的两个阻塞已通过定向复跑解除；两个前端、
+  浏览器、Shell、链接和资源审计通过。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -71,6 +72,8 @@
   - `d24280c0 docs(examples): 统一运行说明并归档旧手册`
   - `64eae1c3 docs(validation): 完成示例文档统一`
   - `f3f659d5 fix(examples): 隔离聚合回归中间件资源`
+  - `a5bf255a docs(validation): 记录最终全量回归结果`
+  - `98c01efc fix(ai): 切换示例至 Hy3 兼容模型`
 
 ## 关键上下文
 
@@ -95,8 +98,10 @@
 - Task 10 最终证据位于 `target/example-e2e/20260711-124401-71092/`，结果为 93 PASS、0 FAIL、
   0 SKIP、0 BLOCKED。Web 核心、缓存、限流、认证和性能配置器不再因同类型 Bean 条件互相排斥。
 - MinIO 对象列表现在递归返回前缀下的实际对象，并兼容没有修改时间的目录项。RabbitMQ 生产者统计已改为真实计数。
-- Task 11 当前证据位于 `target/example-e2e/20260711-130632-40522/`。Fullstack 显式选择 optional gRPC
-  实现，2100 端口 Echo 和发现客户端到 User 2101 的调用均通过；MCP 四类操作全部通过。
+- Task 5 最终证据位于 `target/example-e2e/20260712-072205-15624/`，结果为 19 PASS、0 FAIL、
+  0 SKIP、0 BLOCKED。Hy3 聊天、1024 维 embedding 和 Chroma 全流程均通过。
+- Task 11 最终证据位于 `target/example-e2e/20260712-072229-16825/`，结果为 125 PASS、0 FAIL、
+  0 SKIP、0 BLOCKED。Fullstack gRPC、发现客户端、MCP、Hy3、Chroma 和 RAG 均通过。
 - Task 12 最终证据位于 `target/example-e2e/20260711-142401-29430/`，结果为 17 PASS、0 FAIL、
   0 SKIP、0 BLOCKED。Playwright Server 和 Java 客户端均为 1.41.0，使用 WebSocket 而非 CDP。
 - `CrawlerResponse.asDocument()` 现在以 `finalUrl` 或原始 `url` 作为 Jsoup base URI，相对链接可正确
@@ -105,8 +110,8 @@
   0 SKIP、0 BLOCKED。前端锁文件已提交，干净克隆可直接运行 `npm ci`。
 - Spring WebSocket 会话现在优先使用认证 Principal，并允许应用通过 HandshakeInterceptor 提供身份属性。
   示例查询参数只用于展示按用户发送，不应作为生产认证方案。
-- Task 16 最终 Full 证据位于 `target/example-e2e/20260711-222120-72573/`。预检 10/10，
-  所有 13 组均有结果；两个 AI 组因同一 OpenAI 429 quota 阻塞，OAuth 因 Vocoor 不可达阻塞。
+- Task 16 上一轮 Full 证据位于 `target/example-e2e/20260711-222120-72573/`。预检 10/10，
+  所有 13 组均有结果；当时两个 AI 组和 OAuth 阻塞。AI 已于 2026-07-12 定向复跑通过。
 - 聚合总入口不再保留预检的 MySQL/Elasticsearch 容器，避免与 Fullstack/OAuth 独立栈
   抢占 13306/19200。Nacos 临时服务名回收窗口已覆盖延迟断开和 60 秒清理周期。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
@@ -114,24 +119,23 @@
 
 ## 未完成
 
-- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 尚缺隔离的 Vocoor 提供方。
-- Task 16 的可执行检查已完成，但因 Full E2E 仍有 3 BLOCKED 不能勾选。外部条件恢复后
-  复跑 Task 5、Task 11、Task 14 和最终 Full E2E。
+- Task 14 尚缺隔离的 Vocoor 提供方。
+- Task 16 的可执行检查已完成，但最终 Full 汇总尚未在 AI 阻塞解除后重跑。Task 14 完成后需再次
+  执行 13 组 Full E2E，取得 0 FAIL、0 SKIP、0 BLOCKED 才能勾选。
 - OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 确认有额度的 OpenAI 测试密钥和可隔离的 Vocoor 提供方已可用。
-3. 复跑 Task 5 和 Task 11，完成聊天、embedding、Chroma 写入/查询/删除和 RAG。
-4. 复跑 Task 14，完成真实 OAuth 授权码、绑定、JWT 会话、退出和浏览器流程。
-5. 再运行最终 Full E2E；只有 0 FAIL、0 SKIP、0 BLOCKED 才能勾选 Task 16 并完成 Goal。
+2. 确认可隔离的 Vocoor 提供方已可用。
+3. 复跑 Task 14，完成真实 OAuth 授权码、绑定、JWT 会话、退出和浏览器流程。
+4. 再运行最终 Full E2E；只有 0 FAIL、0 SKIP、0 BLOCKED 才能勾选 Task 16 并完成 Goal。
 
 ## 风险与约束
 
 - Vocoor OAuth 提供方 `localhost:8080` 当前不可达，后续需要可用提供方及已轮换的测试凭据。
-- 当前 `OPENAI_API_KEY` 对正确的 `/v1` 地址返回 429 quota，需要有额度的测试账号才能完成 Task 5。
+- Hy3 密钥只允许从 `vocoor_hy3_token` 注入；不得打印、写入 Git 或复制到测试证据。
 - Crawler 和 WebSocket 浏览器流程已通过；OAuth 前端浏览器流程仍待验证。
 - XXL-JOB 镜像健康检查缺少 `curl`，但宿主机 HTTP 探针返回 302；启用该模块时应使用镜像支持的探针。
 - 任何密钥、Token 和密码只能通过环境变量注入，不能写入 Git 或测试证据。
@@ -144,5 +148,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，先核对 OpenAI 配额和隔离 Vocoor 提供方，
-再复跑 Task 5、Task 11、Task 14 和最终 Full E2E。
+确认工作区与最新阶段提交一致后，先核对隔离 Vocoor 提供方，再复跑 Task 14 和最终 Full E2E。

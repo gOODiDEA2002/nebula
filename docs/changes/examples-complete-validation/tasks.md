@@ -100,7 +100,7 @@
 
 - **目标**：同时证明无密钥可启动和有密钥可真实调用，不能只验证降级文案。
 - **涉及文件**：
-  - `examples/starter-ai-example/application.yml`
+  - `examples/starter-ai-example/src/main/resources/application.yml`
   - `examples/starter-ai-example/e2e-test.sh`
   - `examples/starter-ai-example/README.md`
 - **实施要求**：
@@ -109,9 +109,10 @@
   3. 核对 Chroma 地址与 `nebula-data` 的 9002 映射，执行一次 embedding、写入、相似度查询和清理。
   4. 记录调用次数，不记录密钥和完整敏感响应。
 - **验收标准**：禁用模式和启用模式都 PASS，Chroma 临时 collection 已删除。
-- **当前状态**：禁用模式、启用时 Bean 创建、依赖传递和清理已验证；测试账号返回 OpenAI 429
-  quota 错误，真实聊天、embedding 和 Chroma 读写暂记 `BLOCKED`。待提供有额度的测试密钥后复跑。
-- [ ] 完成
+- **最终证据**：`target/example-e2e/20260712-072205-15624/`，19 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED。禁用模式未创建远程 AI Bean；启用模式使用 Hy3 兼容 API 完成真实聊天、1024 维
+  embedding、Chroma 写入、相似度查询和删除复核，临时 collection 与端口均已清理。
+- [x] 完成
 
 ## Task 6：验证异步 RPC
 
@@ -211,9 +212,8 @@
 - **目标**：验证综合应用中最容易被默认配置掩盖的远程能力。
 - **涉及文件**：
   - `examples/fullstack-example/e2e-test.sh`
-  - `examples/fullstack-example/application.yml`
-  - `examples/fullstack-example/docs/nebula-ai-test.md`
-  - `examples/fullstack-example/docs/nebula-mcp-test.md`
+  - `examples/fullstack-example/src/main/resources/application.yml`
+  - `examples/fullstack-example/README.md`
 - **验证步骤**：
   1. 删除或修正已经不存在的 HTTP RPC 配置字段。
   2. 核对 HTTP RPC Server 当前关闭是否符合控制器设计；验证发现客户端和 gRPC Server。
@@ -221,10 +221,10 @@
   4. 验证 MCP tools 列表、工具调用、resources 列表和资源读取。
   5. 限制外部 AI 请求数量并清理 Chroma collection。
 - **验收标准**：RPC、AI、Vector Store 和 MCP 均有真实成功响应，0 SKIP。
-- **当前证据**：`target/example-e2e/20260711-130632-40522/`，119 PASS、0 FAIL、0 SKIP、
-  1 BLOCKED。发现客户端、Fullstack gRPC Server 和 MCP 四类操作均通过；OpenAI 测试账号仍返回
-  429 quota，聊天、embedding、Chroma 文档流程和 RAG 尚待有额度密钥复跑，因此本任务保持未完成。
-- [ ] 完成
+- **最终证据**：`target/example-e2e/20260712-072229-16825/`，125 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED。发现客户端、Fullstack gRPC Server、MCP tools/resources、Hy3 真实聊天、1024 维
+  embedding、Chroma 文档写入/查询/删除和 RAG 均通过；端口、进程和临时资源已清理。
+- [x] 完成
 
 ## Task 12：验证 HTTP 和 Browser Crawler
 
@@ -319,10 +319,11 @@
   - E2E 汇总为 0 FAIL、0 SKIP、0 BLOCKED。
   - `results.md` 中每一项都有命令、状态和证据，宽泛结论有同等范围的验证支撑。
   - 所有修复使用 Conventional Commits；未明确要求时不推送。
-- **当前结果**：根 Reactor 923 项全通过，Crawler 5 项中 3 项条件跳过；最终 Full E2E
+- **当前结果**：根 Reactor 923 项全通过，Crawler 5 项中 3 项条件跳过；上一轮 Full E2E
   13 组为 10 PASS、0 FAIL、0 SKIP、3 BLOCKED，证据为
   `target/example-e2e/20260711-222120-72573/`。两个前端、31 个 Shell、187 个活动链接和资源清理
-  均通过。OpenAI 配额产生 2 个 BLOCKED，Vocoor 提供方产生 1 个 BLOCKED，因此未达到完成门禁。
+  均通过。Task 5 和 Task 11 已通过 Hy3 定向复跑消除两个 AI 阻塞；当前只剩 Task 14 的真实
+  Vocoor 提供方阻塞，最终 13 组 Full 汇总需在 Task 14 完成后重新执行。
 - [ ] 完成
 
 ## 变更摘要

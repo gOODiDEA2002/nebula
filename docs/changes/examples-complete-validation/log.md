@@ -56,6 +56,9 @@
 | 2026-07-11 | verify | 执行 Task 16 干净全量回归 | Maven 合计 928 tests、0 失败、3 跳过；首轮 Full 暴露聚合资源冲突 |
 | 2026-07-11 | apply | 修复聚合预检的 Nacos 等待和 Compose 生命周期 | 扩大空服务回收窗口，预检通过后立即删除隔离栈 |
 | 2026-07-11 | verify | Task 16 可执行检查完成 | 最终 13 组为 10 PASS、0 FAIL、0 SKIP、3 BLOCKED；前端、Shell、链接和资源清理通过 |
+| 2026-07-12 | research | 核对 Hy3 的 OpenAI 兼容能力 | `hy3` 聊天和 `kinfra-text-embedding-0.6b` embedding 均真实返回 200；embedding 维度为 1024 |
+| 2026-07-12 | apply | 将活动 AI 示例切换到腾讯 MaaS | 密钥仅从 `vocoor_hy3_token` 注入；Spring AI embedding 固定使用兼容接口支持的 `float` 编码 |
+| 2026-07-12 | verify | 完成 Task 5 和 Task 11 | Starter AI 19/19、Fullstack 125/125；Hy3、Chroma、RAG、MCP、端口和临时资源全部通过 |
 
 ## 技术决策
 
@@ -73,6 +76,8 @@
 | All 默认模式 | 显式关闭所有需要外部服务或独立运行组件的模块 | 依赖 Starter 默认值或只关闭部分模块 | README 承诺零外部依赖，配置必须完整覆盖 Starter 的启用默认值 |
 | AI 实现依赖 | `nebula-ai-spring` 传递 OpenAI 和 Chroma 两个必需实现 | 在每个示例中重复声明依赖 | AI 自动配置直接引用两者，缺少任一依赖都会使 Starter 静默失效 |
 | AI 外部请求 | 示例通过 `max-retries=0` 禁用 SDK 自动重试 | 使用 SDK 默认重试次数 | 完整验证应限制费用，外部额度不足时首次失败后立即停止 |
+| AI 兼容模型 | 默认使用腾讯 MaaS 的 `hy3` 和 `kinfra-text-embedding-0.6b` | 继续等待原 OpenAI 测试账号额度 | 两个模型均已通过真实接口验证，可解除 Task 5 和 Task 11 的外部额度阻塞 |
+| Embedding 编码 | OpenAI 兼容请求显式使用 `float` | 沿用 SDK 默认的 `base64` | 腾讯 MaaS embedding 接口接受 `float`，默认 `base64` 会返回 400 |
 | 异步取消 | 执行线程开跑前复核持久化状态，仅跳过明确的 `CANCELLED` | 从线程池移除任务或把暂时查不到记录视为取消 | 当前执行器不暴露队列句柄；Nacos 发布后存在短暂读取窗口，空结果不能证明任务已删除 |
 | 取消 E2E | 测试时用环境变量临时设置单线程执行器 | 把示例默认线程池永久改为单线程 | 单线程可稳定制造排队，正常示例仍保留 10/50/200 的吞吐配置 |
 | 微服务 gRPC 端口 | 使用 `spring.grpc.server.port`，Nacos metadata 读取同一值 | 继续依赖旧 `grpc.server.port` 和桥接键 | 当前 Spring gRPC 服务器以 `spring.grpc.server.*` 为权威配置 |
@@ -107,7 +112,8 @@
 | HTTP RPC Server 端口固定为 8080 | `ServerConfig.port` 注释说默认跟随 `server.port`，字段却写死为 8080 | 保留 `int` API 并以 0 表示未配置；默认跟随应用端口，显式值优先，并补两条回归测试 | [x] |
 | AI Starter 启用后仍返回 disabled | OpenAI 和 Chroma Starter 被 `nebula-ai-spring` 标记为 optional，没有传递到应用 | 两个核心实现改为必需依赖，MCP 和 Ollama 等扩展仍保持可选 | [x] |
 | OpenAI 请求统一返回 404 | OpenAI Java SDK 4.39.1 需要包含 `/v1` 的基础地址 | 默认值和活动示例改为 `https://api.openai.com/v1`，并补默认值测试 | [x] |
-| OpenAI 测试账号返回 429 | 当前环境变量中的测试账号没有可用额度 | 记录 `BLOCKED`，零重试并在首次失败后停止；不把阻塞折算为通过 | [ ] |
+| OpenAI 测试账号返回 429 | 当前环境变量中的测试账号没有可用额度 | 活动示例切换到已验证的 Hy3 兼容 API，保留零重试和严格失败规则 | [x] |
+| Hy3 embedding 返回 400 | Spring AI SDK 默认发送 `encoding_format=base64`，兼容接口只接受 `float` | 自动配置显式设置 `OpenAiEmbeddingOptions.EncodingFormat.FLOAT` 并补回归测试 | [x] |
 | 异步任务取消后仍被执行 | 执行线程无条件把状态更新为 `RUNNING` | 开跑前读取状态，明确为 `CANCELLED` 时直接返回，并验证服务端没有收到请求 | [x] |
 | Nacos 刚发布的配置短暂读不到 | 发布成功与本客户端读取可见之间存在数毫秒窗口 | 只有明确读到 `CANCELLED` 才跳过；空结果沿用正常执行路径，并补回归测试 | [x] |
 | User 更新接口按 README 调用仍返回 400 | DTO 的 `id` 在方法执行前校验非空，但 Controller 和 RPC 都从独立参数设置 ID | 移除请求体 ID 的非空约束，以路径或 RPC 参数为唯一来源 | [x] |

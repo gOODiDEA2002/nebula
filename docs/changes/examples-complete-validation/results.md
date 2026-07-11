@@ -89,12 +89,12 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `starter-api-example` | 契约 JAR | PASS | JAR 包含 `UserApi.class`，运行时依赖树不含 Web Server；5/5 PASS；提供方和消费方的跨服务使用留在 Task 7 |
 | `starter-web-example` | Web 应用 | PASS | `/hello`、健康、性能和 OpenAPI 均返回严格预期，日志干净且 8080 已释放；6/6 PASS |
 | `starter-service-example` | Service 应用 | PASS | 16/16 PASS；三个 GET、通用 HTTP RPC、Redis Lock、模块开关和 Redis 失败路径均通过 |
-| `starter-ai-example` | AI 应用 | BLOCKED | 禁用模式与 AI Bean 创建通过；真实 OpenAI 调用因测试账号 429 quota 阻塞，首次失败后已停止并清理 |
+| `starter-ai-example` | AI 应用 | PASS | 19/19 PASS；禁用模式、Hy3 真实聊天、1024 维 embedding、Chroma 写入/查询/删除和清理均通过 |
 | `starter-all-example` | All 应用 | PASS | 零外部依赖模式 7/7 PASS；Hello、健康、性能、OpenAPI 和禁用模块日志均符合预期 |
 | `rpc-async-example` | Service、Client | PASS | 38/38 PASS；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复均通过 |
 | `microservice-example` | User、Order | PASS | 34/34 PASS；REST CRUD、HTTP RPC、gRPC、Nacos metadata 和 Order 到 User 跨服务调用均通过 |
 | `gateway-example` | Gateway | PASS | 23/23 PASS；真实代理、无 Token 401、有效 JWT、Redis 429 和令牌恢复均通过 |
-| `fullstack-example` | Fullstack 应用 | BLOCKED | Task 11 当前 119 PASS、0 FAIL、0 SKIP、1 BLOCKED；RPC/gRPC/MCP 通过，OpenAI 账号 quota 阻塞 AI 与向量流程 |
+| `fullstack-example` | Fullstack 应用 | PASS | Task 11 为 125/125 PASS；RPC、gRPC、MCP、Hy3、Chroma 和 RAG 均有真实成功响应 |
 | `crawler-example` | Crawler、Browser | PASS | 17/17 PASS；受控 HTTP 页面、Playwright WebSocket、JS 渲染 DOM、截图和清理均通过 |
 | `websocket-example` | Backend、Frontend | PASS | 19/19 PASS；REST、双客户端协议、前端构建、Playwright 和应用内浏览器流程通过 |
 | `oauth-example` | Backend、Frontend、OAuth 提供方 | BLOCKED | 11 PASS、0 FAIL、0 SKIP、1 BLOCKED；隔离客户端通过，真实提供方不可达 |
@@ -141,15 +141,15 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 
 ## 11. Task 5 复核记录
 
-- 当前最终证据：`target/example-e2e/20260711-065908-67620/`，结果为 12 PASS、0 FAIL、0 SKIP、
-  1 BLOCKED，退出码为 2。
+- 最终证据：`target/example-e2e/20260712-072205-15624/`，结果为 19 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。
 - 无密钥禁用模式严格返回 `AI disabled`，`ChatService`、`EmbeddingService`、`VectorStoreService`
   均未创建，日志没有 OpenAI 或 Chroma 客户端初始化记录。
 - AI 启用模式已证明三项服务 Bean 全部创建。运行时依赖树确认
   `nebula-ai-spring` 传递 Spring AI 2.0 的 OpenAI 和 Chroma Starter。
-- OpenAI Java SDK 4.39.1 的生产基础地址需要 `/v1`。修正后错误由 404 变为 429 quota，证明请求已到达
-  正确 API，但当前测试账号没有可用额度，真实聊天和 embedding 尚不能标记为 PASS。
-- 示例将聊天和 embedding 的 `max-retries` 设为 0。额度错误后只执行 1 个测试动作，不再继续向量写入和查询。
+- 示例改用腾讯 MaaS 的 OpenAI 兼容入口，默认聊天模型为 `hy3`，embedding 模型为
+  `kinfra-text-embedding-0.6b`。Spring AI embedding 请求显式使用 `float` 编码，兼容接口返回 1024 维向量。
+- 真实流程完成聊天、显式 embedding、Chroma 文档写入、相似度查询与删除复核，外部模型请求数符合限制。
 - 清理复核：8083 和 18083 均已释放；Chroma 中 `nebula_e2e_ai_` 临时 collection 数量为 0；
   应用日志没有出现 API Key。
 
@@ -225,16 +225,16 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 
 ## 17. Task 11 复核记录
 
-- 当前证据：`target/example-e2e/20260711-130632-40522/`，结果为 119 PASS、0 FAIL、0 SKIP、
-  1 BLOCKED，退出码为 2。Task 9 和 Task 10 的 93 项既有验证在同一轮继续通过。
+- 最终证据：`target/example-e2e/20260712-072229-16825/`，结果为 125 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。Task 9 和 Task 10 的 93 项既有验证在同一轮继续通过。
 - Fullstack 保持 HTTP RPC Server 关闭，通过 `user-api` 自动配置注册声明式客户端。真实 User Provider
   注册到 Nacos 后，Fullstack 根据 `grpcPort=2101` metadata 完成 User gRPC 查询；两端日志包含同一请求。
 - Fullstack 显式选择 `nebula-rpc-grpc`，在 2100 端口注册 `FullstackEchoRpcService`。`grpcurl` 调用返回
   `fullstack:nebula_e2e_echo`，证明 gRPC Server 不是只监听端口。
 - MCP 使用短期 HS256 JWT 完成 tools 列表、`get_weather` 工具调用、resources 列表和文档资源读取。
   配置已迁移到 `protocol` 和 `streamable-http.mcp-endpoint`，工具与资源按 AI/MCP 双开关注册。
-- AI 配置统一改由 OpenAI 和 Chroma 环境变量注入，模型重试为 0。真实聊天首次请求仍返回 429 quota，
-  脚本立即停止后续 embedding、文档、搜索和 RAG 请求，模型请求计数为 1，日志未出现 API Key。
+- AI 配置通过环境变量注入 Hy3 兼容 API 和 Chroma 参数，模型重试为 0。真实聊天、embedding、
+  文档写入、相似度搜索、RAG 问答和删除复核全部通过，日志未出现 API Key。
 - 清理复核：User 与 Fullstack Nacos 实例、Chroma 临时 collection、Redis 14 号库、隔离容器与卷均为 0；
   1000、1101、2100、2101、13306、19200 端口和 7 个受管进程均已释放。
 
@@ -289,9 +289,11 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 - `mvn clean test` 的 70 个 Reactor 模块全部成功；131 份 Surefire XML 汇总为
   923 tests、0 failures、0 errors、0 skips。独立 Crawler Reactor 为 5 tests、0 failures、0 errors、
   3 skips，两者合计 928 tests、0 failures、0 errors、3 skips。
-- 最终 Full 证据为 `target/example-e2e/20260711-222120-72573/`；13 组全部执行，汇总为
+- 上一轮 Full 证据为 `target/example-e2e/20260711-222120-72573/`；13 组全部执行，汇总为
   10 PASS、0 FAIL、0 SKIP、3 BLOCKED。Starter AI 和 Fullstack AI 均因 OpenAI 429 quota 阻塞，
   OAuth 因真实 Vocoor 提供方不可达阻塞；三项均未折算为通过。
+- 2026-07-12 已分别用 Hy3 完成 Task 5 与 Task 11 定向复跑，结果为 19/19 和 125/125，
+  两个 AI 阻塞均已解除。该结果尚未替代 13 组聚合证据，最终 Full 汇总仍需在 Task 14 完成后重跑。
 - 首轮聚合回归暴露两个总入口缺陷：Nacos 空临时服务的异步回收可超过 95 秒；
   预检保留的 MySQL/Elasticsearch 与 Fullstack、OAuth 的独立 Compose 栈抢占 13306/19200。
   修复后预检等待完整回收窗口并立即删除自身容器，定向聚合和最终全量均为 0 FAIL。
@@ -300,5 +302,5 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 - 31 个 Shell 脚本 `bash -n`、`git diff --check` 和 187 个活动 Markdown 本地链接全部通过。
   23 个测试端口、临时容器/卷、Redis 14/15 号库、Chroma collection、Nacos 服务、
   RabbitMQ vhost 和 MinIO Bucket 残留均为 0，API 契约 JAR 存在。
-- Task 16 尚未完成：完成门禁要求 Full E2E 为 0 BLOCKED，需在 OpenAI 配额和隔离
-  Vocoor 提供方可用后重跑 Task 5、Task 11、Task 14 及最终 Full 汇总。
+- Task 5 和 Task 11 已通过 Hy3 定向复跑；Task 16 尚未完成，因为完成门禁要求最终 Full E2E
+  为 0 BLOCKED。待隔离 Vocoor 提供方可用后重跑 Task 14 及最终 Full 汇总。
