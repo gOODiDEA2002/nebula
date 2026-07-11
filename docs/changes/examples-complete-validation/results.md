@@ -283,3 +283,22 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   Web Server；gRPC 权威端口键为 `spring.grpc.server.port`。
 - 抽样执行 Starter API 打包和 Fullstack 测试，Crawler Compose 可解析；全部 E2E Shell 语法通过，
   活动 Markdown 本地链接检查为 187 个、0 失效。
+
+## 22. Task 16 复核记录
+
+- `mvn clean test` 的 70 个 Reactor 模块全部成功；131 份 Surefire XML 汇总为
+  923 tests、0 failures、0 errors、0 skips。独立 Crawler Reactor 为 5 tests、0 failures、0 errors、
+  3 skips，两者合计 928 tests、0 failures、0 errors、3 skips。
+- 最终 Full 证据为 `target/example-e2e/20260711-222120-72573/`；13 组全部执行，汇总为
+  10 PASS、0 FAIL、0 SKIP、3 BLOCKED。Starter AI 和 Fullstack AI 均因 OpenAI 429 quota 阻塞，
+  OAuth 因真实 Vocoor 提供方不可达阻塞；三项均未折算为通过。
+- 首轮聚合回归暴露两个总入口缺陷：Nacos 空临时服务的异步回收可超过 95 秒；
+  预检保留的 MySQL/Elasticsearch 与 Fullstack、OAuth 的独立 Compose 栈抢占 13306/19200。
+  修复后预检等待完整回收窗口并立即删除自身容器，定向聚合和最终全量均为 0 FAIL。
+- WebSocket 和 OAuth 前端分别独立执行 `npm ci` 和生产构建并通过；WebSocket
+  Playwright 浏览器流程在最终 Full 轮通过。OAuth 仅有既有 Sass API 弃用和大 chunk 警告。
+- 31 个 Shell 脚本 `bash -n`、`git diff --check` 和 187 个活动 Markdown 本地链接全部通过。
+  23 个测试端口、临时容器/卷、Redis 14/15 号库、Chroma collection、Nacos 服务、
+  RabbitMQ vhost 和 MinIO Bucket 残留均为 0，API 契约 JAR 存在。
+- Task 16 尚未完成：完成门禁要求 Full E2E 为 0 BLOCKED，需在 OpenAI 配额和隔离
+  Vocoor 提供方可用后重跑 Task 5、Task 11、Task 14 及最终 Full 汇总。

@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 15:10 +08
+> 最后更新：2026-07-11 22:33 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -37,6 +37,8 @@
   应用内浏览器均有真实证据。
 - Task 14 可执行部分：11 PASS、0 FAIL、0 SKIP、1 BLOCKED；隔离客户端通过，真实 Vocoor 提供方不可达。
 - Task 15：示例文档与配置统一完成；187 个活动链接 0 失效，15 份 Fullstack 旧手册已归档。
+- Task 16 可执行部分：Maven 合计 928 tests、0 failures、0 errors、3 skips；最终 Full E2E
+  13 组为 10 PASS、0 FAIL、0 SKIP、3 BLOCKED。两个前端、浏览器、Shell、链接和资源审计通过。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -67,6 +69,8 @@
   - `303e20a6 docs(validation): 记录 OAuth 隔离验证`
   - `1e4df82a docs(examples): 对齐 OAuth 与 Starter 说明`
   - `d24280c0 docs(examples): 统一运行说明并归档旧手册`
+  - `64eae1c3 docs(validation): 完成示例文档统一`
+  - `f3f659d5 fix(examples): 隔离聚合回归中间件资源`
 
 ## 关键上下文
 
@@ -101,23 +105,28 @@
   0 SKIP、0 BLOCKED。前端锁文件已提交，干净克隆可直接运行 `npm ci`。
 - Spring WebSocket 会话现在优先使用认证 Principal，并允许应用通过 HandshakeInterceptor 提供身份属性。
   示例查询参数只用于展示按用户发送，不应作为生产认证方案。
+- Task 16 最终 Full 证据位于 `target/example-e2e/20260711-222120-72573/`。预检 10/10，
+  所有 13 组均有结果；两个 AI 组因同一 OpenAI 429 quota 阻塞，OAuth 因 Vocoor 不可达阻塞。
+- 聚合总入口不再保留预检的 MySQL/Elasticsearch 容器，避免与 Fullstack/OAuth 独立栈
+  抢占 13306/19200。Nacos 临时服务名回收窗口已覆盖延迟断开和 60 秒清理周期。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 尚缺隔离的 Vocoor 提供方，Task 16 待执行。
-- 下一阶段执行 Task 16 全量回归；外部条件恢复后复跑 Task 5、Task 11 和 Task 14 Full E2E。
+- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 尚缺隔离的 Vocoor 提供方。
+- Task 16 的可执行检查已完成，但因 Full E2E 仍有 3 BLOCKED 不能勾选。外部条件恢复后
+  复跑 Task 5、Task 11、Task 14 和最终 Full E2E。
 - OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 执行 Task 16 的 Maven、Crawler、前端、Shell、链接和清理审计。
-3. 运行 Full E2E，保留三个外部阻塞的真实结果，不得把 BLOCKED 改写为 PASS。
-4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
-5. 继续 Task 11 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
+2. 确认有额度的 OpenAI 测试密钥和可隔离的 Vocoor 提供方已可用。
+3. 复跑 Task 5 和 Task 11，完成聊天、embedding、Chroma 写入/查询/删除和 RAG。
+4. 复跑 Task 14，完成真实 OAuth 授权码、绑定、JWT 会话、退出和浏览器流程。
+5. 再运行最终 Full E2E；只有 0 FAIL、0 SKIP、0 BLOCKED 才能勾选 Task 16 并完成 Goal。
 
 ## 风险与约束
 
@@ -135,4 +144,5 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 16 开始；Task 5、Task 11 和 Task 14 在外部条件恢复后复跑。
+确认工作区与最新阶段提交一致后，先核对 OpenAI 配额和隔离 Vocoor 提供方，
+再复跑 Task 5、Task 11、Task 14 和最终 Full E2E。

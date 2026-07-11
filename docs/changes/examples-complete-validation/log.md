@@ -53,6 +53,9 @@
 | 2026-07-11 | research | 活动示例文档仍保留两套 Fullstack 验证口径 | 15 份旧手册共 7763 行，包含旧端口、旧配置键、固定业务地址和已删除端点 |
 | 2026-07-11 | apply | 统一示例说明并归档 Fullstack 历史手册 | 重写 Fullstack README，补齐每个 README 的依赖、启动和 E2E 入口，修正跨模块链接 |
 | 2026-07-11 | verify | 完成 Task 15 文档与配置核对 | 契约 JAR、Fullstack 测试、Compose、Shell 和 187 个活动链接全部通过 |
+| 2026-07-11 | verify | 执行 Task 16 干净全量回归 | Maven 合计 928 tests、0 失败、3 跳过；首轮 Full 暴露聚合资源冲突 |
+| 2026-07-11 | apply | 修复聚合预检的 Nacos 等待和 Compose 生命周期 | 扩大空服务回收窗口，预检通过后立即删除隔离栈 |
+| 2026-07-11 | verify | Task 16 可执行检查完成 | 最终 13 组为 10 PASS、0 FAIL、0 SKIP、3 BLOCKED；前端、Shell、链接和资源清理通过 |
 
 ## 技术决策
 
@@ -98,6 +101,7 @@
 | Web Starter 示例无法默认启动 | Starter 默认值开启 persistence，示例没有 `primary` 数据源 | Task 3 核对 Starter 定位后修正示例配置并补运行验证 | [x] |
 | Chroma 删除返回假阳性 | 1.0.0 的 DELETE 实际使用 collection 名称，OpenAPI 参数说明写成 UUID | 按名称删除，并再次列出 collection 确认 0 条 | [x] |
 | Nacos 注销后服务名短暂保留 | 空临时服务默认每 60 秒清理一次 | 先确认实例数为 0，再轮询到服务名消失 | [x] |
+| 预检通过后 Fullstack/OAuth 抢占容器端口 | 总入口保留预检 MySQL/Elasticsearch，各组又创建独立栈 | 预检完成后立即删除它的容器和卷 | [x] |
 | Web OpenAPI 出现 `NoSuchMethodError` | 独立示例使用了本地仓库中带 Springdoc 2.2.0 的旧 SNAPSHOT，而当前源码已升级到 3.0.3 | Full 模式运行示例前执行当前框架 `mvn install -DskipTests`，并允许后续阶段显式复用已安装产物 | [x] |
 | Service 启用 HTTP RPC 后缺类 | `HttpRpcAutoConfiguration` 使用 HttpClient 5，但依赖只存在于 optional 自动配置依赖中 | 在 `nebula-rpc-http` 声明必需依赖，由实现模块向使用方传递 | [x] |
 | HTTP RPC Server 端口固定为 8080 | `ServerConfig.port` 注释说默认跟随 `server.port`，字段却写死为 8080 | 保留 `int` API 并以 0 表示未配置；默认跟随应用端口，显式值优先，并补两条回归测试 | [x] |

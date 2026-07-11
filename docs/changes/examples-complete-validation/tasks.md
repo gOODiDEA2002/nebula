@@ -319,6 +319,10 @@
   - E2E 汇总为 0 FAIL、0 SKIP、0 BLOCKED。
   - `results.md` 中每一项都有命令、状态和证据，宽泛结论有同等范围的验证支撑。
   - 所有修复使用 Conventional Commits；未明确要求时不推送。
+- **当前结果**：根 Reactor 923 项全通过，Crawler 5 项中 3 项条件跳过；最终 Full E2E
+  13 组为 10 PASS、0 FAIL、0 SKIP、3 BLOCKED，证据为
+  `target/example-e2e/20260711-222120-72573/`。两个前端、31 个 Shell、187 个活动链接和资源清理
+  均通过。OpenAI 配额产生 2 个 BLOCKED，Vocoor 提供方产生 1 个 BLOCKED，因此未达到完成门禁。
 - [ ] 完成
 
 ## 变更摘要

@@ -1,8 +1,7 @@
 # 下一次 Codex Goal 提示词
 
-以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 4、Task 6 至 Task 10 已完成，
-Task 5、Task 11 因 OpenAI 额度阻塞，Task 14 因隔离 Vocoor 提供方不可用而阻塞，Task 15 已完成，
-下一阶段执行 Task 16。
+以下内容用于继续当前的「Nebula 示例应用完全验证」Goal。Task 0 至 Task 4、Task 6 至
+Task 10、Task 12、Task 13 和 Task 15 已完成。Task 5、Task 11、Task 14 及 Task 16 只剩外部条件门禁。
 
 ```text
 继续仓库 /Users/andy/DevOps/SourceCode/nebula-projects/nebula 中的 Nebula 2.1 示例应用完全验证。
@@ -10,44 +9,35 @@ Task 5、Task 11 因 OpenAI 额度阻塞，Task 14 因隔离 Vocoor 提供方不
 开始前阅读 AGENTS.md、260710-handoff.md，以及 docs/changes/examples-complete-validation/ 下的
 spec.md、tasks.md、log.md、results.md。
 
-当前已完成：
-- Task 0 至 Task 4：整仓基线、中间件预检和基础 Starter 验证完成。
-- Task 5：可执行部分完成；OpenAI 测试账号 429 quota，真实调用仍为 BLOCKED。
-- Task 6：rpc-async-example 38/38 通过，证据为 target/example-e2e/20260711-072653-44853/。
-- Task 7：microservice-example 34/34 通过，证据为 target/example-e2e/20260711-073534-69263/。
-- Task 8：gateway-example 23/23 通过，证据为 target/example-e2e/20260711-074039-81648/。
-- Task 9：fullstack-example 数据与缓存 49/49 通过，证据为
-  target/example-e2e/20260711-121534-84726/。四种数据模式、逻辑删除、多级缓存和组合路由均有真实证据。
-- Task 10：fullstack-example 通用模块 93/93 通过，证据为
-  target/example-e2e/20260711-124401-71092/。RabbitMQ、Elasticsearch、MinIO、Task、支付、通知、
-  Web 缓存和限流均有真实证据，5 个进程和全部临时资源已清理。
-- Task 11：可执行部分 119 PASS、0 FAIL、0 SKIP、1 BLOCKED，证据为
-  target/example-e2e/20260711-130632-40522/。发现客户端、Fullstack gRPC Server 和 MCP tools/resources
-  均有真实证据；OpenAI 测试账号仍返回 429 quota，因此 AI、向量存储和 RAG 未折算为 PASS。
-- Task 12：crawler-example 17/17 通过，证据为 target/example-e2e/20260711-142401-29430/。
-  HTTP 单页、批量、解析、超时、非法 URL，以及 Playwright WebSocket、JS 渲染 DOM 和截图均有真实证据。
-- Task 13：websocket-example 19/19 通过，证据为 target/example-e2e/20260711-143510-53906/。
-  REST、双客户端、定向发送、心跳、前端构建、Playwright 和应用内浏览器流程均通过。
-- Task 14：可执行部分 11 PASS、0 FAIL、0 SKIP、1 BLOCKED，证据为
-  target/example-e2e/20260711-144556-75187/；唯一阻塞为真实 Vocoor 提供方。
-- Task 15：示例文档与配置统一完成；187 个活动 Markdown 链接 0 失效，15 份旧 Fullstack 手册已归档。
+当前状态：
+- Task 0 至 Task 4、Task 6 至 Task 10、Task 12、Task 13 和 Task 15 已完成。
+- Task 5 和 Task 11 的可执行部分已完成；当前 OpenAI 测试账号返回 429 quota，
+  真实聊天、embedding、向量存储和 RAG 仍为 BLOCKED。
+- Task 14 的可执行部分为 11 PASS、0 FAIL、0 SKIP、1 BLOCKED；真实 Vocoor 提供方不可达，
+  且外部仓库不能依赖现有业务中间件做非隔离启动。
+- Task 16 的可执行检查已完成：Maven 合计 928 tests、0 failures、0 errors、3 skips；
+  两个前端、31 个 Shell、187 个活动 Markdown 链接和全部资源清理通过。
+- 最终 Full E2E 证据为 target/example-e2e/20260711-222120-72573/，13 组汇总为
+  10 PASS、0 FAIL、0 SKIP、3 BLOCKED。三个阻塞正是两个 OpenAI 场景和一个 Vocoor 场景。
+- 聚合预检的 Nacos 回收窗口和 MySQL/Elasticsearch 容器生命周期已修复，提交为
+  f3f659d5。禁止推送。
 
-本次 Goal 的第一目标：执行 tasks.md 的 Task 16；外部条件恢复后复跑 Task 5、Task 11 和 Task 14。
+本次 Goal 的第一目标：在外部条件可用后复跑 Task 5、Task 11 和 Task 14，然后取得
+0 FAIL、0 SKIP、0 BLOCKED 的最终 Full E2E 汇总并完成 Task 16。
 
-Task 16 要求：
-1. 运行 `mvn clean test` 和 `mvn -f infrastructure/crawler/pom.xml test`。
-2. 运行 `E2E_MODE=full examples/e2e-all.sh`，13 组结果必须如实汇总。
-3. WebSocket 与 OAuth 前端分别执行 `npm ci && npm run build`。
-4. 对全部 Shell 执行 `bash -n`，再运行 `git diff --check` 和活动 Markdown 链接检查。
-5. 审计 16 个进程、契约 JAR、端口、临时容器、卷和 namespaced 数据清理情况。
-6. Task 5、Task 11、Task 14 的外部阻塞不得折算为通过；条件未恢复时 Goal 保持未完成。
-7. 同步 tasks.md、log.md、results.md、260710-handoff.md 和下一次 Goal 提示词。
+验收要求：
+1. 密钥只能从环境变量读取，不得打印或提交密钥和完整敏感响应。
+2. Task 5 完成最少量真实聊天、显式 embedding、Chroma 写入、相似度查询和删除复核。
+3. Task 11 完成 Fullstack 聊天、embedding、文档写入、相似度查询、RAG 问答和删除复核。
+4. Task 14 使用可隔离的 Vocoor 提供方完成授权码、state、用户绑定、JWT 会话、退出和
+   浏览器流程。
+5. 复跑 `E2E_MODE=full examples/e2e-all.sh`，13 组必须为 0 FAIL、0 SKIP、0 BLOCKED。
+6. 再次执行两个前端构建、全部 Shell `bash -n`、`git diff --check`、活动 Markdown 链接和资源审计。
+7. 同步 tasks.md、log.md、results.md、260710-handoff.md 和本提示词。
 
-执行纪律：保留已有改动；只关闭受管 PID；不打印或提交密钥；先定位根因再最小修复；使用
-Conventional Commits 小步提交；提交前运行相关测试、E2E、bash -n、git diff --check 和活动 Markdown
-链接检查；禁止推送。
+执行纪律：保留已有改动；只关闭受管 PID；先定位根因再最小修复；使用 Conventional Commits
+小步提交；禁止推送。外部条件仍不可用时保留 BLOCKED，不得折算为 PASS。
 
-只有 13 组示例、16 个进程、
-契约 JAR、两个前端和浏览器流程、整仓测试、Shell、Markdown 链接及资源清理全部通过，且 tasks.md
-全部勾选时，才能把 Goal 标记为 complete。
+只有 tasks.md 全部勾选，13 组示例、16 个进程、契约 JAR、两个前端和浏览器流程、整仓测试、
+Shell、Markdown 链接及资源清理全部通过时，才能把 Goal 标记为 complete。
 ```
