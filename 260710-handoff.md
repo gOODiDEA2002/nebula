@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 12:20 +08
+> 最后更新：2026-07-11 12:48 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -27,6 +27,8 @@
   Redis/端口清理均有真实证据。
 - Task 9：Fullstack 49/49 通过；默认、读写分离、分片和组合 Profile，产品 CRUD、逻辑删除、
   多级缓存与实际 SQL 路由均有真实证据。
+- Task 10：Fullstack 93/93 通过；RabbitMQ、Elasticsearch、MinIO、Task、支付、通知和 Web 通用能力
+  均有真实证据，5 个进程和全部临时资源已清理。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -42,6 +44,11 @@
   - `754f6ac1 test(examples): 完成 Gateway 真实流量验证`
   - `ed01fc4b fix(data): 修复多级缓存过期与组合路由`
   - `57216d95 test(examples): 完成 Fullstack 数据与缓存验证`
+  - `9a2a8e0f fix(web): 允许 MVC 功能配置同时生效`
+  - `6d7ad321 fix(messaging): 记录 RabbitMQ 生产者真实统计`
+  - `797383a7 fix(storage): 修复 MinIO 递归对象列表`
+  - `eea73a62 fix(payment): 支持大小写支付类型代码`
+  - `96f0dfd2 test(examples): 完成 Fullstack 通用模块验证`
 
 ## 关键上下文
 
@@ -63,21 +70,24 @@
   0 SKIP、0 BLOCKED。Redis 14 号测试库、隔离 MySQL 容器与卷、1000 和 13306 端口均已清理。
 - 多级缓存 L1 TTL 现在不会超过调用方传入的 TTL。ShardingSphere 组合模式会同时装配分片和读写规则；
   `sql-show` 可用于记录实际数据源和物理 SQL。
+- Task 10 最终证据位于 `target/example-e2e/20260711-124401-71092/`，结果为 93 PASS、0 FAIL、
+  0 SKIP、0 BLOCKED。Web 核心、缓存、限流、认证和性能配置器不再因同类型 Bean 条件互相排斥。
+- MinIO 对象列表现在递归返回前缀下的实际对象，并兼容没有修改时间的目录项。RabbitMQ 生产者统计已改为真实计数。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 10 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段先执行 Task 10 Fullstack 消息、搜索、存储和通用模块；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
+- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 11 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段先执行 Task 11 Fullstack RPC、AI 和 MCP；获得有额度的 OpenAI 测试密钥后立即复跑 Task 5 Full E2E。
 - Fullstack 后续远程模块、Crawler Browser、WebSocket 浏览器流程和 OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 从 Task 10 的 Fullstack RabbitMQ、Elasticsearch、MinIO、Task、支付、通知和 Web 通用能力核对开始。
-3. 使用隔离资源验证真实协议行为，测试结束后删除临时队列、索引、Bucket、对象和缓存键。
+2. 从 Task 11 的 Fullstack RPC、AI、向量存储和 MCP 配置与端点核对开始。
+3. 先完成不依赖外部额度的 RPC 和 MCP 验证；AI 请求限制次数，并使用临时 Chroma collection。
 4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
 5. 继续 Task 11 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
@@ -97,4 +107,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 10 开始，不需要重复执行 Task 0 至 Task 9；Task 5 在外部额度恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 11 开始，不需要重复执行 Task 0 至 Task 10；Task 5 在外部额度恢复后复跑。

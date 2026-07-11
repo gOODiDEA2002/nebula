@@ -35,6 +35,9 @@
 | 2026-07-11 | research | Fullstack 首轮运行暴露缓存、删除和组合数据源问题 | 短 TTL 被 L1 延长；缓存 DTO 类型冲突；逻辑删除未写入；组合读写规则未装配 |
 | 2026-07-11 | apply | 修复多级缓存 TTL、组合路由和 Fullstack 示例行为 | 补充框架回归测试，统一缓存响应类型，并使用 MyBatis-Plus 逻辑删除 API |
 | 2026-07-11 | verify | 完成 Task 9 Fullstack 数据模式验证 | 49/49 PASS；四种 Profile、MySQL、Redis 和资源清理全部通过 |
+| 2026-07-11 | research | Fullstack 通用模块首轮严格验证暴露运行缺陷 | RabbitMQ 统计为固定值；MinIO 非递归列表为空；多个 Web MVC 配置器因同类型条件互相排斥 |
+| 2026-07-11 | apply | 修复消息统计、对象列表和 Web 功能共存 | 增加模块回归测试；示例补齐真实消息、搜索、存储、校验、缓存和限流验证 |
+| 2026-07-11 | verify | 完成 Task 10 Fullstack 通用模块验证 | 93/93 PASS；5 个进程和所有临时中间件资源均已清理 |
 
 ## 技术决策
 
@@ -61,6 +64,8 @@
 | Fullstack MySQL 隔离 | 使用验证 Compose 的独立项目名、端口和卷 | 修改或复用 `nebula-data` 现有卷 | 保证升级验证不会碰触开发数据 |
 | 组合数据模式 | 在同一个 ShardingSphere DataSource 中同时装配分片和读写规则 | 让读写切面在 ShardingSphere DataSource 外层切换 | 单一 MyBatis `SqlSessionFactory` 需要由 ShardingSphere 统一选择逻辑数据源 |
 | Spring Cache 示例 | 显式使用 `simple` 类型并创建 `users` 缓存 | 依赖 Redisson JCache 的隐式选择 | 示例缓存注解与 Nebula 多级缓存分别验证，避免未声明缓存和共享 Redis 数据 |
+| Web MVC 功能配置器 | 每个已启用功能独立注册 `WebMvcConfigurer` | 对同一接口类型使用 `@ConditionalOnMissingBean` | 多个配置器本来就应共同参与 MVC 配置；功能开关负责控制是否启用 |
+| MinIO 对象列表 | 按前缀递归列出对象，目录占位项不读取缺失的修改时间 | 只返回一层目录并由示例过滤 | `StorageService.listObjects` 的调用方需要获得实际对象，且目录项可能没有修改时间 |
 
 ## 踩坑记录
 
@@ -88,6 +93,9 @@
 | Spring Cache 更新后读取返回 500 | 创建、更新和读取向同一缓存键写入三种互不兼容的响应类型 | 创建和更新响应继承统一读取响应模型 | [x] |
 | 产品接口返回删除成功但数据库仍为未删除 | `updateById` 不会用实体更新 MyBatis-Plus 逻辑删除字段 | 使用 `deleteByIds` 执行框架支持的逻辑删除 SQL | [x] |
 | 组合模式产品写入被送到分片库 | 配置模型有读写规则，但 `ShardingSphereManager` 未转换为运行规则 | 同时装配 Sharding 和 Readwrite Splitting 规则，并核对实际 SQL 路由 | [x] |
+| RabbitMQ 生产者统计始终为 0 | `getStats()` 返回固定占位数据 | 对同步与延迟发送记录总数、成功数、失败数和耗时，并补重置测试 | [x] |
+| MinIO 上传成功但按前缀列表为空 | SDK 默认非递归，只返回目录占位项；目录项修改时间可能为空 | 启用递归列表，目录项不读取修改时间，并补回归测试 | [x] |
+| 响应缓存与限流不能同时工作 | 五个 Web 功能配置器都按 `WebMvcConfigurer` 类型使用 `@ConditionalOnMissingBean` | 移除同类型互斥条件，并用上下文测试确认核心、缓存、限流配置器同时存在 | [x] |
 
 ## 知识发现
 

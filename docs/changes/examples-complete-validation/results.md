@@ -94,7 +94,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `rpc-async-example` | Service、Client | PASS | 38/38 PASS；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复均通过 |
 | `microservice-example` | User、Order | PASS | 34/34 PASS；REST CRUD、HTTP RPC、gRPC、Nacos metadata 和 Order 到 User 跨服务调用均通过 |
 | `gateway-example` | Gateway | PASS | 23/23 PASS；真实代理、无 Token 401、有效 JWT、Redis 429 和令牌恢复均通过 |
-| `fullstack-example` | Fullstack 应用 | PASS | 49/49 PASS；四种数据模式、产品 CRUD、逻辑删除、多级缓存和组合路由均通过 |
+| `fullstack-example` | Fullstack 应用 | PASS | Task 10 最终 93/93 PASS；5 个进程覆盖四种数据模式及消息、搜索、存储、任务、支付、通知和 Web 通用能力 |
 | `crawler-example` | Crawler、Browser | PENDING | 待执行 |
 | `websocket-example` | Backend、Frontend | PENDING | 待执行 |
 | `oauth-example` | Backend、Frontend、OAuth 提供方 | PENDING | 待执行 |
@@ -105,7 +105,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | --- | --- | --- |
 | 本轮测试启动的进程 | PASS | 受控端口占用进程和示例进程均已关闭，1000 等已验证端口均释放 |
 | 隔离容器和独立卷 | PASS | 容器 0、卷 0；13306 和 19200 端口均已释放 |
-| `nebula_e2e_` 临时数据 | PASS | Redis、RabbitMQ、Nacos、MinIO、Chroma 和 Fullstack MySQL 复核均为 0 |
+| `nebula_e2e_` 临时数据 | PASS | Redis、RabbitMQ、Nacos、MinIO、Chroma、Elasticsearch 和 Fullstack MySQL 复核均为 0 |
 
 ## 8. 已知告警
 
@@ -207,3 +207,18 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   ShardingSphere 读写规则从未装配。修复后增加短 TTL 回归测试和独立读写库组合路由测试，相关模块
   16 个定向测试全部通过。
 - 清理复核：Redis 14 号测试库为 0；隔离 MySQL 容器、网络和卷为 0；1000、13306 端口均释放。
+
+## 16. Task 10 复核记录
+
+- 最终证据：`target/example-e2e/20260711-124401-71092/`，结果为 93 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0；Task 9 的 49 项数据验证在同一轮继续通过。
+- RabbitMQ 使用临时 vhost 完成普通消息消费、首次失败后重投、真实 TTL/DLX 延迟消息和生产消费统计。
+  Elasticsearch 9.4.2 使用隔离容器完成临时索引创建、单条和批量写入、刷新、查询、建议、文档删除和索引删除。
+- MinIO 使用临时 Bucket 完成上传、递归列表、下载字节比对、预签名 URL、对象删除和 Bucket 删除。
+  Task 完成执行器发现、成功执行与未知执行器失败；Mock Payment 和 Mock Notification 均覆盖成功与非法输入。
+- Web 健康、性能、数据脱敏、响应缓存和限流均通过。缓存第二次请求正文保持一致并返回 `X-Cache: HIT`；
+  同一 API 连续请求真实出现 429。
+- 运行验证发现并修复三个框架问题：RabbitMQ 生产者统计返回占位值；MinIO 默认非递归且目录项可能没有修改时间；
+  五个 MVC 功能配置器按同一 Bean 类型互相排斥。相关 Web、RabbitMQ、MinIO 和 Payment 模块完整测试均通过。
+- 清理复核：RabbitMQ vhost、Elasticsearch 索引、MinIO Bucket 和对象、Redis 14 号库、隔离 MySQL/Elasticsearch
+  容器与卷均为 0；1000、13306、19200 端口和 5 个受管进程均已释放。
