@@ -680,8 +680,10 @@ public class MultiLevelCacheManager implements CacheManager {
         }
         
         // L1缓存时间为原时间的一定比例
-        long l1Millis = (long) (originalDuration.toMillis() * config.getL1TtlRatio());
-        return Duration.ofMillis(Math.max(l1Millis, config.getL1MinTtl().toMillis()));
+        long originalMillis = originalDuration.toMillis();
+        long l1Millis = (long) (originalMillis * config.getL1TtlRatio());
+        long minimumMillis = config.getL1MinTtl().toMillis();
+        return Duration.ofMillis(Math.min(originalMillis, Math.max(l1Millis, minimumMillis)));
     }
     
     /**

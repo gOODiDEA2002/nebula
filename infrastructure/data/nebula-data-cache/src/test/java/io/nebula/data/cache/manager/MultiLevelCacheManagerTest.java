@@ -172,6 +172,22 @@ class MultiLevelCacheManagerTest {
     }
 
     @Test
+    @DisplayName("短 TTL: L1 不得比调用方指定的过期时间更长")
+    void l1TtlDoesNotOutliveRequestedTtl() throws Exception {
+        MultiLevelCacheManager manager = manager(MultiLevelCacheConfig.builder()
+                .l1MinTtl(Duration.ofMinutes(1))
+                .l1TtlRatio(0.5)
+                .build());
+
+        manager.set("short-lived", "value", Duration.ofMillis(100));
+        Thread.sleep(180);
+
+        assertThat(l1.get("short-lived", String.class)).isEmpty();
+        assertThat(l2.get("short-lived", String.class)).isEmpty();
+        assertThat(manager.get("short-lived", String.class)).isEmpty();
+    }
+
+    @Test
     @DisplayName("跨节点失效: 写路径广播 evict/clear, 收到远端通知只动 L1")
     void invalidationBroadcastAndRemoteHandling() {
         MultiLevelCacheManager manager = manager(MultiLevelCacheConfig.defaultConfig());

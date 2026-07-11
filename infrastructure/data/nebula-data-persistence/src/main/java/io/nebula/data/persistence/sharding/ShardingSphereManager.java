@@ -3,6 +3,9 @@ package io.nebula.data.persistence.sharding;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.driver.api.ShardingSphereDataSourceFactory;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.config.ReadwriteSplittingRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.config.rule.ReadwriteSplittingDataSourceGroupRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
@@ -35,11 +38,13 @@ public class ShardingSphereManager {
         log.info("Creating sharding data source for schema: {}", schemaName);
         
         // 构建分片规则配置
-        ShardingRuleConfiguration shardingRuleConfig = createShardingRuleConfiguration(schemaName);
+        Collection<RuleConfiguration> ruleConfigs = new ArrayList<>();
+        ruleConfigs.add(createShardingRuleConfiguration(schemaName));
+        createReadwriteSplittingRuleConfiguration(schemaName).ifPresent(ruleConfigs::add);
         
         // 创建ShardingSphere数据源
         DataSource shardingDataSource = ShardingSphereDataSourceFactory.createDataSource(
-            schemaName, dataSources, Arrays.asList(shardingRuleConfig), new Properties()
+            schemaName, dataSources, ruleConfigs, createProperties()
         );
         
         // 缓存数据源
@@ -47,6 +52,39 @@ public class ShardingSphereManager {
         
         log.info("Successfully created sharding data source for schema: {}", schemaName);
         return shardingDataSource;
+    }
+
+    private Optional<ReadwriteSplittingRuleConfiguration> createReadwriteSplittingRuleConfiguration(
+            String schemaName) {
+        ShardingConfig.SchemaConfig schemaConfig = shardingConfig.getSchemaConfig(schemaName);
+        if (schemaConfig == null || !schemaConfig.isReadWriteSeparationEnabled()
+                || schemaConfig.getReadWriteSeparation() == null
+                || schemaConfig.getReadWriteSeparation().getDataSources().isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<ReadwriteSplittingDataSourceGroupRuleConfiguration> dataSourceGroups = new ArrayList<>();
+        Map<String, AlgorithmConfiguration> loadBalancers = new HashMap<>();
+        schemaConfig.getReadWriteSeparation().getDataSources().forEach((name, config) -> {
+            if (config.getWriteDataSource() == null || config.getReadDataSources().isEmpty()) {
+                throw new IllegalArgumentException("Read-write data source group " + name
+                        + " must configure one write data source and at least one read data source");
+            }
+            String loadBalancerName = name + "-load-balancer";
+            String loadBalancerType = config.getLoadBalanceAlgorithm() == null
+                    ? "ROUND_ROBIN"
+                    : config.getLoadBalanceAlgorithm().toUpperCase(Locale.ROOT);
+            loadBalancers.put(loadBalancerName, new AlgorithmConfiguration(loadBalancerType, new Properties()));
+            dataSourceGroups.add(new ReadwriteSplittingDataSourceGroupRuleConfiguration(
+                    name, config.getWriteDataSource(), config.getReadDataSources(), loadBalancerName));
+        });
+        return Optional.of(new ReadwriteSplittingRuleConfiguration(dataSourceGroups, loadBalancers));
+    }
+
+    private Properties createProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("sql-show", Boolean.toString(shardingConfig.isSqlShow()));
+        return properties;
     }
     
     /**

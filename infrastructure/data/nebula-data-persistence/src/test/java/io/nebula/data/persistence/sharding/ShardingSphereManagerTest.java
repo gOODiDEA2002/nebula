@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -169,6 +170,70 @@ class ShardingSphereManagerTest {
         assertNotNull(allDataSources, "所有数据源不应为null");
         assertEquals(1, allDataSources.size(), "应该有1个分片数据源");
         assertTrue(allDataSources.containsKey("default"), "应该包含default数据源");
+    }
+
+    @Test
+    @DisplayName("测试分片与读写分离组合路由")
+    void testShardingWithReadWriteSplitting() throws SQLException {
+        DataSource writeDataSource = createTestDataSource("mem:write");
+        DataSource readDataSource = createTestDataSource("mem:read");
+        initializeProductTable(writeDataSource, "write-row");
+        initializeProductTable(readDataSource, "read-row");
+        testDataSources.put("write", writeDataSource);
+        testDataSources.put("read", readDataSource);
+
+        ShardingConfig.SchemaConfig schemaConfig = shardingConfig.getSchemaConfig("default");
+        schemaConfig.setDataSources(List.of("ds0", "ds1", "write", "read"));
+        schemaConfig.setReadWriteSeparationEnabled(true);
+        ShardingConfig.ReadWriteDataSourceConfig group = new ShardingConfig.ReadWriteDataSourceConfig();
+        group.setWriteDataSource("write");
+        group.setReadDataSources(List.of("read"));
+        group.setLoadBalanceAlgorithm("ROUND_ROBIN");
+        ShardingConfig.ReadWriteSeparationConfig readWriteConfig =
+                new ShardingConfig.ReadWriteSeparationConfig();
+        readWriteConfig.setDataSources(Map.of("product_rw", group));
+        schemaConfig.setReadWriteSeparation(readWriteConfig);
+
+        TableShardingConfig productTable = new TableShardingConfig();
+        productTable.setLogicTable("t_product");
+        productTable.setActualDataNodes("product_rw.t_product");
+        schemaConfig.getTables().add(productTable);
+
+        DataSource combinedDataSource = shardingSphereManager.createShardingDataSource(
+                "default", testDataSources);
+        try (var connection = combinedDataSource.getConnection();
+                var insert = connection.prepareStatement("INSERT INTO t_product (id, name) VALUES (?, ?)");
+                var query = connection.prepareStatement("SELECT name FROM t_product WHERE id = ?")) {
+            insert.setLong(1, 2L);
+            insert.setString(2, "inserted");
+            assertEquals(1, insert.executeUpdate());
+            query.setLong(1, 1L);
+            try (var result = query.executeQuery()) {
+                assertTrue(result.next());
+                assertEquals("read-row", result.getString(1));
+            }
+        }
+
+        assertEquals(1, countRows(writeDataSource, 2L));
+        assertEquals(0, countRows(readDataSource, 2L));
+    }
+
+    private void initializeProductTable(DataSource dataSource, String name) throws SQLException {
+        try (var connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE t_product (id BIGINT PRIMARY KEY, name VARCHAR(64))");
+            statement.execute("INSERT INTO t_product (id, name) VALUES (1, '" + name + "')");
+        }
+    }
+
+    private int countRows(DataSource dataSource, long id) throws SQLException {
+        try (var connection = dataSource.getConnection();
+                var statement = connection.prepareStatement("SELECT COUNT(*) FROM t_product WHERE id = ?")) {
+            statement.setLong(1, id);
+            try (var result = statement.executeQuery()) {
+                result.next();
+                return result.getInt(1);
+            }
+        }
     }
     
     /**

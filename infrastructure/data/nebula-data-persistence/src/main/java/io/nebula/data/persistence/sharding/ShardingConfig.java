@@ -19,6 +19,11 @@ public class ShardingConfig {
      * 是否启用分片
      */
     private boolean enabled = false;
+
+    /**
+     * 是否输出 ShardingSphere 逻辑 SQL 和实际路由 SQL
+     */
+    private boolean sqlShow = false;
     
     /**
      * 默认数据库分片策略
