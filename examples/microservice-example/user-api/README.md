@@ -188,3 +188,8 @@ nebula-example/              客户端层：服务调用
 - [服务提供者文档](../user-service/README.md)
 - [服务消费者示例](../order-service/README.md)
 - [微服务示例总览](../README.md)
+
+## 完整验证
+
+本模块是契约 JAR，不单独启动。使用
+`E2E_MODE=full examples/microservice-example/e2e-test.sh` 验证 JAR 内容及 User、Order 的 HTTP/gRPC 调用。

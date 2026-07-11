@@ -548,7 +548,7 @@ public class CreateUserDto {
 ##  更多示例
 
 详细的使用示例请参考：
-- [基础 RPC 调用示例](../../../examples/fullstack-example/docs/nebula-rpc-test.md)
+- [Fullstack 完整验证](../../../examples/fullstack-example/README.md#完整验证)
 - [RPC API 定义示例](../../../examples/microservice-example/user-api/README.md)
 - [完整示例项目](../../../nebula-example)
 

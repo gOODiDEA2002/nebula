@@ -320,7 +320,7 @@ curl -X POST http://localhost:8081/rpc \
   }' | jq
 ```
 
-**更多 RPC 测试示例，请参考：** [RPC 功能测试指南](../../fullstack-example/docs/nebula-rpc-test.md)
+更多 RPC 验证见 `E2E_MODE=full examples/microservice-example/e2e-test.sh`。
 
 #### 快速测试脚本
 
@@ -494,7 +494,7 @@ grep "gRPC Server started" logs/*.log
 lsof -i :9081
 ```
 
-**更多 gRPC 测试方法，请参考：** [gRPC 功能测试指南](../../fullstack-example/docs/nebula-grpc-test.md)
+更多 gRPC 验证见 `E2E_MODE=full examples/microservice-example/e2e-test.sh`。
 
 ##  配置说明
 
@@ -626,7 +626,13 @@ public class UserRpcServiceImpl implements UserRpcService {
 
 - [Nebula RPC 文档](../../../infrastructure/rpc/nebula-rpc-http/README.md)
 - [服务契约定义](../user-api/README.md)
-- [客户端使用示例](../../fullstack-example/docs/nebula-rpc-test.md)
+- [微服务完整验证](../README.md)
+
+## 完整验证
+
+```bash
+E2E_MODE=full examples/microservice-example/e2e-test.sh
+```
 
 ##  与其他模块的关系
 

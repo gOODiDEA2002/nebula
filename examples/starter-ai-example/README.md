@@ -133,4 +133,4 @@ public class AiController {
 
 - [Nebula Examples 总览](../README.md)
 - [nebula-starter-ai](../../starter/nebula-starter-ai/pom.xml)
-- [AI 功能测试指南](../fullstack-example/docs/nebula-ai-test.md)
+- 完整验证：`E2E_MODE=full examples/starter-ai-example/e2e-test.sh`

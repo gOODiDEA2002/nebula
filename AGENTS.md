@@ -198,7 +198,7 @@ mvn spring-boot:run -Dlogging.level.io.nebula=DEBUG
 ## 部署与发布
 
 ### 版本管理
-- 版本格式：`2.0.0-SNAPSHOT`
+- 版本格式：`2.1.0-SNAPSHOT`
 - 发布时移除 `-SNAPSHOT`
 - 遵循语义化版本
 

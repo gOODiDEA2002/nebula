@@ -140,5 +140,6 @@ const api = axios.create({
 
 ## 相关链接
 
+- 完整验证：`E2E_MODE=full examples/oauth-example/e2e-test.sh`
 - [后端项目](../backend/README.md)
 - Vocoor OAuth 接入说明由对应服务仓库维护

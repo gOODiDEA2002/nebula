@@ -476,7 +476,7 @@ public class ReportService {
 
 ### 演示和测试
 
-详细的读写分离功能演示请参考：[Nebula 读写分离功能测试指南](../../../examples/fullstack-example/docs/nebula-readwrite-splitting-test.md)
+读写分离功能演示见 [Fullstack 数据模式](../../../examples/fullstack-example/README.md#数据模式)。
 
 ---
 
@@ -639,7 +639,7 @@ public class ShardingDemoServiceImpl implements ShardingDemoService {
 
 ### 演示和测试
 
-完整的分库分表功能演示请参考：[Nebula 分库分表功能测试指南](../../../examples/fullstack-example/docs/nebula-sharding-test.md)
+分库分表功能演示见 [Fullstack 数据模式](../../../examples/fullstack-example/README.md#数据模式)。
 
 ---
 
@@ -808,9 +808,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order>
 
 ##  更多功能
 
-- [基础数据访问测试指南](../../../examples/fullstack-example/docs/nebula-data-access-test.md)
-- [读写分离功能测试指南](../../../examples/fullstack-example/docs/nebula-readwrite-splitting-test.md)
-- [分库分表功能测试指南](../../../examples/fullstack-example/docs/nebula-sharding-test.md)
+- [Fullstack 数据模式](../../../examples/fullstack-example/README.md#数据模式)
+- [Fullstack 完整验证](../../../examples/fullstack-example/README.md#完整验证)
 - [完整示例项目](../../../nebula-example)
 
 ---

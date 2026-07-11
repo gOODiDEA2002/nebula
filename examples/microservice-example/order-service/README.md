@@ -186,3 +186,9 @@ INFO  - RPC调用成功: duration=50ms
 
 **版本**: 2.0.0  
 **许可**: Apache License 2.0
+
+## 完整验证
+
+```bash
+E2E_MODE=full examples/microservice-example/e2e-test.sh
+```

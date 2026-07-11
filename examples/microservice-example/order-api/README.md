@@ -540,3 +540,8 @@ Apache License 2.0
 ---
 
 **Nebula Example Order API** - 订单服务契约层，支持零配置 RPC 调用
+
+## 完整验证
+
+本模块是契约 JAR，不单独启动。使用
+`E2E_MODE=full examples/microservice-example/e2e-test.sh` 验证 JAR 内容和跨服务调用。

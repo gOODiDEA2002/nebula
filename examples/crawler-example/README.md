@@ -24,6 +24,9 @@
 
 ## 快速启动
 
+外部依赖：Browser 模式需要 Docker 与 Playwright Server；HTTP 模式不需要中间件。完整验证使用本地
+受控页面，不依赖公共网站内容。
+
 ```bash
 # 1. 安装框架到本地仓库
 mvn install -DskipTests -f ../../pom.xml
@@ -122,6 +125,15 @@ CRAWLER_BROWSER_PORT=19222 docker compose \
   -f ../../docker/crawler-browser/docker-compose.yml up -d crawler-browser-01
 BROWSER_CRAWLER_ENABLED=true PLAYWRIGHT_PORT=19222 mvn spring-boot:run -f pom.xml
 ```
+
+## 完整验证
+
+```bash
+E2E_MODE=full examples/crawler-example/e2e-test.sh
+```
+
+脚本会启动受控 HTTP 页面和 Playwright 容器，验证单页、批量、解析、超时、非法 URL、JavaScript DOM
+和截图，并清理容器、网络、端口与受管进程。
 
 ## 相关文档
 

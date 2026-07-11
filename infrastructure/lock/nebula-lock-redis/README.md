@@ -47,7 +47,7 @@ nebula:
     
     # Redis连接配置（独立于缓存配置）
     redis:
-      host: 192.168.2.130                  # Redis服务器地址
+      host: localhost                     # Redis 服务器地址
       port: 6379                           # Redis端口
       password: your_password              # Redis密码
       database: 0                          # 数据库索引

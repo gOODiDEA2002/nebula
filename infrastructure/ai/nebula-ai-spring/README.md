@@ -501,9 +501,7 @@ logging:
 
 ##  更多功能
 
-- [智能聊天功能演示](../../../examples/fullstack-example/docs/nebula-ai-test.md#智能聊天)
-- [文本嵌入功能演示](../../../examples/fullstack-example/docs/nebula-ai-test.md#文本嵌入)
-- [文档问答功能演示](../../../examples/fullstack-example/docs/nebula-ai-test.md#文档问答)
+- [Fullstack AI 完整验证](../../../examples/fullstack-example/README.md#完整验证)
 - [完整示例项目](../../../nebula-example)
 
 ##  贡献指南

@@ -19,6 +19,8 @@ examples/
 │   ├── rpc-async-example/           异步 RPC 调用（多模块）
 │   ├── microservice-example/        微服务拆分（多模块：API + Service）
 │   ├── fullstack-example/           全功能综合示例（数据库/缓存/RPC/消息/搜索/AI）
+│   ├── crawler-example/             HTTP 与 Browser 双引擎爬虫
+│   ├── websocket-example/           WebSocket 后端与 Vue 前端
 │   └── oauth-example/              OAuth 2.0 认证（前后端分离）
 ```
 
@@ -87,6 +89,8 @@ cd examples/oauth-example/frontend && npm ci && npm run dev  # 前端，端口 4
 | rpc-async-example | `nebula-starter-service` | Nacos | 异步 RPC |
 | microservice-example | `nebula-starter-service` + `nebula-starter-api` | Nacos | 服务拆分 + RPC |
 | fullstack-example | `nebula-starter-all` | MySQL + Redis + RabbitMQ + Nacos | 全模块综合 |
+| crawler-example | `nebula-crawler-http` + `nebula-crawler-browser` | Playwright Server | 静态与 JS 页面抓取 |
+| websocket-example | `nebula-websocket-spring` | Node.js、Chrome | 实时通信与浏览器流程 |
 | oauth-example | `nebula-starter-web` | MySQL | OAuth 2.0 |
 
 ## 编译

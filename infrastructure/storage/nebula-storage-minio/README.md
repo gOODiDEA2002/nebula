@@ -646,7 +646,7 @@ public void processBatchFiles(String bucket, String prefix) {
 
 ##  测试指南
 
-详细的功能测试指南请参考：[Nebula Storage 功能测试指南](../../../examples/fullstack-example/docs/nebula-storage-test.md)
+功能验证见 [Fullstack 完整验证](../../../examples/fullstack-example/README.md#完整验证)。
 
 ##  更多资源
 

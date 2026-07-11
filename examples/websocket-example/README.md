@@ -40,6 +40,8 @@ frontend (Vue 3 + Vite)       backend (Spring Boot)
 
 ## 快速启动
 
+外部依赖：无中间件依赖；前端构建和浏览器验证需要 Node.js、npm 与本机 Chrome。
+
 ### 1. 启动后端
 
 ```bash

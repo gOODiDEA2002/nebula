@@ -589,7 +589,7 @@ logging:
 ##  完整示例
 
 详细的功能演示请参考：
-- [Nebula Messaging RabbitMQ 功能测试指南](../../../examples/fullstack-example/docs/nebula-messaging-rabbitmq-test.md)
+- [Fullstack 完整验证](../../../examples/fullstack-example/README.md#完整验证)
 - [完整示例项目](../../../nebula-example)
 
 ##  最佳实践

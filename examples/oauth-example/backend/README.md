@@ -110,5 +110,6 @@ src/main/java/io/nebula/examples/oauth/
 
 ## 相关链接
 
+- 完整验证：`E2E_MODE=full examples/oauth-example/e2e-test.sh`
 - Vocoor OAuth 接入说明由对应服务仓库维护
 - [Nebula 文档索引](../../../docs/INDEX.md)
