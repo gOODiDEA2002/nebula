@@ -96,7 +96,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `gateway-example` | Gateway | PASS | 23/23 PASS；真实代理、无 Token 401、有效 JWT、Redis 429 和令牌恢复均通过 |
 | `fullstack-example` | Fullstack 应用 | BLOCKED | Task 11 当前 119 PASS、0 FAIL、0 SKIP、1 BLOCKED；RPC/gRPC/MCP 通过，OpenAI 账号 quota 阻塞 AI 与向量流程 |
 | `crawler-example` | Crawler、Browser | PASS | 17/17 PASS；受控 HTTP 页面、Playwright WebSocket、JS 渲染 DOM、截图和清理均通过 |
-| `websocket-example` | Backend、Frontend | PENDING | 待执行 |
+| `websocket-example` | Backend、Frontend | PASS | 19/19 PASS；REST、双客户端协议、前端构建、Playwright 和应用内浏览器流程通过 |
 | `oauth-example` | Backend、Frontend、OAuth 提供方 | PENDING | 待执行 |
 
 ## 7. 清理审计
@@ -250,3 +250,16 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   为空。修复后优先使用 `finalUrl`、回退 `url`，两条单元测试覆盖普通请求和重定向。
 - 本机 9222 由现有 Chrome 占用，测试没有关闭非受管进程，而是通过新端口配置使用 19222。
   Playwright 容器、Compose 网络、受控页面服务、8085/18085/19222 端口和受管 Java 进程均已清理。
+
+## 19. Task 13 复核记录
+
+- 最终证据：`target/example-e2e/20260711-143510-53906/`，结果为 19 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。
+- Node `ws` 测试建立两个独立用户连接，核对 `connected` Session、在线会话/用户数、客户端聊天广播、
+  REST 广播、按用户发送、按 Session 发送、应用层 heartbeat/pong，以及断开后的在线状态。
+- 前端使用已提交的锁文件执行 `npm ci` 和 Vite 生产构建。Playwright 使用系统 Chrome 打开 3000 端口，
+  填写昵称、连接、发送消息并保存截图；应用内浏览器再次复核同一流程，控制台错误数为 0。
+- 运行验证发现 Spring WebSocket 会话没有读取 Principal 或握手属性，导致用户映射永远为空。修复后
+  框架支持应用 HandshakeInterceptor，身份优先使用已认证 Principal；示例查询参数仅用于演示。
+- 清理复核：两个 Node 客户端、无头 Chrome、应用内浏览器连接、Vite 和后端均已关闭，3000 和 8086
+  端口已释放。

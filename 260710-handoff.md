@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 14:30 +08
+> 最后更新：2026-07-11 14:40 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -33,6 +33,8 @@
   MCP 四类操作通过；OpenAI 429 quota 仍阻塞 AI、向量存储和 RAG 完整流程。
 - Task 12：Crawler 17/17 通过；受控 HTTP 页面、Playwright WebSocket、JS 渲染 DOM、截图和
   全部临时资源清理均有真实证据。
+- Task 13：WebSocket 19/19 通过；REST、双客户端、定向发送、心跳、前端构建、Playwright 和
+  应用内浏览器均有真实证据。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -56,6 +58,8 @@
   - `1b9430e6 test(examples): 加固 Fullstack RPC AI MCP 验证`
   - `6889fd27 docs(validation): 记录 Fullstack 远程能力验证`
   - `ef32a807 fix(crawler): 验证远程浏览器与相对链接`
+  - `d206c296 docs(validation): 记录 Crawler 完整验证`
+  - `46f31827 fix(websocket): 完成双客户端与浏览器验证`
 
 ## 关键上下文
 
@@ -86,21 +90,25 @@
   0 SKIP、0 BLOCKED。Playwright Server 和 Java 客户端均为 1.41.0，使用 WebSocket 而非 CDP。
 - `CrawlerResponse.asDocument()` 现在以 `finalUrl` 或原始 `url` 作为 Jsoup base URI，相对链接可正确
   展开为绝对地址。Crawler 示例显式关闭未使用的 persistence 和 cache。
+- Task 13 最终证据位于 `target/example-e2e/20260711-143510-53906/`，结果为 19 PASS、0 FAIL、
+  0 SKIP、0 BLOCKED。前端锁文件已提交，干净克隆可直接运行 `npm ci`。
+- Spring WebSocket 会话现在优先使用认证 Principal，并允许应用通过 HandshakeInterceptor 提供身份属性。
+  示例查询参数只用于展示按用户发送，不应作为生产认证方案。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 13 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段先执行 Task 13 WebSocket；获得有额度的 OpenAI 测试密钥后立即复跑 Task 5 和 Task 11 Full E2E。
-- WebSocket 浏览器流程和 OAuth 全流程仍有已知配置或环境风险，详见
+- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段先执行 Task 14 OAuth；获得有额度的 OpenAI 测试密钥后立即复跑 Task 5 和 Task 11 Full E2E。
+- OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 从 Task 13 的 WebSocket 后端、双客户端协议和前端浏览器流程开始。
-3. 使用仓库声明的测试依赖建立两个客户端，验证广播、定向消息、心跳、断开和在线数。
+2. 从 Task 14 的 OAuth 配置、隔离 MySQL、前端构建和真实授权码流程开始。
+3. 先清除硬编码地址与秘密，再启动提供方并通过浏览器验证登录、回调、会话和退出。
 4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
 5. 继续 Task 11 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
@@ -108,7 +116,7 @@
 
 - Vocoor OAuth 提供方 `localhost:8080` 当前不可达，后续需要可用提供方及已轮换的测试凭据。
 - 当前 `OPENAI_API_KEY` 对正确的 `/v1` 地址返回 429 quota，需要有额度的测试账号才能完成 Task 5。
-- Crawler Browser 已通过；WebSocket 和 OAuth 两个前端浏览器流程仍待验证。
+- Crawler 和 WebSocket 浏览器流程已通过；OAuth 前端浏览器流程仍待验证。
 - XXL-JOB 镜像健康检查缺少 `curl`，但宿主机 HTTP 探针返回 302；启用该模块时应使用镜像支持的探针。
 - 任何密钥、Token 和密码只能通过环境变量注入，不能写入 Git 或测试证据。
 
@@ -120,4 +128,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 13 开始，不需要重复执行已通过范围；Task 5 和 Task 11 在外部额度恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 14 开始，不需要重复执行已通过范围；Task 5 和 Task 11 在外部额度恢复后复跑。

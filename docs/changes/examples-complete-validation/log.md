@@ -44,6 +44,9 @@
 | 2026-07-11 | research | Crawler 旧脚本没有验证 Browser，运维文档误把 Playwright Server 当成 CDP | 旧 E2E 只请求公共网站；`/json/version` 在当前容器中不存在；本机 9222 已被 Chrome 占用 |
 | 2026-07-11 | apply | 加固双引擎验证并修复相对链接解析 | 增加受控页面、可配置容器端口和 17 项严格断言；Jsoup 使用最终响应 URL 作为 base URI |
 | 2026-07-11 | verify | 完成 Task 12 Crawler 验证 | 17/17 PASS；Playwright 1.41.0、WebSocket、JS DOM、截图和全部资源清理通过 |
+| 2026-07-11 | research | WebSocket 查询参数身份从未进入会话注册表 | Spring 会话包装器没有读取 Principal 或握手属性，旧脚本还会把缺少 Python 包记为跳过 |
+| 2026-07-11 | apply | 接入握手拦截器并增加可复现的双客户端和 UI 测试 | Principal 优先于演示属性；前端声明 `ws` 与 Playwright，提交锁文件并使用 `npm ci` |
+| 2026-07-11 | verify | 完成 Task 13 WebSocket 验证 | 19/19 PASS；协议、REST、构建、无头 Chrome、应用内浏览器和端口清理全部通过 |
 
 ## 技术决策
 
@@ -75,6 +78,7 @@
 | Fullstack HTTP RPC Server | 保持关闭，Controller 提供 HTTP API，发现客户端负责调用下游 | 同时打开本地 `/rpc` Server | Fullstack 当前是 User RPC 消费方；本地提供方能力由独立 gRPC Echo 服务验证 |
 | Fullstack gRPC 依赖 | 示例显式依赖 `nebula-rpc-grpc` | 期待 `nebula-starter-all` 传递 optional 实现 | Starter 只提供可选能力，示例必须明确选择实际协议实现 |
 | Crawler Browser 协议 | 使用 Playwright WebSocket Server，`use-cdp=false` | 把服务当作 Chrome CDP 并请求 `/json/version` | 当前镜像运行 `playwright run-server`，根入口返回 `Running`，监听地址由容器日志给出 |
+| WebSocket 用户身份 | 框架优先使用 Principal，其次读取握手拦截器写入的 `userId` 属性 | 框架直接信任任意查询参数 | 生产认证仍由应用负责，示例可用查询参数演示定向发送 |
 
 ## 踩坑记录
 
@@ -109,6 +113,8 @@
 | MCP 工具和资源可能未注册 | 应用配置在自动配置 Bean 创建前使用 `@ConditionalOnBean` 判断 | 改为 AI 与 MCP Server 双属性条件，真实验证列表、调用和读取 | [x] |
 | Crawler 相对链接解析结果为空 | `CrawlerResponse.asDocument()` 没有向 Jsoup 传入页面 URL | 优先使用 `finalUrl`、回退 `url` 作为 base URI，并补重定向回归测试 | [x] |
 | Playwright 正常运行却被启动脚本判超时 | 脚本访问 CDP 专用 `/json/version`，实际服务根入口只返回 `Running` | 启停脚本改用 Docker Compose v2 和真实存活入口，并输出运行时版本 | [x] |
+| WebSocket 按用户发送始终为 0 | 会话注册时 `userId` 尚未从 Principal 或握手属性赋值 | 会话包装器初始化身份，自动配置接入应用提供的 HandshakeInterceptor | [x] |
+| WebSocket 干净克隆无法执行 `npm ci` | 前端锁文件被局部 `.gitignore` 排除 | 提交当前 `package-lock.json`，协议与 UI 测试依赖均固定版本 | [x] |
 
 ## 知识发现
 
