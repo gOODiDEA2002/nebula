@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * RabbitMQ 消息生产者实现
@@ -34,6 +35,11 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
     private final DelayMessageProducer delayMessageProducer;
     private Duration timeout = Duration.ofSeconds(30);
     private volatile boolean started = false;
+    private final AtomicLong sentCount = new AtomicLong();
+    private final AtomicLong successCount = new AtomicLong();
+    private final AtomicLong failedCount = new AtomicLong();
+    private final AtomicLong totalElapsedTime = new AtomicLong();
+    private final AtomicLong statsStartTime = new AtomicLong(System.currentTimeMillis());
 
     public RabbitMQMessageProducer(Connection connection, MessageSerializer messageSerializer, 
                                    DelayMessageProducer delayMessageProducer) {
@@ -102,6 +108,7 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
             channel.basicPublish(topic, routingKey, properties, messageBody);
             
             long elapsedTime = System.currentTimeMillis() - startTime;
+            recordSend(true, elapsedTime);
             logger.debug("Message sent successfully: topic={}, queue={}, routingKey={}, messageId={}, elapsed={}ms", 
                 topic, queue, routingKey, messageId, elapsedTime);
             
@@ -109,6 +116,7 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
             
         } catch (Exception e) {
             long elapsedTime = System.currentTimeMillis() - startTime;
+            recordSend(false, elapsedTime);
             logger.error("Failed to send message: topic={}, queue={}, messageId={}", topic, queue, messageId, e);
             return new RabbitMQSendResult(false, messageId, topic, queue, startTime, elapsedTime, 
                 "Failed to send message: " + e.getMessage(), e);
@@ -156,6 +164,7 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
      * 转换延时消息结果为标准发送结果
      */
     private SendResult convertDelayResult(DelayMessageResult delayResult) {
+        recordSend(delayResult.isSuccess(), delayResult.getElapsedTime());
         return new RabbitMQSendResult(
                 delayResult.isSuccess(),
                 delayResult.getMessageId(),
@@ -246,8 +255,17 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
 
     @Override
     public ProducerStats getStats() {
-        // TODO: 实现统计信息
         return new RabbitMQProducerStats();
+    }
+
+    private void recordSend(boolean success, long elapsedTime) {
+        sentCount.incrementAndGet();
+        totalElapsedTime.addAndGet(elapsedTime);
+        if (success) {
+            successCount.incrementAndGet();
+        } else {
+            failedCount.incrementAndGet();
+        }
     }
 
     // 私有方法
@@ -331,27 +349,38 @@ public class RabbitMQMessageProducer<T> implements MessageProducer<T> {
         public long getElapsedTime() { return elapsedTime; }
     }
 
-    private static class RabbitMQProducerStats implements ProducerStats {
-        // TODO: 实现统计功能
+    private class RabbitMQProducerStats implements ProducerStats {
         @Override
-        public long getSentCount() { return 0; }
+        public long getSentCount() { return sentCount.get(); }
         
         @Override
-        public long getSuccessCount() { return 0; }
+        public long getSuccessCount() { return successCount.get(); }
         
         @Override
-        public long getFailedCount() { return 0; }
+        public long getFailedCount() { return failedCount.get(); }
         
         @Override
-        public double getSuccessRate() { return 0.0; }
+        public double getSuccessRate() {
+            long sent = sentCount.get();
+            return sent == 0 ? 0.0 : (double) successCount.get() / sent;
+        }
         
         @Override
-        public double getAverageElapsedTime() { return 0.0; }
+        public double getAverageElapsedTime() {
+            long sent = sentCount.get();
+            return sent == 0 ? 0.0 : (double) totalElapsedTime.get() / sent;
+        }
         
         @Override
-        public long getStartTime() { return System.currentTimeMillis(); }
+        public long getStartTime() { return statsStartTime.get(); }
         
         @Override
-        public void reset() { }
+        public void reset() {
+            sentCount.set(0);
+            successCount.set(0);
+            failedCount.set(0);
+            totalElapsedTime.set(0);
+            statsStartTime.set(System.currentTimeMillis());
+        }
     }
 }

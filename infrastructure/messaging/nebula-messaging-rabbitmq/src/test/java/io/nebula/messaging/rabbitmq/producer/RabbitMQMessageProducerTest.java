@@ -150,6 +150,24 @@ class RabbitMQMessageProducerTest {
         assertThat(result.isSuccess()).isFalse();
         assertThat(result.getErrorMessage()).contains("Connection error");
     }
+
+    @Test
+    void testProducerStatsTrackSuccessFailureAndReset() throws Exception {
+        producer.send("test.topic", "success");
+        doThrow(new IOException("Connection error")).when(channel)
+                .basicPublish(anyString(), anyString(), any(), any(byte[].class));
+        producer.send("test.topic", "failure");
+
+        MessageProducer.ProducerStats stats = producer.getStats();
+        assertThat(stats.getSentCount()).isEqualTo(2);
+        assertThat(stats.getSuccessCount()).isEqualTo(1);
+        assertThat(stats.getFailedCount()).isEqualTo(1);
+        assertThat(stats.getSuccessRate()).isEqualTo(0.5);
+        assertThat(stats.getStartTime()).isPositive();
+
+        stats.reset();
+        assertThat(producer.getStats().getSentCount()).isZero();
+    }
     
     @Test
     void testStart() {
@@ -168,4 +186,3 @@ class RabbitMQMessageProducerTest {
         assertThat(producer.isAvailable()).isTrue();
     }
 }
-
