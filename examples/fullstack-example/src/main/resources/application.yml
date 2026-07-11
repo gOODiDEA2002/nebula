@@ -161,9 +161,9 @@ nebula:
     # 启用限流
     rate-limit:
       enabled: true
-      default-requests-per-second: 10  # 开发环境设置较小值便于测试
+      default-requests-per-second: ${NEBULA_WEB_RATE_LIMIT_REQUESTS_PER_SECOND:10}
       time-window: 60
-      key-strategy: "IP"
+      key-strategy: ${NEBULA_WEB_RATE_LIMIT_KEY_STRATEGY:IP}
       limit-exceeded-message: "请求过于频繁，请稍后再试"
     
     # 启用响应缓存
@@ -172,6 +172,12 @@ nebula:
       default-ttl: 60      # 1分钟，便于测试
       max-size: 100
       key-prefix: "nebula:cache:"
+
+    performance:
+      enabled: true
+      slow-request-threshold: 1000
+      enable-detailed-metrics: true
+      metrics-interval: 30
     
     # 启用数据脱敏
     data-masking:
@@ -250,9 +256,9 @@ nebula:
     elasticsearch:
       enabled: ${NEBULA_SEARCH_ENABLED:true}
       uris:
-        - http://${NEBULA_DEV_SERVER:127.0.0.1}:9200
-      username: elastic
-      password:  # 如果没有密码可以留空
+        - http://${ELASTICSEARCH_HOST:${NEBULA_DEV_SERVER:127.0.0.1}}:${ELASTICSEARCH_PORT:9200}
+      username: ${ELASTICSEARCH_USERNAME:}
+      password: ${ELASTICSEARCH_PASSWORD:}
       connection-timeout: 10s
       read-timeout: 30s
       index-prefix: nebula_example
@@ -268,11 +274,11 @@ nebula:
   messaging:
     rabbitmq:
       enabled: true
-      host: ${NEBULA_DEV_SERVER:127.0.0.1}
-      port: 5672
-      username: guest
-      password: guest
-      virtual-host: /
+      host: ${RABBITMQ_HOST:${NEBULA_DEV_SERVER:127.0.0.1}}
+      port: ${RABBITMQ_PORT:5672}
+      username: ${RABBITMQ_USERNAME:guest}
+      password: ${RABBITMQ_PASSWORD:guest}
+      virtual-host: ${RABBITMQ_VHOST:/}
       
       # 连接配置
       connection-timeout: 60000
@@ -299,34 +305,19 @@ nebula:
         durable: true
         auto-delete: false
     
-    # 启用性能监控
-    performance:
-      enabled: true
-      slow-request-threshold: 1000  # 1秒
-      enable-detailed-metrics: true
-      metrics-interval: 30
-    
-    # 启用请求日志
-    request-logging:
-      enabled: true
-      include-headers: true
-      include-request-body: false  # 避免记录敏感信息
-      include-response-body: false
-      ignore-paths: 
-        - "/actuator/**"
-        - "/health/**" 
-        - "/performance/**"
-      max-request-body-length: 1024
-      max-response-body-length: 1024
   # Minio 存储配置
   storage:
     minio:
       enabled: ${NEBULA_MINIO_ENABLED:true}
-      endpoint: http://${NEBULA_DEV_SERVER:127.0.0.1}:9000
-      access-key: minioadmin
-      secret-key: minioadmin
-      default-bucket: nebula-files
+      endpoint: http://${MINIO_HOST:${NEBULA_DEV_SERVER:127.0.0.1}}:${MINIO_PORT:9000}
+      access-key: ${MINIO_ACCESS_KEY:minioadmin}
+      secret-key: ${MINIO_SECRET_KEY:minioadmin}
+      default-bucket: ${MINIO_BUCKET:nebula-files}
       auto-create-default-bucket: true
+
+  example:
+    search:
+      product-index: ${FULLSTACK_SEARCH_INDEX:products}
   
   # AI 模块配置
   ai:

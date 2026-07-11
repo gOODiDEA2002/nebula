@@ -7,6 +7,7 @@ import io.nebula.notification.sms.SmsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class NotificationController {
      * 发送短信
      */
     @PostMapping("/sms/send")
-    public Result<Map<String, Object>> sendSms(@RequestBody SendSmsDto dto) {
+    public Result<Map<String, Object>> sendSms(@Valid @RequestBody SendSmsDto dto) {
         boolean success = smsService.send(dto.getPhone(), dto.getTemplate(),
                 dto.getParams() != null ? dto.getParams().toArray(new String[0]) : new String[0]);
 
@@ -40,7 +41,7 @@ public class NotificationController {
      * 发送验证码
      */
     @PostMapping("/sms/verification-code")
-    public Result<Map<String, Object>> sendVerificationCode(@RequestBody SendVerificationCodeDto dto) {
+    public Result<Map<String, Object>> sendVerificationCode(@Valid @RequestBody SendVerificationCodeDto dto) {
         boolean success = smsService.sendVerificationCode(dto.getPhone(), dto.getCode());
 
         return Result.success(Map.of(

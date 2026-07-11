@@ -1,6 +1,7 @@
 package io.nebula.example.modules.web.controller;
 
 import io.nebula.core.common.result.Result;
+import io.nebula.web.cache.ResponseCacheable;
 import io.nebula.web.controller.BaseController;
 import io.nebula.web.mask.MaskType;
 import io.nebula.web.mask.SensitiveData;
@@ -49,8 +50,9 @@ public class HelloController extends BaseController {
 
     /**
      * 缓存演示接口
-     * GET 请求会被自动缓存（如果启用了缓存功能）
+     * 启用缓存功能后，显式标注的 GET 请求会被缓存
      */
+    @ResponseCacheable
     @GetMapping("/cached-data/{id}")
     public Result<CachedDataResponse> getCachedData(@PathVariable String id) {
         log.info("获取缓存数据，ID: {}", id);

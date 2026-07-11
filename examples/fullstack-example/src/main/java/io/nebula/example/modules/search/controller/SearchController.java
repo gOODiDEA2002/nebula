@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/search")
 @RequiredArgsConstructor
 @Tag(name = "搜索功能", description = "Elasticsearch 搜索功能演示")
-@ConditionalOnBean(SearchService.class)
+@ConditionalOnProperty(prefix = "nebula.search.elasticsearch", name = "enabled", havingValue = "true")
 public class SearchController {
 
     private final SearchDemoService searchDemoService;

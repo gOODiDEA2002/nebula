@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.http.MediaType;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +34,7 @@ import java.io.OutputStream;
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "对象存储演示", description = "Nebula 对象存储功能演示API")
-@ConditionalOnBean(StorageService.class)
+@ConditionalOnProperty(prefix = "nebula.storage.minio", name = "enabled", havingValue = "true")
 public class StorageController {
     
     private final StorageDemoService storageDemoService;
@@ -141,4 +141,3 @@ public class StorageController {
         return Result.success(null, "创建存储桶成功");
     }
 }
-

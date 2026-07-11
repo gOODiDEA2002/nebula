@@ -10,7 +10,7 @@ import io.nebula.storage.core.model.ObjectSummary;
 import io.nebula.storage.core.model.StorageResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnBean(StorageService.class)
+@ConditionalOnProperty(prefix = "nebula.storage.minio", name = "enabled", havingValue = "true")
 public class StorageDemoServiceImpl implements StorageDemoService {
     
     private final StorageService storageService;
@@ -239,4 +239,3 @@ public class StorageDemoServiceImpl implements StorageDemoService {
         return vo;
     }
 }
-

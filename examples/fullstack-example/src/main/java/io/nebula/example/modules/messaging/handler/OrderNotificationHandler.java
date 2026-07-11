@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * 订单通知消息处理器
  * 演示如何使用 @MessageListener 注解自动注册消息处理器
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @ConditionalOnProperty(prefix = "nebula.messaging.rabbitmq", name = "enabled", havingValue = "true")
 public class OrderNotificationHandler {
+
+    private final ConcurrentHashMap<Long, AtomicInteger> retryAttempts = new ConcurrentHashMap<>();
     
     /**
      * 处理订单通知消息
@@ -59,6 +64,15 @@ public class OrderNotificationHandler {
     @MessageListener(topic = "order.status.update", concurrency = 3, maxRetries = 5)
     public void handleOrderStatusUpdate(Message<OrderStatusUpdateEvent> message) {
         OrderStatusUpdateEvent event = message.getPayload();
+        if ("E2E_RETRY".equals(event.getNewStatus())) {
+            int attempt = retryAttempts.computeIfAbsent(event.getOrderId(), ignored -> new AtomicInteger())
+                    .incrementAndGet();
+            log.info("订单状态重试验证: orderId={}, attempt={}", event.getOrderId(), attempt);
+            if (attempt == 1) {
+                throw new IllegalStateException("E2E 首次消费失败");
+            }
+            retryAttempts.remove(event.getOrderId());
+        }
         
         log.info("收到订单状态更新: orderId={}, orderNo={}, {} -> {}", 
             event.getOrderId(), 
@@ -106,4 +120,3 @@ public class OrderNotificationHandler {
         }
     }
 }
-

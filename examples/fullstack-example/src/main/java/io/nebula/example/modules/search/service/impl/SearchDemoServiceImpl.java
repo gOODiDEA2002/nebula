@@ -13,7 +13,8 @@ import io.nebula.search.core.suggestion.TermSuggester;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -27,20 +28,21 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnBean(SearchService.class)
+@ConditionalOnProperty(prefix = "nebula.search.elasticsearch", name = "enabled", havingValue = "true")
 public class SearchDemoServiceImpl implements SearchDemoService {
-
-    private static final String PRODUCT_INDEX = "products";
 
     private final SearchService searchService;
     private final ProductMapper productMapper;
+
+    @Value("${nebula.example.search.product-index:products}")
+    private String productIndex;
 
     @Override
     public CreateIndexDto.Response createProductIndex(CreateIndexDto.Request request) {
         try {
             // 使用请求中的索引名称,如果未提供则使用默认值
             String indexName = (request.getIndexName() != null && !request.getIndexName().trim().isEmpty()) 
-                                ? request.getIndexName().trim() : PRODUCT_INDEX;
+                                ? request.getIndexName().trim() : productIndex;
             
             log.info("创建产品索引: indexName={}, shards={}, replicas={}", 
                      indexName, request.getShards(), request.getReplicas());
@@ -85,7 +87,7 @@ public class SearchDemoServiceImpl implements SearchDemoService {
         try {
             // 使用请求中的索引名称,如果未提供则使用默认值
             String indexName = (request.getIndexName() != null && !request.getIndexName().trim().isEmpty()) 
-                                ? request.getIndexName().trim() : PRODUCT_INDEX;
+                                ? request.getIndexName().trim() : productIndex;
             
             log.info("删除产品索引: indexName={}", indexName);
             
@@ -108,7 +110,7 @@ public class SearchDemoServiceImpl implements SearchDemoService {
         try {
             // 使用请求中的索引名称,如果未提供则使用默认值
             String indexName = (request.getIndexName() != null && !request.getIndexName().trim().isEmpty()) 
-                                ? request.getIndexName().trim() : PRODUCT_INDEX;
+                                ? request.getIndexName().trim() : productIndex;
             
             log.info("检查产品索引是否存在: indexName={}", indexName);
             
@@ -143,7 +145,7 @@ public class SearchDemoServiceImpl implements SearchDemoService {
 
             // 索引文档
             DocumentResult result = searchService.indexDocument(
-                PRODUCT_INDEX,
+                productIndex,
                 product.getId().toString(),
                 searchDoc
             );
@@ -186,7 +188,7 @@ public class SearchDemoServiceImpl implements SearchDemoService {
                 ));
 
             // 批量索引
-            BulkResult result = searchService.bulkIndexDocuments(PRODUCT_INDEX, documents);
+            BulkResult result = searchService.bulkIndexDocuments(productIndex, documents);
 
             BulkIndexProductsDto.Response response = new BulkIndexProductsDto.Response();
             response.setSuccess(result.getFailureCount() == 0);
@@ -216,7 +218,7 @@ public class SearchDemoServiceImpl implements SearchDemoService {
 
             // 构建搜索查询
             SearchQuery.Builder queryBuilder = SearchQuery.builder()
-                .index(PRODUCT_INDEX)
+                .index(productIndex)
                 .query(query)
                 .from((request.getPage() - 1) * request.getSize())
                 .size(request.getSize());
@@ -288,7 +290,7 @@ public class SearchDemoServiceImpl implements SearchDemoService {
     public DeleteProductIndexDto.Response deleteProductIndex(DeleteProductIndexDto.Request request) {
         try {
             DocumentResult result = searchService.deleteDocument(
-                PRODUCT_INDEX,
+                productIndex,
                 request.getProductId().toString()
             );
 
@@ -313,7 +315,7 @@ public class SearchDemoServiceImpl implements SearchDemoService {
         try {
             // 构建建议查询（使用 TermSuggester）
             io.nebula.search.core.query.SuggestQuery query = io.nebula.search.core.query.SuggestQuery.builder()
-                .index(PRODUCT_INDEX)
+                .index(productIndex)
                 .addSuggester(
                     new TermSuggester("product-suggest", request.getText(), "name")
                         .suggestMode("popular")

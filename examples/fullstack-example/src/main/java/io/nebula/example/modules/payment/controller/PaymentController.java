@@ -11,6 +11,7 @@ import io.nebula.integration.payment.core.model.RefundResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 /**
  * 支付演示控制器
@@ -27,7 +28,7 @@ public class PaymentController {
      * 创建支付订单
      */
     @PostMapping("/create")
-    public Result<PaymentResponse> createPayment(@RequestBody CreatePaymentDto dto) {
+    public Result<PaymentResponse> createPayment(@Valid @RequestBody CreatePaymentDto dto) {
         return Result.success(paymentDemoService.createPayment(dto));
     }
 
@@ -35,7 +36,7 @@ public class PaymentController {
      * 查询支付状态
      */
     @PostMapping("/query")
-    public Result<PaymentQueryResponse> queryPayment(@RequestBody QueryPaymentDto dto) {
+    public Result<PaymentQueryResponse> queryPayment(@Valid @RequestBody QueryPaymentDto dto) {
         return Result.success(paymentDemoService.queryPayment(dto));
     }
 
@@ -43,7 +44,7 @@ public class PaymentController {
      * 申请退款
      */
     @PostMapping("/refund")
-    public Result<RefundResponse> refund(@RequestBody RefundPaymentDto dto) {
+    public Result<RefundResponse> refund(@Valid @RequestBody RefundPaymentDto dto) {
         return Result.success(paymentDemoService.refund(dto));
     }
 
