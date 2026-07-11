@@ -94,7 +94,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `rpc-async-example` | Service、Client | PASS | 38/38 PASS；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复均通过 |
 | `microservice-example` | User、Order | PASS | 34/34 PASS；REST CRUD、HTTP RPC、gRPC、Nacos metadata 和 Order 到 User 跨服务调用均通过 |
 | `gateway-example` | Gateway | PASS | 23/23 PASS；真实代理、无 Token 401、有效 JWT、Redis 429 和令牌恢复均通过 |
-| `fullstack-example` | Fullstack 应用 | PENDING | 待执行 |
+| `fullstack-example` | Fullstack 应用 | PASS | 49/49 PASS；四种数据模式、产品 CRUD、逻辑删除、多级缓存和组合路由均通过 |
 | `crawler-example` | Crawler、Browser | PENDING | 待执行 |
 | `websocket-example` | Backend、Frontend | PENDING | 待执行 |
 | `oauth-example` | Backend、Frontend、OAuth 提供方 | PENDING | 待执行 |
@@ -103,9 +103,9 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
-| 本轮测试启动的进程 | PASS | 受控端口占用进程和 Web 生命周期进程均已关闭 |
+| 本轮测试启动的进程 | PASS | 受控端口占用进程和示例进程均已关闭，1000 等已验证端口均释放 |
 | 隔离容器和独立卷 | PASS | 容器 0、卷 0；13306 和 19200 端口均已释放 |
-| `nebula_e2e_` 临时数据 | PASS | Redis、RabbitMQ、Nacos、MinIO、Chroma 复核均为 0 |
+| `nebula_e2e_` 临时数据 | PASS | Redis、RabbitMQ、Nacos、MinIO、Chroma 和 Fullstack MySQL 复核均为 0 |
 
 ## 8. 已知告警
 
@@ -189,3 +189,21 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   Order 随后通过 Nacos `grpcPort` metadata 调用 User。
 - E2E 使用 Redis 15 号空测试库和 1/5 的临时令牌桶参数，连续请求出现 4 次 429，等待 2 秒后恢复 200。
   测试结束后限流键为 0，8000、1001、1002、2001、2002 端口全部释放。
+
+## 15. Task 9 复核记录
+
+- 最终证据：`target/example-e2e/20260711-121534-84726/`，结果为 49 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED，退出码为 0。
+- 默认 Profile 使用隔离 MySQL 8.3 完成产品创建、查询、更新、分页筛选和逻辑删除；数据库确认
+  `deleted=1` 后再删除临时行。Nebula 多级缓存完成 set/get/update/delete、L1 命中、L2 命名空间键、
+  2 秒 TTL 到期和删除后 MISS；Spring Cache 完成创建、更新、读取和删除。
+- `readwrite` Profile 的写操作选择主库、读操作选择从库；`sharding` Profile 的订单写入并读取
+  `ds0.t_order_0`。`combined` Profile 同一进程内将产品写入 `master`、从 `slave01` 读取，并将订单
+  路由到 `ds1.t_order_1`，应用日志和数据库均有直接证据。
+- 首轮 47/49 暴露两个示例缺陷：不同 Spring Cache 操作向同一键写入不兼容 DTO 类型；产品删除使用
+  `updateById` 时逻辑删除字段被 MyBatis-Plus 忽略。响应 DTO 统一继承读取模型，删除改用
+  `deleteByIds` 后，两项均由第二轮 E2E 验证通过。
+- 运行验证还发现多级缓存的最小 L1 TTL 会把调用方的 2 秒 TTL 延长到 1 分钟，以及组合配置声明的
+  ShardingSphere 读写规则从未装配。修复后增加短 TTL 回归测试和独立读写库组合路由测试，相关模块
+  16 个定向测试全部通过。
+- 清理复核：Redis 14 号测试库为 0；隔离 MySQL 容器、网络和卷为 0；1000、13306 端口均释放。

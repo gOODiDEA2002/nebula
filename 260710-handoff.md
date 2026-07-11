@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 07:43 +08
+> 最后更新：2026-07-11 12:20 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -25,6 +25,8 @@
   Order 到 User 跨服务调用和清理均有真实证据。
 - Task 8：Gateway 23/23 通过；真实后端代理、无 Token 401、有效 JWT、Redis 429、令牌恢复和
   Redis/端口清理均有真实证据。
+- Task 9：Fullstack 49/49 通过；默认、读写分离、分片和组合 Profile，产品 CRUD、逻辑删除、
+  多级缓存与实际 SQL 路由均有真实证据。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -37,6 +39,9 @@
   - `d4a0fbc7 fix(examples): 修复微服务运行配置与更新接口`
   - `db164b4e test(examples): 完成微服务双协议验证`
   - `01a46d76 fix(gateway): 对齐真实服务路由与后端 API`
+  - `754f6ac1 test(examples): 完成 Gateway 真实流量验证`
+  - `ed01fc4b fix(data): 修复多级缓存过期与组合路由`
+  - `57216d95 test(examples): 完成 Fullstack 数据与缓存验证`
 
 ## 关键上下文
 
@@ -54,23 +59,27 @@
   0 SKIP、0 BLOCKED。Order 通过 Nacos 的 `grpcPort=2001` metadata 调用 User。
 - Task 8 最终证据位于 `target/example-e2e/20260711-074039-81648/`，结果为 23 PASS、0 FAIL、
   0 SKIP、0 BLOCKED。限流使用 Redis 15 号测试库，结束后键数量为 0。
+- Task 9 最终证据位于 `target/example-e2e/20260711-121534-84726/`，结果为 49 PASS、0 FAIL、
+  0 SKIP、0 BLOCKED。Redis 14 号测试库、隔离 MySQL 容器与卷、1000 和 13306 端口均已清理。
+- 多级缓存 L1 TTL 现在不会超过调用方传入的 TTL。ShardingSphere 组合模式会同时装配分片和读写规则；
+  `sql-show` 可用于记录实际数据源和物理 SQL。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 9 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段先执行 Task 9 Fullstack 数据库、缓存和四种数据模式；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
-- Gateway、Fullstack、Crawler Browser、WebSocket 浏览器流程和 OAuth 全链路仍有已知配置或环境风险，详见
+- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 10 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段先执行 Task 10 Fullstack 消息、搜索、存储和通用模块；获得有额度的测试密钥后立即复跑 Task 5 Full E2E。
+- Fullstack 后续远程模块、Crawler Browser、WebSocket 浏览器流程和 OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 从 Task 9 的 Fullstack SQL、默认/readwrite/sharding/combined 配置和现有 E2E 脚本核对开始。
-3. 使用隔离 MySQL 8.3 与 namespaced Redis 数据验证 CRUD、逻辑删除、缓存 TTL 和四种数据模式。
+2. 从 Task 10 的 Fullstack RabbitMQ、Elasticsearch、MinIO、Task、支付、通知和 Web 通用能力核对开始。
+3. 使用隔离资源验证真实协议行为，测试结束后删除临时队列、索引、Bucket、对象和缓存键。
 4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
-5. 继续 Task 7 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
+5. 继续 Task 11 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
 ## 风险与约束
 
@@ -88,4 +97,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 9 开始，不需要重复执行 Task 0 至 Task 8；Task 5 在外部额度恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 10 开始，不需要重复执行 Task 0 至 Task 9；Task 5 在外部额度恢复后复跑。

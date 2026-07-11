@@ -182,7 +182,10 @@
   4. 缓存完成 set/get/delete、TTL 到期、L1/L2 更新一致性。
   5. `readwrite`、`sharding`、`combined` 分别启动并完成写入、读取、路由核对。
 - **验收标准**：四种数据模式全部 PASS，数据库和 Redis 中无 E2E 临时数据。
-- [ ] 完成
+- **完成证据**：`target/example-e2e/20260711-121534-84726/`，49 PASS、0 FAIL、0 SKIP、
+  0 BLOCKED；默认、读写分离、分片和组合 Profile 均通过。Redis 14 号测试库、MySQL 隔离容器、
+  独立卷、1000 端口和受管进程均已清理。
+- [x] 完成
 
 ## Task 10：验证 Fullstack 消息、搜索、存储和通用模块
 

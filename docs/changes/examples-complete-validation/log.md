@@ -32,6 +32,9 @@
 | 2026-07-11 | research | Gateway 路由无法命中真实后端 | 配置服务名与 Nacos 不一致，且 `/api/**` 在后端没有对应 Controller |
 | 2026-07-11 | apply | 对齐 Gateway 服务名和应用层 API | User、Order 增加 `/api/**` 入口；JWT、Redis 和限流参数支持环境变量 |
 | 2026-07-11 | verify | 完成 Task 8 Gateway 验证 | 23/23 PASS；代理、401、有效 JWT、429、令牌恢复和资源清理通过 |
+| 2026-07-11 | research | Fullstack 首轮运行暴露缓存、删除和组合数据源问题 | 短 TTL 被 L1 延长；缓存 DTO 类型冲突；逻辑删除未写入；组合读写规则未装配 |
+| 2026-07-11 | apply | 修复多级缓存 TTL、组合路由和 Fullstack 示例行为 | 补充框架回归测试，统一缓存响应类型，并使用 MyBatis-Plus 逻辑删除 API |
+| 2026-07-11 | verify | 完成 Task 9 Fullstack 数据模式验证 | 49/49 PASS；四种 Profile、MySQL、Redis 和资源清理全部通过 |
 
 ## 技术决策
 
@@ -55,6 +58,9 @@
 | Order HTTP 入口 | `/api/orders`、`/rpc/orders` 由应用 Controller 提供，通用 RPC 仍使用 `POST /rpc` | 把 `@RpcCall` 当成自动 MVC 路由 | 前端和直连 HTTP 路径属于应用层，RPC 协议入口由框架提供 |
 | Gateway 前端路径 | 应用 Controller 显式提供 `/api/**`，Gateway 保持原路径代理 | 在 Gateway 猜测并重写 `/api` 到 `/rpc` | 前端 HTTP 路径属于应用层，后端路由清晰且可直接测试 |
 | Gateway 限流隔离 | E2E 使用 Redis 15 号空测试库，结束后删除本轮限流键 | 在默认数据库扫描并删除共享键 | 避免碰触其他开发进程的限流状态 |
+| Fullstack MySQL 隔离 | 使用验证 Compose 的独立项目名、端口和卷 | 修改或复用 `nebula-data` 现有卷 | 保证升级验证不会碰触开发数据 |
+| 组合数据模式 | 在同一个 ShardingSphere DataSource 中同时装配分片和读写规则 | 让读写切面在 ShardingSphere DataSource 外层切换 | 单一 MyBatis `SqlSessionFactory` 需要由 ShardingSphere 统一选择逻辑数据源 |
+| Spring Cache 示例 | 显式使用 `simple` 类型并创建 `users` 缓存 | 依赖 Redisson JCache 的隐式选择 | 示例缓存注解与 Nebula 多级缓存分别验证，避免未声明缓存和共享 Redis 数据 |
 
 ## 踩坑记录
 
@@ -78,6 +84,10 @@
 | User 更新接口按 README 调用仍返回 400 | DTO 的 `id` 在方法执行前校验非空，但 Controller 和 RPC 都从独立参数设置 ID | 移除请求体 ID 的非空约束，以路径或 RPC 参数为唯一来源 | [x] |
 | HTTP RPC 请求缺少 primitive 字段时返回 500 | Jackson 3 将缺失的 `long timeout` 作为 `null` 并拒绝映射 | E2E 按完整线格式发送 `timestamp`、`timeout` 和其他字段 | [x] |
 | Gateway 返回 404/503 仍被旧脚本判通过 | 脚本只检查网关可达，服务名和后端路径均不正确 | 启动真实后端，只接受业务 200，并交叉检查后端日志 | [x] |
+| 2 秒缓存 TTL 在 3 秒后仍命中 | L1 最小 TTL 为 1 分钟，计算结果超过调用方传入的总 TTL | L1 TTL 上限改为调用方 TTL，并补短 TTL 回归测试 | [x] |
+| Spring Cache 更新后读取返回 500 | 创建、更新和读取向同一缓存键写入三种互不兼容的响应类型 | 创建和更新响应继承统一读取响应模型 | [x] |
+| 产品接口返回删除成功但数据库仍为未删除 | `updateById` 不会用实体更新 MyBatis-Plus 逻辑删除字段 | 使用 `deleteByIds` 执行框架支持的逻辑删除 SQL | [x] |
+| 组合模式产品写入被送到分片库 | 配置模型有读写规则，但 `ShardingSphereManager` 未转换为运行规则 | 同时装配 Sharding 和 Readwrite Splitting 规则，并核对实际 SQL 路由 | [x] |
 
 ## 知识发现
 
