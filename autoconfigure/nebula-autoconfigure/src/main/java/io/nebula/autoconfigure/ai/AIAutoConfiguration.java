@@ -107,6 +107,7 @@ public class AIAutoConfiguration {
                 .apiKey(openAIConfig.getApiKey())
                 .baseUrl(openAIConfig.getBaseUrl())
                 .model(embOpts.getModel())
+                .encodingFormat(OpenAiEmbeddingOptions.EncodingFormat.FLOAT)
                 .maxRetries(embOpts.getMaxRetries())
                 .build();
 

@@ -28,7 +28,7 @@ starter-ai-example/
 
 - JDK 21+
 - Maven 3.8+
-- OpenAI API Key（启用 AI 功能时需要）
+- 腾讯 MaaS `vocoor_hy3_token`（启用 AI 功能时需要）
 - Chroma 向量数据库（启用向量存储时需要，默认连接 `localhost:9002`）
 
 ## 快速开始
@@ -43,7 +43,7 @@ mvn -q -f examples/starter-ai-example spring-boot:run
 
 # 3. 启用 AI 功能
 export AI_ENABLED=true
-export OPENAI_API_KEY='<test-api-key>'
+export vocoor_hy3_token='<test-api-key>'
 export CHROMA_HOST=localhost
 export CHROMA_PORT=9002
 mvn -q -f examples/starter-ai-example spring-boot:run
@@ -80,15 +80,15 @@ nebula:
   ai:
     enabled: ${AI_ENABLED:false}
     openai:
-      api-key: ${OPENAI_API_KEY:}
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      api-key: ${vocoor_hy3_token:${OPENAI_API_KEY:}}
+      base-url: ${OPENAI_BASE_URL:https://tokenhub.tencentmaas.com/v1}
       chat:
         options:
-          model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+          model: ${OPENAI_CHAT_MODEL:hy3}
           max-retries: ${OPENAI_MAX_RETRIES:0}
       embedding:
         options:
-          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+          model: ${OPENAI_EMBEDDING_MODEL:kinfra-text-embedding-0.6b}
           max-retries: ${OPENAI_MAX_RETRIES:0}
     vector-store:
       chroma:

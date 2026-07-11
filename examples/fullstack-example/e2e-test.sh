@@ -35,7 +35,7 @@ CHROMA_BASE_URL="http://${CHROMA_HOST}:${CHROMA_PORT}/api/v2/tenants/default_ten
 FULLSTACK_SERVICE_NAME=nebula-example
 USER_SERVICE_NAME=nebula-example-user-service
 JWT_SECRET=nebula-e2e-fullstack-jwt-secret-at-least-32-bytes
-TEST_OPENAI_API_KEY=${OPENAI_API_KEY:-}
+TEST_AI_API_KEY=${vocoor_hy3_token:-}
 MYSQL_STARTED=0
 REDIS_CLEANED=0
 RABBITMQ_CLEANED=0
@@ -153,10 +153,10 @@ assert_grpc_json() {
 
 assert_secret_not_logged() {
     local log_file=$1
-    if [ -n "$TEST_OPENAI_API_KEY" ] && grep -Fq -- "$TEST_OPENAI_API_KEY" "$log_file" 2>/dev/null; then
-        record_fail "Fullstack 日志泄漏 OpenAI API Key"
+    if [ -n "$TEST_AI_API_KEY" ] && grep -Fq -- "$TEST_AI_API_KEY" "$log_file" 2>/dev/null; then
+        record_fail "Fullstack 日志泄漏 AI API Key"
     else
-        record_pass "Fullstack 日志未泄漏 OpenAI API Key"
+        record_pass "Fullstack 日志未泄漏 AI API Key"
     fi
 }
 
@@ -171,15 +171,15 @@ verify_fullstack_chat() {
         jq -e '.success == true and (.data.content | type == "string") and (.data.content | length > 0)' \
             "$HTTP_BODY_FILE" >/dev/null 2>&1; then
         PASS=$((PASS + 1))
-        log_pass "Fullstack OpenAI 真实聊天返回有效内容"
+        log_pass "Fullstack Hy3 真实聊天返回有效内容"
         return 0
     fi
     if grep -Eq 'RateLimitException: 429: .*quota|insufficient_quota' "$FULLSTACK_AI_LOG" 2>/dev/null; then
         BLOCKED=$((BLOCKED + 1))
-        log_fail "OpenAI 测试账号额度不足，Fullstack AI 真实调用暂时阻塞"
+        log_fail "AI 兼容服务额度不足，Fullstack AI 真实调用暂时阻塞"
     else
         FAIL=$((FAIL + 1))
-        log_fail "Fullstack OpenAI 真实聊天失败，HTTP $HTTP_STATUS，证据：$HTTP_BODY_FILE"
+        log_fail "Fullstack Hy3 真实聊天失败，HTTP ${HTTP_STATUS}，证据：${HTTP_BODY_FILE}"
     fi
     AI_LIVE_READY=0
 }
@@ -671,14 +671,17 @@ export NEBULA_AI_ENABLED=true NEBULA_MCP_SERVER_ENABLED=true
 export NEBULA_WEB_RATE_LIMIT_REQUESTS_PER_SECOND=1000
 export NEBULA_JWT_SECRET="$JWT_SECRET"
 export CHROMA_HOST CHROMA_PORT CHROMA_COLLECTION OPENAI_MAX_RETRIES=0
-if [ -n "$TEST_OPENAI_API_KEY" ]; then
-    export OPENAI_API_KEY="$TEST_OPENAI_API_KEY"
+if [ -n "$TEST_AI_API_KEY" ]; then
+    export OPENAI_API_KEY=""
+    export vocoor_hy3_token="$TEST_AI_API_KEY"
+    export NEBULA_AI_OPENAI_API_KEY="$TEST_AI_API_KEY"
 else
-    export OPENAI_API_KEY=nebula-e2e-missing-key
+    export OPENAI_API_KEY=""
+    export NEBULA_AI_OPENAI_API_KEY=nebula-e2e-missing-key
     TOTAL=$((TOTAL + 1))
     BLOCKED=$((BLOCKED + 1))
     AI_LIVE_READY=0
-    log_fail "缺少 OPENAI_API_KEY，Fullstack AI 真实调用阻塞"
+    log_fail "缺少 vocoor_hy3_token，Fullstack AI 真实调用阻塞"
 fi
 start_profile dev
 FULLSTACK_AI_LOG=$PROFILE_LOG
@@ -735,7 +738,7 @@ if [ "$AI_LIVE_READY" -eq 1 ]; then
     verify_fullstack_chat "$AUTH_HEADER"
 fi
 if [ "$AI_LIVE_READY" -eq 1 ]; then
-    assert_json "Fullstack OpenAI 真实 embedding" "http://localhost:$PORT/ai/embed" \
+    assert_json "Fullstack Hy3 兼容 API 真实 embedding" "http://localhost:$PORT/ai/embed" \
         '.success == true and .data.dimension > 0 and (.data.embeddings | length) == 1' \
         POST '{"texts":["nebula fullstack embedding verification"]}' 200 "$AUTH_HEADER"
     MODEL_REQUEST_COUNT=$((MODEL_REQUEST_COUNT + 1))
@@ -760,7 +763,7 @@ if [ "$AI_LIVE_READY" -eq 1 ]; then
     assert_json "Fullstack Chroma 删除文档" "http://localhost:$PORT/ai/documents/$AI_DOCUMENT_ID" \
         '.success == true and .data == true' DELETE '' 200 "$AUTH_HEADER"
     record_pass "Fullstack AI 外部模型请求按设计限制为 $MODEL_REQUEST_COUNT 次"
-elif [ "$MODEL_REQUEST_COUNT" -eq 1 ] || [ -z "$TEST_OPENAI_API_KEY" ]; then
+elif [ "$MODEL_REQUEST_COUNT" -eq 1 ] || [ -z "$TEST_AI_API_KEY" ]; then
     record_pass "Fullstack AI 首次失败后停止后续模型请求"
 else
     record_fail "Fullstack AI 失败后仍发出多余模型请求"

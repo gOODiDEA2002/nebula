@@ -16,7 +16,7 @@
 | Elasticsearch | 127.0.0.1:9200 | `ELASTICSEARCH_HOST`、`ELASTICSEARCH_PORT` |
 | MinIO | 127.0.0.1:9000 | `MINIO_HOST`、`MINIO_PORT`、`MINIO_ACCESS_KEY`、`MINIO_SECRET_KEY` |
 | Chroma | 127.0.0.1:9002 | `CHROMA_HOST`、`CHROMA_PORT`、`CHROMA_COLLECTION` |
-| OpenAI | `https://api.openai.com/v1` | `OPENAI_API_KEY`、`OPENAI_BASE_URL`、聊天与嵌入模型变量 |
+| Hy3 兼容 API | `https://tokenhub.tencentmaas.com/v1` | `vocoor_hy3_token`、`OPENAI_BASE_URL`、聊天与嵌入模型变量 |
 
 完整模式还需要 Redis、RabbitMQ、Nacos、MinIO 和 Chroma。E2E 会使用
 [`docker/verification/docker-compose.yml`](../../docker/verification/docker-compose.yml)启动隔离的 MySQL 8.3
@@ -80,7 +80,8 @@ E2E_MODE=full examples/fullstack-example/e2e-test.sh
 
 验证脚本覆盖四种数据模式、真实 SQL 路由、缓存一致性、RabbitMQ、Elasticsearch、MinIO、任务、支付、
 通知、Web 功能、RPC、gRPC、AI、Chroma 和 MCP，并负责清理 namespaced 数据、受管进程、容器与卷。
-真实 AI 流程要求有额度的 `OPENAI_API_KEY`；额度不足会明确返回 `BLOCKED`，不会折算为通过。
+真实 AI 流程从 `vocoor_hy3_token` 读取密钥，默认使用 `hy3` 聊天和
+`kinfra-text-embedding-0.6b` 嵌入模型。`OPENAI_*` 变量仅作为 OpenAI 兼容协议的覆盖入口。
 
 原先分散的 15 份功能测试手册已归档到
 [`docs/archive/examples/fullstack-example`](../../docs/archive/examples/fullstack-example/)，其命令和配置仅供历史排查，

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # starter-ai-example E2E 测试
-# Full 模式同时验证无密钥禁用模式、真实 OpenAI 调用和 Chroma 向量操作。
+# Full 模式同时验证无密钥禁用模式、真实 Hy3 兼容 API 调用和 Chroma 向量操作。
 source "$(dirname "$0")/../e2e-common.sh"
 
 DISABLED_PORT=8083
@@ -11,7 +11,7 @@ CHROMA_COLLECTION="nebula_e2e_ai_${E2E_RUN_ID//-/_}"
 CHROMA_BASE_URL="http://${CHROMA_HOST}:${CHROMA_PORT}/api/v2/tenants/default_tenant/databases/default_database/collections"
 CHROMA_CLEANED=0
 MODEL_REQUEST_COUNT=0
-TEST_OPENAI_API_KEY="${OPENAI_API_KEY:-}"
+TEST_AI_API_KEY="${vocoor_hy3_token:-}"
 AI_LIVE_READY=1
 
 cleanup_chroma_best_effort() {
@@ -33,11 +33,11 @@ cleanup_ai() {
 
 assert_secret_not_logged() {
     local log_file=$1
-    if grep -Fq -- "$OPENAI_API_KEY" "$log_file" 2>/dev/null; then
-        record_fail "应用日志未泄漏 OpenAI API Key"
+    if [ -n "$TEST_AI_API_KEY" ] && grep -Fq -- "$TEST_AI_API_KEY" "$log_file" 2>/dev/null; then
+        record_fail "应用日志泄漏 AI API Key"
         return 0
     fi
-    record_pass "应用日志未泄漏 OpenAI API Key"
+    record_pass "应用日志未泄漏 AI API Key"
 }
 
 delete_chroma_collection() {
@@ -73,21 +73,21 @@ verify_live_chat() {
             (.data | length > 0) and .data != "AI disabled"' \
             "$HTTP_BODY_FILE" >/dev/null 2>&1; then
         PASS=$((PASS + 1))
-        log_pass "OpenAI 真实聊天返回非空内容，HTTP 200，JSON 断言通过"
+        log_pass "Hy3 真实聊天返回非空内容，HTTP 200，JSON 断言通过"
         return 0
     fi
 
     if grep -Eq 'RateLimitException: 429: .*quota' "$ENABLED_LOG" 2>/dev/null; then
         if [ "$E2E_MODE" = "full" ]; then
             BLOCKED=$((BLOCKED + 1))
-            log_fail "OpenAI 测试账号额度不足，真实调用暂时阻塞"
+            log_fail "AI 兼容服务额度不足，真实调用暂时阻塞"
         else
             SKIP=$((SKIP + 1))
-            log_skip "OpenAI 测试账号额度不足，跳过真实调用"
+            log_skip "AI 兼容服务额度不足，跳过真实调用"
         fi
     else
         FAIL=$((FAIL + 1))
-        log_fail "OpenAI 真实聊天失败，HTTP $HTTP_STATUS，证据：$HTTP_BODY_FILE"
+        log_fail "Hy3 真实聊天失败，HTTP ${HTTP_STATUS}，证据：${HTTP_BODY_FILE}"
     fi
     AI_LIVE_READY=0
 }
@@ -98,6 +98,8 @@ log_info "========== starter-ai-example E2E =========="
 
 export AI_ENABLED=false
 export OPENAI_API_KEY=""
+export vocoor_hy3_token=""
+export NEBULA_AI_OPENAI_API_KEY=""
 start_app "examples/starter-ai-example" "$DISABLED_PORT"
 DISABLED_LOG="$CURRENT_APP_LOG"
 
@@ -112,8 +114,10 @@ assert_file_not_contains "AI 禁用日志没有自动配置或远程客户端" \
     'Nebula AI 模块自动配置已启用|配置 OpenAI|配置 Chroma|配置 Nebula (ChatService|EmbeddingService|VectorStoreService)'
 stop_all_apps true
 
-export OPENAI_API_KEY="$TEST_OPENAI_API_KEY"
-skip_if_no_env OPENAI_API_KEY "starter-ai-example"
+export OPENAI_API_KEY=""
+export vocoor_hy3_token="$TEST_AI_API_KEY"
+export NEBULA_AI_OPENAI_API_KEY="$TEST_AI_API_KEY"
+skip_if_no_env vocoor_hy3_token "starter-ai-example"
 skip_if_no_service Chroma "$CHROMA_HOST" "$CHROMA_PORT" "starter-ai-example"
 
 export AI_ENABLED=true
@@ -143,7 +147,7 @@ if [ "$AI_LIVE_READY" -eq 0 ]; then
     exit $?
 fi
 
-assert_json "OpenAI 真实 embedding 返回有效维度" \
+assert_json "Hy3 兼容 API 真实 embedding 返回有效维度" \
     "http://localhost:$ENABLED_PORT/ai/embedding?q=nebula%20embedding%20verification" \
     '.success == true and (.data.model | length > 0) and .data.dimension > 0'
 MODEL_REQUEST_COUNT=$((MODEL_REQUEST_COUNT + 1))
