@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 14:40 +08
+> 最后更新：2026-07-11 14:50 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -35,6 +35,7 @@
   全部临时资源清理均有真实证据。
 - Task 13：WebSocket 19/19 通过；REST、双客户端、定向发送、心跳、前端构建、Playwright 和
   应用内浏览器均有真实证据。
+- Task 14 可执行部分：11 PASS、0 FAIL、0 SKIP、1 BLOCKED；隔离客户端通过，真实 Vocoor 提供方不可达。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -60,6 +61,8 @@
   - `ef32a807 fix(crawler): 验证远程浏览器与相对链接`
   - `d206c296 docs(validation): 记录 Crawler 完整验证`
   - `46f31827 fix(websocket): 完成双客户端与浏览器验证`
+  - `a37c3ee4 docs(validation): 记录 WebSocket 完整验证`
+  - `6f74e51c fix(oauth): 隔离配置并加固客户端验证`
 
 ## 关键上下文
 
@@ -99,8 +102,8 @@
 
 ## 未完成
 
-- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段先执行 Task 14 OAuth；获得有额度的 OpenAI 测试密钥后立即复跑 Task 5 和 Task 11 Full E2E。
+- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 14 尚缺隔离的 Vocoor 提供方，Task 15 至 Task 16 待执行。
+- 下一阶段先执行 Task 15 文档统一；外部条件恢复后复跑 Task 5、Task 11 和 Task 14 Full E2E。
 - OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
@@ -128,4 +131,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 14 开始，不需要重复执行已通过范围；Task 5 和 Task 11 在外部额度恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 15 开始；Task 5、Task 11 和 Task 14 在外部条件恢复后复跑。

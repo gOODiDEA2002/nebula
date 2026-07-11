@@ -47,6 +47,9 @@
 | 2026-07-11 | research | WebSocket 查询参数身份从未进入会话注册表 | Spring 会话包装器没有读取 Principal 或握手属性，旧脚本还会把缺少 Python 包记为跳过 |
 | 2026-07-11 | apply | 接入握手拦截器并增加可复现的双客户端和 UI 测试 | Principal 优先于演示属性；前端声明 `ws` 与 Playwright，提交锁文件并使用 `npm ci` |
 | 2026-07-11 | verify | 完成 Task 13 WebSocket 验证 | 19/19 PASS；协议、REST、构建、无头 Chrome、应用内浏览器和端口清理全部通过 |
+| 2026-07-11 | research | OAuth 示例硬编码业务数据库与秘密，前端干净构建失败 | 旧 E2E 指向 192.168 地址；vue-tsc 1.8 与当前 TypeScript 不兼容；Vite 缺少后端代理 |
+| 2026-07-11 | apply | 环境变量化 OAuth 配置并改用隔离 MySQL | 移除默认秘密和敏感日志，修正错误回调、退出路径、前端类型检查与 4010 代理 |
+| 2026-07-11 | verify | Task 14 可执行部分完成 | 11 PASS、0 FAIL、0 SKIP、1 BLOCKED；唯一阻塞为不可安全隔离启动的 Vocoor 提供方 |
 
 ## 技术决策
 

@@ -97,7 +97,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `fullstack-example` | Fullstack 应用 | BLOCKED | Task 11 当前 119 PASS、0 FAIL、0 SKIP、1 BLOCKED；RPC/gRPC/MCP 通过，OpenAI 账号 quota 阻塞 AI 与向量流程 |
 | `crawler-example` | Crawler、Browser | PASS | 17/17 PASS；受控 HTTP 页面、Playwright WebSocket、JS 渲染 DOM、截图和清理均通过 |
 | `websocket-example` | Backend、Frontend | PASS | 19/19 PASS；REST、双客户端协议、前端构建、Playwright 和应用内浏览器流程通过 |
-| `oauth-example` | Backend、Frontend、OAuth 提供方 | PENDING | 待执行 |
+| `oauth-example` | Backend、Frontend、OAuth 提供方 | BLOCKED | 11 PASS、0 FAIL、0 SKIP、1 BLOCKED；隔离客户端通过，真实提供方不可达 |
 
 ## 7. 清理审计
 
@@ -263,3 +263,12 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   框架支持应用 HandshakeInterceptor，身份优先使用已认证 Principal；示例查询参数仅用于演示。
 - 清理复核：两个 Node 客户端、无头 Chrome、应用内浏览器连接、Vite 和后端均已关闭，3000 和 8086
   端口已释放。
+
+## 20. Task 14 复核记录
+
+- 当前证据：`target/example-e2e/20260711-144556-75187/`，11 PASS、0 FAIL、0 SKIP、1 BLOCKED。
+- 数据库、OAuth 地址、Client ID/Secret、回调、前端和 JWT 均改由环境变量注入；代码与日志不再包含旧业务地址、
+  默认秘密或授权码。验证使用独立 MySQL 8.3 容器和卷，结束后全部删除。
+- 后端健康、授权 URL/state、无 code 错误回调和未登录用户通过；前端锁文件已提交，`npm ci` 和生产构建通过。
+- Vocoor 提供方当前不可达。外部仓库还依赖现有 MySQL、Redis、RabbitMQ、Nacos 和 Seata，不能在本轮以非隔离
+  方式启动，因此真实登录、用户绑定、JWT 会话和退出保持 BLOCKED。
