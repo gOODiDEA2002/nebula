@@ -256,6 +256,7 @@ public class MinIOStorageService implements StorageService {
         try {
             ListObjectsArgs.Builder builder = ListObjectsArgs.builder()
                     .bucket(bucket)
+                    .recursive(true)
                     .maxKeys(maxKeys);
             
             if (prefix != null) {
@@ -271,12 +272,14 @@ public class MinIOStorageService implements StorageService {
             List<ObjectSummary> objects = new ArrayList<>();
             for (Result<Item> result : results) {
                 Item item = result.get();
+                LocalDateTime lastModified = item.isDir() ? null
+                        : LocalDateTime.ofInstant(item.lastModified().toInstant(), ZoneId.systemDefault());
                 
                 ObjectSummary summary = ObjectSummary.builder()
                         .bucket(bucket)
                         .key(item.objectName())
                         .size(item.size())
-                        .lastModified(LocalDateTime.ofInstant(item.lastModified().toInstant(), ZoneId.systemDefault()))
+                        .lastModified(lastModified)
                         .etag(item.etag())
                         .storageClass(item.storageClass())
                         .directory(item.isDir())
