@@ -259,7 +259,7 @@ mvn clean deploy                # 快照版本
 
 ### 服务发现（Nacos）
 - 打开 `NacosDiscoveryAutoConfiguration`，确认使用 Binder 绑定 `nebula.discovery.nacos.*`，并在启用条件下创建发现与自动注册器。
-- 在 `NacosServiceAutoRegistrar` 验证启动时注册、关闭时注销，并确认 `grpc.server.port` 写入 metadata。
+- 在 `NacosServiceAutoRegistrar` 验证启动时注册、关闭时注销，并确认 `spring.grpc.server.port` 写入 metadata。
 
 ### RPC（HTTP/gRPC）
 - HTTP：在 `HttpRpcAutoConfiguration` 核对 RestTemplate 创建、超时设置、线程池执行器与客户端基地址；在 `HttpRpcClient` 检查类型转换与代理调用路径。
@@ -318,7 +318,7 @@ mvn clean deploy                # 快照版本
 - gateway：打开 `starter/nebula-starter-gateway/pom.xml`，确认依赖 Spring Cloud Gateway 相关组件。默认启用：gateway, nacos。
 - ai：打开 `starter/nebula-starter-ai/pom.xml`，确认依赖最小 Starter，并包含 `nebula-ai-core`、`nebula-ai-spring`、`nebula-data-cache`，以及可选 `spring-boot-starter-web/actuator`。默认启用：ai, cache。
 - all：打开 `starter/nebula-starter-all/pom.xml`，确认几乎所有模块均已包含，并标识可选实现。默认启用：persistence, cache, http-rpc, rpc-discovery, nacos, lock, ai。
-- api：打开 `starter/nebula-starter-api/pom.xml`，确认仅包含 `nebula-rpc-core`，并以 `provided` 方式引入 `spring-web` 与 `lombok`，同时包含 `jakarta.validation`。无 defaults 文件。
+- api：打开 `starter/nebula-starter-api/pom.xml`，确认包含 `nebula-rpc-core`、`jakarta.validation` 和 MyBatis-Plus Boot4 Starter，并以 `provided` 方式引入 `spring-web` 与 `lombok`。无 defaults 文件。
 
 ### 示例应用（examples）
 - 所有示例统一位于 `examples/` 目录，使用 `${revision}` 引用框架版本。

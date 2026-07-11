@@ -27,8 +27,8 @@ Vocoor OAuth 2.0 客户端示例 - 前端应用
 ### 2. 安装依赖
 
 ```bash
-cd /path/to/nebula-projects/example/oauth-client/frontend
-npm install
+cd examples/oauth-example/frontend
+npm ci
 ```
 
 ### 3. 启动开发服务器
@@ -37,7 +37,7 @@ npm install
 npm run dev
 ```
 
-应用将在 http://localhost:5173 启动
+应用将在 http://localhost:4010 启动
 
 ### 4. 构建生产版本
 
@@ -126,7 +126,7 @@ proxy: {
 
 ```typescript
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000
 })
 ```
@@ -134,7 +134,7 @@ const api = axios.create({
 ## 注意事项
 
 1. **确保后端服务已启动**：前端依赖后端提供 OAuth 相关接口
-2. **端口冲突**：前端默认 5173，后端默认 8081
+2. **端口冲突**：前端默认 4010，后端默认 8081
 3. **CORS**：后端需要配置允许前端域名的跨域请求
 4. **Token 存储**：Token 存储在 localStorage，注意 XSS 防护
 
@@ -142,4 +142,3 @@ const api = axios.create({
 
 - [后端项目](../backend/README.md)
 - Vocoor OAuth 接入说明由对应服务仓库维护
-

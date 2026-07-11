@@ -32,26 +32,18 @@ mysql -u root -p -e "CREATE DATABASE oauth_client_demo DEFAULT CHARACTER SET utf
 mysql -u root -p oauth_client_demo < sql/init.sql
 ```
 
-### 3. 配置修改
+### 3. 配置环境变量
 
-编辑 `src/main/resources/application.yml`：
-
-```yaml
-# 数据库配置
-spring:
-  datasource:
-    url: jdbc:mysql://your-mysql-host:3306/oauth_client_demo
-    username: your-username
-    password: your-password
-
-# Vocoor OAuth 配置
-vocoor:
-  oauth:
-    server-url: http://localhost:8080  # Vocoor OAuth 服务器地址
-    client-id: your_client_id          # 客户端ID
-    client-secret: your_client_secret  # 客户端密钥
-    redirect-uri: http://localhost:8081/api/oauth/callback
-    frontend-url: http://localhost:5173
+```bash
+export OAUTH_DB_URL='jdbc:mysql://localhost:13306/oauth_client_demo'
+export OAUTH_DB_USERNAME=root
+export OAUTH_DB_PASSWORD=your-password
+export OAUTH_SERVER_URL=http://localhost:8080
+export OAUTH_CLIENT_ID=your-client-id
+export OAUTH_CLIENT_SECRET=your-client-secret
+export OAUTH_REDIRECT_URI=http://localhost:8081/api/oauth/callback
+export OAUTH_FRONTEND_URL=http://localhost:4010
+export OAUTH_JWT_SECRET=replace-with-at-least-32-characters
 ```
 
 ### 4. 构建运行
@@ -62,8 +54,7 @@ cd /path/to/nebula-projects/nebula
 mvn install -DskipTests
 
 # 运行应用
-cd /path/to/nebula-projects/example/oauth-client/backend
-mvn spring-boot:run
+mvn -f examples/oauth-example/backend spring-boot:run
 ```
 
 应用启动后访问：http://localhost:8081
@@ -77,7 +68,7 @@ mvn spring-boot:run
 | 授权回调 | GET | /api/oauth/callback | 处理 Vocoor 授权回调 |
 | 获取当前用户 | GET | /api/oauth/user/current | 获取当前登录用户信息 |
 | 退出登录 | POST | /api/oauth/logout | 退出登录 |
-| 健康检查 | GET | /api/oauth/health | 服务健康检查 |
+| 健康检查 | GET | /health/ping | 服务健康检查 |
 
 ## 目录结构
 

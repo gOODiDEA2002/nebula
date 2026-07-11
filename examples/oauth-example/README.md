@@ -35,7 +35,10 @@ oauth-example/
 mysql -u root -p -e "CREATE DATABASE oauth_client_demo DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 mysql -u root -p oauth_client_demo < backend/sql/init.sql
 
-# 2. 配置 application.yml（数据库连接、Vocoor OAuth 配置）
+# 2. 通过环境变量配置数据库、Vocoor OAuth 和 JWT
+export OAUTH_CLIENT_ID=your_client_id
+export OAUTH_CLIENT_SECRET=your_client_secret
+export OAUTH_JWT_SECRET=replace-with-at-least-32-characters
 
 # 3. 安装 Nebula 依赖
 cd /path/to/nebula
@@ -51,15 +54,15 @@ mvn -q -f examples/oauth-example/backend spring-boot:run
 
 ```bash
 cd examples/oauth-example/frontend
-npm install
+npm ci
 npm run dev
 ```
 
-前端将在 http://localhost:5173 启动
+前端将在 http://localhost:4010 启动
 
 ### 4. 访问应用
 
-打开浏览器访问 http://localhost:5173，点击"使用 Vocoor 账号登录"开始体验。
+打开浏览器访问 http://localhost:4010，点击「使用 Vocoor 账号登录」开始体验。
 
 ## 核心功能
 
@@ -88,27 +91,27 @@ npm run dev
 
 ### Vocoor OAuth 配置
 
-在 `backend/src/main/resources/application.yml` 中配置：
+通过环境变量配置：
 
-```yaml
-vocoor:
-  oauth:
-    server-url: http://localhost:8080    # Vocoor OAuth 服务器
-    client-id: your_client_id            # 客户端 ID
-    client-secret: your_client_secret    # 客户端密钥
-    redirect-uri: http://localhost:8081/api/oauth/callback
-    frontend-url: http://localhost:4010
+```bash
+export OAUTH_SERVER_URL=http://localhost:8080
+export OAUTH_CLIENT_ID=your_client_id
+export OAUTH_CLIENT_SECRET=your_client_secret
+export OAUTH_REDIRECT_URI=http://localhost:8081/api/oauth/callback
+export OAUTH_FRONTEND_URL=http://localhost:4010
+export OAUTH_JWT_SECRET=replace-with-at-least-32-characters
 ```
 
 ### 数据库配置
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/oauth_client_demo
-    username: root
-    password: your_password
+```bash
+export OAUTH_DB_URL='jdbc:mysql://localhost:13306/oauth_client_demo'
+export OAUTH_DB_USERNAME=root
+export OAUTH_DB_PASSWORD=your_password
 ```
+
+完整隔离验证：`E2E_MODE=full bash examples/oauth-example/e2e-test.sh`。真实授权码流程还要求可用的
+Vocoor OAuth 提供方及对应测试账号。
 
 ## 授权流程
 

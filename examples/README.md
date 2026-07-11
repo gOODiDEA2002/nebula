@@ -70,7 +70,7 @@ mvn -q -f examples/fullstack-example spring-boot:run
 
 # OAuth 示例（需 MySQL）
 mvn -q -f examples/oauth-example/backend spring-boot:run   # 后端
-cd examples/oauth-example/frontend && npm install && npm run dev  # 前端
+cd examples/oauth-example/frontend && npm ci && npm run dev  # 前端，端口 4010
 ```
 
 ## 示例对照表
