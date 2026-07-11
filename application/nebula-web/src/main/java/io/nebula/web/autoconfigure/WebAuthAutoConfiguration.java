@@ -26,7 +26,6 @@ import tools.jackson.databind.introspect.AnnotationIntrospectorPair;
 class WebAuthAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "nebula.web.auth.enabled", havingValue = "true")
     public JwtUtils jwtUtils(WebProperties webProperties, ObjectMapper objectMapper) {
         WebProperties.Auth config = webProperties.getAuth();

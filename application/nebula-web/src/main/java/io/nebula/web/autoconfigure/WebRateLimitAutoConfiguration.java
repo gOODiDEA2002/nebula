@@ -39,7 +39,6 @@ class WebRateLimitAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public WebMvcConfigurer rateLimitWebMvcConfigurer(RateLimiter rateLimiter,
                                                      RateLimitKeyGenerator keyGenerator,
                                                      WebProperties webProperties,

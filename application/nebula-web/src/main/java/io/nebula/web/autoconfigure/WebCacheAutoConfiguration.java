@@ -49,7 +49,6 @@ class WebCacheAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public WebMvcConfigurer responseCacheWebMvcConfigurer(ResponseCache responseCache,
                                                          CacheKeyGenerator cacheKeyGenerator,
                                                          WebProperties webProperties) {

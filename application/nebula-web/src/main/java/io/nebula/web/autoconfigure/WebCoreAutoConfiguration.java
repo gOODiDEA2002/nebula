@@ -87,7 +87,6 @@ class WebCoreAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public WebMvcConfigurer nebulaWebMvcConfigurer(WebProperties webProperties, ClientIpResolver clientIpResolver) {
         return new WebMvcConfigurer() {
 

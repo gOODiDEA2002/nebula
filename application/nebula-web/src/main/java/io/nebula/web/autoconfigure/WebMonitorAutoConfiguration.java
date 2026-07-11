@@ -30,7 +30,6 @@ import java.util.List;
 class WebMonitorAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "nebula.web.performance.enabled", havingValue = "true")
     public PerformanceMonitor performanceMonitor(WebProperties webProperties) {
         WebProperties.Performance config = webProperties.getPerformance();
