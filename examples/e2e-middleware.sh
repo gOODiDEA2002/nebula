@@ -205,8 +205,8 @@ check_nacos() {
         sleep 1
     done
     [ "$remaining_hosts" = 0 ] || ok=false
-    # Nacos 默认每 60 秒清理一次空的临时服务，等待该服务名从列表消失。
-    for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    # 临时客户端记录会延迟断开，空服务随后才按 60 秒周期回收。
+    for attempt in {1..30}; do
         service_list_response=$(curl -sS --noproxy '*' -G "$base/ns/service/list" \
             --data-urlencode 'pageNo=1' --data-urlencode 'pageSize=1000' \
             --data-urlencode "accessToken=$token")

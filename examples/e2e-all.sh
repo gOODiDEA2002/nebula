@@ -208,7 +208,6 @@ if [ "$E2E_WITH_MIDDLEWARE" = true ]; then
         E2E_RESULTS_DIR="$E2E_RESULTS_DIR" \
         E2E_TEST_NAME=middleware-preflight \
         E2E_VERIFICATION_PROJECT="$E2E_VERIFICATION_PROJECT" \
-        E2E_KEEP_VERIFICATION_CONTAINERS=true \
         bash "$SCRIPT_DIR/e2e-middleware.sh" 2>&1 | tee "$middleware_log"
     middleware_exit=${PIPESTATUS[0]}
     set -e
