@@ -221,6 +221,9 @@
   4. 验证 MCP tools 列表、工具调用、resources 列表和资源读取。
   5. 限制外部 AI 请求数量并清理 Chroma collection。
 - **验收标准**：RPC、AI、Vector Store 和 MCP 均有真实成功响应，0 SKIP。
+- **当前证据**：`target/example-e2e/20260711-130632-40522/`，119 PASS、0 FAIL、0 SKIP、
+  1 BLOCKED。发现客户端、Fullstack gRPC Server 和 MCP 四类操作均通过；OpenAI 测试账号仍返回
+  429 quota，聊天、embedding、Chroma 文档流程和 RAG 尚待有额度密钥复跑，因此本任务保持未完成。
 - [ ] 完成
 
 ## Task 12：验证 HTTP 和 Browser Crawler

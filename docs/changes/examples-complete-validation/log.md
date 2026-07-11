@@ -38,6 +38,9 @@
 | 2026-07-11 | research | Fullstack 通用模块首轮严格验证暴露运行缺陷 | RabbitMQ 统计为固定值；MinIO 非递归列表为空；多个 Web MVC 配置器因同类型条件互相排斥 |
 | 2026-07-11 | apply | 修复消息统计、对象列表和 Web 功能共存 | 增加模块回归测试；示例补齐真实消息、搜索、存储、校验、缓存和限流验证 |
 | 2026-07-11 | verify | 完成 Task 10 Fullstack 通用模块验证 | 93/93 PASS；5 个进程和所有临时中间件资源均已清理 |
+| 2026-07-11 | research | Fullstack RPC、AI 和 MCP 配置包含过期字段 | gRPC 使用旧顶层键；MCP 使用旧传输字段；AI 混用 DeepSeek 聊天地址和 OpenAI embedding 模型 |
+| 2026-07-11 | apply | 迁移 Fullstack 远程能力配置并补真实验证 | 显式选择 optional gRPC 实现；增加 Echo 服务、MCP 双开关和向量文档删除入口 |
+| 2026-07-11 | verify | Task 11 可执行部分完成 | 119 PASS、0 FAIL、0 SKIP、1 BLOCKED；唯一阻塞为 OpenAI 429 quota |
 
 ## 技术决策
 
@@ -66,6 +69,8 @@
 | Spring Cache 示例 | 显式使用 `simple` 类型并创建 `users` 缓存 | 依赖 Redisson JCache 的隐式选择 | 示例缓存注解与 Nebula 多级缓存分别验证，避免未声明缓存和共享 Redis 数据 |
 | Web MVC 功能配置器 | 每个已启用功能独立注册 `WebMvcConfigurer` | 对同一接口类型使用 `@ConditionalOnMissingBean` | 多个配置器本来就应共同参与 MVC 配置；功能开关负责控制是否启用 |
 | MinIO 对象列表 | 按前缀递归列出对象，目录占位项不读取缺失的修改时间 | 只返回一层目录并由示例过滤 | `StorageService.listObjects` 的调用方需要获得实际对象，且目录项可能没有修改时间 |
+| Fullstack HTTP RPC Server | 保持关闭，Controller 提供 HTTP API，发现客户端负责调用下游 | 同时打开本地 `/rpc` Server | Fullstack 当前是 User RPC 消费方；本地提供方能力由独立 gRPC Echo 服务验证 |
+| Fullstack gRPC 依赖 | 示例显式依赖 `nebula-rpc-grpc` | 期待 `nebula-starter-all` 传递 optional 实现 | Starter 只提供可选能力，示例必须明确选择实际协议实现 |
 
 ## 踩坑记录
 
@@ -96,6 +101,8 @@
 | RabbitMQ 生产者统计始终为 0 | `getStats()` 返回固定占位数据 | 对同步与延迟发送记录总数、成功数、失败数和耗时，并补重置测试 | [x] |
 | MinIO 上传成功但按前缀列表为空 | SDK 默认非递归，只返回目录占位项；目录项修改时间可能为空 | 启用递归列表，目录项不读取修改时间，并补回归测试 | [x] |
 | 响应缓存与限流不能同时工作 | 五个 Web 功能配置器都按 `WebMvcConfigurer` 类型使用 `@ConditionalOnMissingBean` | 移除同类型互斥条件，并用上下文测试确认核心、缓存、限流配置器同时存在 | [x] |
+| Nacos 有 gRPC metadata 但端口未监听 | Fullstack 未显式引入 Starter All 的 optional gRPC 实现 | 示例直接依赖 `nebula-rpc-grpc`，并验证 2100 端口 Echo 成功 | [x] |
+| MCP 工具和资源可能未注册 | 应用配置在自动配置 Bean 创建前使用 `@ConditionalOnBean` 判断 | 改为 AI 与 MCP Server 双属性条件，真实验证列表、调用和读取 | [x] |
 
 ## 知识发现
 

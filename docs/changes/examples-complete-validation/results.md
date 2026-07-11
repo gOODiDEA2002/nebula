@@ -94,7 +94,7 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
 | `rpc-async-example` | Service、Client | PASS | 38/38 PASS；单条、批量、同步、404、取消、Nacos 持久化和 Client 重启恢复均通过 |
 | `microservice-example` | User、Order | PASS | 34/34 PASS；REST CRUD、HTTP RPC、gRPC、Nacos metadata 和 Order 到 User 跨服务调用均通过 |
 | `gateway-example` | Gateway | PASS | 23/23 PASS；真实代理、无 Token 401、有效 JWT、Redis 429 和令牌恢复均通过 |
-| `fullstack-example` | Fullstack 应用 | PASS | Task 10 最终 93/93 PASS；5 个进程覆盖四种数据模式及消息、搜索、存储、任务、支付、通知和 Web 通用能力 |
+| `fullstack-example` | Fullstack 应用 | BLOCKED | Task 11 当前 119 PASS、0 FAIL、0 SKIP、1 BLOCKED；RPC/gRPC/MCP 通过，OpenAI 账号 quota 阻塞 AI 与向量流程 |
 | `crawler-example` | Crawler、Browser | PENDING | 待执行 |
 | `websocket-example` | Backend、Frontend | PENDING | 待执行 |
 | `oauth-example` | Backend、Frontend、OAuth 提供方 | PENDING | 待执行 |
@@ -222,3 +222,18 @@ E2E 总入口覆盖 13 组示例，运行证据统一保存到 `target/example-e
   五个 MVC 功能配置器按同一 Bean 类型互相排斥。相关 Web、RabbitMQ、MinIO 和 Payment 模块完整测试均通过。
 - 清理复核：RabbitMQ vhost、Elasticsearch 索引、MinIO Bucket 和对象、Redis 14 号库、隔离 MySQL/Elasticsearch
   容器与卷均为 0；1000、13306、19200 端口和 5 个受管进程均已释放。
+
+## 17. Task 11 复核记录
+
+- 当前证据：`target/example-e2e/20260711-130632-40522/`，结果为 119 PASS、0 FAIL、0 SKIP、
+  1 BLOCKED，退出码为 2。Task 9 和 Task 10 的 93 项既有验证在同一轮继续通过。
+- Fullstack 保持 HTTP RPC Server 关闭，通过 `user-api` 自动配置注册声明式客户端。真实 User Provider
+  注册到 Nacos 后，Fullstack 根据 `grpcPort=2101` metadata 完成 User gRPC 查询；两端日志包含同一请求。
+- Fullstack 显式选择 `nebula-rpc-grpc`，在 2100 端口注册 `FullstackEchoRpcService`。`grpcurl` 调用返回
+  `fullstack:nebula_e2e_echo`，证明 gRPC Server 不是只监听端口。
+- MCP 使用短期 HS256 JWT 完成 tools 列表、`get_weather` 工具调用、resources 列表和文档资源读取。
+  配置已迁移到 `protocol` 和 `streamable-http.mcp-endpoint`，工具与资源按 AI/MCP 双开关注册。
+- AI 配置统一改由 OpenAI 和 Chroma 环境变量注入，模型重试为 0。真实聊天首次请求仍返回 429 quota，
+  脚本立即停止后续 embedding、文档、搜索和 RAG 请求，模型请求计数为 1，日志未出现 API Key。
+- 清理复核：User 与 Fullstack Nacos 实例、Chroma 临时 collection、Redis 14 号库、隔离容器与卷均为 0；
+  1000、1101、2100、2101、13306、19200 端口和 7 个受管进程均已释放。

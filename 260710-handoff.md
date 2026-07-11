@@ -1,6 +1,6 @@
 # Nebula 示例应用完全验证交接
 
-> 最后更新：2026-07-11 12:48 +08
+> 最后更新：2026-07-11 13:10 +08
 > 当前分支：`main`
 > 交接提交：本文档所在提交，可使用 `git log -1 --oneline` 读取
 
@@ -29,6 +29,8 @@
   多级缓存与实际 SQL 路由均有真实证据。
 - Task 10：Fullstack 93/93 通过；RabbitMQ、Elasticsearch、MinIO、Task、支付、通知和 Web 通用能力
   均有真实证据，5 个进程和全部临时资源已清理。
+- Task 11 可执行部分：119 PASS、0 FAIL、0 SKIP、1 BLOCKED。RPC 发现调用、Fullstack gRPC Echo 和
+  MCP 四类操作通过；OpenAI 429 quota 仍阻塞 AI、向量存储和 RAG 完整流程。
 - 已提交的阶段节点：
   - `c8e63eff docs(validation): 建立示例应用完整验证基线`
   - `256aadce test(examples): 加固示例 E2E 验证框架`
@@ -49,6 +51,7 @@
   - `797383a7 fix(storage): 修复 MinIO 递归对象列表`
   - `eea73a62 fix(payment): 支持大小写支付类型代码`
   - `96f0dfd2 test(examples): 完成 Fullstack 通用模块验证`
+  - `1b9430e6 test(examples): 加固 Fullstack RPC AI MCP 验证`
 
 ## 关键上下文
 
@@ -73,21 +76,23 @@
 - Task 10 最终证据位于 `target/example-e2e/20260711-124401-71092/`，结果为 93 PASS、0 FAIL、
   0 SKIP、0 BLOCKED。Web 核心、缓存、限流、认证和性能配置器不再因同类型 Bean 条件互相排斥。
 - MinIO 对象列表现在递归返回前缀下的实际对象，并兼容没有修改时间的目录项。RabbitMQ 生产者统计已改为真实计数。
+- Task 11 当前证据位于 `target/example-e2e/20260711-130632-40522/`。Fullstack 显式选择 optional gRPC
+  实现，2100 端口 Echo 和发现客户端到 User 2101 的调用均通过；MCP 四类操作全部通过。
 - 外部 `nebula-data` 仓库、Compose 配置和数据卷必须保持只读；验证专用服务位于
   `docker/verification/docker-compose.yml`。
 
 ## 未完成
 
-- Task 5 尚缺有额度的 OpenAI 测试密钥，Task 11 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
-- 下一阶段先执行 Task 11 Fullstack RPC、AI 和 MCP；获得有额度的 OpenAI 测试密钥后立即复跑 Task 5 Full E2E。
+- Task 5 和 Task 11 尚缺有额度的 OpenAI 测试密钥，Task 12 至 Task 16 待执行，当前没有可以标记为 Goal 完成的依据。
+- 下一阶段先执行 Task 12 Crawler；获得有额度的 OpenAI 测试密钥后立即复跑 Task 5 和 Task 11 Full E2E。
 - Fullstack 后续远程模块、Crawler Browser、WebSocket 浏览器流程和 OAuth 全流程仍有已知配置或环境风险，详见
   `docs/changes/examples-complete-validation/results.md` 与 `log.md`。
 
 ## 推荐执行路径
 
 1. 读取 `docs/changes/examples-complete-validation/next-goal-prompt.md` 并核对工作区状态。
-2. 从 Task 11 的 Fullstack RPC、AI、向量存储和 MCP 配置与端点核对开始。
-3. 先完成不依赖外部额度的 RPC 和 MCP 验证；AI 请求限制次数，并使用临时 Chroma collection。
+2. 从 Task 12 的 HTTP 和 Browser Crawler 开始，优先使用本地受控页面验证静态与 JavaScript 内容。
+3. 启动受管 Playwright 容器，核对版本、连接地址、DOM 结果和截图证据，结束后删除容器与临时文件。
 4. 有额度的 OpenAI 测试密钥可用后复跑 Task 5，完成聊天、embedding 和 Chroma 写入查询删除。
 5. 继续 Task 11 至 Task 16；不要用 Smoke 或 BLOCKED 结果替代最终 Full 验收。
 
@@ -107,4 +112,4 @@ sed -n '1,260p' docs/changes/examples-complete-validation/tasks.md
 sed -n '1,260p' docs/changes/examples-complete-validation/next-goal-prompt.md
 ```
 
-确认工作区与最新阶段提交一致后，从 Task 11 开始，不需要重复执行 Task 0 至 Task 10；Task 5 在外部额度恢复后复跑。
+确认工作区与最新阶段提交一致后，从 Task 12 开始，不需要重复执行已通过范围；Task 5 和 Task 11 在外部额度恢复后复跑。
