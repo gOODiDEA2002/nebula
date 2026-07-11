@@ -76,7 +76,7 @@ public enum PaymentType {
      */
     public static PaymentType fromCode(String code) {
         for (PaymentType type : values()) {
-            if (type.code.equals(code)) {
+            if (type.code.equalsIgnoreCase(code)) {
                 return type;
             }
         }
