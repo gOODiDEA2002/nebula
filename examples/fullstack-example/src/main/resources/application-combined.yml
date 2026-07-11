@@ -33,9 +33,9 @@ nebula:
         # 1. 普通数据源（用于用户表等非分片、非读写分离的表）
         primary:
           type: mysql
-          url: jdbc:mysql://localhost:3306/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
           pool:
             min-size: 5
             max-size: 20
@@ -46,9 +46,9 @@ nebula:
         # 2. 读写分离数据源（用于产品表）
         master:
           type: mysql
-          url: jdbc:mysql://localhost:3306/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
           pool:
             min-size: 5
             max-size: 20
@@ -58,9 +58,9 @@ nebula:
         
         slave01:
           type: mysql
-          url: jdbc:mysql://localhost:3306/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
           pool:
             min-size: 5
             max-size: 20
@@ -71,9 +71,9 @@ nebula:
         # 3. 分片数据源（用于订单表）
         ds0:
           type: mysql
-          url: jdbc:mysql://localhost:3306/nebula_sharding_0?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/nebula_sharding_0?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
           pool:
             min-size: 5
             max-size: 20
@@ -83,9 +83,9 @@ nebula:
         
         ds1:
           type: mysql
-          url: jdbc:mysql://localhost:3306/nebula_sharding_1?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/nebula_sharding_1?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
           pool:
             min-size: 5
             max-size: 20
@@ -95,7 +95,7 @@ nebula:
     
     # ----------------------------------------------------------------
     # 读写分离配置（用于产品表）
-    # 注意：dynamic-routing = false，因为分片数据源优先级更高
+    # 读写规则由 ShardingSphere 与分片规则共同装配
     # ----------------------------------------------------------------
     read-write-separation:
       enabled: true
@@ -103,7 +103,7 @@ nebula:
       aspect-enabled: true         # 启用切面，通过注解控制读写分离
       clusters:
         # 产品表的读写分离集群
-        product-cluster:
+        default:
           enabled: true
           master: master           # 主库（写）
           slaves: [slave01]        # 从库（读）
@@ -115,14 +115,25 @@ nebula:
     # ----------------------------------------------------------------
     sharding:
       enabled: true
+      sql-show: true
       
       schemas:
         default:
           # 分片使用的数据源列表
-          data-sources: [ds0, ds1]
+          data-sources: [master, slave01, ds0, ds1]
+          read-write-separation-enabled: true
+          read-write-separation:
+            data-sources:
+              product_rw:
+                write-data-source: master
+                read-data-sources: [slave01]
+                load-balance-algorithm: ROUND_ROBIN
           
           # 表分片配置
           tables:
+            - logic-table: t_product
+              actual-data-nodes: product_rw.t_product
+
             # 订单表分片配置（按用户ID分库，按订单ID分表）
             - logic-table: t_order
               actual-data-nodes: ds${0..1}.t_order_${0..1}
@@ -193,10 +204,10 @@ logging:
 #    - 使用 @ReadDataSource 或 @WriteDataSource 注解
 #    - 读操作路由到 slave01，写操作路由到 master
 #    - 示例：
-#      @ReadDataSource(cluster = "product-cluster")
+#      @ReadDataSource(cluster = "default")
 #      public Product getProduct(Long id) { ... }
 #      
-#      @WriteDataSource(cluster = "product-cluster")
+#      @WriteDataSource(cluster = "default")
 #      public void saveProduct(Product product) { ... }
 #
 # 3. 订单表（t_order）- 分片访问

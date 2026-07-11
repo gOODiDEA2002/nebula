@@ -392,6 +392,16 @@ curl -X POST http://localhost:1000/tasks/trigger/task-id
 - 读写分离（产品表）
 - 分库分表（订单表）
 
+组合模式由 ShardingSphere 在同一个 DataSource 中装配读写分离和分片规则。产品表通过
+`product_rw` 写入 `master`、从 `slave01` 读取；订单表按用户 ID 分库、按订单 ID 分表。
+
+```bash
+SPRING_PROFILES_ACTIVE=dev,combined mvn spring-boot:run
+```
+
+数据库、Redis 和端口可通过 `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_USERNAME`、`MYSQL_PASSWORD`、
+`REDIS_HOST`、`REDIS_PORT`、`FULLSTACK_REDIS_DATABASE` 和 `FULLSTACK_PORT` 覆盖。
+
 #### application-docker.yml (Docker 配置)
 
 适用于 Docker 容器化部署的配置

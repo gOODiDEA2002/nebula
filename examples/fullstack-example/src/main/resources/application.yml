@@ -1,11 +1,14 @@
 server:
-  port: 1000
+  port: ${FULLSTACK_PORT:1000}
 
 spring:
   application:
     name: nebula-example
+  cache:
+    type: simple
+    cache-names: users
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   
   # 禁用 Spring Security 自动配置
   autoconfigure:
@@ -27,11 +30,11 @@ nebula:
   discovery:
     nacos:
       enabled: true
-      server-addr: ${NEBULA_DEV_SERVER:127.0.0.1}:8848
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
       namespace: ${NACOS_NAMESPACE:public}
-      username: nacos
-      password: nacos
-      group-name: DEFAULT_GROUP
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      group-name: ${NACOS_GROUP:DEFAULT_GROUP}
       # cluster-name: DEFAULT
       auto-register: true  # 启用自动服务注册
       weight: 1.0
@@ -57,9 +60,9 @@ nebula:
       sources:
         primary:
           type: mysql
-          url: jdbc:mysql://${NEBULA_DEV_SERVER:127.0.0.1}:3306/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: jdbc:mysql://${MYSQL_HOST:${NEBULA_DEV_SERVER:127.0.0.1}}:${MYSQL_PORT:3306}/nebula_example?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
           pool:
             min-size: 5
             max-size: 20
@@ -81,12 +84,12 @@ nebula:
       # Redis缓存配置（L2）
       redis:
         enabled: true
-        host: ${NEBULA_DEV_SERVER:127.0.0.1}
-        port: 6379
-        password: redis
-        database: 1
+        host: ${REDIS_HOST:${NEBULA_DEV_SERVER:127.0.0.1}}
+        port: ${REDIS_PORT:6379}
+        password: ${REDIS_PASSWORD:}
+        database: ${FULLSTACK_REDIS_DATABASE:1}
         timeout: 2000ms
-        key-prefix: "nebula:example:cache:"
+        key-prefix: "${FULLSTACK_CACHE_PREFIX:nebula:example:cache:}"
         pool:
           max-active: 20
           max-idle: 10

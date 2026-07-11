@@ -21,7 +21,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -78,19 +77,9 @@ public class DataDemoServiceImpl implements DataDemoService {
     @Override
     @Transactional
     public DeleteProductDto.Response deleteProduct(DeleteProductDto.Request request) {
-        List<Product> existingProducts = productMapper.selectBatchIds(request.getIds()).stream().filter(product -> !product.getDeleted()).collect(Collectors.toList());
-        if (existingProducts == null || existingProducts.isEmpty()) {
-            return new DeleteProductDto.Response();
-        }
-        // 逻辑删除
-        existingProducts.forEach(product -> {
-            product.setDeleted(true);
-            product.setUpdateTime(LocalDateTime.now());
-            productMapper.updateById(product);
-        });
-        // 转换为响应对象
+        int deletedCount = productMapper.deleteByIds(request.getIds());
         DeleteProductDto.Response response = new DeleteProductDto.Response();
-        response.setDeletedCount(existingProducts.size());
+        response.setDeletedCount(deletedCount);
         return response;
     }
 
