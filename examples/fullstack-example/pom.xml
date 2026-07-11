@@ -35,6 +35,13 @@
             <version>${revision}</version>
         </dependency>
 
+        <!-- Starter All 中 gRPC 实现为可选依赖，示例需要显式选择 -->
+        <dependency>
+            <groupId>io.nebula</groupId>
+            <artifactId>nebula-rpc-grpc</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
         <!-- 支付集成 -->
         <dependency>
             <groupId>io.nebula</groupId>

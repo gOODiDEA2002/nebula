@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # fullstack-example E2E 测试
-# Task 9：验证默认、读写分离、分片和组合数据模式，以及多级缓存。
+# Task 9-11：验证数据模式、通用模块、RPC、AI 和 MCP。
 source "$(dirname "$0")/../e2e-common.sh"
 
 PORT=${FULLSTACK_PORT:-1000}
@@ -11,6 +11,17 @@ REDIS_PORT=${NEBULA_E2E_REDIS_PORT:-6379}
 REDIS_DB=14
 ELASTICSEARCH_PORT=${NEBULA_E2E_ES_PORT:-19200}
 RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT:-15672}
+NACOS_HOST=${NEBULA_E2E_NACOS_HOST:-127.0.0.1}
+NACOS_PORT=${NEBULA_E2E_NACOS_PORT:-8848}
+NACOS_USERNAME=${NACOS_USERNAME:-nacos}
+NACOS_PASSWORD=${NACOS_PASSWORD:-nacos}
+NACOS_GROUP=${NACOS_GROUP:-DEFAULT_GROUP}
+NACOS_BASE_URL="http://${NACOS_HOST}:${NACOS_PORT}/nacos/v1"
+CHROMA_HOST=${CHROMA_HOST:-127.0.0.1}
+CHROMA_PORT=${CHROMA_PORT:-9002}
+USER_HTTP_PORT=${FULLSTACK_E2E_USER_HTTP_PORT:-1101}
+USER_GRPC_PORT=${FULLSTACK_E2E_USER_GRPC_PORT:-2101}
+FULLSTACK_GRPC_PORT=${FULLSTACK_E2E_GRPC_PORT:-2100}
 COMPOSE_FILE="$PROJECT_ROOT/docker/verification/docker-compose.yml"
 COMPOSE_PROJECT="nebula-e2e-fullstack-$$"
 CACHE_PREFIX="nebula:e2e:${E2E_RUN_ID}:"
@@ -18,10 +29,22 @@ RABBITMQ_VHOST="nebula_e2e_${E2E_RUN_ID//-/_}"
 MINIO_BUCKET="nebula-e2e-${E2E_RUN_ID}"
 SEARCH_INDEX="nebula_e2e_${E2E_RUN_ID//-/_}"
 SEARCH_PHYSICAL_INDEX="nebula_example_${SEARCH_INDEX}"
+SHORT_SUFFIX=$(printf '%s' "$E2E_RUN_ID" | shasum | cut -c1-8)
+CHROMA_COLLECTION="nebula_e2e_fullstack_${E2E_RUN_ID//-/_}"
+CHROMA_BASE_URL="http://${CHROMA_HOST}:${CHROMA_PORT}/api/v2/tenants/default_tenant/databases/default_database/collections"
+FULLSTACK_SERVICE_NAME=nebula-example
+USER_SERVICE_NAME=nebula-example-user-service
+JWT_SECRET=nebula-e2e-fullstack-jwt-secret-at-least-32-bytes
+TEST_OPENAI_API_KEY=${OPENAI_API_KEY:-}
 MYSQL_STARTED=0
 REDIS_CLEANED=0
 RABBITMQ_CLEANED=0
 MINIO_CLEANED=0
+CHROMA_CLEANED=0
+NACOS_TOKEN=""
+GRPC_REQUEST_COUNT=0
+MODEL_REQUEST_COUNT=0
+AI_LIVE_READY=1
 
 export FULLSTACK_PORT="$PORT" MYSQL_HOST MYSQL_PORT MYSQL_USERNAME=root MYSQL_PASSWORD=''
 export REDIS_HOST REDIS_PORT REDIS_PASSWORD='' FULLSTACK_REDIS_DATABASE="$REDIS_DB"
@@ -39,6 +62,127 @@ export NEBULA_STORAGE_MINIO_ENABLED=true NEBULA_TASK_ENABLED=true
 export NEBULA_LOCK_ENABLED=false NEBULA_WEBSOCKET_ENABLED=false
 export NEBULA_WEB_RATE_LIMIT_REQUESTS_PER_SECOND=1000
 export NEBULA_WEB_RATE_LIMIT_KEY_STRATEGY=IP_API
+
+base64url() {
+    openssl base64 -A | tr '+/' '-_' | tr -d '='
+}
+
+create_jwt() {
+    local now expires header payload signing_input signature
+    now=$(date +%s)
+    expires=$((now + 900))
+    header=$(printf '%s' '{"alg":"HS256","typ":"JWT"}' | base64url)
+    payload=$(jq -cn --argjson iat "$now" --argjson exp "$expires" \
+        '{sub:"10001",username:"nebula_e2e",type:"access",roles:["TEST"],iat:$iat,exp:$exp}' | base64url)
+    signing_input="$header.$payload"
+    signature=$(printf '%s' "$signing_input" | \
+        openssl dgst -sha256 -mac HMAC -macopt "key:$JWT_SECRET" -binary | base64url)
+    printf '%s.%s' "$signing_input" "$signature"
+}
+
+nacos_login() {
+    local response
+    response=$(curl --silent --show-error --noproxy '*' --connect-timeout 3 --max-time 10 \
+        -X POST "$NACOS_BASE_URL/auth/login" \
+        --data-urlencode "username=$NACOS_USERNAME" \
+        --data-urlencode "password=$NACOS_PASSWORD") || return 1
+    NACOS_TOKEN=$(printf '%s' "$response" | jq -r '.accessToken // empty')
+    [ -n "$NACOS_TOKEN" ]
+}
+
+nacos_instance_matches() {
+    local service_name=$1 http_port=$2 grpc_port=$3 response
+    response=$(curl --silent --show-error --noproxy '*' -G "$NACOS_BASE_URL/ns/instance/list" \
+        --data-urlencode "serviceName=$service_name" \
+        --data-urlencode "groupName=$NACOS_GROUP" \
+        --data-urlencode "accessToken=$NACOS_TOKEN") || return 1
+    printf '%s' "$response" | jq -e --argjson httpPort "$http_port" --arg grpcPort "$grpc_port" \
+        'any(.hosts[]?; .port == $httpPort and .healthy == true and .metadata.grpcPort == $grpcPort)' >/dev/null
+}
+
+nacos_instance_absent() {
+    local service_name=$1 http_port=$2 response
+    response=$(curl --silent --show-error --noproxy '*' -G "$NACOS_BASE_URL/ns/instance/list" \
+        --data-urlencode "serviceName=$service_name" \
+        --data-urlencode "groupName=$NACOS_GROUP" \
+        --data-urlencode "accessToken=$NACOS_TOKEN") || return 1
+    printf '%s' "$response" | jq -e --argjson port "$http_port" \
+        'all(.hosts[]?; .port != $port)' >/dev/null
+}
+
+cleanup_chroma() {
+    if [ "$CHROMA_CLEANED" -eq 0 ]; then
+        curl --silent --show-error --noproxy '*' --connect-timeout 3 --max-time 10 \
+            -X DELETE "$CHROMA_BASE_URL/$CHROMA_COLLECTION" >/dev/null 2>&1 || true
+    fi
+}
+
+delete_chroma_collection() {
+    perform_request DELETE "$CHROMA_BASE_URL/$CHROMA_COLLECTION" "" || true
+    if [ "$HTTP_STATUS" = 200 ] || [ "$HTTP_STATUS" = 404 ]; then
+        record_pass "Chroma 临时 collection 已删除或不存在"
+    else
+        record_fail "Chroma 临时 collection 删除失败，HTTP $HTTP_STATUS"
+    fi
+    perform_request GET "$CHROMA_BASE_URL" "" || true
+    if [ "$HTTP_STATUS" = 200 ] &&
+        jq -e "[.[] | select(.name == \"$CHROMA_COLLECTION\")] | length == 0" \
+            "$HTTP_BODY_FILE" >/dev/null 2>&1; then
+        record_pass "Chroma 临时 collection 删除后复核为 0"
+        CHROMA_CLEANED=1
+    else
+        record_fail "Chroma 临时 collection 删除后仍存在"
+    fi
+}
+
+assert_grpc_json() {
+    local desc=$1 port=$2 payload=$3 jq_filter=$4 body_file
+    GRPC_REQUEST_COUNT=$((GRPC_REQUEST_COUNT + 1))
+    body_file="$E2E_CASE_DIR/grpc-$(printf '%04d' "$GRPC_REQUEST_COUNT").json"
+    TOTAL=$((TOTAL + 1))
+    if grpcurl -plaintext -d "$payload" "localhost:$port" \
+        io.nebula.rpc.grpc.GenericRpcService/Call >"$body_file" 2>&1 &&
+        jq -e "$jq_filter" "$body_file" >/dev/null 2>&1; then
+        PASS=$((PASS + 1))
+        log_pass "${desc}，gRPC JSON 断言通过"
+    else
+        FAIL=$((FAIL + 1))
+        log_fail "${desc}，gRPC 响应不满足断言，证据：$body_file"
+    fi
+}
+
+assert_secret_not_logged() {
+    local log_file=$1
+    if [ -n "$TEST_OPENAI_API_KEY" ] && grep -Fq -- "$TEST_OPENAI_API_KEY" "$log_file" 2>/dev/null; then
+        record_fail "Fullstack 日志泄漏 OpenAI API Key"
+    else
+        record_pass "Fullstack 日志未泄漏 OpenAI API Key"
+    fi
+}
+
+verify_fullstack_chat() {
+    local auth_header=$1
+    TOTAL=$((TOTAL + 1))
+    perform_request POST "http://localhost:$PORT/ai/chat" \
+        '{"message":"Reply with exactly NEBULA_FULLSTACK_AI_OK","temperature":0,"maxTokens":32}' \
+        "$auth_header" || true
+    MODEL_REQUEST_COUNT=$((MODEL_REQUEST_COUNT + 1))
+    if [ "$HTTP_STATUS" = 200 ] &&
+        jq -e '.success == true and (.data.content | type == "string") and (.data.content | length > 0)' \
+            "$HTTP_BODY_FILE" >/dev/null 2>&1; then
+        PASS=$((PASS + 1))
+        log_pass "Fullstack OpenAI 真实聊天返回有效内容"
+        return 0
+    fi
+    if grep -Eq 'RateLimitException: 429: .*quota|insufficient_quota' "$FULLSTACK_AI_LOG" 2>/dev/null; then
+        BLOCKED=$((BLOCKED + 1))
+        log_fail "OpenAI 测试账号额度不足，Fullstack AI 真实调用暂时阻塞"
+    else
+        FAIL=$((FAIL + 1))
+        log_fail "Fullstack OpenAI 真实聊天失败，HTTP $HTTP_STATUS，证据：$HTTP_BODY_FILE"
+    fi
+    AI_LIVE_READY=0
+}
 
 mysql_exec() {
     docker compose -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE" exec -T mysql mysql -uroot "$@"
@@ -81,6 +225,7 @@ cleanup_fullstack() {
     if [ "$MINIO_CLEANED" -eq 0 ]; then
         cleanup_minio
     fi
+    cleanup_chroma
     if [ "$MYSQL_STARTED" -eq 1 ]; then
         docker compose -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE" down -v --remove-orphans >/dev/null 2>&1 || true
     fi
@@ -101,13 +246,26 @@ stop_profile() {
     stop_all_apps true
 }
 
-log_info "========== fullstack-example Task 9 E2E =========="
+log_info "========== fullstack-example Task 9-11 E2E =========="
 skip_if_no_service Redis "$REDIS_HOST" "$REDIS_PORT" fullstack-example
 skip_if_no_service RabbitMQ 127.0.0.1 5672 fullstack-example
 skip_if_no_service RabbitMQ-Management 127.0.0.1 "$RABBITMQ_MANAGEMENT_PORT" fullstack-example
 skip_if_no_service MinIO 127.0.0.1 9000 fullstack-example
+skip_if_no_service Nacos "$NACOS_HOST" "$NACOS_PORT" fullstack-example
+skip_if_no_service Chroma "$CHROMA_HOST" "$CHROMA_PORT" fullstack-example
 require_command docker || exit 1
 require_command redis-cli || exit 1
+require_command grpcurl || exit 1
+
+if nacos_login; then
+    record_pass "Nacos 认证 API 登录成功"
+else
+    BLOCKED=$((BLOCKED + 1))
+    TOTAL=$((TOTAL + 1))
+    log_fail "Nacos 认证 API 登录失败"
+    print_summary fullstack-example
+    exit $?
+fi
 
 if [ "$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -n "$REDIS_DB" DBSIZE)" != "0" ]; then
     record_fail "Redis 测试库 $REDIS_DB 非空，拒绝覆盖"
@@ -490,6 +648,146 @@ else
     record_pass "MinIO 临时 Bucket 及对象已删除"
     MINIO_CLEANED=1
 fi
+
+# Task 11：真实 User Provider、Fullstack RPC、AI 和 MCP。
+export NACOS_SERVER_ADDR="${NACOS_HOST}:${NACOS_PORT}"
+export NACOS_USERNAME NACOS_PASSWORD NACOS_GROUP APP_ENV=e2e
+export USER_HTTP_PORT USER_GRPC_PORT
+export NEBULA_DISCOVERY_NACOS_ENABLED=true
+export NEBULA_MESSAGING_RABBITMQ_ENABLED=false NEBULA_SEARCH_ENABLED=false
+export NEBULA_MINIO_ENABLED=false NEBULA_STORAGE_MINIO_ENABLED=false NEBULA_TASK_ENABLED=false
+export NEBULA_RPC_HTTP_ENABLED=true NEBULA_RPC_HTTP_SERVER_ENABLED=true NEBULA_RPC_HTTP_CLIENT_ENABLED=false
+export NEBULA_RPC_GRPC_ENABLED=true NEBULA_RPC_GRPC_SERVER_ENABLED=true NEBULA_RPC_GRPC_CLIENT_ENABLED=false
+export NEBULA_RPC_DISCOVERY_ENABLED=false
+start_app "examples/microservice-example/user-service" "$USER_HTTP_PORT"
+FULLSTACK_USER_LOG=$CURRENT_APP_LOG
+
+export FULLSTACK_GRPC_PORT
+export NEBULA_RPC_HTTP_SERVER_ENABLED=false NEBULA_RPC_HTTP_CLIENT_ENABLED=true
+export NEBULA_RPC_GRPC_CLIENT_ENABLED=true NEBULA_RPC_DISCOVERY_ENABLED=true
+export NEBULA_MESSAGING_RABBITMQ_ENABLED=false NEBULA_SEARCH_ENABLED=false
+export NEBULA_MINIO_ENABLED=false NEBULA_STORAGE_MINIO_ENABLED=false NEBULA_TASK_ENABLED=false
+export NEBULA_AI_ENABLED=true NEBULA_MCP_SERVER_ENABLED=true
+export NEBULA_WEB_RATE_LIMIT_REQUESTS_PER_SECOND=1000
+export NEBULA_JWT_SECRET="$JWT_SECRET"
+export CHROMA_HOST CHROMA_PORT CHROMA_COLLECTION OPENAI_MAX_RETRIES=0
+if [ -n "$TEST_OPENAI_API_KEY" ]; then
+    export OPENAI_API_KEY="$TEST_OPENAI_API_KEY"
+else
+    export OPENAI_API_KEY=nebula-e2e-missing-key
+    TOTAL=$((TOTAL + 1))
+    BLOCKED=$((BLOCKED + 1))
+    AI_LIVE_READY=0
+    log_fail "缺少 OPENAI_API_KEY，Fullstack AI 真实调用阻塞"
+fi
+start_profile dev
+FULLSTACK_AI_LOG=$PROFILE_LOG
+
+assert_json "Fullstack RPC/AI 进程健康" "http://localhost:$PORT/health/ping" \
+    '.success == true and .data.status == "pong"'
+if wait_until "Nacos 注册 User Provider" 20 1 \
+    nacos_instance_matches "$USER_SERVICE_NAME" "$USER_HTTP_PORT" "$USER_GRPC_PORT"; then
+    record_pass "Nacos 注册 User Provider HTTP/gRPC metadata"
+else
+    record_fail "Nacos 未注册 User Provider HTTP/gRPC metadata"
+fi
+if wait_until "Nacos 注册 Fullstack" 20 1 \
+    nacos_instance_matches "$FULLSTACK_SERVICE_NAME" "$PORT" "$FULLSTACK_GRPC_PORT"; then
+    record_pass "Nacos 注册 Fullstack HTTP/gRPC metadata"
+else
+    record_fail "Nacos 未注册 Fullstack HTTP/gRPC metadata"
+fi
+
+RPC_USERNAME="neb_e2e_fs_$SHORT_SUFFIX"
+RPC_USER_JSON=$(jq -cn --arg username "$RPC_USERNAME" \
+    '{username:$username,name:"Fullstack RPC User",email:"fullstack_rpc@example.com",phone:"13900000002",status:"ACTIVE"}')
+assert_json "User Provider 创建 RPC 测试用户" "http://localhost:$USER_HTTP_PORT/rpc/users" \
+    '.id | type == "number" and . > 10' POST "$RPC_USER_JSON"
+RPC_USER_ID=$(jq -r '.id // 0' "$HTTP_BODY_FILE")
+assert_json "Fullstack 发现客户端调用 User gRPC" "http://localhost:$PORT/rpc-client/users/$RPC_USER_ID" \
+    ".success == true and .data.user.id == $RPC_USER_ID and .data.user.username == \"$RPC_USERNAME\""
+assert_file_contains "Fullstack 发现客户端选择 User gRPC metadata" "$FULLSTACK_AI_LOG" \
+    "gRPC 目标地址: .*:$USER_GRPC_PORT"
+assert_file_contains "User Provider 收到 Fullstack gRPC 请求" "$FULLSTACK_USER_LOG" \
+    '收到 gRPC RPC 请求: .*service=io.nebula.example.user.api.rpc.UserRpcClient, method=getUserById'
+
+ECHO_REQUEST_ID="nebula_e2e_fullstack_echo_${E2E_RUN_ID//-/_}"
+ECHO_PAYLOAD=$(jq -cn --arg requestId "$ECHO_REQUEST_ID" --arg parameter '"nebula_e2e_echo"' \
+    '{requestId:$requestId,serviceName:"io.nebula.example.modules.rpc.service.FullstackEchoRpcService",
+      methodName:"echo",parameterTypes:["java.lang.String"],parameters:[$parameter],timestamp:(now|floor)}')
+assert_grpc_json "Fullstack gRPC Server Echo" "$FULLSTACK_GRPC_PORT" "$ECHO_PAYLOAD" \
+    ".request_id == \"$ECHO_REQUEST_ID\" and .success == true and (.result | fromjson) == \"fullstack:nebula_e2e_echo\""
+
+FULLSTACK_TOKEN=$(create_jwt)
+AUTH_HEADER="Authorization: Bearer $FULLSTACK_TOKEN"
+assert_json "MCP 工具列表" "http://localhost:$PORT/api/mcp/tools" \
+    '.success == true and any(.data.tools[]; .name == "get_weather")' GET '' 200 "$AUTH_HEADER"
+assert_json "MCP 工具调用" "http://localhost:$PORT/api/mcp/tools/call" \
+    '.success == true and ((.data.result | fromjson).city == "Singapore") and ((.data.result | fromjson).temperature == 25)' \
+    POST '{"toolName":"get_weather","arguments":"{\"city\":\"Singapore\"}"}' 200 "$AUTH_HEADER"
+assert_json "MCP 资源列表" "http://localhost:$PORT/api/mcp/resources" \
+    '.success == true and any(.data.resources[]; .uri == "file:///docs/readme.md")' GET '' 200 "$AUTH_HEADER"
+assert_json "MCP 资源读取" "http://localhost:$PORT/api/mcp/resources/read" \
+    '.success == true and .data.mimeType == "text/markdown" and (.data.content | contains("Nebula"))' \
+    POST '{"resourceUri":"file:///docs/readme.md"}' 200 "$AUTH_HEADER"
+
+if [ "$AI_LIVE_READY" -eq 1 ]; then
+    verify_fullstack_chat "$AUTH_HEADER"
+fi
+if [ "$AI_LIVE_READY" -eq 1 ]; then
+    assert_json "Fullstack OpenAI 真实 embedding" "http://localhost:$PORT/ai/embed" \
+        '.success == true and .data.dimension > 0 and (.data.embeddings | length) == 1' \
+        POST '{"texts":["nebula fullstack embedding verification"]}' 200 "$AUTH_HEADER"
+    MODEL_REQUEST_COUNT=$((MODEL_REQUEST_COUNT + 1))
+
+    AI_DOCUMENT_CONTENT="Nebula Fullstack semantic verification $E2E_RUN_ID"
+    AI_DOCUMENT_JSON=$(jq -cn --arg content "$AI_DOCUMENT_CONTENT" --arg runId "$E2E_RUN_ID" \
+        '{content:$content,metadata:{runId:$runId,source:"nebula_e2e"}}')
+    assert_json "Fullstack Chroma 写入文档" "http://localhost:$PORT/ai/documents" \
+        '.success == true and .data.success == true and (.data.documentId | length) > 0' \
+        POST "$AI_DOCUMENT_JSON" 200 "$AUTH_HEADER"
+    MODEL_REQUEST_COUNT=$((MODEL_REQUEST_COUNT + 1))
+    AI_DOCUMENT_ID=$(jq -r '.data.documentId // empty' "$HTTP_BODY_FILE")
+
+    assert_json "Fullstack Chroma 相似度查询" "http://localhost:$PORT/ai/documents/search" \
+        '.success == true and .data.totalFound >= 1 and any(.data.documents[]; .metadata.source == "nebula_e2e")' \
+        POST '{"query":"semantic verification","topK":3}' 200 "$AUTH_HEADER"
+    MODEL_REQUEST_COUNT=$((MODEL_REQUEST_COUNT + 1))
+    assert_json "Fullstack RAG 文档问答" "http://localhost:$PORT/ai/qa" \
+        '.success == true and (.data.answer | length) > 0 and (.data.contextDocuments | length) >= 1' \
+        POST '{"question":"What does the verification document describe?","contextSize":1,"temperature":0}' 200 "$AUTH_HEADER"
+    MODEL_REQUEST_COUNT=$((MODEL_REQUEST_COUNT + 2))
+    assert_json "Fullstack Chroma 删除文档" "http://localhost:$PORT/ai/documents/$AI_DOCUMENT_ID" \
+        '.success == true and .data == true' DELETE '' 200 "$AUTH_HEADER"
+    record_pass "Fullstack AI 外部模型请求按设计限制为 $MODEL_REQUEST_COUNT 次"
+elif [ "$MODEL_REQUEST_COUNT" -eq 1 ] || [ -z "$TEST_OPENAI_API_KEY" ]; then
+    record_pass "Fullstack AI 首次失败后停止后续模型请求"
+else
+    record_fail "Fullstack AI 失败后仍发出多余模型请求"
+fi
+
+assert_secret_not_logged "$FULLSTACK_AI_LOG"
+stop_profile
+for port in "$USER_HTTP_PORT" "$USER_GRPC_PORT" "$FULLSTACK_GRPC_PORT"; do
+    if wait_for_port_release "$port" 15; then
+        record_pass "Task 11 端口 $port 已释放"
+    else
+        record_fail "Task 11 端口 $port 未释放"
+    fi
+done
+if wait_until "User Provider 从 Nacos 注销" 20 1 \
+    nacos_instance_absent "$USER_SERVICE_NAME" "$USER_HTTP_PORT"; then
+    record_pass "User Provider 已从 Nacos 注销"
+else
+    record_fail "User Provider 未从 Nacos 注销"
+fi
+if wait_until "Fullstack 从 Nacos 注销" 20 1 \
+    nacos_instance_absent "$FULLSTACK_SERVICE_NAME" "$PORT"; then
+    record_pass "Fullstack 已从 Nacos 注销"
+else
+    record_fail "Fullstack 未从 Nacos 注销"
+fi
+delete_chroma_collection
 
 cleanup_redis
 if [ -z "$(redis_keys)" ] && [ "$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -n "$REDIS_DB" DBSIZE)" = "0" ]; then

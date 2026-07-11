@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * MCP演示服务实现
  */
 @Service
-@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(name = {"nebula.ai.enabled", "nebula.ai.mcp.server.enabled"}, havingValue = "true")
 public class McpDemoServiceImpl implements McpDemoService {
     
     private static final Logger logger = LoggerFactory.getLogger(McpDemoServiceImpl.class);
@@ -117,4 +117,3 @@ public class McpDemoServiceImpl implements McpDemoService {
         return response;
     }
 }
-

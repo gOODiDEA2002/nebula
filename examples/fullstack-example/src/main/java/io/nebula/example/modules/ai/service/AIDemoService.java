@@ -41,6 +41,14 @@ public interface AIDemoService {
      * @return 添加文档响应
      */
     AddDocumentDto.Response addDocument(AddDocumentDto.Request request);
+
+    /**
+     * 从向量存储删除文档
+     *
+     * @param id 文档 ID
+     * @return 是否删除成功
+     */
+    boolean deleteDocument(String id);
     
     /**
      * 搜索相似文档
@@ -58,4 +66,3 @@ public interface AIDemoService {
      */
     DocumentQADto.Response documentQA(DocumentQADto.Request request);
 }
-

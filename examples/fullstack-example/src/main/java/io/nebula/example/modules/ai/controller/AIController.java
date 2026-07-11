@@ -62,6 +62,12 @@ public class AIController {
         AddDocumentDto.Response response = aiDemoService.addDocument(request);
         return Result.success(response, "文档添加成功");
     }
+
+    @Operation(summary = "删除文档", description = "从向量存储删除指定文档")
+    @DeleteMapping("/documents/{id}")
+    public Result<Boolean> deleteDocument(@PathVariable String id) {
+        return Result.success(aiDemoService.deleteDocument(id), "文档删除成功");
+    }
     
     @Operation(summary = "搜索文档", description = "语义搜索相似文档")
     @PostMapping("/documents/search")
@@ -79,4 +85,3 @@ public class AIController {
         return Result.success(response, "问答成功");
     }
 }
-

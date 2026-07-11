@@ -16,7 +16,7 @@ import java.util.Map;
  * 演示如何实现一个MCP工具
  */
 @Component
-@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(name = {"nebula.ai.enabled", "nebula.ai.mcp.server.enabled"}, havingValue = "true")
 public class WeatherTool implements McpTool {
     
     private static final Logger logger = LoggerFactory.getLogger(WeatherTool.class);
@@ -72,4 +72,3 @@ public class WeatherTool implements McpTool {
         }
     }
 }
-

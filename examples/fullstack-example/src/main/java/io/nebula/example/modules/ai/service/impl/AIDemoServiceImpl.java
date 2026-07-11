@@ -166,6 +166,12 @@ public class AIDemoServiceImpl implements AIDemoService {
         
         return response;
     }
+
+    @Override
+    public boolean deleteDocument(String id) {
+        log.info("从向量存储删除文档: {}", id);
+        return vectorStoreService.delete(id);
+    }
     
     @Override
     public SearchDocumentDto.Response searchDocuments(SearchDocumentDto.Request request) {
@@ -280,4 +286,3 @@ public class AIDemoServiceImpl implements AIDemoService {
         return response;
     }
 }
-

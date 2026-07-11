@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * 演示如何实现一个MCP资源
  */
 @Component
-@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(name = {"nebula.ai.enabled", "nebula.ai.mcp.server.enabled"}, havingValue = "true")
 public class DocumentResource implements McpResource {
     
     @Override

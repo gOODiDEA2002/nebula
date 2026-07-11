@@ -9,18 +9,15 @@ spring:
     cache-names: users
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  grpc:
+    server:
+      port: ${FULLSTACK_GRPC_PORT:2000}
   
   # 禁用 Spring Security 自动配置
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
-  
-# gRPC配置
-grpc:
-  server:
-    port: 2000  # gRPC端口（独立于HTTP端口）
-
 # Nebula 配置
 nebula:
   security:
@@ -29,7 +26,7 @@ nebula:
   # Nacos 服务发现配置
   discovery:
     nacos:
-      enabled: true
+      enabled: ${NEBULA_DISCOVERY_NACOS_ENABLED:true}
       server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
       namespace: ${NACOS_NAMESPACE:public}
       username: ${NACOS_USERNAME:nacos}
@@ -50,12 +47,12 @@ nebula:
         - veth
       metadata:
         version: 1.0.0
-        env: dev
+        env: ${APP_ENV:dev}
   
   data:
     # 数据持久化配置
     persistence:
-      enabled: true
+      enabled: ${NEBULA_DATA_PERSISTENCE_ENABLED:true}
       # 数据源配置
       sources:
         primary:
@@ -193,60 +190,43 @@ nebula:
 
   # 任务调度配置
   task:
-    enabled: true
+    enabled: ${NEBULA_TASK_ENABLED:true}
     xxl-job:
       enabled: false  # 不依赖 XXL-JOB 调度中心，仅使用框架内置任务引擎
 
   # RPC HTTP 配置
   rpc:
     http:
-      enabled: true
+      enabled: ${NEBULA_RPC_HTTP_ENABLED:true}
       # 服务器配置（客户端不需要服务端）
       server:
-        enabled: false
+        enabled: ${NEBULA_RPC_HTTP_SERVER_ENABLED:false}
       # 客户端配置
       client:
-        enabled: true
+        enabled: ${NEBULA_RPC_HTTP_CLIENT_ENABLED:true}
         # base-url留空，通过服务发现自动获取
         connect-timeout: 30000
         read-timeout: 60000
-        retry-count: 3
-        retry-interval: 1000
-        compression-enabled: false
-        logging-enabled: true
     # RPC服务发现集成（通过Nacos发现nebula-example-service）
     discovery:
-      enabled: true  # 启用 RPC 服务发现
+      enabled: ${NEBULA_RPC_DISCOVERY_ENABLED:true}
       load-balance-strategy: round_robin
-    # RPC服务配置（完全省略）
-    # 通过 @EnableRpcClients + @RpcClient 注解自动扫描和配置
-    # 仅在需要覆盖默认行为时才配置
-    # services:
-    #   user-rpc-service:
-    #     protocol: http  # 例如：覆盖默认 gRPC
-    #     url: http://specific-host:8081  # 例如：直连特定服务器
     # gRPC 配置
     grpc:
-      enabled: true
+      enabled: ${NEBULA_RPC_GRPC_ENABLED:true}
       # 服务器配置
       server:
-        enabled: true
-        # port: 9090
-        max-inbound-message-size: 10485760  # 10MB
-        keep-alive-time: 30
-        keep-alive-timeout: 10
-        permit-keep-alive-without-calls: true
-        max-concurrent-calls: 1000
+        enabled: ${NEBULA_RPC_GRPC_SERVER_ENABLED:true}
       # 客户端配置
       client:
-        enabled: true
+        enabled: ${NEBULA_RPC_GRPC_CLIENT_ENABLED:true}
         # target: ${NEBULA_DEV_SERVER}:9090
         negotiation-type: plaintext
         load-balancing-policy: round_robin
         max-inbound-message-size: 10485760  # 10MB
         connect-timeout: 30000
         request-timeout: 60000
-        retry-count: 3
+        retry-count: ${NEBULA_RPC_GRPC_RETRY_COUNT:0}
         retry-interval: 1000
         compression-enabled: false
         logging-enabled: true
@@ -273,7 +253,7 @@ nebula:
   # RabbitMQ 消息传递配置
   messaging:
     rabbitmq:
-      enabled: true
+      enabled: ${NEBULA_MESSAGING_RABBITMQ_ENABLED:true}
       host: ${RABBITMQ_HOST:${NEBULA_DEV_SERVER:127.0.0.1}}
       port: ${RABBITMQ_PORT:5672}
       username: ${RABBITMQ_USERNAME:guest}
@@ -324,17 +304,20 @@ nebula:
     enabled: ${NEBULA_AI_ENABLED:true}
     # OpenAI 配置
     openai:
-      api-key: ${DEEPSEEK_API_KEY}
-      base-url: https://api.deepseek.com
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
       chat:
         enabled: true
         options:
-          model: deepseek-chat
-          temperature: 0.7
+          model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+          temperature: 0.1
+          max-tokens: 64
+          max-retries: ${OPENAI_MAX_RETRIES:0}
       embedding:
         enabled: true
         options:
-          model: text-embedding-ada-002
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+          max-retries: ${OPENAI_MAX_RETRIES:0}
     chat:
       default-provider: openai
     embedding:
@@ -343,20 +326,19 @@ nebula:
       default-provider: chroma
       # Chroma 向量存储配置
       chroma:
-        host: ${NEBULA_DEV_SERVER:127.0.0.1}
-        port: 9002
-        tenant-name: SpringAiTenant
-        database-name: SpringAiDatabase
-        collection-name: nebula-collection
+        host: ${CHROMA_HOST:${NEBULA_DEV_SERVER:127.0.0.1}}
+        port: ${CHROMA_PORT:9002}
+        collection-name: ${CHROMA_COLLECTION:nebula-collection}
         initialize-schema: true
     mcp:
       server:
-        enabled: true
+        enabled: ${NEBULA_MCP_SERVER_ENABLED:true}
         name: "Nebula AI MCP Server"
         version: "1.0.0"
         type: SYNC
-        transport: WEBMVC
-        sse-message-endpoint: /mcp/message
+        protocol: STREAMABLE
+        streamable-http:
+          mcp-endpoint: /mcp
       client:
         enabled: false
 # MyBatis-Plus配置

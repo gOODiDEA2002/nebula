@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "MCP演示", description = "Model Context Protocol功能演示接口")
 @RestController
 @RequestMapping("/api/mcp")
-@ConditionalOnProperty(prefix = "nebula.ai", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(name = {"nebula.ai.enabled", "nebula.ai.mcp.server.enabled"}, havingValue = "true")
 public class McpController {
     
     private final McpDemoService mcpDemoService;
@@ -57,4 +57,3 @@ public class McpController {
         return Result.success(response);
     }
 }
-

@@ -6,7 +6,7 @@ import io.nebula.ai.core.mcp.McpTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
@@ -18,7 +18,7 @@ import java.util.List;
  * 自动注册所有MCP工具和资源
  */
 @Configuration
-@ConditionalOnBean(McpServerService.class)
+@ConditionalOnProperty(name = {"nebula.ai.enabled", "nebula.ai.mcp.server.enabled"}, havingValue = "true")
 public class McpConfig {
     
     private static final Logger logger = LoggerFactory.getLogger(McpConfig.class);
@@ -59,4 +59,3 @@ public class McpConfig {
                    mcpTools.size(), mcpResources.size());
     }
 }
-
