@@ -494,7 +494,7 @@ public class SpringAIVectorStoreService implements VectorStoreService {
 
     /**
      * 将Spring AI搜索结果转换为Nebula搜索结果
-     * 从 Document 的 metadata 中提取 score 字段（由 CustomChromaVectorStore 计算：1.0 - distance）
+     * 相似度分数经 {@link #extractScore} 按官方契约(Document 本体 score)提取，并兼容旧契约与距离字段回退
      */
     private SearchResult convertToNebulaSearchResult(
             List<org.springframework.ai.document.Document> springResults, String query) {
@@ -516,17 +516,35 @@ public class SpringAIVectorStoreService implements VectorStoreService {
     }
 
     /**
-     * 从 Spring AI Document metadata 中提取相似度分数
-     * CustomChromaVectorStore 在 convertQueryResponse 中设置 metadata["score"] = 1.0 - distance
+     * 从 Spring AI Document 提取相似度分数（分数越大越相似，0-1）
+     *
+     * <p>按四级回退读取，兼容官方实现与旧自研实现两种契约：
+     * <ol>
+     *   <li>官方 Spring AI 2.0 契约：分数写在 {@link org.springframework.ai.document.Document#getScore() Document 本体}（语义 1 - distance），优先取用；</li>
+     *   <li>旧 CustomChromaVectorStore 契约：分数写在 metadata["score"]（Number），向后兼容；</li>
+     *   <li>官方距离字段兜底：metadata 中 {@link org.springframework.ai.document.DocumentMetadata#DISTANCE} 存的是距离，换算相似度 score = 1.0 - distance；</li>
+     *   <li>均取不到时返回 0.0。</li>
+     * </ol>
      */
     private double extractScore(org.springframework.ai.document.Document doc) {
-        if (doc.getMetadata() != null) {
-            Object scoreObj = doc.getMetadata().get("score");
-            if (scoreObj instanceof Number) {
-                return ((Number) scoreObj).doubleValue();
+        // 1. 官方 SA 2.0 契约: 分数在 Document 本体
+        if (doc.getScore() != null) {
+            return doc.getScore();
+        }
+        Map<String, Object> md = doc.getMetadata();
+        if (md != null) {
+            // 2. 兼容旧 CustomChromaVectorStore 契约(metadata["score"])
+            Object s = md.get("score");
+            if (s instanceof Number n) {
+                return n.doubleValue();
+            }
+            // 3. 兜底: 官方 metadata 距离字段(DocumentMetadata.DISTANCE, 语义 score = 1 - distance)
+            Object d = md.get(org.springframework.ai.document.DocumentMetadata.DISTANCE.value());
+            if (d instanceof Number n) {
+                return 1.0 - n.doubleValue();
             }
         }
-        // 默认返回 0.0 表示无法获取分数
+        // 4. 无法获取
         return 0.0;
     }
 

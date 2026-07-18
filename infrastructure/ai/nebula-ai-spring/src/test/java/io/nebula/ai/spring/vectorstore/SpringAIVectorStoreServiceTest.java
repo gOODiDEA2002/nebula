@@ -309,4 +309,96 @@ class SpringAIVectorStoreServiceTest {
         // 验证 VectorStore.delete() 被调用
         verify(vectorStore).delete(idsToDelete);
     }
+
+    /**
+     * 测试得分提取：官方 SA 2.0 契约（分数写在 Document 本体 score）优先取用
+     *
+     * 场景：官方 ChromaVectorStore 将分数写入 Document.getScore()
+     * 验证：extractScore 通过 search 回流出该本体分数
+     */
+    @Test
+    void testExtractScore_fromDocumentBody() {
+        org.springframework.ai.document.Document doc = org.springframework.ai.document.Document.builder()
+                .id("doc-1")
+                .text("body score doc")
+                .metadata(Map.of("nebula_id", "doc-1"))
+                .score(0.92)
+                .build();
+
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
+                .thenReturn(List.of(doc));
+
+        SearchResult result = vectorStoreService.search("q", 1);
+
+        assertThat(result.getDocuments()).hasSize(1);
+        assertThat(result.getDocuments().get(0).getScore()).isEqualTo(0.92);
+    }
+
+    /**
+     * 测试得分提取：兼容旧 CustomChromaVectorStore 契约（metadata["score"] 为 Number）
+     *
+     * 场景：本体无 score，但 metadata 里带旧契约的数值型 score
+     * 验证：extractScore 回退读取 metadata["score"]
+     */
+    @Test
+    void testExtractScore_fromLegacyMetadata() {
+        org.springframework.ai.document.Document doc = org.springframework.ai.document.Document.builder()
+                .id("doc-1")
+                .text("legacy metadata score doc")
+                .metadata(Map.of("nebula_id", "doc-1", "score", 0.85))
+                .build();
+
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
+                .thenReturn(List.of(doc));
+
+        SearchResult result = vectorStoreService.search("q", 1);
+
+        assertThat(result.getDocuments().get(0).getScore()).isEqualTo(0.85);
+    }
+
+    /**
+     * 测试得分提取：官方距离字段兜底（DocumentMetadata.DISTANCE，score = 1 - distance）
+     *
+     * 场景：本体无 score、无旧契约 score，仅有官方距离字段
+     * 验证：extractScore 换算 1 - distance
+     */
+    @Test
+    void testExtractScore_fromDistanceMetadata() {
+        String distanceKey = org.springframework.ai.document.DocumentMetadata.DISTANCE.value();
+        org.springframework.ai.document.Document doc = org.springframework.ai.document.Document.builder()
+                .id("doc-1")
+                .text("distance metadata doc")
+                .metadata(Map.of("nebula_id", "doc-1", distanceKey, 0.3))
+                .build();
+
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
+                .thenReturn(List.of(doc));
+
+        SearchResult result = vectorStoreService.search("q", 1);
+
+        // 1.0 - 0.3 = 0.7
+        assertThat(result.getDocuments().get(0).getScore()).isEqualTo(0.7);
+    }
+
+    /**
+     * 测试得分提取：无任何分数来源时返回 0.0
+     *
+     * 场景：本体无 score，metadata 无 score 与 distance 字段
+     * 验证：extractScore 兜底返回 0.0
+     */
+    @Test
+    void testExtractScore_noneReturnsZero() {
+        org.springframework.ai.document.Document doc = org.springframework.ai.document.Document.builder()
+                .id("doc-1")
+                .text("no score doc")
+                .metadata(Map.of("nebula_id", "doc-1"))
+                .build();
+
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
+                .thenReturn(List.of(doc));
+
+        SearchResult result = vectorStoreService.search("q", 1);
+
+        assertThat(result.getDocuments().get(0).getScore()).isEqualTo(0.0);
+    }
 }
