@@ -249,15 +249,19 @@ public class BrowserCrawlerEngine implements CrawlerEngine {
                 .build();
             
         } finally {
-            // 关闭页面
-            if (page != null && !contextCorrupted) {
+            // 关闭页面：即使上下文疑似损坏也要尝试，否则远端页面永不回收。
+            // 客户端对象失效时 close 会抛异常，但服务端可能仍持有该页面；跳过关闭等于放弃唯一的回收机会，
+            // 长跑下远端浏览器进程会持续堆积直至连接耗尽（生产实测堆到 698 个 chrome 进程后采集停滞）。
+            if (page != null) {
                 try {
                     page.close();
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    // 关闭失败通常意味着连接/上下文已损坏，标记后由上下文释放阶段兜底销毁
                     contextCorrupted = true;
+                    log.debug("关闭页面失败（判定上下文损坏，转由上下文销毁回收）: {}", e.getMessage());
                 }
             }
-            
+
             // 释放上下文（传递损坏标记）
             if (context != null) {
                 browserPool.release(context, contextCorrupted);

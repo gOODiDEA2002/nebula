@@ -435,14 +435,56 @@ public class BrowserPool {
      */
     private void releaseRemote(BrowserContext context) {
         Browser browser = contextBrowserMap.remove(context);
-        safeCloseContext(context);
+        boolean closed = safeCloseContext(context);
 
-        if (browser != null) {
-            if (browser.isConnected()) {
-                browserQueue.offer(browser);
-            } else {
-                log.warn("归还时 Browser 已断开，不放回队列");
+        if (browser == null) {
+            return;
+        }
+        if (!browser.isConnected()) {
+            log.warn("归还时 Browser 已断开，不放回队列");
+            return;
+        }
+        if (!closed) {
+            // 上下文没能关掉，说明这条连接上很可能残留了未回收的页面；继续复用会让残留不断累积，
+            // 故弃用该连接并补建一条，把残留限制在单次请求内。
+            log.warn("上下文关闭失败，弃用该 Browser 连接并重建，避免远端资源累积");
+            discardAndReplenishBrowser(browser);
+            return;
+        }
+        browserQueue.offer(browser);
+    }
+
+    /**
+     * 弃用一条疑似残留资源的 Browser 连接，并按其原端点补建一条以维持池容量。
+     *
+     * <p>登记结构（endpointBrowsers / allBrowserConnections）与健康检查重连保持一致，
+     * 便于后续健康检查继续按位替换。补建失败不抛出：池容量下降由取连接时的等待超时暴露，
+     * 在释放路径上抛异常只会连累调用方。
+     */
+    private void discardAndReplenishBrowser(Browser browser) {
+        allBrowserConnections.remove(browser);
+        try {
+            browser.close();
+        } catch (Exception e) {
+            log.debug("关闭弃用的 Browser 连接失败: {}", e.getMessage());
+        }
+
+        for (Map.Entry<String, List<Browser>> entry : endpointBrowsers.entrySet()) {
+            List<Browser> browsers = entry.getValue();
+            int idx = browsers.indexOf(browser);
+            if (idx < 0) {
+                continue;
             }
+            Browser fresh = connectSingle(entry.getKey(), idx);
+            if (fresh != null) {
+                browsers.set(idx, fresh);
+                allBrowserConnections.add(fresh);
+                browserQueue.offer(fresh);
+                log.info("已重建 Browser 连接: endpoint={}, index={}", entry.getKey(), idx);
+            } else {
+                log.warn("重建 Browser 连接失败，池容量暂时下降: endpoint={}, index={}", entry.getKey(), idx);
+            }
+            return;
         }
     }
 
@@ -478,13 +520,24 @@ public class BrowserPool {
         }
     }
 
-    private void safeCloseContext(BrowserContext context) {
+    /**
+     * 关闭上下文。
+     *
+     * <p>关闭失败意味着远端资源（页面、上下文）很可能没有被回收——这是浏览器进程堆积的根源，
+     * 因此不再静默吞掉：记录日志供排障，并把结果返回给调用方以决定连接是否还能复用。
+     *
+     * @return true 表示确实关闭成功
+     */
+    private boolean safeCloseContext(BrowserContext context) {
         if (context == null) {
-            return;
+            return true;
         }
         try {
             context.close();
-        } catch (Exception ignored) {
+            return true;
+        } catch (Exception e) {
+            log.warn("关闭浏览器上下文失败，远端资源可能未回收: {}", e.getMessage());
+            return false;
         }
     }
 
