@@ -68,7 +68,7 @@ order-service           (client)
 <dependency>
     <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-example-order-api</artifactId>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>2.1.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -495,7 +495,7 @@ CreateOrderDto.Response createOrder(@RequestBody CreateOrderDto.Request request)
     <dependency>
         <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-rpc-core</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.1.1-SNAPSHOT</version>
     </dependency>
     
     <!-- Spring Web (注解支持) -->

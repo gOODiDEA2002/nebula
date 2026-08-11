@@ -1,6 +1,6 @@
 # Nebula 快速开始
 
-本文提供 Nebula `2.1.0-SNAPSHOT` 的最短可运行路径。完整示例位于仓库的
+本文提供 Nebula `2.1.0` 的最短可运行路径。完整示例位于仓库的
 [`examples/`](../../examples/README.md)。
 
 ## 环境要求
@@ -16,7 +16,7 @@
 ```xml
 <properties>
     <java.version>21</java.version>
-    <nebula.version>2.1.0-SNAPSHOT</nebula.version>
+    <nebula.version>2.1.0</nebula.version>
 </properties>
 
 <dependencies>

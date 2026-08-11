@@ -7,7 +7,7 @@ Spring Boot 3 时期的长篇说明统一放在 [`archive/`](archive/README.md)�
 
 | 项目 | 版本 |
 | --- | --- |
-| Nebula | `2.1.0-SNAPSHOT` |
+| Nebula | `2.1.0` |
 | Java | `21` |
 | Spring Boot | `4.1.0` |
 | Spring Framework | `7.x`，由 Spring Boot 管理 |

@@ -1,6 +1,6 @@
 # Nebula 架构说明
 
-Nebula `2.1.0-SNAPSHOT` 基于 Java 21、Spring Boot 4.1 和 Spring Framework 7。
+Nebula `2.1.0` 基于 Java 21、Spring Boot 4.1 和 Spring Framework 7。
 框架按能力拆分模块，通过 Starter 组合依赖，通过自动配置决定运行时是否激活。
 
 ## 模块结构

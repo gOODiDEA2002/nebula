@@ -1,6 +1,6 @@
 # Nebula 配置说明
 
-本文面向 Nebula `2.1.0-SNAPSHOT`。配置字段的最终定义以代码中的
+本文面向 Nebula `2.1.0`。配置字段的最终定义以代码中的
 `@ConfigurationProperties` 类为准；本页维护配置入口、安全要求和常用样例，不重复抄录
 每个 Java 字段。
 

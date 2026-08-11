@@ -1,6 +1,6 @@
 # Nebula 2.1.x Jackson 3 升级指南
 
-> 适用版本：Nebula 2.1.0-SNAPSHOT 及以上
+> 适用版本：Nebula 2.1.0 及以上
 > 前置版本：Nebula 2.0.x（Jackson 2）
 
 ## 1. 概述

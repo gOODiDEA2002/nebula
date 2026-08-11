@@ -11,7 +11,7 @@
                     NEBULA FRAMEWORK STARTUP SUMMARY
 ======================================================================
   [Framework Info]
-    Version              : 2.1.0-SNAPSHOT
+    Version              : 2.1.0
     Profile              : default
 
   [Service Discovery (Nacos)]

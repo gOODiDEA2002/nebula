@@ -1,14 +1,15 @@
 # Nebula 2.1 升级通用提示词（交给编码代理执行）
 
 > 适用场景：依赖 nebula 框架的业务项目从 nebula 2.0.x（Spring Boot 3.5.x 代际）升级到
-> nebula 2.1.0-SNAPSHOT（Spring Boot 4.1.0 + Jackson 3 代际）。
+> nebula 2.1.0（Spring Boot 4.1.0 + Jackson 3 代际）。
 > 使用方式：替换下方提示词中的【】占位符后，原样发给编码代理（在目标项目的工作区新开会话）。
 > 模板来源：proud-day-backend 迁移实战（2026-07-08），已知坑清单均为真实踩坑记录。
+> 2.1.0 起构件发布于 Maven Central，坐标为 `com.nebula-projects`（原 `io.nebula`），
+> 无需本地 install nebula 仓库；Java 包名仍为 `io.nebula.*`，业务代码 import 不受影响。
 
 ## 派发前用户自查（每次派发前确认）
 
-- [ ] Nebula 仓库主线或目标发布标签已在本机执行 `mvn clean install -DskipTests`，
-      `~/.m2/repository/io/nebula/` 下存在最新的 2.1.0-SNAPSHOT 产物
+- [ ] 目标项目构建环境可访问 Maven Central（或镜像已同步 `com.nebula-projects` 构件）
 - [ ] 目标项目本地可编译、工作区干净
 - [ ] 目标项目依赖的中间件（MySQL/Redis 等）本地或测试环境可达（启动验证需要）
 
@@ -18,8 +19,8 @@
 
 ```text
 你在【项目名称】仓库（路径：【项目绝对路径】）执行 nebula 框架升级任务：
-从 nebula 2.0.x（Spring Boot 3.5.x）升级到 nebula 2.1.0-SNAPSHOT
-（Spring Boot 4.1.0 + Jackson 3 代际）。
+从 nebula 2.0.x（Spring Boot 3.5.x）升级到 nebula 2.1.0
+（Spring Boot 4.1.0 + Jackson 3 代际，Maven Central 坐标 com.nebula-projects）。
 
 【项目补充说明：一句话描述项目用途、启动方式、冒烟脚本（如有）、
  使用了 nebula 的哪些模块（web/persistence/cache/messaging/websocket 等）】
@@ -32,8 +33,10 @@
 3. 在本项目创建 docs/changes/nebula-2.1-upgrade/log.md，
    全程记录：每个任务的验证命令关键输出行、技术决策、踩坑、偏差。
    只写"已通过"三个字不算数，要留能对账的证据。
-4. 确认 ~/.m2/repository/io/nebula/ 下存在 2.1.0-SNAPSHOT 产物；
-   不存在就停下汇报，禁止自行去改 nebula 仓库或降级方案。
+4. nebula 2.1.0 构件从 Maven Central 拉取（groupId com.nebula-projects），
+   无需本地 install nebula 仓库；若本机 ~/.m2/repository/io/nebula/ 存在
+   旧快照残留，与新坐标互不影响，但项目里任何仍写 io.nebula 的依赖
+   都解析不到 2.1.0——坐标迁移在 Task 1 完成。
 
 ════════ 任务清单（顺序执行，一任务一提交） ════════
 
@@ -44,7 +47,11 @@
      不升 parent 而只升 nebula 版本，启动时必报
      ClassNotFoundException: JsonMapperBuilderCustomizer 一类的错——
      那是 SB3.5 应用消费 SB4 框架的预期失败，不是 nebula 的 Bug）
-   - nebula.version 改 2.1.0-SNAPSHOT
+   - 【坐标迁移】所有 nebula 依赖的 groupId 从 io.nebula 改为
+     com.nebula-projects（artifactId 全部不变；2.1.0 起仅发布新坐标，
+     io.nebula 在 Central 上不存在）。Java 包名仍是 io.nebula.*，
+     业务代码 import 一律不改
+   - nebula.version 改 2.1.0
    - 删除与 nebula 传递依赖重复的显式覆盖（常见：mybatis-plus-spring-boot3-starter、
      mybatis-plus-jsqlparser、jackson 系显式版本）——nebula 已传递正确的 boot4 变体
    - 若用了 Spring Cloud 组件，BOM 升 2025.1.2
@@ -146,7 +153,8 @@
 | 症状 | 根因 | 处置 |
 |---|---|---|
 | `ClassNotFoundException: JsonMapperBuilderCustomizer` | parent 没升 4.1.0，SB3.5 消费 SB4 框架 | 补升 parent，不是 nebula 的 Bug |
-| `redisMessageConsumer required a single bean, but 2 were found` | 本地仍在使用旧 Nebula 快照 | 在 Nebula 当前主线重新执行 `mvn clean install -DskipTests` |
+| `redisMessageConsumer required a single bean, but 2 were found` | 本地仍在使用旧 Nebula 快照 | 确认依赖坐标已切 com.nebula-projects:2.1.0，并清理 `~/.m2/repository/io/nebula/` 旧快照 |
+| nebula 依赖解析 404 / Could not find artifact | groupId 仍写 io.nebula | 2.1.0 起坐标为 com.nebula-projects，io.nebula 在 Central 不存在，按 Task 1 完成坐标迁移 |
 | 上线后缓存反序列化 `InvalidTypeIdException` | 旧缓存没清干净（多为前缀核对错） | 按各环境实际 key-prefix 重清 |
 | DB 不可达应用起不来（原来能起） | DataSourceManager 无 initialization-fail-timeout 语义 | 预期行为，靠编排层重启补救 |
 | `mvn test` 绿但启动失败 | 单测不拉起完整上下文 | 启动验证是独立闸门，两者都必须过 |

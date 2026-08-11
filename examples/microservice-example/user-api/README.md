@@ -66,7 +66,7 @@ nebula-example-  nebula-example
 <dependency>
     <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-example-rpc-api</artifactId>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>2.1.1-SNAPSHOT</version>
 </dependency>
 ```
 

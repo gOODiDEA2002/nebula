@@ -35,7 +35,7 @@ Starter 负责组合依赖并提供最低优先级的默认开关。应用只选
 
 ```xml
 <properties>
-    <nebula.version>2.1.0-SNAPSHOT</nebula.version>
+    <nebula.version>2.1.0</nebula.version>
 </properties>
 
 <dependency>

@@ -132,7 +132,7 @@ Nebula Framework
 <dependency>
     <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-web</artifactId>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
