@@ -446,7 +446,7 @@ public class TicketServiceApplication {
 
 ## 许可证
 
-Nebula 框架采用 MIT 许可证。
+Nebula 框架采用 Apache License 2.0 许可证。
 
 ---
 

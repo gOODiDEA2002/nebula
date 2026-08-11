@@ -18,6 +18,13 @@
     <description>Modern Java Backend Framework - Born from the stars</description>
     <packaging>pom</packaging>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
     <modules>
         <!-- 核心层 -->
         <module>core/nebula-foundation</module>

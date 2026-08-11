@@ -1480,7 +1480,7 @@ public class UserService {
 
 ##  许可证
 
-Nebula 框架基于 MIT 许可证开源详见 [LICENSE](../LICENSE) 文件
+Nebula 框架基于 Apache License 2.0 开源，详见 [LICENSE](../../../LICENSE) 文件
 
 ---
 
