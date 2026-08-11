@@ -5,20 +5,20 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <groupId>io.nebula.examples</groupId>
+    <groupId>com.nebula-projects.examples</groupId>
     <artifactId>starter-service-example</artifactId>
     <name>Nebula Starter Service Example</name>
     <description>Service example application using nebula-starter-service</description>
 
     <dependencies>
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-service</artifactId>
             <version>${revision}</version>
         </dependency>

@@ -202,10 +202,21 @@ mvn spring-boot:run -Dlogging.level.io.nebula=DEBUG
 - 发布时移除 `-SNAPSHOT`
 - 遵循语义化版本
 
-### 发布到 Nexus
+### 发布到 Maven Central
 ```bash
-mvn clean deploy -P release     # 正式版本
-mvn clean deploy                # 快照版本
+# 本地发布（凭据在 ~/.m2/settings.xml 的 central 条目，引用 ~/.profile 环境变量）
+mvn clean deploy -P central -DskipTests -Drevision=<版本号>
+
+# CI 发布：创建 GitHub Release（tag 形如 v2.1.0）触发 .github/workflows/maven-publish.yml
+```
+- 坐标：`com.nebula-projects`（命名空间经 nebula-projects.com 域名验证）；Java 包名保持 `io.nebula.*` 不变
+- `central` profile 附带 javadoc/sources/GPG 签名与 central-publishing-maven-plugin
+- `autoPublish=false`：上传后需在 central.sonatype.com 手动点击 Publish 才正式上线
+- Central 发布不可撤回，正式点击 Publish 前务必核对 bundle 内容
+
+### 发布到私服 Nexus
+```bash
+mvn clean deploy                # 走 distributionManagement 环境变量指定的仓库
 ```
 
 ## 扩展开发指南

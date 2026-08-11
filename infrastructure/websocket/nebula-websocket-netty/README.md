@@ -22,14 +22,14 @@ Nebula 框架基于 Netty 的高性能 WebSocket 实现模块。
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-websocket-netty</artifactId>
     <version>${nebula.version}</version>
 </dependency>
 
 <!-- 集群模式需要添加 Redis 消息模块 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-messaging-redis</artifactId>
     <version>${nebula.version}</version>
 </dependency>

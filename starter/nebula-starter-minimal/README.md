@@ -37,7 +37,7 @@
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-minimal</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>
@@ -113,7 +113,7 @@ logging:
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-web</artifactId>  <!-- 改为web -->
     <version>2.1.0-SNAPSHOT</version>
 </dependency>

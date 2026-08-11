@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
@@ -30,7 +30,7 @@
 
         <!-- Discovery Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-discovery-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -38,7 +38,7 @@
 
         <!-- Discovery Nacos (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -46,7 +46,7 @@
 
         <!-- RPC Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-rpc-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -54,7 +54,7 @@
 
         <!-- RPC HTTP (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-rpc-http</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -69,7 +69,7 @@
 
         <!-- RPC gRPC (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-rpc-grpc</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -77,7 +77,7 @@
 
         <!-- RPC Async (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-rpc-async</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -85,7 +85,7 @@
 
         <!-- Data Persistence (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-persistence</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -93,7 +93,7 @@
 
         <!-- Data Cache (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -101,7 +101,7 @@
 
         <!-- Data Neo4j (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-neo4j</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -109,7 +109,7 @@
 
         <!-- Messaging Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-messaging-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -117,7 +117,7 @@
 
         <!-- Messaging RabbitMQ (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-messaging-rabbitmq</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -125,7 +125,7 @@
 
         <!-- Messaging RocketMQ (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-messaging-rocketmq</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -133,7 +133,7 @@
 
         <!-- Messaging Redis (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-messaging-redis</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -141,7 +141,7 @@
 
         <!-- WebSocket Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-websocket-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -149,7 +149,7 @@
 
         <!-- WebSocket Spring (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-websocket-spring</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -157,7 +157,7 @@
 
         <!-- WebSocket Netty (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-websocket-netty</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -165,7 +165,7 @@
 
         <!-- Search Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-search-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -173,7 +173,7 @@
 
         <!-- Search Elasticsearch (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-search-elasticsearch</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -181,7 +181,7 @@
 
         <!-- Storage Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-storage-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -189,7 +189,7 @@
 
         <!-- Storage MinIO (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-storage-minio</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -197,7 +197,7 @@
 
         <!-- Storage Aliyun OSS (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-storage-aliyun-oss</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -205,7 +205,7 @@
 
         <!-- AI Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-ai-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -213,7 +213,7 @@
         
         <!-- AI Spring (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-ai-spring</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -221,7 +221,7 @@
 
         <!-- Crawler Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -229,7 +229,7 @@
 
         <!-- Crawler HTTP (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-http</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -237,7 +237,7 @@
 
         <!-- Crawler Browser (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-browser</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -245,7 +245,7 @@
 
         <!-- Crawler Proxy (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-proxy</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -253,7 +253,7 @@
 
         <!-- Crawler Captcha (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-captcha</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -261,7 +261,7 @@
 
         <!-- Task (XXL-JOB) (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-task</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -290,7 +290,7 @@
 
         <!-- Web (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-web</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -298,7 +298,7 @@
 
         <!-- Security (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-security</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -306,13 +306,13 @@
 
         <!-- Lock Redis (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-lock-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-lock-redis</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -320,7 +320,7 @@
 
         <!-- Gateway Core (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-gateway-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>

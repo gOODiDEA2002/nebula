@@ -39,7 +39,7 @@ Starter 负责组合依赖并提供最低优先级的默认开关。应用只选
 </properties>
 
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-service</artifactId>
     <version>${nebula.version}</version>
 </dependency>
@@ -97,12 +97,12 @@ API 模块不放 Controller、Repository、服务实现、数据库连接配置�
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-service</artifactId>
     <version>${nebula.version}</version>
     <exclusions>
         <exclusion>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-messaging-rabbitmq</artifactId>
         </exclusion>
     </exclusions>

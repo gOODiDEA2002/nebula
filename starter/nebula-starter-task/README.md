@@ -16,7 +16,7 @@
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-task</artifactId>
     <version>${nebula.version}</version>
 </dependency>

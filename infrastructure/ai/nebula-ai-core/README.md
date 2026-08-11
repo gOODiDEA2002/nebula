@@ -60,7 +60,7 @@ public interface VectorStoreService {
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-ai-core</artifactId>
     <version>${nebula.version}</version>
 </dependency>

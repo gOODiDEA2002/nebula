@@ -37,7 +37,7 @@ Gateway 职责简化为：
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-gateway</artifactId>
 </dependency>
 ```

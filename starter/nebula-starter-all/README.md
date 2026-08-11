@@ -7,7 +7,7 @@
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-all</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>
@@ -83,7 +83,7 @@ Security JWT 启用时仍必须提供至少 32 个字符的 `nebula.security.jwt
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-rpc-grpc</artifactId>
     <version>${nebula.version}</version>
 </dependency>

@@ -19,7 +19,7 @@ RPC 契约模块专用 Starter，提供 API 定义所需的标准依赖，确保
 ### 1. Nebula RPC Core
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-rpc-core</artifactId>
 </dependency>
 ```
@@ -86,7 +86,7 @@ RPC 契约模块专用 Starter，提供 API 定义所需的标准依赖，确保
     <dependencies>
         <!-- 使用 Nebula Starter API -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-api</artifactId>
             <version>${nebula.version}</version>
         </dependency>
@@ -228,7 +228,7 @@ my-service-api/
 ```xml
 <dependencies>
     <dependency>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-rpc-core</artifactId>
         <version>2.1.0-SNAPSHOT</version>
     </dependency>
@@ -263,7 +263,7 @@ my-service-api/
 
 <dependencies>
     <dependency>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-starter-api</artifactId>
         <version>${nebula.version}</version>
     </dependency>

@@ -16,7 +16,7 @@ Nebula 框架的 Redis 消息模块，提供基于 Redis Pub/Sub 和 Redis Strea
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-messaging-redis</artifactId>
     <version>${nebula.version}</version>
 </dependency>

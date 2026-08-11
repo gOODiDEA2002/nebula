@@ -5,20 +5,20 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <groupId>io.nebula.examples</groupId>
+    <groupId>com.nebula-projects.examples</groupId>
     <artifactId>starter-all-example</artifactId>
     <name>Nebula Starter All Example</name>
     <description>All-in-one example application using nebula-starter-all</description>
 
     <dependencies>
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-all</artifactId>
             <version>${revision}</version>
         </dependency>

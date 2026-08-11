@@ -54,7 +54,7 @@ Nebula Web 是一个基于 Spring Boot 的现代化 Web 框架，提供了认证
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-web</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>

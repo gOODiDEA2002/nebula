@@ -77,7 +77,7 @@ public class OrderService {
 ```xml
 <!-- 服务提供方和消费方都添加此依赖 -->
 <dependency>
-    <groupId>io.nebula.examples</groupId>
+    <groupId>com.nebula-projects.examples</groupId>
     <artifactId>starter-api-example</artifactId>
     <version>${revision}</version>
 </dependency>

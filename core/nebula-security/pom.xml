@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
@@ -18,14 +18,14 @@
     <dependencies>
         <!-- Nebula Foundation (JWT Utils) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-foundation</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Nebula Data Cache (for permission caching) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>

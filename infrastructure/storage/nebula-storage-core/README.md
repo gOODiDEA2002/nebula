@@ -36,14 +36,14 @@
 ```xml
 <!-- MinIO实现 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-storage-minio</artifactId>
     <version>${nebula.version}</version>
 </dependency>
 
 <!-- 或者 阿里云OSS实现 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-storage-aliyun-oss</artifactId>
     <version>${nebula.version}</version>
 </dependency>

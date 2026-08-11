@@ -1520,7 +1520,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
@@ -1533,7 +1533,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <dependencies>
         <!-- Nebula Foundation -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-foundation</artifactId>
         </dependency>
         
@@ -1578,7 +1578,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
@@ -1591,7 +1591,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <dependencies>
         <!-- Nebula Crawler Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-core</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -1631,7 +1631,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
@@ -1644,14 +1644,14 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <dependencies>
         <!-- Nebula Crawler Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Nebula Storage Core（用于保存截图，可选） -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-storage-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -1685,7 +1685,7 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>2.1.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
@@ -1698,14 +1698,14 @@ io.nebula.autoconfigure.crawler.CrawlerAutoConfiguration
     <dependencies>
         <!-- Nebula Crawler Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Nebula Data Cache（Redis缓存） -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
         </dependency>

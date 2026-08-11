@@ -21,7 +21,7 @@
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-data-cache</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>

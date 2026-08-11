@@ -492,7 +492,7 @@ Closes #123
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-data-persistence</artifactId>
 </dependency>
 ```

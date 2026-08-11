@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
@@ -19,7 +19,7 @@
         <!-- ========== 基础层 ========== -->
         <!-- Foundation (必需) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-foundation</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -27,7 +27,7 @@
         <!-- ========== Web 层 ========== -->
         <!-- Web Framework -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-web</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -38,13 +38,13 @@
         </dependency>
 
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-websocket-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-websocket-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -63,14 +63,14 @@
         <!-- ========== 数据层 ========== -->
         <!-- Data Persistence -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-persistence</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Data Cache -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -78,14 +78,14 @@
         <!-- ========== 服务发现 ========== -->
         <!-- Discovery Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-discovery-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Discovery Nacos (可选实现) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -93,21 +93,21 @@
         <!-- ========== RPC ========== -->
         <!-- RPC Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-rpc-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- RPC HTTP -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-rpc-http</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- RPC gRPC (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-rpc-grpc</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -116,14 +116,14 @@
         <!-- ========== 消息队列 ========== -->
         <!-- Messaging Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-messaging-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Messaging RabbitMQ (可选实现) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-messaging-rabbitmq</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -133,14 +133,14 @@
         <!-- ========== 搜索 ========== -->
         <!-- Search Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-search-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Search Elasticsearch (可选实现) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-search-elasticsearch</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -148,14 +148,14 @@
         <!-- ========== 存储 ========== -->
         <!-- Storage Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-storage-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Storage Minio (可选实现) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-storage-minio</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -163,7 +163,7 @@
         <!-- ========== 任务调度 ========== -->
         <!-- Task Module -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-task</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -171,14 +171,14 @@
         <!-- ========== AI 模块 ========== -->
         <!-- AI Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-ai-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- AI Spring Integration -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-ai-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -188,14 +188,14 @@
         <!-- ========== 分布式锁 ========== -->
         <!-- Lock Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-lock-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Lock Redis -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-lock-redis</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -203,7 +203,7 @@
         <!-- ========== 安全 ========== -->
         <!-- Security -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-security</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -211,7 +211,7 @@
         <!-- ========== 自动配置 ========== -->
         <!-- Auto Configuration -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-autoconfigure</artifactId>
             <version>${project.version}</version>
         </dependency>

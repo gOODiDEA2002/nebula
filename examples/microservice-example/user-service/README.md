@@ -560,19 +560,19 @@ nebula-example-service/
 ```xml
 <!-- RPC契约 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-example-api</artifactId>
 </dependency>
 
 <!-- RPC实现 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-rpc-http</artifactId>
 </dependency>
 
 <!-- 服务发现 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-discovery-nacos</artifactId>
 </dependency>
 ```

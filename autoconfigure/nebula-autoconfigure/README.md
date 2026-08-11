@@ -64,7 +64,7 @@ nebula-autoconfigure/
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-autoconfigure</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>
@@ -77,19 +77,19 @@ nebula-autoconfigure/
 ```xml
 <!-- 服务发现 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-discovery-nacos</artifactId>
 </dependency>
 
 <!-- RPC 通信 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-rpc-http</artifactId>
 </dependency>
 
 <!-- 数据持久化 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-data-persistence</artifactId>
 </dependency>
 
@@ -333,7 +333,7 @@ nebula:
 ```xml
 <!-- 不再需要单独引入基础模块 -->
 <!-- <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-discovery-nacos</artifactId>
 </dependency> -->
 ```
@@ -342,14 +342,14 @@ nebula:
 ```xml
 <!-- 新增统一自动配置依赖 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-autoconfigure</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>
 
 <!-- 按需添加功能模块 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-discovery-nacos</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>
@@ -460,15 +460,15 @@ public class CustomRpcConfig {
 ```xml
 <!-- 只引入需要的模块 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-autoconfigure</artifactId>
 </dependency>
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-rpc-http</artifactId>
 </dependency>
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-data-persistence</artifactId>
 </dependency>
 ```

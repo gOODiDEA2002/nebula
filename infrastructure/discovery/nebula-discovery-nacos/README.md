@@ -18,7 +18,7 @@ Nacos 服务发现实现模块
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-discovery-nacos</artifactId>
 </dependency>
 ```

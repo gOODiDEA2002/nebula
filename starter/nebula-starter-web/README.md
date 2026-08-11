@@ -35,7 +35,7 @@ Web应用专用Starter，适用于REST API、管理后台等Web应用。
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-web</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>

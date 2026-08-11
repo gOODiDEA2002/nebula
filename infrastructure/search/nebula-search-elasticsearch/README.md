@@ -27,7 +27,7 @@ Nebula 框架的 Elasticsearch 搜索服务实现模块
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-search-elasticsearch</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>

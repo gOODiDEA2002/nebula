@@ -17,7 +17,7 @@ Nebula RPC 异步执行框架，提供声明式的异步RPC调用能力。
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-rpc-async</artifactId>
 </dependency>
 ```

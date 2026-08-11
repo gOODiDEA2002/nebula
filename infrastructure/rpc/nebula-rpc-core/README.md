@@ -367,7 +367,7 @@ public class UserServiceApplication {
 **依赖 User API**：
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-example-user-api</artifactId>
 </dependency>
 ```
@@ -524,11 +524,11 @@ private final UserRpcClient userRpcClient;
 ```java
 // 依赖多个 API 模块
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-example-user-api</artifactId>
 </dependency>
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-example-order-api</artifactId>
 </dependency>
 ```

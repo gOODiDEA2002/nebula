@@ -16,7 +16,7 @@
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-service</artifactId>
     <version>${nebula.version}</version>
 </dependency>
@@ -62,7 +62,7 @@ spring:
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-rpc-grpc</artifactId>
     <version>${nebula.version}</version>
 </dependency>
@@ -72,7 +72,7 @@ spring:
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-messaging-rabbitmq</artifactId>
     <version>${nebula.version}</version>
 </dependency>
@@ -82,7 +82,7 @@ spring:
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-task</artifactId>
     <version>${nebula.version}</version>
 </dependency>
@@ -106,12 +106,12 @@ spring:
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-service</artifactId>
     <version>${nebula.version}</version>
     <exclusions>
         <exclusion>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
         </exclusion>
     </exclusions>

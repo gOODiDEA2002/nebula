@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../../pom.xml</relativePath>
@@ -18,14 +18,14 @@
     <dependencies>
         <!-- Discovery Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-discovery-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Core Common -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-foundation</artifactId>
             <version>${project.version}</version>
         </dependency>

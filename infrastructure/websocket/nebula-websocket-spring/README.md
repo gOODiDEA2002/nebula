@@ -15,14 +15,14 @@ Nebula 框架基于 Spring WebSocket 的实现模块。
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-websocket-spring</artifactId>
     <version>${nebula.version}</version>
 </dependency>
 
 <!-- 集群模式需要添加 Redis 消息模块 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-messaging-redis</artifactId>
     <version>${nebula.version}</version>
 </dependency>

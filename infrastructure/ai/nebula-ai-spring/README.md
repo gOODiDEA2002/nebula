@@ -25,7 +25,7 @@
 ```xml
 <!-- Nebula AI Spring 模块 -->
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-ai-spring</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>

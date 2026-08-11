@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
@@ -18,21 +18,21 @@
     <dependencies>
         <!-- Nebula Starter AI (包含 AI 能力：向量搜索、RAG、Embedding 等) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-ai</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Nebula AutoConfigure -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-autoconfigure</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Nebula Web (MCP Server 需要 Web API 支持) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-web</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -672,7 +672,7 @@ public class ConsulDiscoveryAutoConfiguration {
 <dependencies>
     <!-- Nebula Foundation -->
     <dependency>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-foundation</artifactId>
     </dependency>
 </dependencies>

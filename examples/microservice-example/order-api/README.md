@@ -66,7 +66,7 @@ order-service           (client)
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-example-order-api</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>
@@ -493,7 +493,7 @@ CreateOrderDto.Response createOrder(@RequestBody CreateOrderDto.Request request)
 <dependencies>
     <!-- Nebula RPC Core -->
     <dependency>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-rpc-core</artifactId>
         <version>2.1.0-SNAPSHOT</version>
     </dependency>

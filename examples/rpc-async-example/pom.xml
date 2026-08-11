@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <groupId>io.nebula.examples</groupId>
+    <groupId>com.nebula-projects.examples</groupId>
     <artifactId>rpc-async-example-parent</artifactId>
     <packaging>pom</packaging>
     <name>Nebula RPC Async Example - Parent</name>

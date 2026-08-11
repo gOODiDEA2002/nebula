@@ -64,7 +64,7 @@ AI应用专用Starter，集成Spring AI和LangChain4j，支持RAG、LLM、向量
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-ai</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>

@@ -18,7 +18,7 @@ Nebula Task 是一个基于 XXL-JOB 的统一任务调度框架，提供了简�
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-task</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>

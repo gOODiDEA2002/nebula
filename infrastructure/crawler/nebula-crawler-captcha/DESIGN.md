@@ -1470,7 +1470,7 @@ public class CrawlerService {
 <dependencies>
     <!-- Nebula Crawler Core -->
     <dependency>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-crawler-core</artifactId>
         <version>${nebula.version}</version>
     </dependency>

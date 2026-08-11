@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
@@ -18,28 +18,28 @@
     <dependencies>
         <!-- 继承Minimal Starter -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-minimal</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- AI Core Module -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-ai-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Spring AI Integration -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-ai-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- LangChain4j Integration (TODO: 未来版本添加) -->
         <!-- <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-ai-langchain4j</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -47,7 +47,7 @@
         
         <!-- Cache Module (AI应用常需要缓存embedding结果) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
         </dependency>

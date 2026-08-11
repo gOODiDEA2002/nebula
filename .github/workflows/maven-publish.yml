@@ -1,0 +1,53 @@
+name: Publish to Maven Central
+
+# 触发方式:
+# 1. 创建 GitHub Release (tag 形如 v2.1.0) 自动发布对应版本
+# 2. 手动触发并指定版本号
+# 发布到 Central Portal 后处于待发布状态, 需在 central.sonatype.com 手动点击 Publish
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: "发布版本号 (如 2.1.0)"
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: maven
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            V="${GITHUB_REF_NAME#v}"
+          else
+            V="${{ inputs.revision }}"
+          fi
+          echo "revision=$V" >> "$GITHUB_OUTPUT"
+          echo "发布版本: $V"
+
+      - name: Publish
+        run: mvn -B -ntp -P central -DskipTests deploy -Drevision=${{ steps.ver.outputs.revision }}
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

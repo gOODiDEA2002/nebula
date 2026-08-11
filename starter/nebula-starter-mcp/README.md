@@ -33,7 +33,7 @@ MCP (Model Context Protocol) 是一个**通信协议**，用于 AI 模型与工�
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-starter-mcp</artifactId>
 </dependency>
 ```

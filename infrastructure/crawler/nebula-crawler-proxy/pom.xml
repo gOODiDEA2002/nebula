@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../../pom.xml</relativePath>
@@ -19,14 +19,14 @@
     <dependencies>
         <!-- Nebula Crawler Core -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-crawler-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Nebula Data Cache（Redis缓存） -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <groupId>io.nebula.examples</groupId>
+    <groupId>com.nebula-projects.examples</groupId>
     <artifactId>gateway-example</artifactId>
     <name>Nebula Example - API Gateway</name>
     <description>Nebula Framework API 网关示例 - HTTP 反向代理、认证、限流</description>
@@ -22,13 +22,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-gateway</artifactId>
             <version>${revision}</version>
         </dependency>
         
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-discovery-nacos</artifactId>
             <version>${revision}</version>
         </dependency>

@@ -26,7 +26,7 @@
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-lock-redis</artifactId>
     <version>2.1.0-SNAPSHOT</version>
 </dependency>
@@ -600,7 +600,7 @@ redis-cli GET "your:lock:key"
 
 ```xml
 <dependency>
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-lock-core</artifactId>
 </dependency>
 

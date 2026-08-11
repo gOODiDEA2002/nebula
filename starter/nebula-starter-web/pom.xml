@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
@@ -18,35 +18,35 @@
     <dependencies>
         <!-- 继承Minimal Starter -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-minimal</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Web Module -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-web</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Cache Module -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-cache</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Data Persistence Module (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-data-persistence</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Security Module (可选) -->
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-security</artifactId>
             <version>${project.version}</version>
         </dependency>

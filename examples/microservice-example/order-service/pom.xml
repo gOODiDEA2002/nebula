@@ -5,30 +5,30 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nebula</groupId>
+        <groupId>com.nebula-projects</groupId>
         <artifactId>nebula-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
 
-    <groupId>io.nebula.examples</groupId>
+    <groupId>com.nebula-projects.examples</groupId>
     <artifactId>nebula-example-order-service</artifactId>
     <name>Nebula Example Order Service</name>
     <description>Order Service - 提供 OrderRpcService 的服务端实现，并调用 UserService</description>
 
     <dependencies>
         <dependency>
-            <groupId>io.nebula.examples</groupId>
+            <groupId>com.nebula-projects.examples</groupId>
             <artifactId>nebula-example-order-api</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>
-            <groupId>io.nebula.examples</groupId>
+            <groupId>com.nebula-projects.examples</groupId>
             <artifactId>nebula-example-user-api</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>
-            <groupId>io.nebula</groupId>
+            <groupId>com.nebula-projects</groupId>
             <artifactId>nebula-starter-service</artifactId>
             <version>${revision}</version>
         </dependency>

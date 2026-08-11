@@ -11,12 +11,14 @@
         <relativePath/>
     </parent>
 
-    <groupId>io.nebula</groupId>
+    <groupId>com.nebula-projects</groupId>
     <artifactId>nebula-parent</artifactId>
     <version>${revision}</version>
     <name>Nebula Framework ${revision}</name>
     <description>Modern Java Backend Framework - Born from the stars</description>
     <packaging>pom</packaging>
+
+    <url>https://www.nebula-projects.com</url>
 
     <licenses>
         <license>
@@ -24,6 +26,22 @@
             <url>https://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
+
+    <scm>
+        <connection>scm:git:https://github.com/gOODiDEA2002/nebula.git</connection>
+        <developerConnection>scm:git:git@github.com:gOODiDEA2002/nebula.git</developerConnection>
+        <url>https://github.com/gOODiDEA2002/nebula</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>gOODiDEA2002</id>
+            <name>Andy</name>
+            <email>goodidea2002@gmail.com</email>
+            <url>https://github.com/gOODiDEA2002</url>
+        </developer>
+    </developers>
 
     <modules>
         <!-- 核心层 -->
@@ -107,8 +125,7 @@
         <!-- Auto-Configuration 模块 -->
         <module>autoconfigure/nebula-autoconfigure</module>
 
-        <!-- 示例项目 -->
-        <module>examples</module>
+        <!-- 示例项目由 dev profile(activeByDefault)引入: 显式激活 -P central 发布时自动排除 -->
 
     </modules>
 
@@ -459,6 +476,64 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+            <modules>
+                <module>examples</module>
+            </modules>
+        </profile>
+        <profile>
+            <!-- Maven Central 发布: mvn clean deploy -P central -Drevision=<版本号> -->
+            <id>central</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.12.0</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <quiet>true</quiet>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.8</version>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.11.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>false</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
         <profile>
             <id>prod</id>
