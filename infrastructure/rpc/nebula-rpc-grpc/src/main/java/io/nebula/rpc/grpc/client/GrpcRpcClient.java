@@ -17,8 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 /**
  * gRPC RPC 客户端
@@ -35,6 +37,17 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     private ManagedChannel channel;
     private GenericRpcServiceGrpc.GenericRpcServiceBlockingStub blockingStub;
     private String target;
+
+    /**
+     * 按目标地址缓存的常驻 Channel。
+     * <p>
+     * {@link #callWithTarget} 走这里, 每个目标地址各持一条 {@link ManagedChannel},
+     * 从而无需在整个 RPC 往返期间持锁改写共享的 {@link #target}/{@link #channel}, 消除串行化。
+     * <p>
+     * 内存边界: 缓存无界。假设单服务下游实例数为个位数量级(Nacos 注册实例数),
+     * 键为「host:grpcPort」字符串, 常驻通道数与实例数同阶, 可接受; 仅在 {@link #close()} 统一释放。
+     */
+    private final ConcurrentHashMap<String, ManagedChannel> targetChannels = new ConcurrentHashMap<>();
 
     public GrpcRpcClient(ObjectMapper objectMapper, GrpcRpcProperties.ClientConfig clientConfig) {
         this.objectMapper = objectMapper;
@@ -53,8 +66,17 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
 
         log.info("初始化 gRPC Channel: target={}", target);
 
+        channel = buildChannel(target);
+        // 注意：不在这里设置deadline，而是在每次调用时设置，避免deadline过期问题
+        blockingStub = newAuthStub(channel);
+    }
+
+    /**
+     * 按目标地址构建一条 {@link ManagedChannel}（不设置 deadline，deadline 每次调用时再加）。
+     */
+    private ManagedChannel buildChannel(String targetAddress) {
         NettyChannelBuilder channelBuilder = NettyChannelBuilder
-                .forTarget(target)
+                .forTarget(targetAddress)
                 .maxInboundMessageSize(clientConfig.getMaxInboundMessageSize())
                 .proxyDetector(addr -> null);
 
@@ -66,28 +88,61 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
             channelBuilder.defaultLoadBalancingPolicy(clientConfig.getLoadBalancingPolicy());
         }
 
-        channel = channelBuilder.build();
-        // 注意：不在这里设置deadline，而是在每次调用时设置，避免deadline过期问题
-        blockingStub = GenericRpcServiceGrpc.newBlockingStub(channel);
+        return channelBuilder.build();
+    }
+
+    /**
+     * 基于给定 channel 构建 blocking stub，并按配置附加认证头拦截器。
+     */
+    private GenericRpcServiceGrpc.GenericRpcServiceBlockingStub newAuthStub(ManagedChannel targetChannel) {
+        GenericRpcServiceGrpc.GenericRpcServiceBlockingStub stub =
+                GenericRpcServiceGrpc.newBlockingStub(targetChannel);
         if (clientConfig.getAuthToken() != null && !clientConfig.getAuthToken().isEmpty()) {
             Metadata headers = new Metadata();
             headers.put(GrpcAuthTokenInterceptor.AUTH_TOKEN_KEY, clientConfig.getAuthToken());
-            blockingStub = blockingStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
+            stub = stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
         }
-    }
-    
-    /**
-     * 获取带有新deadline的stub（每次调用时使用）
-     */
-    private GenericRpcServiceGrpc.GenericRpcServiceBlockingStub getStubWithDeadline() {
-        return blockingStub.withDeadlineAfter(clientConfig.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        return stub;
     }
 
     @Override
     public <T> T call(Class<?> serviceClass, String methodName, Object... args) {
+        // 走共享单通道 blockingStub（兼容既有直连/代理路径）
+        return doCall(blockingStub, serviceClass, methodName, args);
+    }
+
+    /**
+     * 面向指定目标地址发起一次<b>无锁</b>调用，重写 {@link ServiceDiscoveryRpcClient.ConfigurableRpcClient}
+     * 默认的 {@code synchronized(this){ setTargetAddress + call }} 版本。
+     * <p>
+     * 默认实现在整个 RPC 往返期间持有 this 监视器，会把同一代理 bean 的全部调用串行化
+     * （生产实测有效并发被钉死为 1）。本实现按目标地址维护独立的常驻 Channel
+     * （见 {@link #targetChannels}），每次调用用对应地址的 channel 现构 stub 发起，
+     * 不触碰共享可变的 {@link #target}/{@link #channel}，因此并发调用不同或相同地址互不阻塞，
+     * 且不会因 target 被并发覆盖而串台。
+     * <p>
+     * 地址失联时的重试语义与 {@link #call} 完全一致（由 {@link #executeWithRetry} 承担）；
+     * 缓存的 channel 长驻复用，gRPC 自身负责断线重连，仅在 {@link #close()} 时统一关闭。
+     */
+    @Override
+    public <T> T callWithTarget(String targetAddress, Class<?> serviceClass, String methodName, Object... args) {
+        String normalized = normalizeTarget(targetAddress);
+        ManagedChannel targetChannel = targetChannels.computeIfAbsent(normalized, addr -> {
+            log.info("为目标地址创建常驻 gRPC Channel: {}", addr);
+            return buildChannel(addr);
+        });
+        return doCall(newAuthStub(targetChannel), serviceClass, methodName, args);
+    }
+
+    /**
+     * 使用给定的 blocking stub 执行一次调用（构建请求 + 重试 + 反序列化）。
+     * 与共享单通道解耦，供 {@link #call} 与 {@link #callWithTarget} 共用。
+     */
+    private <T> T doCall(GenericRpcServiceGrpc.GenericRpcServiceBlockingStub baseStub,
+                         Class<?> serviceClass, String methodName, Object... args) {
         String requestId = UUID.randomUUID().toString();
-        
-        log.debug("执行 gRPC RPC 调用: requestId={}, service={}, method={}", 
+
+        log.debug("执行 gRPC RPC 调用: requestId={}, service={}, method={}",
                 requestId, serviceClass.getName(), methodName);
 
         try {
@@ -97,7 +152,7 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                 throw new NoSuchMethodException(
                         String.format("方法未找到: %s.%s", serviceClass.getName(), methodName));
             }
-            
+
             // 构建请求
             RpcRequest.Builder requestBuilder = RpcRequest.newBuilder()
                     .setRequestId(requestId)
@@ -119,12 +174,12 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
             }
 
             // 执行调用
-            RpcResponse response = executeWithRetry(requestBuilder.build());
+            RpcResponse response = executeWithRetry(baseStub, requestBuilder.build());
 
             // 处理响应
             if (!response.getSuccess()) {
                 throw new RuntimeException(
-                        String.format("gRPC RPC调用失败: %s - %s", 
+                        String.format("gRPC RPC调用失败: %s - %s",
                                 response.getErrorCode(), response.getErrorMessage()));
             }
 
@@ -136,16 +191,25 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
 
             // 使用方法的实际返回类型进行反序列化（支持泛型）
             @SuppressWarnings("unchecked")
-            T result = (T) objectMapper.readValue(resultJson, 
+            T result = (T) objectMapper.readValue(resultJson,
                     objectMapper.constructType(method.getGenericReturnType()));
-            
+
             return result;
 
         } catch (Exception e) {
-            log.error("gRPC RPC 调用异常: requestId={}, service={}, method={}", 
+            log.error("gRPC RPC 调用异常: requestId={}, service={}, method={}",
                     requestId, serviceClass.getName(), methodName, e);
             throw new RuntimeException("gRPC RPC调用失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 归一化目标地址：剥离 http(s):// 前缀，得到 gRPC 需要的 host:port。
+     */
+    private String normalizeTarget(String address) {
+        return address
+                .replace("http://", "")
+                .replace("https://", "");
     }
 
     @Override
@@ -227,17 +291,26 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
     }
 
     /**
-     * 带重试的执行
+     * 带重试的执行（走共享单通道 blockingStub）
      */
     private RpcResponse executeWithRetry(RpcRequest request) {
+        return executeWithRetry(blockingStub, request);
+    }
+
+    /**
+     * 带重试的执行（面向指定 base stub，deadline 每次尝试时新加，避免 deadline 过期）
+     */
+    private RpcResponse executeWithRetry(GenericRpcServiceGrpc.GenericRpcServiceBlockingStub baseStub,
+                                         RpcRequest request) {
         int retryCount = clientConfig.getRetryCount();
         long retryInterval = clientConfig.getRetryInterval();
-        
+
         Exception lastException = null;
         for (int i = 0; i <= retryCount; i++) {
             try {
-                // 每次调用时获取带有新deadline的stub，避免deadline过期问题
-                return getStubWithDeadline().call(request);
+                // 每次调用时附加新deadline的stub，避免deadline过期问题
+                return baseStub.withDeadlineAfter(clientConfig.getRequestTimeout(), TimeUnit.MILLISECONDS)
+                        .call(request);
             } catch (Exception e) {
                 lastException = e;
                 if (i < retryCount) {
@@ -308,11 +381,9 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
      */
     @Override
     public void setTargetAddress(String address) {
-        // ✅ 直接使用传入的地址（已经由 ServiceDiscoveryRpcClient 处理好了）
-        String newTarget = address
-                .replace("http://", "")
-                .replace("https://", "");
-        
+        // 直接使用传入的地址（已经由 ServiceDiscoveryRpcClient 处理好了）
+        String newTarget = normalizeTarget(address);
+
         log.debug("设置 gRPC 目标地址: {}", newTarget);
         setTarget(newTarget);
     }
@@ -328,6 +399,20 @@ public class GrpcRpcClient implements ServiceDiscoveryRpcClient.ConfigurableRpcC
                 Thread.currentThread().interrupt();
             }
         }
+        // 关闭按目标地址缓存的常驻 channel
+        for (Map.Entry<String, ManagedChannel> entry : targetChannels.entrySet()) {
+            ManagedChannel targetChannel = entry.getValue();
+            if (targetChannel != null && !targetChannel.isShutdown()) {
+                log.info("关闭缓存的 gRPC Channel: target={}", entry.getKey());
+                try {
+                    targetChannel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    log.error("关闭缓存的 gRPC Channel 失败: target={}", entry.getKey(), e);
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+        targetChannels.clear();
     }
     
     /**
