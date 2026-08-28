@@ -79,7 +79,6 @@ io.nebula.autoconfigure.gateway.GatewayLoadBalancerAutoConfiguration
 # AI Layer - AI层
 # ========================================
 io.nebula.autoconfigure.ai.AIAutoConfiguration
-io.nebula.autoconfigure.ai.NebulaMcpServerAutoConfiguration
 
 # ========================================
 # Crawler Layer - 爬虫层
