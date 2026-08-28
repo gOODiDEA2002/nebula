@@ -288,6 +288,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring AI Qdrant Vector Store Starter (可选) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-qdrant</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Web (可选) -->
         <dependency>
             <groupId>com.nebula-projects</groupId>

@@ -187,6 +187,11 @@ public class AIProperties {
          */
         private ChromaProperties chroma = new ChromaProperties();
 
+        /**
+         * Qdrant 向量存储配置
+         */
+        private QdrantProperties qdrant = new QdrantProperties();
+
         public String getDefaultProvider() {
             return defaultProvider;
         }
@@ -202,13 +207,188 @@ public class AIProperties {
         public void setProviders(Map<String, ProviderProperties> providers) {
             this.providers = providers;
         }
-        
+
         public ChromaProperties getChroma() {
             return chroma;
         }
-        
+
         public void setChroma(ChromaProperties chroma) {
             this.chroma = chroma;
+        }
+
+        public QdrantProperties getQdrant() {
+            return qdrant;
+        }
+
+        public void setQdrant(QdrantProperties qdrant) {
+            this.qdrant = qdrant;
+        }
+    }
+
+    /**
+     * Qdrant 向量存储特定配置
+     * <p>
+     * 仅在 {@code nebula.ai.vector-store.default-provider=qdrant} 时生效。
+     */
+    public static class QdrantProperties {
+
+        /**
+         * Qdrant 服务器主机
+         */
+        private String host = "localhost";
+
+        /**
+         * Qdrant gRPC 端口（不是 HTTP 的 6333）
+         */
+        private int port = 6334;
+
+        /**
+         * 集合名称
+         */
+        private String collectionName = "nebula-collection";
+
+        /**
+         * API 密钥（可选；Qdrant 开启鉴权时必填，否则检索与写入全部失败）
+         */
+        private String apiKey;
+
+        /**
+         * 是否使用 TLS
+         */
+        private boolean useTls = false;
+
+        /**
+         * 是否自动初始化集合
+         */
+        private boolean initializeSchema = false;
+
+        /**
+         * gRPC 调用超时（秒）
+         * <p>
+         * 默认 300 秒：批量灌库的 upsert 单次可能远超常规 RPC 时长，
+         * 取小了表现为灌库中途成批失败。
+         */
+        private long timeoutSeconds = 300;
+
+        /**
+         * 点 ID 映射配置
+         */
+        private IdMapping idMapping = new IdMapping();
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+
+        public String getCollectionName() {
+            return collectionName;
+        }
+
+        public void setCollectionName(String collectionName) {
+            this.collectionName = collectionName;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public boolean isUseTls() {
+            return useTls;
+        }
+
+        public void setUseTls(boolean useTls) {
+            this.useTls = useTls;
+        }
+
+        public boolean isInitializeSchema() {
+            return initializeSchema;
+        }
+
+        public void setInitializeSchema(boolean initializeSchema) {
+            this.initializeSchema = initializeSchema;
+        }
+
+        public long getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(long timeoutSeconds) {
+            this.timeoutSeconds = timeoutSeconds;
+        }
+
+        public IdMapping getIdMapping() {
+            return idMapping;
+        }
+
+        public void setIdMapping(IdMapping idMapping) {
+            this.idMapping = idMapping;
+        }
+
+        /**
+         * 业务 docId 到 Qdrant 点 ID 的映射配置
+         * <p>
+         * Qdrant 的点 ID 只接受 UUID 或无符号整数。业务 docId 若是命名空间字符串
+         * （如 {@code mc:0113120012}），必须开启本映射，否则写入逐条失败。
+         */
+        public static class IdMapping {
+
+            /**
+             * 是否启用点 ID 映射
+             */
+            private boolean enabled = false;
+
+            /**
+             * 推导映射命名空间的名字，如 {@code vector.sia.vocoor.com}
+             * <p>
+             * 命名空间由 {@code uuid5(DNS, namespaceName)} 推导。
+             * <b>改动它等于把全库点 ID 换一遍</b>，已有数据将全部检索不到；
+             * enabled=true 时必填，缺失直接启动失败。
+             */
+            private String namespaceName;
+
+            /**
+             * 原始 docId 在 payload 中的字段名
+             */
+            private String originalDocIdField = "orig_doc_id";
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public String getNamespaceName() {
+                return namespaceName;
+            }
+
+            public void setNamespaceName(String namespaceName) {
+                this.namespaceName = namespaceName;
+            }
+
+            public String getOriginalDocIdField() {
+                return originalDocIdField;
+            }
+
+            public void setOriginalDocIdField(String originalDocIdField) {
+                this.originalDocIdField = originalDocIdField;
+            }
         }
     }
     

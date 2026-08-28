@@ -26,7 +26,10 @@ public class SpringAIAutoConfigurationFilter implements AutoConfigurationImportF
             "org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration",
             "org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration",
             // Chroma 向量存储自动配置
-            "org.springframework.ai.vectorstore.chroma.autoconfigure.ChromaVectorStoreAutoConfiguration"
+            "org.springframework.ai.vectorstore.chroma.autoconfigure.ChromaVectorStoreAutoConfiguration",
+            // Qdrant 向量存储自动配置（由 Nebula AIAutoConfiguration 按 default-provider 装配，
+            // 官方版本会在类存在时以 localhost 默认值装配出竞争 Bean）
+            "org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration"
     );
 
     @Override

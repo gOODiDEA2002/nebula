@@ -39,6 +39,12 @@
             <artifactId>spring-ai-starter-vector-store-chroma</artifactId>
         </dependency>
 
+        <!-- Spring AI Qdrant Vector Store (与 Chroma 同策略, 版本由 BOM 管理) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-qdrant</artifactId>
+        </dependency>
+
         <!-- Spring AI MCP Server (可选，用于构建 MCP 服务器) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

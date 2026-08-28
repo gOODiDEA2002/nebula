@@ -13,7 +13,12 @@ import io.nebula.ai.spring.config.McpProperties;
 import io.nebula.ai.spring.embedding.SpringAIEmbeddingService;
 import io.nebula.ai.spring.mcp.SpringAIMcpServerService;
 import io.nebula.ai.spring.mcp.SpringAIMcpClientService;
+import io.nebula.ai.spring.vectorstore.QdrantIdMappingVectorStore;
+import io.nebula.ai.spring.vectorstore.QdrantPointIdMapper;
 import io.nebula.ai.spring.vectorstore.SpringAIVectorStoreService;
+
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.QdrantGrpcClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +28,7 @@ import org.springframework.ai.chroma.vectorstore.ChromaApi;
 import org.springframework.ai.chroma.vectorstore.ChromaVectorStore;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.qdrant.QdrantVectorStore;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -36,6 +42,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 /**
  * Nebula AI 自动配置类
@@ -120,11 +128,16 @@ public class AIAutoConfiguration {
      * 配置 ChromaApi
      *
      * Spring AI 2.0: 使用 builder 模式，JsonMapper 由框架自动提供
+     *
+     * 2.1.1 起补加 provider 条件（默认 chroma，行为不变）：多后端共存时同类型
+     * @Primary Bean 只能有一个，切到 qdrant 后 Chroma 这两个 Bean 必须让位。
      */
     @Bean("nebulaChromaApi")
     @Primary
     @ConditionalOnClass(ChromaApi.class)
     @ConditionalOnMissingBean(name = "nebulaChromaApi")
+    @ConditionalOnProperty(prefix = "nebula.ai.vector-store", name = "default-provider",
+            havingValue = "chroma", matchIfMissing = true)
     public ChromaApi nebulaChromaApi(AIProperties aiProperties) {
         AIProperties.ChromaProperties chromaConfig = aiProperties.getVectorStore().getChroma();
         String chromaUrl = chromaConfig.getUrl();
@@ -146,6 +159,8 @@ public class AIAutoConfiguration {
     @Primary
     @ConditionalOnClass({ ChromaVectorStore.class, ChromaApi.class })
     @ConditionalOnMissingBean(name = "nebulaChromaVectorStore")
+    @ConditionalOnProperty(prefix = "nebula.ai.vector-store", name = "default-provider",
+            havingValue = "chroma", matchIfMissing = true)
     public VectorStore nebulaChromaVectorStore(ChromaApi nebulaChromaApi, EmbeddingModel embeddingModel,
             AIProperties aiProperties) {
         AIProperties.ChromaProperties chromaConfig = aiProperties.getVectorStore().getChroma();
@@ -157,6 +172,81 @@ public class AIAutoConfiguration {
                 .collectionName(chromaConfig.getCollectionName())
                 .initializeSchema(chromaConfig.isInitializeSchema())
                 .build();
+    }
+
+    /**
+     * 配置 QdrantClient
+     *
+     * 声明 destroyMethod：gRPC 通道属于长期资源，随 Spring 上下文关闭才不会泄漏。
+     */
+    @Bean(name = "nebulaQdrantClient", destroyMethod = "close")
+    @ConditionalOnClass(QdrantVectorStore.class)
+    @ConditionalOnMissingBean(name = "nebulaQdrantClient")
+    @ConditionalOnProperty(prefix = "nebula.ai.vector-store", name = "default-provider",
+            havingValue = "qdrant")
+    public QdrantClient nebulaQdrantClient(AIProperties aiProperties) {
+        AIProperties.QdrantProperties qdrantConfig = aiProperties.getVectorStore().getQdrant();
+
+        QdrantGrpcClient.Builder builder = QdrantGrpcClient.newBuilder(
+                qdrantConfig.getHost(), qdrantConfig.getPort(), qdrantConfig.isUseTls());
+        builder.withTimeout(Duration.ofSeconds(qdrantConfig.getTimeoutSeconds()));
+
+        if (qdrantConfig.getApiKey() != null && !qdrantConfig.getApiKey().isBlank()) {
+            builder.withApiKey(qdrantConfig.getApiKey());
+            log.info("配置 QdrantClient, endpoint={}:{}, tls={}, 已启用 api-key 鉴权",
+                    qdrantConfig.getHost(), qdrantConfig.getPort(), qdrantConfig.isUseTls());
+        } else {
+            log.warn("配置 QdrantClient, endpoint={}:{}, tls={}, 未配置 api-key: "
+                            + "若 Qdrant 开启鉴权将导致检索与写入全部失败",
+                    qdrantConfig.getHost(), qdrantConfig.getPort(), qdrantConfig.isUseTls());
+        }
+        return new QdrantClient(builder.build());
+    }
+
+    /**
+     * 配置 QdrantVectorStore
+     *
+     * 开启 id-mapping 时对外的是 {@link QdrantIdMappingVectorStore} 装饰器而不是裸的
+     * QdrantVectorStore：Qdrant 点 ID 只收 UUID 或无符号整数，命名空间字符串形态的
+     * docId 裸接会在写入时逐条抛 Invalid UUID string。
+     */
+    @Bean("nebulaQdrantVectorStore")
+    @Primary
+    @ConditionalOnClass(QdrantVectorStore.class)
+    @ConditionalOnMissingBean(name = "nebulaQdrantVectorStore")
+    @ConditionalOnProperty(prefix = "nebula.ai.vector-store", name = "default-provider",
+            havingValue = "qdrant")
+    public VectorStore nebulaQdrantVectorStore(QdrantClient nebulaQdrantClient,
+            EmbeddingModel embeddingModel, AIProperties aiProperties) {
+        AIProperties.QdrantProperties qdrantConfig = aiProperties.getVectorStore().getQdrant();
+
+        log.info("配置 QdrantVectorStore, Collection: {}, InitializeSchema: {}",
+                qdrantConfig.getCollectionName(), qdrantConfig.isInitializeSchema());
+
+        VectorStore qdrantVectorStore = QdrantVectorStore.builder(nebulaQdrantClient, embeddingModel)
+                .collectionName(qdrantConfig.getCollectionName())
+                .initializeSchema(qdrantConfig.isInitializeSchema())
+                .build();
+
+        AIProperties.QdrantProperties.IdMapping idMapping = qdrantConfig.getIdMapping();
+        if (!idMapping.isEnabled()) {
+            return qdrantVectorStore;
+        }
+
+        // 命名空间缺失时直接启动失败：错配会产生一个全新的命名空间，
+        // 表现为写入成功、全库检索永远为空，比启动不来难查得多
+        if (idMapping.getNamespaceName() == null || idMapping.getNamespaceName().isBlank()) {
+            throw new IllegalStateException(
+                    "nebula.ai.vector-store.qdrant.id-mapping.enabled=true 时必须配置 "
+                            + "nebula.ai.vector-store.qdrant.id-mapping.namespace-name; "
+                            + "命名空间决定全库点 ID, 缺失或改动会让已灌入的数据全部检索不到");
+        }
+        QdrantPointIdMapper pointIdMapper = new QdrantPointIdMapper(idMapping.getNamespaceName());
+        log.info("Qdrant 点 ID 映射已启用, namespaceName={}, namespace={}, payload 字段={}",
+                pointIdMapper.getNamespaceName(), pointIdMapper.getNamespace(),
+                idMapping.getOriginalDocIdField());
+        return new QdrantIdMappingVectorStore(qdrantVectorStore, pointIdMapper,
+                idMapping.getOriginalDocIdField());
     }
 
     /**
@@ -249,6 +339,14 @@ public class AIAutoConfiguration {
             var chroma = aiProperties.getVectorStore().getChroma();
             details.put("Chroma Host", chroma.getHost() + ":" + chroma.getPort());
             details.put("Collection", chroma.getCollectionName());
+        } else if ("qdrant".equalsIgnoreCase(aiProperties.getVectorStore().getDefaultProvider())) {
+            var qdrant = aiProperties.getVectorStore().getQdrant();
+            details.put("Qdrant Host", qdrant.getHost() + ":" + qdrant.getPort());
+            details.put("Collection", qdrant.getCollectionName());
+            details.put("Id Mapping", String.valueOf(qdrant.getIdMapping().isEnabled()));
+            if (qdrant.getIdMapping().isEnabled() && qdrant.getIdMapping().getNamespaceName() != null) {
+                details.put("Id Mapping Namespace", qdrant.getIdMapping().getNamespaceName());
+            }
         }
 
         return new SimpleComponentSummary("AI", "Spring AI", true, 900, details);
