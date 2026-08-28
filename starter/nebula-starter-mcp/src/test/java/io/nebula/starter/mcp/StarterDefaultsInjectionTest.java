@@ -26,9 +26,16 @@ class StarterDefaultsInjectionTest {
     }
 
     @Test
-    void mcpEnabledByDefault() {
-        assertThat(environment.getProperty("nebula.ai.mcp.enabled"))
+    void mcpServerEnabledByDefault() {
+        assertThat(environment.getProperty("nebula.ai.mcp.server.enabled"))
                 .isEqualTo("true");
+    }
+
+    @Test
+    void legacyIneffectiveMcpKeyNotInjected() {
+        // nebula.ai.mcp.enabled 无对应的绑定字段与条件读取方, 不应再出现在 defaults 中
+        assertThat(environment.getProperty("nebula.ai.mcp.enabled"))
+                .isNull();
     }
 
     @Test

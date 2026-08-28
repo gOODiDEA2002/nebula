@@ -25,7 +25,15 @@ import java.util.Map;
  * 
  * 这样 Spring AI 的 MCP Server 自动配置就能读取到正确的配置，
  * 从而正确注册 MCP 端点（如 /mcp）
- * 
+ *
+ * 本类是 nebula.ai.mcp.server 到 spring.ai.mcp.server 的唯一桥接点。
+ * 历史上 NebulaMcpServerAutoConfiguration 曾在 @PostConstruct 中做第二次桥接，
+ * 已删除，原因：
+ * 1. @PostConstruct 在 Bean 创建阶段执行，相对 Spring AI MCP 自动配置的
+ *    条件评估与属性绑定没有时序保证，可能完全不生效；
+ * 2. 它以相同的 PropertySource 名称 nebulaMcpBridge 调用 addLast，
+ *    会移除本类 addFirst 注入的属性源并降级到最低优先级，导致桥接结果不确定
+ *
  * @author Nebula Framework
  * @since 2.0.0
  */

@@ -37,7 +37,7 @@ AI应用专用Starter，集成Spring AI和LangChain4j，支持RAG、LLM、向量
   - 相似度计算
 
 - ✅ **向量存储** (`VectorStoreService`)
-  - Chroma, Pinecone, Milvus等
+  - 内置 Chroma 装配，可对接应用自行注册的其他 `VectorStore`
   - 向量索引和检索
   - 元数据过滤
 
@@ -284,11 +284,8 @@ public class AIController {
 - ✅ 本地模型 (Ollama, nomic-embed-text)
 
 ### 向量数据库
-- ✅ Chroma
-- ✅ Pinecone
-- ✅ Milvus
-- ✅ Weaviate
-- ✅ Qdrant
+- Chroma（框架内置自动装配）
+- Pinecone / Milvus / Weaviate / Qdrant：框架未内置装配，需应用自行引入对应的 Spring AI 向量库依赖并注册 `VectorStore` Bean
 
 ## 性能优化建议
 
