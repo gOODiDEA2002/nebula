@@ -21,6 +21,23 @@ public class ChatResponse {
     private final Usage usage;
     private final String finishReason;
     private final Map<String, Object> metadata;
+    private final List<ToolCall> toolCalls;
+
+    /**
+     * 兼容 2.1.0 及更早版本的构造函数（无 toolCalls 字段）
+     * <p>
+     * 签名保持不变，行为等价于 toolCalls 为 null。
+     */
+    public ChatResponse(String id,
+                       String content,
+                       List<ChatMessage> messages,
+                       String model,
+                       LocalDateTime timestamp,
+                       Usage usage,
+                       String finishReason,
+                       Map<String, Object> metadata) {
+        this(id, content, messages, model, timestamp, usage, finishReason, metadata, null);
+    }
 
     @JsonCreator
     public ChatResponse(@JsonProperty("id") String id,
@@ -30,7 +47,8 @@ public class ChatResponse {
                        @JsonProperty("timestamp") LocalDateTime timestamp,
                        @JsonProperty("usage") Usage usage,
                        @JsonProperty("finishReason") String finishReason,
-                       @JsonProperty("metadata") Map<String, Object> metadata) {
+                       @JsonProperty("metadata") Map<String, Object> metadata,
+                       @JsonProperty("toolCalls") List<ToolCall> toolCalls) {
         this.id = id;
         this.content = content;
         this.messages = messages;
@@ -39,6 +57,7 @@ public class ChatResponse {
         this.usage = usage;
         this.finishReason = finishReason;
         this.metadata = metadata;
+        this.toolCalls = toolCalls;
     }
 
     /**
@@ -87,6 +106,16 @@ public class ChatResponse {
         return metadata;
     }
 
+    /**
+     * 模型请求执行工具时返回的调用列表（{@code finishReason=tool_calls} 时非空）
+     * <p>
+     * 框架不代为执行：由应用执行后把结果作为
+     * {@link ChatMessage.MessageRole#TOOL_RESPONSE} 消息回填到下一轮请求。
+     */
+    public List<ToolCall> getToolCalls() {
+        return toolCalls;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -99,12 +128,14 @@ public class ChatResponse {
                Objects.equals(timestamp, that.timestamp) &&
                Objects.equals(usage, that.usage) &&
                Objects.equals(finishReason, that.finishReason) &&
-               Objects.equals(metadata, that.metadata);
+               Objects.equals(metadata, that.metadata) &&
+               Objects.equals(toolCalls, that.toolCalls);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, content, messages, model, timestamp, usage, finishReason, metadata);
+        return Objects.hash(id, content, messages, model, timestamp, usage, finishReason,
+                metadata, toolCalls);
     }
 
     @Override
@@ -118,6 +149,7 @@ public class ChatResponse {
                ", usage=" + usage +
                ", finishReason='" + finishReason + '\'' +
                ", metadata=" + metadata +
+               ", toolCalls=" + toolCalls +
                '}';
     }
 
@@ -187,6 +219,7 @@ public class ChatResponse {
         private Usage usage;
         private String finishReason;
         private Map<String, Object> metadata;
+        private List<ToolCall> toolCalls;
 
         public Builder id(String id) {
             this.id = id;
@@ -228,9 +261,14 @@ public class ChatResponse {
             return this;
         }
 
+        public Builder toolCalls(List<ToolCall> toolCalls) {
+            this.toolCalls = toolCalls;
+            return this;
+        }
+
         public ChatResponse build() {
-            return new ChatResponse(id, content, messages, model, timestamp, 
-                                  usage, finishReason, metadata);
+            return new ChatResponse(id, content, messages, model, timestamp,
+                                  usage, finishReason, metadata, toolCalls);
         }
     }
 }

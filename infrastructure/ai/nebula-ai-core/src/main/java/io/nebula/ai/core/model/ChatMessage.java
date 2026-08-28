@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -17,18 +18,40 @@ public class ChatMessage {
     private final String content;
     private final LocalDateTime timestamp;
     private final Map<String, Object> metadata;
+    private final String toolCallId;
+    private final String toolName;
+    private final List<ToolCall> toolCalls;
+
+    /**
+     * 兼容 2.1.0 及更早版本的构造函数（无 tool 字段）
+     * <p>
+     * 签名保持不变，行为等价于 toolCallId/toolName/toolCalls 为 null。
+     */
+    public ChatMessage(String id,
+                      MessageRole role,
+                      String content,
+                      LocalDateTime timestamp,
+                      Map<String, Object> metadata) {
+        this(id, role, content, timestamp, metadata, null, null, null);
+    }
 
     @JsonCreator
     public ChatMessage(@JsonProperty("id") String id,
                       @JsonProperty("role") MessageRole role,
                       @JsonProperty("content") String content,
                       @JsonProperty("timestamp") LocalDateTime timestamp,
-                      @JsonProperty("metadata") Map<String, Object> metadata) {
+                      @JsonProperty("metadata") Map<String, Object> metadata,
+                      @JsonProperty("toolCallId") String toolCallId,
+                      @JsonProperty("toolName") String toolName,
+                      @JsonProperty("toolCalls") List<ToolCall> toolCalls) {
         this.id = id;
         this.role = Objects.requireNonNull(role, "Role cannot be null");
         this.content = Objects.requireNonNull(content, "Content cannot be null");
         this.timestamp = timestamp != null ? timestamp : LocalDateTime.now();
         this.metadata = metadata;
+        this.toolCallId = toolCallId;
+        this.toolName = toolName;
+        this.toolCalls = toolCalls;
     }
 
     /**
@@ -73,6 +96,29 @@ public class ChatMessage {
         return new ChatMessage(null, MessageRole.SYSTEM, content, null, metadata);
     }
 
+    /**
+     * 创建携带工具调用的助手消息
+     * <p>
+     * 用于把上一轮模型返回的 tool_calls 原样放回下一轮上下文；模型据此才认得随后的
+     * {@link #toolResponse} 消息属于哪次调用。content 可为空字符串。
+     */
+    public static ChatMessage assistantToolCalls(String content, List<ToolCall> toolCalls) {
+        return new ChatMessage(null, MessageRole.ASSISTANT, content != null ? content : "",
+                null, null, null, null, toolCalls);
+    }
+
+    /**
+     * 创建工具执行结果消息
+     *
+     * @param toolCallId 对应 {@link ToolCall#getId()}，模型靠它把结果与调用配对
+     * @param toolName   工具名
+     * @param content    工具执行结果（文本形式）
+     */
+    public static ChatMessage toolResponse(String toolCallId, String toolName, String content) {
+        return new ChatMessage(null, MessageRole.TOOL_RESPONSE, content, null, null,
+                toolCallId, toolName, null);
+    }
+
     public String getId() {
         return id;
     }
@@ -93,6 +139,27 @@ public class ChatMessage {
         return metadata;
     }
 
+    /**
+     * TOOL / TOOL_RESPONSE 消息所对应的工具调用 ID
+     */
+    public String getToolCallId() {
+        return toolCallId;
+    }
+
+    /**
+     * TOOL / TOOL_RESPONSE 消息所对应的工具名
+     */
+    public String getToolName() {
+        return toolName;
+    }
+
+    /**
+     * ASSISTANT 消息携带的工具调用列表
+     */
+    public List<ToolCall> getToolCalls() {
+        return toolCalls;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -102,12 +169,15 @@ public class ChatMessage {
                role == that.role &&
                Objects.equals(content, that.content) &&
                Objects.equals(timestamp, that.timestamp) &&
-               Objects.equals(metadata, that.metadata);
+               Objects.equals(metadata, that.metadata) &&
+               Objects.equals(toolCallId, that.toolCallId) &&
+               Objects.equals(toolName, that.toolName) &&
+               Objects.equals(toolCalls, that.toolCalls);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, role, content, timestamp, metadata);
+        return Objects.hash(id, role, content, timestamp, metadata, toolCallId, toolName, toolCalls);
     }
 
     @Override
@@ -118,6 +188,9 @@ public class ChatMessage {
                ", content='" + content + '\'' +
                ", timestamp=" + timestamp +
                ", metadata=" + metadata +
+               ", toolCallId='" + toolCallId + '\'' +
+               ", toolName='" + toolName + '\'' +
+               ", toolCalls=" + toolCalls +
                '}';
     }
 

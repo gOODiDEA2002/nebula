@@ -35,10 +35,23 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
+        <!-- Reactor Core: ReactiveChatService 的 Flux 出口 (Boot 体系内既有传递依赖) -->
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+        </dependency>
+
         <!-- SLF4J Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Jackson 3 Databind: 仅用于模型序列化往返测试 -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- JSR 305 for nullable annotations -->
