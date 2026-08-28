@@ -1,4 +1,4 @@
-package io.nebula.ai.spring.rag.model;
+package io.nebula.ai.rag.chunking;
 
 /**
  * 文档块类型枚举

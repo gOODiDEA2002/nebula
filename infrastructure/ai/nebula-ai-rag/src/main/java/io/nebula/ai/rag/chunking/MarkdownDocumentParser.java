@@ -1,9 +1,9 @@
-package io.nebula.ai.spring.rag.processor;
+package io.nebula.ai.rag.chunking;
 
-import io.nebula.ai.spring.rag.model.ParsedDocument;
-import io.nebula.ai.spring.rag.model.ParsedDocument.Section;
-import io.nebula.ai.spring.rag.model.ParsedDocument.CodeBlock;
-import io.nebula.ai.spring.rag.model.ParsedDocument.ConfigExample;
+import io.nebula.ai.rag.chunking.ParsedDocument.Section;
+import io.nebula.ai.rag.chunking.ParsedDocument.CodeBlock;
+import io.nebula.ai.rag.chunking.ParsedDocument.ConfigExample;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

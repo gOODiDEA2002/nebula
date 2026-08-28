@@ -219,6 +219,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- AI RAG (可选) -->
+        <dependency>
+            <groupId>com.nebula-projects</groupId>
+            <artifactId>nebula-ai-rag</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Crawler Core (可选) -->
         <dependency>
             <groupId>com.nebula-projects</groupId>

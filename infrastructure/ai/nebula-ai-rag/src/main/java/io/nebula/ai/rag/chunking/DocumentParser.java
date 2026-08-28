@@ -1,6 +1,5 @@
-package io.nebula.ai.spring.rag.processor;
+package io.nebula.ai.rag.chunking;
 
-import io.nebula.ai.spring.rag.model.ParsedDocument;
 
 /**
  * 文档解析器接口

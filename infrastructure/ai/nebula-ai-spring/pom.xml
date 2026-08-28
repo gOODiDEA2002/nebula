@@ -15,10 +15,6 @@
     <name>Nebula AI Spring Implementation</name>
     <description>Nebula framework AI implementation using Spring AI</description>
 
-    <properties>
-        <flexmark.version>0.64.8</flexmark.version>
-    </properties>
-
     <dependencies>
         <!-- Nebula AI Core -->
         <dependency>
@@ -56,14 +52,6 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-ollama</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- Markdown Parser (用于文档解析和 RAG) -->
-        <dependency>
-            <groupId>com.vladsch.flexmark</groupId>
-            <artifactId>flexmark-all</artifactId>
-            <version>${flexmark.version}</version>
             <optional>true</optional>
         </dependency>
 

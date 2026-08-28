@@ -79,6 +79,8 @@ io.nebula.autoconfigure.gateway.GatewayLoadBalancerAutoConfiguration
 # AI Layer - AI层
 # ========================================
 io.nebula.autoconfigure.ai.AIAutoConfiguration
+# RAG 检索增强(默认关闭, 需 nebula.ai.rag.enabled=true)
+io.nebula.autoconfigure.ai.RagAutoConfiguration
 
 # ========================================
 # Crawler Layer - 爬虫层

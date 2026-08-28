@@ -1,12 +1,9 @@
-package io.nebula.ai.spring.rag.processor;
+package io.nebula.ai.rag.chunking;
 
-import io.nebula.ai.spring.rag.config.RagProperties;
-import io.nebula.ai.spring.rag.model.ChunkType;
-import io.nebula.ai.spring.rag.model.DocumentChunk;
-import io.nebula.ai.spring.rag.model.ParsedDocument;
-import io.nebula.ai.spring.rag.model.ParsedDocument.Section;
-import io.nebula.ai.spring.rag.model.ParsedDocument.CodeBlock;
-import io.nebula.ai.spring.rag.model.ParsedDocument.ConfigExample;
+import io.nebula.ai.rag.chunking.ParsedDocument.Section;
+import io.nebula.ai.rag.chunking.ParsedDocument.CodeBlock;
+import io.nebula.ai.rag.chunking.ParsedDocument.ConfigExample;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,27 +14,36 @@ import java.util.Map;
 
 /**
  * 文档切片器
- * 
+ *
  * 将解析后的文档切分为适合向量化的小块
+ * <p>
+ * 2.1.1 起切块参数改为直接的构造参数：原先绑在 {@code nebula-ai-spring} 的
+ * {@code RagProperties.ChunkingConfig} 上，其中的 strategy 字段从未被任何代码读取
+ * （只有一种混合策略），随该配置类一并删除。
  *
  * @author Nebula Framework
  * @since 2.0.0
  */
 public class DocumentChunker {
-    
+
     private static final Logger log = LoggerFactory.getLogger(DocumentChunker.class);
 
-    private final RagProperties.ChunkingConfig chunkingConfig;
-    
-    public DocumentChunker(RagProperties.ChunkingConfig chunkingConfig) {
-        this.chunkingConfig = chunkingConfig;
-    }
-    
+    private final int maxChunkSize;
+    private final int overlapSize;
+
     /**
-     * 使用默认配置创建
+     * @param maxChunkSize 单块最大字符数
+     * @param overlapSize  块间重叠字符数
      */
-    public DocumentChunker() {
-        this.chunkingConfig = new RagProperties.ChunkingConfig();
+    public DocumentChunker(int maxChunkSize, int overlapSize) {
+        if (maxChunkSize <= 0) {
+            throw new IllegalArgumentException("maxChunkSize 必须为正数");
+        }
+        if (overlapSize < 0 || overlapSize >= maxChunkSize) {
+            throw new IllegalArgumentException("overlapSize 必须在 [0, maxChunkSize) 区间内");
+        }
+        this.maxChunkSize = maxChunkSize;
+        this.overlapSize = overlapSize;
     }
 
     /**
@@ -73,7 +79,7 @@ public class DocumentChunker {
 
         for (Section section : document.getSections()) {
             // 如果章节太长，需要进一步切分
-            if (section.getContent() != null && section.getContent().length() > chunkingConfig.getMaxChunkSize()) {
+            if (section.getContent() != null && section.getContent().length() > maxChunkSize) {
                 chunks.addAll(splitLongSection(section, document));
             } else {
                 DocumentChunk chunk = buildSectionChunk(section, document);
@@ -130,7 +136,7 @@ public class DocumentChunker {
         int partNumber = 1;
 
         while (start < content.length()) {
-            int end = Math.min(start + chunkingConfig.getMaxChunkSize(), content.length());
+            int end = Math.min(start + maxChunkSize, content.length());
 
             // 尝试在句子边界分割
             if (end < content.length()) {
@@ -169,10 +175,10 @@ public class DocumentChunker {
 
             // 移动到下一个块，保留重叠
             // 确保 start 至少前进 1，防止无限循环
-            int nextStart = end - chunkingConfig.getOverlapSize();
+            int nextStart = end - overlapSize;
             if (nextStart <= start) {
                 // 如果计算出的下一个起点没有前进，强制前进
-                start = Math.min(start + chunkingConfig.getMaxChunkSize() / 2, content.length());
+                start = Math.min(start + maxChunkSize / 2, content.length());
             } else {
                 start = Math.max(nextStart, 0);
             }

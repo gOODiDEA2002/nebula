@@ -1,4 +1,4 @@
-package io.nebula.ai.spring.rag.model;
+package io.nebula.ai.rag.chunking;
 
 import java.time.Instant;
 import java.util.HashMap;

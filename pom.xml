@@ -87,6 +87,7 @@
         <!-- AI层 -->
         <module>infrastructure/ai/nebula-ai-core</module>
         <module>infrastructure/ai/nebula-ai-spring</module>
+        <module>infrastructure/ai/nebula-ai-rag</module>
 
         <!-- 爬虫层 -->
         <module>infrastructure/crawler/nebula-crawler-core</module>
