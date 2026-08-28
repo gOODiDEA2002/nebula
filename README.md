@@ -20,7 +20,8 @@ Nebula 是一个现代化的 Java 后端框架，基于 Spring Boot 4.1.0 和 Ja
 - **WebSocket**: Spring WebSocket + Netty 双实现，Redis 集群消息
 - **对象存储**: MinIO + 阿里云 OSS 双实现
 - **搜索引擎**: Elasticsearch 集成，全文检索/聚合/建议
-- **AI 集成**: Spring AI 封装，聊天/嵌入/向量存储
+- **AI 集成**: Spring AI 封装，聊天/嵌入/向量存储（Chroma/Qdrant）/工具调用
+- **RAG 框架**: 多路并行检索 + RRF 融合 + 重排 + 上下文组装 + 生成管线
 - **API 网关**: Spring Cloud Gateway，HTTP 反向代理/限流/日志
 - **任务调度**: XXL-JOB 集成，声明式任务处理器
 - **Web 框架**: 认证拦截/限流/响应缓存/性能监控/数据脱敏
@@ -73,6 +74,7 @@ Nebula Framework
     AI 服务 (AI)
       nebula-ai-core            AI 核心
       nebula-ai-spring          Spring AI 集成
+      nebula-ai-rag             RAG 检索增强（检索/融合/重排/管线/切块）
 
     网关 (Gateway)
       nebula-gateway-core       HTTP 反向代理、限流、日志
