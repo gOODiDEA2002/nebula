@@ -41,5 +41,16 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+
+        <!--
+            Jsoup HTML解析（可选）: 只有 HtmlStructureParser 用它, 且它是模块内唯一 import jsoup 的类。
+            optional 表示不传递给消费方, 不解析 HTML 的应用不必引入; 装配层需做类存在检查。
+        -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 </project>

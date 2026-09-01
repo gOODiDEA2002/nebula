@@ -1,0 +1,212 @@
+[
+  {
+    "query": "框架为什么把重排序默认关掉而不是默认打开",
+    "expectedIdPrefixes": [
+      "plain-overview.md#"
+    ],
+    "subset": "plain"
+  },
+  {
+    "query": "自动配置为什么要集中登记而不是散落在各个能力模块里",
+    "expectedIdPrefixes": [
+      "plain-overview.md#"
+    ],
+    "subset": "plain"
+  },
+  {
+    "query": "虚拟线程适合承载哪类任务，计算密集的任务放进去为什么不会变快",
+    "expectedIdPrefixes": [
+      "plain-thread-model.md#"
+    ],
+    "subset": "plain"
+  },
+  {
+    "query": "为什么不建议业务自己创建线程池，自建之后排查问题会遇到什么",
+    "expectedIdPrefixes": [
+      "plain-thread-model.md#"
+    ],
+    "subset": "plain"
+  },
+  {
+    "query": "降级结果为什么必须在返回对象上显式标出来而不是只写一行日志",
+    "expectedIdPrefixes": [
+      "plain-degrade-policy.md#"
+    ],
+    "subset": "plain"
+  },
+  {
+    "query": "配置键前缀为什么不允许两个模块共用，共用之后会带来什么后果",
+    "expectedIdPrefixes": [
+      "plain-naming.md#"
+    ],
+    "subset": "plain"
+  },
+  {
+    "query": "模块端口表里对象存储模块那一行的默认超时列写的是多少秒",
+    "expectedIdPrefixes": [
+      "table-module-ports.md#"
+    ],
+    "subset": "table"
+  },
+  {
+    "query": "模块端口表里支付集成模块这一行的 gRPC 端口和默认超时分别是多少",
+    "expectedIdPrefixes": [
+      "table-module-ports.md#"
+    ],
+    "subset": "table"
+  },
+  {
+    "query": "配置键表里令牌桶补充速率这一项的默认值是多少，是否必填",
+    "expectedIdPrefixes": [
+      "table-config-keys.md#"
+    ],
+    "subset": "table"
+  },
+  {
+    "query": "配置键表里分片上传阈值兆字节的默认值是多少，生效范围是单实例还是集群",
+    "expectedIdPrefixes": [
+      "table-config-keys.md#"
+    ],
+    "subset": "table"
+  },
+  {
+    "query": "错误码表里分片上传会话过期对应的错误码是多少，是否可重试",
+    "expectedIdPrefixes": [
+      "table-error-codes.md#"
+    ],
+    "subset": "table"
+  },
+  {
+    "query": "错误码表里集合别名未切换这一行的建议处理写的是什么",
+    "expectedIdPrefixes": [
+      "table-error-codes.md#"
+    ],
+    "subset": "table"
+  },
+  {
+    "query": "示例检索器构造期校验权重不能为负数，它的超时方法返回的毫秒数是多少",
+    "expectedIdPrefixes": [
+      "code-retriever-sample.md#"
+    ],
+    "subset": "code"
+  },
+  {
+    "query": "示例检索器里检索客户端为空时怎么处理，单路失败为什么要收敛成空表",
+    "expectedIdPrefixes": [
+      "code-retriever-sample.md#"
+    ],
+    "subset": "code"
+  },
+  {
+    "query": "装配代码里检索器列表为空时抛的是什么异常，候选放大倍数固定成几",
+    "expectedIdPrefixes": [
+      "code-pipeline-wiring.md#"
+    ],
+    "subset": "code"
+  },
+  {
+    "query": "装配代码里上下文预算为什么整篇跳过，管线构造器一共有几个参数",
+    "expectedIdPrefixes": [
+      "code-pipeline-wiring.md#"
+    ],
+    "subset": "code"
+  },
+  {
+    "query": "消费者代码里反序列化失败为什么直接进死信，幂等判断放在哪一步之前",
+    "expectedIdPrefixes": [
+      "code-mq-consumer.md#"
+    ],
+    "subset": "code"
+  },
+  {
+    "query": "网关限流令牌桶的默认补充速率和桶容量各是多少",
+    "expectedIdPrefixes": [
+      "breadcrumb-gateway.md#"
+    ],
+    "subset": "breadcrumb"
+  },
+  {
+    "query": "网关限流令牌桶的常见误用是把容量设成速率的多少倍以上",
+    "expectedIdPrefixes": [
+      "breadcrumb-gateway.md#"
+    ],
+    "subset": "breadcrumb"
+  },
+  {
+    "query": "缓存多级缓存里本地缓存的过期策略默认过期多久，最大条目多少",
+    "expectedIdPrefixes": [
+      "breadcrumb-cache.md#"
+    ],
+    "subset": "breadcrumb"
+  },
+  {
+    "query": "缓存多级本地缓存的容量控制为什么用条目数而不是字节数",
+    "expectedIdPrefixes": [
+      "breadcrumb-cache.md#"
+    ],
+    "subset": "breadcrumb"
+  },
+  {
+    "query": "搜索索引管理里分词器的下发时机是什么时候，之后还能不能改",
+    "expectedIdPrefixes": [
+      "breadcrumb-search.md#"
+    ],
+    "subset": "breadcrumb"
+  },
+  {
+    "query": "搜索索引分词器的词典维护为什么要放在建索引之前评审",
+    "expectedIdPrefixes": [
+      "breadcrumb-search.md#"
+    ],
+    "subset": "breadcrumb"
+  },
+  {
+    "query": "存储对象存储分片上传的阈值是多少兆字节，每片固定多大",
+    "expectedIdPrefixes": [
+      "breadcrumb-storage.md#"
+    ],
+    "subset": "breadcrumb"
+  },
+  {
+    "query": "nebula gateway rate-limit token-bucket 这一组里补充速率那个键配成多少",
+    "expectedIdPrefixes": [
+      "json-app-config.json#"
+    ],
+    "subset": "json"
+  },
+  {
+    "query": "nebula storage object 这一组的分片阈值与每片大小两个键配成多少",
+    "expectedIdPrefixes": [
+      "json-app-config.json#"
+    ],
+    "subset": "json"
+  },
+  {
+    "query": "nebula cache local 这一组的最大条目数与过期秒数配成多少",
+    "expectedIdPrefixes": [
+      "json-app-config.json#"
+    ],
+    "subset": "json"
+  },
+  {
+    "query": "retrievers 注册表里 sample 这一路的超时毫秒配成多少，开关是开还是关",
+    "expectedIdPrefixes": [
+      "json-retriever-registry.json#"
+    ],
+    "subset": "json"
+  },
+  {
+    "query": "fusion 分组的融合常数与候选放大倍数各配成多少",
+    "expectedIdPrefixes": [
+      "json-retriever-registry.json#"
+    ],
+    "subset": "json"
+  },
+  {
+    "query": "索引记录里对账重跑那条失败记录的 rebuild-count 与 status 是什么",
+    "expectedIdPrefixes": [
+      "jsonl-index-records.jsonl#"
+    ],
+    "subset": "json"
+  }
+]
