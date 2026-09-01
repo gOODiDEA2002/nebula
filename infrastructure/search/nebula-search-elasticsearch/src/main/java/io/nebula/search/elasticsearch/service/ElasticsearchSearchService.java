@@ -55,20 +55,88 @@ public class ElasticsearchSearchService implements SearchService {
     public IndexResult createIndex(String indexName, IndexMapping mapping) {
         try {
             String actualIndexName = getActualIndexName(indexName);
-            
-            CreateIndexResponse response = client.indices().create(c -> c
-                .index(actualIndexName)
-                .settings(s -> s
-                    .numberOfShards(String.valueOf(properties.getDefaultShards()))
-                    .numberOfReplicas(String.valueOf(properties.getDefaultReplicas()))
-                )
-            );
-            
+
+            // mapping.properties / mapping.settings 经「Map -> JSON -> withJson」通用转换下发；
+            // 两者皆空时走现状路径（仅默认分片/副本），行为与改动前完全一致。
+            TypeMapping typeMapping = buildTypeMapping(indexName, mapping);
+            IndexSettings indexSettings = buildIndexSettings(indexName, mapping);
+
+            CreateIndexResponse response = client.indices().create(c -> {
+                c.index(actualIndexName);
+                if (typeMapping != null) {
+                    c.mappings(typeMapping);
+                }
+                if (indexSettings != null) {
+                    c.settings(indexSettings);
+                } else {
+                    c.settings(s -> s
+                        .numberOfShards(String.valueOf(properties.getDefaultShards()))
+                        .numberOfReplicas(String.valueOf(properties.getDefaultReplicas()))
+                    );
+                }
+                return c;
+            });
+
             return IndexResult.success(actualIndexName);
-            
+
         } catch (Exception e) {
             logger.error("Failed to create index: {}", e.getMessage(), e);
             return IndexResult.error(indexName, e.getMessage());
+        }
+    }
+
+    /**
+     * 由 {@code mapping.properties} 构建 {@link TypeMapping}
+     * <p>
+     * {@code IndexMapping.properties} 承载的是 mappings 的 JSON 主体（含顶层 {@code properties} 键，
+     * 与既有调用方一致）。为空返回 null（不设 mappings）。转换失败时包装为含 indexName 的明确异常。
+     */
+    private TypeMapping buildTypeMapping(String indexName, IndexMapping mapping) {
+        if (mapping == null || mapping.getProperties() == null || mapping.getProperties().isEmpty()) {
+            return null;
+        }
+        return fromMap(indexName, "mappings", mapping.getProperties(), TypeMapping._DESERIALIZER);
+    }
+
+    /**
+     * 由 {@code mapping.settings} 构建 {@link IndexSettings}，并与默认分片/副本合并（用户键覆盖默认）
+     * <p>
+     * settings 为空返回 null，交由调用方走现状默认路径。
+     */
+    private IndexSettings buildIndexSettings(String indexName, IndexMapping mapping) {
+        if (mapping == null || mapping.getSettings() == null || mapping.getSettings().isEmpty()) {
+            return null;
+        }
+        Map<String, Object> merged = new LinkedHashMap<>();
+        merged.put("number_of_shards", String.valueOf(properties.getDefaultShards()));
+        merged.put("number_of_replicas", String.valueOf(properties.getDefaultReplicas()));
+        merged.putAll(mapping.getSettings());
+        return fromMap(indexName, "settings", merged, IndexSettings._DESERIALIZER);
+    }
+
+    /**
+     * 把一个 {@code Map} 序列化为 JSON 再用 ES 客户端反序列化成目标类型
+     * <p>
+     * 走客户端自带的 {@code JsonpMapper}，无需引入额外 JSON 依赖；转换失败时抛出含 indexName、
+     * 片段名与原始片段的明确异常，避免 withJson 对畸形 Map 报出不可读的错误。
+     */
+    private <T> T fromMap(String indexName, String section, Map<String, Object> map,
+                          co.elastic.clients.json.JsonpDeserializer<T> deserializer) {
+        co.elastic.clients.json.JsonpMapper jsonpMapper = client._jsonpMapper();
+        try {
+            java.io.StringWriter writer = new java.io.StringWriter();
+            try (jakarta.json.stream.JsonGenerator generator =
+                         jsonpMapper.jsonProvider().createGenerator(writer)) {
+                jsonpMapper.serialize(map, generator);
+            }
+            try (jakarta.json.stream.JsonParser parser =
+                         jsonpMapper.jsonProvider().createParser(new StringReader(writer.toString()))) {
+                return deserializer.deserialize(parser, jsonpMapper);
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                    "索引 " + indexName + " 的 " + section + " 转换失败: " + e.getMessage()
+                            + "; 原始片段=" + map, e);
         }
     }
 

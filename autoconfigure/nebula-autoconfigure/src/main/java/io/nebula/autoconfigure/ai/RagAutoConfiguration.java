@@ -14,12 +14,29 @@ import io.nebula.ai.rag.pipeline.DefaultRagPromptRenderer;
 import io.nebula.ai.rag.pipeline.HybridRetrievalEngine;
 import io.nebula.ai.rag.pipeline.RagPipeline;
 import io.nebula.ai.rag.pipeline.RagPromptRenderer;
+import io.nebula.ai.rag.chunking.pack.PackOptions;
+import io.nebula.ai.rag.chunking.parse.JsonStructureParser;
+import io.nebula.ai.rag.chunking.parse.JsonlStructureParser;
+import io.nebula.ai.rag.chunking.parse.MarkdownStructureParser;
+import io.nebula.ai.rag.chunking.parse.StructureParser;
+import io.nebula.ai.rag.chunking.parse.XmlStructureParser;
+import io.nebula.ai.rag.index.DocumentSource;
+import io.nebula.ai.rag.index.IndexPlanner;
+import io.nebula.ai.rag.index.IndexSink;
+import io.nebula.ai.rag.index.IndexStateRepository;
+import io.nebula.ai.rag.index.IndexingPipeline;
+import io.nebula.ai.rag.index.SearchServiceIndexSink;
+import io.nebula.ai.rag.index.VectorStoreIndexSink;
 import io.nebula.ai.rag.rerank.NoopReranker;
 import io.nebula.ai.rag.rerank.Reranker;
 import io.nebula.ai.rag.retriever.Retriever;
+import io.nebula.ai.rag.retriever.SearchServiceRetriever;
 import io.nebula.ai.rag.retriever.VectorStoreRetriever;
+import io.nebula.ai.rag.transform.QueryTransformer;
+import io.nebula.ai.rag.transform.TrimQueryTransformer;
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
+import io.nebula.search.core.SearchService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +48,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 import java.util.List;
 
@@ -62,6 +83,7 @@ public class RagAutoConfiguration {
      * 各自带权重的 Retriever Bean 覆盖或补充，框架不为此额外开一组配置项。
      */
     @Bean
+    @Order(10)
     @ConditionalOnBean(VectorStoreService.class)
     @ConditionalOnMissingBean(VectorStoreRetriever.class)
     public VectorStoreRetriever vectorStoreRetriever(VectorStoreService vectorStoreService) {
@@ -149,6 +171,28 @@ public class RagAutoConfiguration {
     }
 
     /**
+     * 默认查询改写器：{@link TrimQueryTransformer}（现状语义）
+     * <p>
+     * 仅当没有其它 {@link QueryTransformer} Bean 时装配。{@code transform.mode} 若被显式配成
+     * {@code rewrite}/{@code multi-query}，必须由 nebula-ai-spring 的适配器提供对应改写器；
+     * 此时本默认 Bean 直接抛异常快速失败，绝不静默退回 trim（详细设计 §4.2）。
+     */
+    @Bean
+    @ConditionalOnMissingBean(QueryTransformer.class)
+    public QueryTransformer queryTransformer(RagProperties properties) {
+        String mode = properties.getTransform().getMode();
+        if (mode != null && !"none".equalsIgnoreCase(mode.trim())) {
+            throw new IllegalStateException(
+                    "nebula.ai.rag.transform.mode=" + mode + " 需要 nebula-ai-spring 的查询改写器适配"
+                            + "（spring-ai-rag + ChatClient.Builder），但容器内没有对应 QueryTransformer Bean; "
+                            + "请确认已引入 nebula-ai-spring 且 spring-ai-rag 在 classpath 且存在 ChatClient.Builder, "
+                            + "或改回 nebula.ai.rag.transform.mode=none");
+        }
+        log.info("配置 Nebula TrimQueryTransformer (transform.mode=none)");
+        return new TrimQueryTransformer();
+    }
+
+    /**
      * RAG 管线
      */
     @Bean
@@ -159,11 +203,13 @@ public class RagAutoConfiguration {
                                    ContextAssembler contextAssembler,
                                    RagPromptRenderer ragPromptRenderer,
                                    AnswerGenerator answerGenerator,
-                                   RagProperties properties) {
-        log.info("配置 Nebula RagPipeline - 重排: {}, 生成超时: {}ms",
-                properties.getRerank().isEnabled(), properties.getGeneration().getTimeoutMs());
+                                   RagProperties properties,
+                                   QueryTransformer queryTransformer) {
+        log.info("配置 Nebula RagPipeline - 重排: {}, 生成超时: {}ms, 改写器: {}",
+                properties.getRerank().isEnabled(), properties.getGeneration().getTimeoutMs(),
+                queryTransformer.getClass().getSimpleName());
         return new DefaultRagPipeline(hybridRetrievalEngine, reranker, contextAssembler,
-                ragPromptRenderer, answerGenerator, properties);
+                ragPromptRenderer, answerGenerator, properties, queryTransformer);
     }
 
     /**
@@ -193,5 +239,177 @@ public class RagAutoConfiguration {
         details.put("Context Max Length", String.valueOf(properties.getContext().getMaxLength()));
         details.put("Generation Timeout", properties.getGeneration().getTimeoutMs() + "ms");
         return new SimpleComponentSummary("AI", "RAG", true, 901, details);
+    }
+
+    /**
+     * BM25 关键词检索路装配（P4b，详细设计 §3.3）
+     * <p>
+     * 需同时满足：classpath 有 {@link SearchService} 类、容器内有 {@link SearchService} Bean、
+     * {@code nebula.ai.rag.search.index-name} 非空。三者缺一即不装配（默认行为不变）。
+     * <p>
+     * 检索器实现 {@link Ordered}，顺序取 {@code nebula.ai.rag.search.order}（默认 20），
+     * 排在框架默认向量检索器（{@code @Order(10)}）之后。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(SearchService.class)
+    @Conditional(SearchIndexNamePresentCondition.class)
+    static class SearchRetrieverConfiguration {
+
+        @Bean
+        @ConditionalOnBean(SearchService.class)
+        @ConditionalOnMissingBean(SearchServiceRetriever.class)
+        SearchServiceRetriever searchServiceRetriever(SearchService searchService,
+                                                      RagProperties properties) {
+            RagProperties.Search search = properties.getSearch();
+            log.info("配置 Nebula SearchServiceRetriever - 索引: {}, 权重: {}, 顺序: {}",
+                    search.getIndexName(), search.getWeight(), search.getOrder());
+            return new OrderedSearchServiceRetriever(searchService, search.getIndexName(),
+                    search.getWeight(), search.getOrder());
+        }
+    }
+
+    /**
+     * 带顺序的 {@link SearchServiceRetriever}：让 {@code search.order} 在 {@code orderedStream}
+     * 中生效，同时把「Spring 顺序」这个关注点挡在框架无关的检索器类之外。
+     */
+    static final class OrderedSearchServiceRetriever extends SearchServiceRetriever implements Ordered {
+
+        private final int order;
+
+        OrderedSearchServiceRetriever(SearchService searchService, String indexName, double weight,
+                                      int order) {
+            super(searchService, indexName, weight);
+            this.order = order;
+        }
+
+        @Override
+        public int getOrder() {
+            return order;
+        }
+    }
+
+    /**
+     * {@code nebula.ai.rag.search.index-name} 非空才成立
+     * <p>
+     * {@code @ConditionalOnProperty} 无法区分空串与真实值（空串会被判为「已设置」），
+     * 因此用自定义 Condition 显式要求非空。
+     */
+    static class SearchIndexNamePresentCondition implements org.springframework.context.annotation.Condition {
+
+        @Override
+        public boolean matches(org.springframework.context.annotation.ConditionContext context,
+                               org.springframework.core.type.AnnotatedTypeMetadata metadata) {
+            String indexName = context.getEnvironment()
+                    .getProperty("nebula.ai.rag.search.index-name");
+            return indexName != null && !indexName.isBlank();
+        }
+    }
+
+    /**
+     * 索引治理装配（P2-min，详细设计 §2.4）
+     * <p>
+     * 需 {@code nebula.ai.rag.indexing.enabled=true}。{@link IndexingPipeline} 还需容器内已有
+     * {@link DocumentSource} 与 {@link IndexStateRepository}（{@code @ConditionalOnBean}，缺任一即不装配）——
+     * 持续增量场景缺持久化状态库即无 Bean，业务侧注入点在编译期暴露，等价「启动快速失败」。
+     * <p>
+     * {@code InMemoryIndexStateRepository} 有意不进自动装配（上位 DS6）：它重启即失忆，
+     * 无法支撑删除对齐，只能由应用显式提供或用于测试。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "nebula.ai.rag.indexing", name = "enabled", havingValue = "true")
+    static class IndexingConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean(IndexPlanner.class)
+        IndexPlanner indexPlanner() {
+            return new IndexPlanner();
+        }
+
+        // ---- 内置结构解析器（应用可覆盖或补充）----
+
+        @Bean
+        @ConditionalOnMissingBean(MarkdownStructureParser.class)
+        MarkdownStructureParser markdownStructureParser() {
+            return new MarkdownStructureParser();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(JsonStructureParser.class)
+        JsonStructureParser jsonStructureParser() {
+            return new JsonStructureParser();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(JsonlStructureParser.class)
+        JsonlStructureParser jsonlStructureParser() {
+            return new JsonlStructureParser();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(XmlStructureParser.class)
+        XmlStructureParser xmlStructureParser() {
+            return new XmlStructureParser();
+        }
+
+        // ---- 内置写目标 ----
+
+        @Bean
+        @ConditionalOnBean(VectorStoreService.class)
+        @ConditionalOnMissingBean(VectorStoreIndexSink.class)
+        VectorStoreIndexSink vectorStoreIndexSink(VectorStoreService vectorStoreService) {
+            log.info("配置 Nebula VectorStoreIndexSink");
+            return new VectorStoreIndexSink(vectorStoreService);
+        }
+
+        @Bean
+        @ConditionalOnClass(SearchService.class)
+        @ConditionalOnBean(SearchService.class)
+        @ConditionalOnMissingBean(SearchServiceIndexSink.class)
+        @Conditional(IndexingSearchIndexNamePresentCondition.class)
+        SearchServiceIndexSink searchServiceIndexSink(SearchService searchService,
+                                                      RagProperties properties) {
+            RagProperties.Indexing indexing = properties.getIndexing();
+            RagProperties.Search search = properties.getSearch();
+            log.info("配置 Nebula SearchServiceIndexSink - 索引: {}", indexing.getSearchIndexName());
+            return new SearchServiceIndexSink(searchService, indexing.getSearchIndexName(),
+                    search.getAnalyzer(), search.getSearchAnalyzer());
+        }
+
+        @Bean
+        @ConditionalOnBean({ DocumentSource.class, IndexStateRepository.class })
+        @ConditionalOnMissingBean(IndexingPipeline.class)
+        IndexingPipeline indexingPipeline(ObjectProvider<StructureParser> parsers,
+                                          ObjectProvider<IndexSink> sinks,
+                                          IndexStateRepository stateRepository,
+                                          IndexPlanner indexPlanner,
+                                          RagProperties properties) {
+            List<StructureParser> parserList = parsers.orderedStream().toList();
+            List<IndexSink> sinkList = sinks.orderedStream().toList();
+            RagProperties.Chunking chunking = properties.getChunking();
+            PackOptions packOptions = new PackOptions();
+            packOptions.setMaxChunkSize(chunking.getSize());
+            packOptions.setOverlap(chunking.getOverlap());
+            packOptions.setCodeSummaryToContent(chunking.isCodeSummary());
+            log.info("配置 Nebula IndexingPipeline - 解析器: {}, 写目标: {}",
+                    parserList.stream().map(StructureParser::format).toList(),
+                    sinkList.stream().map(IndexSink::name).toList());
+            return new IndexingPipeline(parserList, packOptions, sinkList, stateRepository,
+                    indexPlanner);
+        }
+    }
+
+    /**
+     * {@code nebula.ai.rag.indexing.search-index-name} 非空才成立（同 §3.3 的空串区分问题）
+     */
+    static class IndexingSearchIndexNamePresentCondition
+            implements org.springframework.context.annotation.Condition {
+
+        @Override
+        public boolean matches(org.springframework.context.annotation.ConditionContext context,
+                               org.springframework.core.type.AnnotatedTypeMetadata metadata) {
+            String indexName = context.getEnvironment()
+                    .getProperty("nebula.ai.rag.indexing.search-index-name");
+            return indexName != null && !indexName.isBlank();
+        }
     }
 }

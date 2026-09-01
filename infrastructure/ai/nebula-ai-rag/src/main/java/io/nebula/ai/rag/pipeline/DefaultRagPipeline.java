@@ -3,6 +3,9 @@ package io.nebula.ai.rag.pipeline;
 import io.nebula.ai.rag.config.RagProperties;
 import io.nebula.ai.rag.rerank.Reranker;
 import io.nebula.ai.rag.retriever.RetrievalResult;
+import io.nebula.ai.rag.transform.QueryTransformer;
+import io.nebula.ai.rag.transform.QueryVariant;
+import io.nebula.ai.rag.transform.TrimQueryTransformer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,19 +55,38 @@ public class DefaultRagPipeline implements RagPipeline {
     private final RagPromptRenderer promptRenderer;
     private final AnswerGenerator answerGenerator;
     private final RagProperties properties;
+    private final QueryTransformer queryTransformer;
 
+    /**
+     * 现状六参构造：查询改写器默认 {@link TrimQueryTransformer}（现状语义，行为不变）。
+     */
     public DefaultRagPipeline(HybridRetrievalEngine retrievalEngine,
                               Reranker reranker,
                               ContextAssembler contextAssembler,
                               RagPromptRenderer promptRenderer,
                               AnswerGenerator answerGenerator,
                               RagProperties properties) {
+        this(retrievalEngine, reranker, contextAssembler, promptRenderer, answerGenerator,
+                properties, new TrimQueryTransformer());
+    }
+
+    /**
+     * 七参构造：显式注入查询改写器（P5）。
+     */
+    public DefaultRagPipeline(HybridRetrievalEngine retrievalEngine,
+                              Reranker reranker,
+                              ContextAssembler contextAssembler,
+                              RagPromptRenderer promptRenderer,
+                              AnswerGenerator answerGenerator,
+                              RagProperties properties,
+                              QueryTransformer queryTransformer) {
         this.retrievalEngine = require(retrievalEngine, "HybridRetrievalEngine");
         this.reranker = require(reranker, "Reranker");
         this.contextAssembler = require(contextAssembler, "ContextAssembler");
         this.promptRenderer = require(promptRenderer, "RagPromptRenderer");
         this.answerGenerator = require(answerGenerator, "AnswerGenerator");
         this.properties = require(properties, "RagProperties");
+        this.queryTransformer = require(queryTransformer, "QueryTransformer");
     }
 
     @Override
@@ -74,15 +96,18 @@ public class DefaultRagPipeline implements RagPipeline {
         }
 
         long start = System.currentTimeMillis();
-        String processedQuery = query.getQuery().trim();
+
+        // 三文本契约：提示词用原文；检索用变体；重排用首个变体文本
+        List<QueryVariant> variants = resolveVariants(query.getQuery());
+        String rerankQuery = variants.get(0).getText();
 
         int retrievalTopK = query.getTopK() != null
                 ? query.getTopK() : properties.getRetrieval().getTopK();
         List<RetrievalResult> retrieved =
-                retrievalEngine.retrieve(processedQuery, retrievalTopK, query.getFilter());
+                retrievalEngine.retrieve(variants, retrievalTopK, query.getFilter());
 
         if (retrieved.isEmpty()) {
-            log.warn("RAG 未检索到相关文档: query='{}'", truncateLog(processedQuery));
+            log.warn("RAG 未检索到相关文档: query='{}'", truncateLog(rerankQuery));
             return RagAnswer.builder()
                     .answer(properties.getDegrade().getNoDocumentAnswer())
                     .references(List.of())
@@ -92,7 +117,7 @@ public class DefaultRagPipeline implements RagPipeline {
                     .build();
         }
 
-        List<RetrievalResult> references = applyRerank(processedQuery, retrieved, query);
+        List<RetrievalResult> references = applyRerank(rerankQuery, retrieved, query);
 
         if (!query.isGenerateAnswer()) {
             return RagAnswer.builder()
@@ -104,6 +129,24 @@ public class DefaultRagPipeline implements RagPipeline {
         String context = contextAssembler.assemble(references);
         String prompt = promptRenderer.render(query.getQuery(), context);
         return generate(prompt, references, start);
+    }
+
+    /**
+     * 产出查询变体：改写器不得返回空列表；超过 {@code transform.max-variants} 的截断并 warn
+     */
+    private List<QueryVariant> resolveVariants(String rawQuery) {
+        List<QueryVariant> variants = queryTransformer.transform(rawQuery);
+        if (variants == null || variants.isEmpty()) {
+            throw new IllegalStateException(
+                    "QueryTransformer 返回空变体列表: 检索没有可用查询, 属于配置事故");
+        }
+        int maxVariants = properties.getTransform().getMaxVariants();
+        if (maxVariants > 0 && variants.size() > maxVariants) {
+            log.warn("查询变体数 {} 超过上限 {}, 截断保留前 {} 个",
+                    variants.size(), maxVariants, maxVariants);
+            return variants.subList(0, maxVariants);
+        }
+        return variants;
     }
 
     private List<RetrievalResult> applyRerank(String query, List<RetrievalResult> retrieved,

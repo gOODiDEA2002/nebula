@@ -382,6 +382,27 @@ class ApiBaselineTest {
             assertPublicMethod(nested("Degrade"), "getFallbackExcerptLength", int.class);
         }
 
+        @Test
+        @DisplayName("R2 增量嵌套结构与叶子访问器齐全(§6 补表, 非红线但守护形变)")
+        void r2Additions_areComplete() {
+            // 三个新增嵌套组
+            assertNestedGroup("Indexing", "getIndexing");
+            assertNestedGroup("Search", "getSearch");
+            assertNestedGroup("Transform", "getTransform");
+            // 叶子访问器
+            assertPublicMethod(nested("Indexing"), "isEnabled", boolean.class);
+            assertPublicMethod(nested("Indexing"), "getSearchIndexName", String.class);
+            assertPublicMethod(nested("Search"), "getIndexName", String.class);
+            assertPublicMethod(nested("Search"), "getWeight", double.class);
+            assertPublicMethod(nested("Search"), "getOrder", int.class);
+            assertPublicMethod(nested("Search"), "getAnalyzer", String.class);
+            assertPublicMethod(nested("Search"), "getSearchAnalyzer", String.class);
+            assertPublicMethod(nested("Transform"), "getMode", String.class);
+            assertPublicMethod(nested("Transform"), "getMaxVariants", int.class);
+            // Chunking 新增的 code-summary 叶子
+            assertPublicMethod(nested("Chunking"), "isCodeSummary", boolean.class);
+        }
+
         private void assertNestedGroup(String simpleName, String accessor) {
             Class<?> nested = nested(simpleName);
             assertPublicMethod(RagProperties.class, accessor, nested);

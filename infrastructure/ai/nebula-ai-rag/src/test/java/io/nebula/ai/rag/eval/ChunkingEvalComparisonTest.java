@@ -162,6 +162,41 @@ class ChunkingEvalComparisonTest {
         assertThat(first).allSatisfy(id -> assertThat(id).contains("#"));
     }
 
+    /**
+     * C 侧（code-summary 开）记录 code 子集变化：<b>非门禁，仅记录</b>（详细设计 §5、§7）
+     * <p>
+     * 只断言 C 侧口径与 B 侧可比（同金标、同深度、五子集齐全），不对 code 子集设任何提升阈值 ——
+     * code-summary 是默认关的可选项，评测只留档不设关卡。
+     */
+    @Test
+    @DisplayName("C 侧 code-summary 开: 记录 code 子集变化(非门禁)")
+    void codeSummary_recordsCodeSubsetChange() {
+        GoldenSet goldenSet = EvalCorpus.goldenSet();
+        RetrievalEvaluator evaluator = new RetrievalEvaluator(K);
+
+        List<DocumentChunk> codeSummaryChunks = EvalCorpus.structureChunksWithCodeSummary();
+        EvalReport codeSummaryReport = evaluator.evaluate(goldenSet,
+                new DeterministicLexicalRetriever(codeSummaryChunks),
+                Map.of("chunking", "structure",
+                        "codeSummaryToContent", "true",
+                        "breadcrumbToContent", "true",
+                        "chunkSize", String.valueOf(EvalCorpus.CHUNK_SIZE),
+                        "overlap", String.valueOf(EvalCorpus.OVERLAP),
+                        "chunks", String.valueOf(codeSummaryChunks.size()),
+                        "retriever", "deterministic-lexical-2gram"));
+
+        System.out.println("[RAG-EVAL] C 结构+代码摘要  " + codeSummaryReport.toComparableSummary());
+        double codeB = recall(structureReport, "code");
+        double codeC = recall(codeSummaryReport, "code");
+        System.out.printf("[RAG-EVAL] code 子集 recall@%d: B=%.4f  C=%.4f  delta=%+.4f%n",
+                K, codeB, codeC, codeC - codeB);
+
+        // 仅断言可比性，不对 code 提升设门禁
+        assertThat(codeSummaryReport.getK()).isEqualTo(K);
+        assertThat(codeSummaryReport.getPerSubset().keySet())
+                .containsExactlyInAnyOrder("plain", "table", "code", "breadcrumb", "json");
+    }
+
     private static double recall(EvalReport report, String subset) {
         EvalReport.SubsetMetrics metrics = report.subset(subset);
         assertThat(metrics).as("报告里缺少子集 %s", subset).isNotNull();

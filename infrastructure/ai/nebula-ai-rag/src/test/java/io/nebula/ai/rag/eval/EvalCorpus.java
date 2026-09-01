@@ -156,6 +156,23 @@ final class EvalCorpus {
     }
 
     /**
+     * C 侧块集：在 B 侧基础上打开 code-summary（代码块首附加签名摘要行）
+     * <p>
+     * 仅用于对比 harness 记录 code 子集的变化（非门禁）。其余变量与 B 侧完全一致。
+     */
+    static List<DocumentChunk> structureChunksWithCodeSummary() {
+        PackOptions options = packOptions();
+        options.setCodeSummaryToContent(true);
+        ChunkPacker packer = new ChunkPacker(options);
+        List<DocumentChunk> all = new ArrayList<>();
+        for (String fileName : FILES) {
+            all.addAll(packer.pack(fileName,
+                    parserFor(fileName).parse(read(fileName), null)));
+        }
+        return all;
+    }
+
+    /**
      * 按扩展名选解析器；语料里只有三种扩展名，出现别的说明清单和文件对不上了
      */
     static StructureParser parserFor(String fileName) {

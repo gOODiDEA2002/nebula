@@ -39,6 +39,12 @@ public class RagProperties {
 
     private Degrade degrade = new Degrade();
 
+    private Indexing indexing = new Indexing();
+
+    private Search search = new Search();
+
+    private Transform transform = new Transform();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -101,6 +107,30 @@ public class RagProperties {
 
     public void setDegrade(Degrade degrade) {
         this.degrade = degrade;
+    }
+
+    public Indexing getIndexing() {
+        return indexing;
+    }
+
+    public void setIndexing(Indexing indexing) {
+        this.indexing = indexing;
+    }
+
+    public Search getSearch() {
+        return search;
+    }
+
+    public void setSearch(Search search) {
+        this.search = search;
+    }
+
+    public Transform getTransform() {
+        return transform;
+    }
+
+    public void setTransform(Transform transform) {
+        this.transform = transform;
     }
 
     /**
@@ -296,6 +326,14 @@ public class RagProperties {
          */
         private int overlap = 100;
 
+        /**
+         * 是否在超限代码块首行附加签名摘要（R1 遗留小项，默认关，Y2）
+         * <p>
+         * 开启时 CODE 原子块在块首附加一行注释形式的签名摘要，提升代码子集召回；
+         * 默认关闭以保持既有块正文不变。
+         */
+        private boolean codeSummary = false;
+
         public int getSize() {
             return size;
         }
@@ -310,6 +348,14 @@ public class RagProperties {
 
         public void setOverlap(int overlap) {
             this.overlap = overlap;
+        }
+
+        public boolean isCodeSummary() {
+            return codeSummary;
+        }
+
+        public void setCodeSummary(boolean codeSummary) {
+            this.codeSummary = codeSummary;
         }
     }
 
@@ -372,6 +418,151 @@ public class RagProperties {
 
         public void setFallbackExcerptLength(int fallbackExcerptLength) {
             this.fallbackExcerptLength = fallbackExcerptLength;
+        }
+    }
+
+    /**
+     * 索引治理配置（P2-min）
+     * <p>
+     * 默认关闭：增量索引任务需要应用侧提供 {@code DocumentSource} 与持久化
+     * {@code IndexStateRepository}，引入 JAR 不该自动装配任何写目标。
+     */
+    public static class Indexing {
+
+        /**
+         * 是否启用索引治理装配；默认 false
+         */
+        private boolean enabled = false;
+
+        /**
+         * {@code SearchServiceIndexSink} 写入的索引名；空表示不装配该 Sink
+         */
+        private String searchIndexName = "";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getSearchIndexName() {
+            return searchIndexName;
+        }
+
+        public void setSearchIndexName(String searchIndexName) {
+            this.searchIndexName = searchIndexName;
+        }
+    }
+
+    /**
+     * BM25 关键词检索路配置（P4b）
+     * <p>
+     * {@code indexName} 为空时不装配 {@code SearchServiceRetriever}，
+     * 因此默认行为不变。权重与顺序均可配。
+     */
+    public static class Search {
+
+        /**
+         * 关键词检索的索引名；空表示不装配 {@code SearchServiceRetriever}
+         */
+        private String indexName = "";
+
+        /**
+         * 检索器融合权重
+         */
+        private double weight = 0.4;
+
+        /**
+         * 检索器在有序列表中的顺序值（越小越靠前）
+         */
+        private int order = 20;
+
+        /**
+         * 正文字段的查询分析器（建索引不由本项决定，仅查询侧）
+         */
+        private String analyzer = "standard";
+
+        /**
+         * 默认 mapping 的 search_analyzer
+         */
+        private String searchAnalyzer = "standard";
+
+        public String getIndexName() {
+            return indexName;
+        }
+
+        public void setIndexName(String indexName) {
+            this.indexName = indexName;
+        }
+
+        public double getWeight() {
+            return weight;
+        }
+
+        public void setWeight(double weight) {
+            this.weight = weight;
+        }
+
+        public int getOrder() {
+            return order;
+        }
+
+        public void setOrder(int order) {
+            this.order = order;
+        }
+
+        public String getAnalyzer() {
+            return analyzer;
+        }
+
+        public void setAnalyzer(String analyzer) {
+            this.analyzer = analyzer;
+        }
+
+        public String getSearchAnalyzer() {
+            return searchAnalyzer;
+        }
+
+        public void setSearchAnalyzer(String searchAnalyzer) {
+            this.searchAnalyzer = searchAnalyzer;
+        }
+    }
+
+    /**
+     * 查询改写与变体检索配置（P5）
+     * <p>
+     * {@code mode=none} 默认装 {@code TrimQueryTransformer}（现状语义）；
+     * {@code rewrite}/{@code multi-query} 需 nebula-ai-spring 的 spring-ai 改写器适配，
+     * 缺依赖时启动快速失败，不静默降级。
+     */
+    public static class Transform {
+
+        /**
+         * 改写模式：{@code none} | {@code rewrite} | {@code multi-query}
+         */
+        private String mode = "none";
+
+        /**
+         * 变体数上限，超出截断并 warn
+         */
+        private int maxVariants = 4;
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+
+        public int getMaxVariants() {
+            return maxVariants;
+        }
+
+        public void setMaxVariants(int maxVariants) {
+            this.maxVariants = maxVariants;
         }
     }
 }

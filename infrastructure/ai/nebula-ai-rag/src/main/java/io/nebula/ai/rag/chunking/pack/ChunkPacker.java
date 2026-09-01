@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * 装箱器：把元素流装成文档块
@@ -333,7 +334,9 @@ public class ChunkPacker {
             chunk.setChunkType(toChunkType(draft.type));
             chunk.setTitle(draft.breadcrumb.isEmpty()
                     ? null : draft.breadcrumb.get(draft.breadcrumb.size() - 1));
-            chunk.setContent(renderContent(text, draft.breadcrumb));
+            String body = draft.type == DocElementType.CODE && options.isCodeSummaryToContent()
+                    ? prependCodeSummary(text) : text;
+            chunk.setContent(renderContent(body, draft.breadcrumb));
             chunk.addMetadata(PackOptions.META_BREADCRUMB, List.copyOf(draft.breadcrumb));
             if (draft.tablePart != null) {
                 chunk.addMetadata(PackOptions.META_TABLE_PART, draft.tablePart);
@@ -349,6 +352,54 @@ public class ChunkPacker {
             return text;
         }
         return String.join(PackOptions.BREADCRUMB_SEPARATOR, breadcrumb) + "\n" + text;
+    }
+
+    /** 代码摘要行的最大长度 */
+    private static final int CODE_SUMMARY_MAX = 120;
+
+    /** 扫描代码块前若干行寻找签名样行 */
+    private static final int CODE_SUMMARY_SCAN_LINES = 12;
+
+    /** 签名样行模式：命中即取该行作摘要 */
+    private static final Pattern CODE_SIGNATURE = Pattern.compile(
+            "\\b(class|interface|enum|struct|trait|impl|module|package|namespace"
+                    + "|def|function|func|fn|public|private|protected|static|void|const)\\b");
+
+    /**
+     * 为代码块附加一行注释形式的签名摘要
+     * <p>
+     * 取块前若干行中的签名样行（命中 {@link #CODE_SIGNATURE}）；没有则取首个非空行，
+     * 截断到 {@value #CODE_SUMMARY_MAX} 字符，以 {@code //} 注释形式置于块首。
+     */
+    private String prependCodeSummary(String text) {
+        String summary = extractCodeSummary(text);
+        if (summary == null || summary.isEmpty()) {
+            return text;
+        }
+        return "// " + summary + "\n" + text;
+    }
+
+    private String extractCodeSummary(String text) {
+        String[] lines = text.split("\n", -1);
+        int scan = Math.min(lines.length, CODE_SUMMARY_SCAN_LINES);
+        String firstNonEmpty = null;
+        for (int i = 0; i < scan; i++) {
+            String line = lines[i].strip();
+            if (line.isEmpty()) {
+                continue;
+            }
+            if (firstNonEmpty == null) {
+                firstNonEmpty = line;
+            }
+            if (CODE_SIGNATURE.matcher(line).find()) {
+                return truncate(line);
+            }
+        }
+        return firstNonEmpty != null ? truncate(firstNonEmpty) : null;
+    }
+
+    private static String truncate(String line) {
+        return line.length() > CODE_SUMMARY_MAX ? line.substring(0, CODE_SUMMARY_MAX) : line;
     }
 
     private static ChunkType toChunkType(DocElementType type) {

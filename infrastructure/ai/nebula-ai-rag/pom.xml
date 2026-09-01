@@ -23,6 +23,18 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!--
+            Nebula Search Core（可选）: 仅 BM25 关键词检索路（SearchServiceRetriever /
+            RagSearchDocument）用它。optional 表示不传递给消费方, 不用关键词检索的应用不必引入;
+            装配层用 @ConditionalOnClass(SearchService) 做类存在检查。
+        -->
+        <dependency>
+            <groupId>com.nebula-projects</groupId>
+            <artifactId>nebula-search-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Spring Boot Auto Configuration: 仅用于 @ConfigurationProperties, Bean 装配集中在 nebula-autoconfigure -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -51,6 +63,13 @@
             <artifactId>jsoup</artifactId>
             <version>1.17.2</version>
             <optional>true</optional>
+        </dependency>
+
+        <!-- 测试：索引 sink 契约用桩验证收到的参数与 ID 集 -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

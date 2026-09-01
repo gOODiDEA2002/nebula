@@ -3,6 +3,7 @@ package io.nebula.ai.rag.pipeline;
 import io.nebula.ai.rag.fusion.FusionStrategy;
 import io.nebula.ai.rag.retriever.RetrievalResult;
 import io.nebula.ai.rag.retriever.Retriever;
+import io.nebula.ai.rag.transform.QueryVariant;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,10 @@ public class HybridRetrievalEngine {
     }
 
     /**
-     * 多路并行检索并融合
+     * 多路并行检索并融合（单查询）
+     * <p>
+     * 等价于单元素变体检索：{@code retrieve([QueryVariant(query, 1.0)], topK, filter)}。
+     * 一个变体 × N 检索器 = N 个列表 N 个权重，与变体重载逐路径一致。
      *
      * @param query  查询文本
      * @param topK   融合后保留数量
@@ -80,38 +84,66 @@ public class HybridRetrievalEngine {
      * @return 融合后的结果列表
      */
     public List<RetrievalResult> retrieve(String query, int topK, Map<String, Object> filter) {
+        return retrieve(List.of(new QueryVariant(query, 1.0)), topK, filter);
+    }
+
+    /**
+     * 多路并行检索并融合（查询变体）
+     * <p>
+     * 任务集 = 变体 × 检索器，全部并行；每个任务贡献一个结果列表，权重 =
+     * 检索器权重 × 变体权重。跨变体命中同一 ID 的去重由 RRF 的 {@code scoreMap.merge}
+     * 天然完成（分数累加，与多路命中同语义）。总并发不额外设池：任务数上限
+     * = 变体数 × 检索器数，由调用方（{@code transform.max-variants}）约束。
+     *
+     * @param variants 查询变体列表，不能为空
+     * @param topK     融合后保留数量
+     * @param filter   过滤条件，可为 null
+     * @return 融合后的结果列表
+     */
+    public List<RetrievalResult> retrieve(List<QueryVariant> variants, int topK,
+                                          Map<String, Object> filter) {
+        if (variants == null || variants.isEmpty()) {
+            throw new IllegalArgumentException("查询变体列表不能为空");
+        }
         long start = System.currentTimeMillis();
         int candidateTopK = topK * candidateMultiplier;
 
         try {
-            List<CompletableFuture<List<RetrievalResult>>> futures = new ArrayList<>(retrievers.size());
-            for (Retriever retriever : retrievers) {
-                futures.add(retrieveAsync(retriever, query, candidateTopK, filter));
+            int taskCount = variants.size() * retrievers.size();
+            List<CompletableFuture<List<RetrievalResult>>> futures = new ArrayList<>(taskCount);
+            List<Double> taskWeights = new ArrayList<>(taskCount);
+            List<String> taskLabels = new ArrayList<>(taskCount);
+            for (QueryVariant variant : variants) {
+                for (Retriever retriever : retrievers) {
+                    futures.add(retrieveAsync(retriever, variant.getText(), candidateTopK, filter));
+                    taskWeights.add(retriever.getWeight() * variant.getWeight());
+                    taskLabels.add(retriever.getName());
+                }
             }
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-            List<List<RetrievalResult>> resultLists = new ArrayList<>(retrievers.size());
-            List<Double> weights = new ArrayList<>(retrievers.size());
-            StringBuilder perRetrieverCounts = new StringBuilder();
-            for (int i = 0; i < retrievers.size(); i++) {
+            List<List<RetrievalResult>> resultLists = new ArrayList<>(taskCount);
+            List<Double> weights = new ArrayList<>(taskCount);
+            StringBuilder perTaskCounts = new StringBuilder();
+            for (int i = 0; i < futures.size(); i++) {
                 List<RetrievalResult> results = futures.get(i).get();
-                perRetrieverCounts.append(retrievers.get(i).getName())
+                perTaskCounts.append(taskLabels.get(i))
                         .append('=').append(results.size()).append(' ');
                 // 空表对 RRF 没有任何贡献，直接跳过以免徒增一路空权重
                 if (!results.isEmpty()) {
                     resultLists.add(results);
-                    weights.add(retrievers.get(i).getWeight());
+                    weights.add(taskWeights.get(i));
                 }
             }
 
             List<RetrievalResult> fused = fusionStrategy.fuse(resultLists, weights, topK);
-            log.info("混合检索完成: {}fused={}, 耗时 {}ms",
-                    perRetrieverCounts, fused.size(), System.currentTimeMillis() - start);
+            log.info("混合检索完成: 变体数={}, {}fused={}, 耗时 {}ms",
+                    variants.size(), perTaskCounts, fused.size(), System.currentTimeMillis() - start);
             return fused;
         } catch (Exception e) {
             Retriever fallback = retrievers.get(0);
             log.error("混合检索失败, 降级为 {} 单路检索: {}", fallback.getName(), e.getMessage());
-            return fallback.retrieve(query, topK, filter);
+            return fallback.retrieve(variants.get(0).getText(), topK, filter);
         }
     }
 

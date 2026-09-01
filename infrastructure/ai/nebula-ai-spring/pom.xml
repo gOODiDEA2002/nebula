@@ -23,6 +23,27 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!--
+            Nebula AI RAG（可选）: 仅查询改写适配器（SpringAiQueryTransformerAdapter）用它的
+            QueryTransformer/QueryVariant 抽象。optional 表示不传递给消费方。
+        -->
+        <dependency>
+            <groupId>com.nebula-projects</groupId>
+            <artifactId>nebula-ai-rag</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
+            Spring AI RAG（可选）: 提供 RewriteQueryTransformer / MultiQueryExpander。
+            版本由 spring-ai BOM 管理。显式配 rewrite/multi-query 模式却缺它 → 启动快速失败。
+        -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-rag</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Spring AI OpenAI -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

@@ -52,6 +52,14 @@ public class PackOptions {
      */
     private boolean breadcrumbToContent = false;
 
+    /**
+     * 是否为超限代码块在块首附加一行签名摘要（R1 遗留小项，默认关，Y2）
+     * <p>
+     * 默认关：往代码块正文里加东西会改变既有块的文本，属于行为变化而不是新增能力。
+     * 需要靠签名行提升代码子集召回的场景显式打开。
+     */
+    private boolean codeSummaryToContent = false;
+
     public static PackOptions defaults() {
         return new PackOptions();
     }
@@ -126,6 +134,14 @@ public class PackOptions {
 
     public void setBreadcrumbToContent(boolean breadcrumbToContent) {
         this.breadcrumbToContent = breadcrumbToContent;
+    }
+
+    public boolean isCodeSummaryToContent() {
+        return codeSummaryToContent;
+    }
+
+    public void setCodeSummaryToContent(boolean codeSummaryToContent) {
+        this.codeSummaryToContent = codeSummaryToContent;
     }
 
     /**
