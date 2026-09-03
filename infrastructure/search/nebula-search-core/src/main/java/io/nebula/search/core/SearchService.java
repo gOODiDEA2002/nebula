@@ -199,4 +199,33 @@ public interface SearchService {
      * 刷新所有索引
      */
     void refreshAll();
+
+    /**
+     * 把别名原子指向目标索引（蓝绿切换用）
+     * <p>
+     * 同一后端内必须一次提交完成「移除别名旧指向 + 指向新索引」；别名此前不存在时等同于首次建立。
+     * 默认实现不支持，由具体实现（如 Elasticsearch）覆盖 —— 其余实现继承为「不支持」是期望行为。
+     *
+     * @param aliasName       别名（逻辑名）
+     * @param targetIndexName 目标索引（物理名）
+     * @return 切换结果
+     * @throws UnsupportedOperationException 实现不支持别名操作时
+     */
+    default IndexResult switchAlias(String aliasName, String targetIndexName) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + " 不支持索引别名操作");
+    }
+
+    /**
+     * 别名当前指向的索引名清单
+     * <p>
+     * 无别名、别名不存在或实现不支持时返回空列表（不把「没有别名」当作错误）。
+     * 默认实现返回空列表，由具体实现覆盖。
+     *
+     * @param aliasName 别名（逻辑名）
+     * @return 别名指向的索引名清单；无指向返回空列表
+     */
+    default List<String> resolveAlias(String aliasName) {
+        return List.of();
+    }
 }

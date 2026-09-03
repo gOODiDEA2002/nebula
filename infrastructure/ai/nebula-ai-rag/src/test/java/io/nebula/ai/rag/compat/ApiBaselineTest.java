@@ -403,6 +403,38 @@ class ApiBaselineTest {
             assertPublicMethod(nested("Chunking"), "isCodeSummary", boolean.class);
         }
 
+        @Test
+        @DisplayName("R3 增量: Indexing 快速失败开关 + Reindex 嵌套与叶子访问器齐全(§5 补表)")
+        void r3Additions_areComplete() {
+            Class<?> indexing = nested("Indexing");
+            // Indexing 新增的快速失败开关叶子
+            assertPublicMethod(indexing, "isFailFastWithoutStateRepository", boolean.class);
+            // Reindex 是 Indexing 的嵌套类(非 RagProperties 顶层), 单独定位
+            Class<?> reindex = nestedOf(indexing, "Reindex");
+            assertPublicMethod(indexing, "getReindex", reindex);
+            assertPublicMethod(indexing, "setReindex", void.class, reindex);
+            // Reindex 叶子访问器
+            assertPublicMethod(reindex, "isEnabled", boolean.class);
+            assertPublicMethod(reindex, "getVectorAlias", String.class);
+            assertPublicMethod(reindex, "getVectorDimension", int.class);
+            assertPublicMethod(reindex, "getVectorDistance", String.class);
+            assertPublicMethod(reindex, "getSearchAlias", String.class);
+            assertPublicMethod(reindex, "getSwitchOrder", String.class);
+            assertPublicMethod(reindex, "getKeepGenerations", int.class);
+        }
+
+        private Class<?> nestedOf(Class<?> owner, String simpleName) {
+            for (Class<?> candidate : owner.getDeclaredClasses()) {
+                if (candidate.getSimpleName().equals(simpleName)) {
+                    assertThat(Modifier.isPublic(candidate.getModifiers()))
+                            .as(owner.getSimpleName() + "." + simpleName + " 必须是 public 嵌套类")
+                            .isTrue();
+                    return candidate;
+                }
+            }
+            return fail(owner.getSimpleName() + " 缺少嵌套类 " + simpleName + "(R3 §5 配置补表)");
+        }
+
         private void assertNestedGroup(String simpleName, String accessor) {
             Class<?> nested = nested(simpleName);
             assertPublicMethod(RagProperties.class, accessor, nested);

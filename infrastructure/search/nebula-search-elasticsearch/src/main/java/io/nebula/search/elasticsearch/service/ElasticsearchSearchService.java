@@ -647,6 +647,67 @@ public class ElasticsearchSearchService implements SearchService {
         }
     }
 
+    /**
+     * 把别名原子指向目标索引：在一次 {@code updateAliases} 请求内提交
+     * 「remove 别名的旧指向（逐个）+ add 别名到新索引」。别名此前不存在时操作列表只含 add。
+     * <p>
+     * 别名与索引名均经 {@link #getActualIndexName} 前缀化，与建索引/删索引一致。
+     */
+    @Override
+    public IndexResult switchAlias(String aliasName, String targetIndexName) {
+        try {
+            // resolveAlias 返回的是去前缀的逻辑名(与调用方传入口径一致)
+            List<String> currentIndices = resolveAlias(aliasName);
+            String actualAlias = getActualIndexName(aliasName);
+            String actualTarget = getActualIndexName(targetIndexName);
+
+            List<co.elastic.clients.elasticsearch.indices.update_aliases.Action> actions = new ArrayList<>();
+            for (String current : currentIndices) {
+                String actualCurrent = getActualIndexName(current);
+                if (!actualCurrent.equals(actualTarget)) {
+                    actions.add(co.elastic.clients.elasticsearch.indices.update_aliases.Action.of(
+                            a -> a.remove(r -> r.index(actualCurrent).alias(actualAlias))));
+                }
+            }
+            actions.add(co.elastic.clients.elasticsearch.indices.update_aliases.Action.of(
+                    a -> a.add(add -> add.index(actualTarget).alias(actualAlias))));
+
+            client.indices().updateAliases(u -> u.actions(actions));
+            return IndexResult.success(actualAlias);
+        } catch (Exception e) {
+            logger.error("Failed to switch alias {} -> {}: {}", aliasName, targetIndexName,
+                    e.getMessage(), e);
+            return IndexResult.error(aliasName, e.getMessage());
+        }
+    }
+
+    /**
+     * 别名当前指向的索引名清单（去前缀，与调用方传入口径一致）
+     * <p>
+     * 别名不存在时 ES 抛 404，此处捕获返回空列表（不把「没有别名」当作错误）。
+     */
+    @Override
+    public List<String> resolveAlias(String aliasName) {
+        try {
+            String actualAlias = getActualIndexName(aliasName);
+            co.elastic.clients.elasticsearch.indices.GetAliasResponse response =
+                    client.indices().getAlias(g -> g.name(actualAlias));
+            return response.aliases().keySet().stream()
+                    .map(this::stripIndexPrefix)
+                    .collect(Collectors.toList());
+        } catch (co.elastic.clients.elasticsearch._types.ElasticsearchException e) {
+            if (e.status() == 404) {
+                // 别名不存在: 返回空列表, 不作为错误
+                return List.of();
+            }
+            logger.error("Failed to resolve alias {}: {}", aliasName, e.getMessage(), e);
+            return List.of();
+        } catch (Exception e) {
+            logger.error("Failed to resolve alias {}: {}", aliasName, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
     // 私有辅助方法
 
     private String getActualIndexName(String indexName) {
@@ -654,6 +715,20 @@ public class ElasticsearchSearchService implements SearchService {
             return properties.getIndexPrefix() + "_" + indexName;
         }
         return indexName;
+    }
+
+    /**
+     * 去掉 {@link #getActualIndexName} 加的前缀，还原调用方口径的逻辑名；无前缀时原样返回
+     */
+    private String stripIndexPrefix(String actualName) {
+        String prefix = properties.getIndexPrefix();
+        if (prefix != null && !prefix.isEmpty()) {
+            String full = prefix + "_";
+            if (actualName.startsWith(full)) {
+                return actualName.substring(full.length());
+            }
+        }
+        return actualName;
     }
 
     private Query buildSearchQuery(SearchQuery query) {

@@ -1,6 +1,7 @@
 package io.nebula.autoconfigure.ai;
 
 import io.nebula.ai.core.chat.ChatService;
+import io.nebula.ai.core.embedding.EmbeddingService;
 import io.nebula.ai.core.vectorstore.VectorStoreService;
 import io.nebula.ai.rag.chunking.TextChunker;
 import io.nebula.ai.rag.config.RagProperties;
@@ -20,13 +21,27 @@ import io.nebula.ai.rag.chunking.parse.JsonlStructureParser;
 import io.nebula.ai.rag.chunking.parse.MarkdownStructureParser;
 import io.nebula.ai.rag.chunking.parse.StructureParser;
 import io.nebula.ai.rag.chunking.parse.XmlStructureParser;
+import io.nebula.ai.rag.index.CollectionSwitcher;
 import io.nebula.ai.rag.index.DocumentSource;
 import io.nebula.ai.rag.index.IndexPlanner;
 import io.nebula.ai.rag.index.IndexSink;
 import io.nebula.ai.rag.index.IndexStateRepository;
+import io.nebula.ai.rag.index.IndexTargetFactory;
 import io.nebula.ai.rag.index.IndexingPipeline;
+import io.nebula.ai.rag.index.InMemoryIndexStateRepository;
+import io.nebula.ai.rag.index.ReindexPipeline;
+import io.nebula.ai.rag.index.ReindexTarget;
+import io.nebula.ai.rag.index.SearchServiceCollectionSwitcher;
 import io.nebula.ai.rag.index.SearchServiceIndexSink;
+import io.nebula.ai.rag.index.SearchServiceIndexTargetFactory;
 import io.nebula.ai.rag.index.VectorStoreIndexSink;
+import io.nebula.ai.spring.config.AIProperties;
+import io.nebula.ai.spring.config.VectorStoreProperties;
+import io.nebula.ai.spring.vectorstore.QdrantCollectionSwitcher;
+import io.nebula.ai.spring.vectorstore.QdrantIndexTargetFactory;
+import io.qdrant.client.QdrantClient;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.vectorstore.qdrant.QdrantVectorStore;
 import io.nebula.ai.rag.rerank.NoopReranker;
 import io.nebula.ai.rag.rerank.Reranker;
 import io.nebula.ai.rag.retriever.Retriever;
@@ -399,6 +414,56 @@ public class RagAutoConfiguration {
     }
 
     /**
+     * 状态库缺席快速失败守卫（R3 §7，补强 R2 的「静默不装配」）
+     * <p>
+     * 启用 {@code nebula.ai.rag.indexing} 并提供了 {@link DocumentSource}，却没有持久化
+     * {@link IndexStateRepository} 时启动快速失败，指向真实原因而非藏到运行期的「找不到 Bean」。
+     * <p>
+     * 四态：
+     * <ul>
+     *   <li>有持久化状态库 → 正常放行；</li>
+     *   <li>缺状态库 + {@code fail-fast-without-state-repository=true}（默认）→ 构造即抛，启动失败；</li>
+     *   <li>缺状态库 + 检查关闭 → warn 一次放行（仅一次性任务）；</li>
+     *   <li>状态库是 {@link InMemoryIndexStateRepository}（用户明示选择）→ 不失败，但 warn 其重启即失忆的局限。</li>
+     * </ul>
+     * 无 {@link DocumentSource} 时不构造本守卫（没有源就没有增量任务，无需状态库）。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "nebula.ai.rag.indexing", name = "enabled", havingValue = "true")
+    static class IndexingStateGuardConfiguration {
+
+        @Bean
+        @ConditionalOnBean(DocumentSource.class)
+        IndexStateRepositoryGuard indexStateRepositoryGuard(
+                ObjectProvider<IndexStateRepository> stateRepositories, RagProperties properties) {
+            IndexStateRepository repository = stateRepositories.getIfAvailable();
+            boolean failFast = properties.getIndexing().isFailFastWithoutStateRepository();
+            if (repository == null) {
+                if (failFast) {
+                    throw new IllegalStateException(
+                            "已启用 nebula.ai.rag.indexing 并提供了 DocumentSource, 但容器内没有 "
+                                    + "IndexStateRepository。持续增量与删除对齐依赖持久化状态; 请提供实现, "
+                                    + "或仅用于一次性任务时显式声明 InMemoryIndexStateRepository Bean(重启即失忆), "
+                                    + "或置 nebula.ai.rag.indexing.fail-fast-without-state-repository=false 关闭本检查");
+                }
+                log.warn("nebula.ai.rag.indexing 已启用且有 DocumentSource, 但缺 IndexStateRepository; "
+                        + "fail-fast-without-state-repository=false 已关闭启动检查, 增量与删除对齐将不可用");
+            } else if (repository instanceof InMemoryIndexStateRepository) {
+                log.warn("索引状态库是 InMemoryIndexStateRepository: 重启即失忆, 无法支撑删除对齐; "
+                        + "仅适用于测试与一次性任务, 持续增量请换持久化实现");
+            }
+            return new IndexStateRepositoryGuard();
+        }
+    }
+
+    /**
+     * 状态库守卫标记 Bean：其存在与否本身没有语义，语义在
+     * {@link IndexingStateGuardConfiguration#indexStateRepositoryGuard} 的构造校验里。
+     */
+    static final class IndexStateRepositoryGuard {
+    }
+
+    /**
      * {@code nebula.ai.rag.indexing.search-index-name} 非空才成立（同 §3.3 的空串区分问题）
      */
     static class IndexingSearchIndexNamePresentCondition
@@ -410,6 +475,204 @@ public class RagAutoConfiguration {
             String indexName = context.getEnvironment()
                     .getProperty("nebula.ai.rag.indexing.search-index-name");
             return indexName != null && !indexName.isBlank();
+        }
+    }
+
+    // ==================================================================
+    // R3：版本化重灌与蓝绿切换装配（详细设计 §3.3、§4、§7）
+    // ==================================================================
+
+    /**
+     * 重灌装配（R3）：{@code nebula.ai.rag.indexing.reindex.enabled=true} 且至少一个别名键非空才激活。
+     * <p>
+     * 向量侧目标需 classpath 有 Qdrant 类 + {@code vector-alias} 非空 + 容器有 {@link QdrantClient} 等 Bean；
+     * BM25 侧目标需 classpath 有 {@link SearchService} 类 + {@code search-alias} 非空 + 容器有
+     * {@link SearchService} Bean。{@link ReindexPipeline} 需容器有 {@link DocumentSource} 与
+     * {@link IndexStateRepository}，并按 {@code switch-order} 排序目标。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "nebula.ai.rag.indexing.reindex", name = "enabled",
+            havingValue = "true")
+    @Conditional(ReindexAliasPresentCondition.class)
+    static class ReindexConfiguration {
+
+        /**
+         * 向量侧重灌目标：Qdrant 集合切换器 + 写目标工厂
+         */
+        @Configuration(proxyBeanMethods = false)
+        @ConditionalOnClass(QdrantVectorStore.class)
+        @Conditional(VectorAliasPresentCondition.class)
+        static class VectorReindexConfiguration {
+
+            @Bean
+            @ConditionalOnBean({ QdrantClient.class, EmbeddingModel.class, EmbeddingService.class })
+            @ConditionalOnMissingBean(name = "reindexVectorTarget")
+            ReindexTarget reindexVectorTarget(QdrantClient nebulaQdrantClient,
+                                              EmbeddingModel embeddingModel,
+                                              EmbeddingService embeddingService,
+                                              ObjectProvider<VectorStoreProperties> vectorStoreProperties,
+                                              ObjectProvider<AIProperties> aiProperties,
+                                              RagProperties ragProperties) {
+                RagProperties.Indexing.Reindex reindex = ragProperties.getIndexing().getReindex();
+                boolean idMappingEnabled = false;
+                String namespaceName = null;
+                String originalDocIdField = null;
+                long timeoutSeconds = 30;
+                AIProperties ai = aiProperties.getIfAvailable();
+                if (ai != null) {
+                    AIProperties.QdrantProperties qdrant = ai.getVectorStore().getQdrant();
+                    AIProperties.QdrantProperties.IdMapping idMapping = qdrant.getIdMapping();
+                    idMappingEnabled = idMapping.isEnabled();
+                    namespaceName = idMapping.getNamespaceName();
+                    originalDocIdField = idMapping.getOriginalDocIdField();
+                    timeoutSeconds = qdrant.getTimeoutSeconds();
+                }
+                CollectionSwitcher switcher = new QdrantCollectionSwitcher(nebulaQdrantClient,
+                        reindex.getVectorAlias(), reindex.getVectorDimension(),
+                        reindex.getVectorDistance(), timeoutSeconds);
+                IndexTargetFactory factory = new QdrantIndexTargetFactory(nebulaQdrantClient,
+                        embeddingModel, embeddingService, vectorStoreProperties.getIfAvailable(),
+                        idMappingEnabled, namespaceName, originalDocIdField);
+                log.info("配置 Nebula 重灌向量目标 - 别名: {}, 维度: {}, 距离: {}",
+                        reindex.getVectorAlias(), reindex.getVectorDimension(),
+                        reindex.getVectorDistance());
+                return new ReindexTarget(switcher, factory, reindex.getVectorAlias());
+            }
+        }
+
+        /**
+         * BM25 侧重灌目标：SearchService 索引切换器 + 写目标工厂
+         */
+        @Configuration(proxyBeanMethods = false)
+        @ConditionalOnClass(SearchService.class)
+        @Conditional(SearchAliasPresentCondition.class)
+        static class SearchReindexConfiguration {
+
+            @Bean
+            @ConditionalOnBean(SearchService.class)
+            @ConditionalOnMissingBean(name = "reindexSearchTarget")
+            ReindexTarget reindexSearchTarget(SearchService searchService,
+                                              RagProperties ragProperties) {
+                RagProperties.Indexing.Reindex reindex = ragProperties.getIndexing().getReindex();
+                RagProperties.Search search = ragProperties.getSearch();
+                CollectionSwitcher switcher = new SearchServiceCollectionSwitcher(searchService,
+                        reindex.getSearchAlias(), search.getAnalyzer(), search.getSearchAnalyzer());
+                IndexTargetFactory factory = new SearchServiceIndexTargetFactory(searchService,
+                        search.getAnalyzer(), search.getSearchAnalyzer());
+                log.info("配置 Nebula 重灌 BM25 目标 - 别名: {}", reindex.getSearchAlias());
+                return new ReindexTarget(switcher, factory, reindex.getSearchAlias());
+            }
+        }
+
+        /**
+         * 重灌管线：按 {@code switch-order} 排序目标后组装。
+         * <p>
+         * {@code reindex.enabled=true} 且配了别名却没有任何可用切换目标（缺 Qdrant/SearchService
+         * 的 Bean 或类）时启动快速失败 —— 显式配置却不可满足不能静默跳过。
+         */
+        @Bean
+        @ConditionalOnBean({ DocumentSource.class, IndexStateRepository.class })
+        @ConditionalOnMissingBean(ReindexPipeline.class)
+        ReindexPipeline reindexPipeline(DocumentSource source,
+                                        ObjectProvider<ReindexTarget> targetProvider,
+                                        IndexStateRepository stateRepository,
+                                        ObjectProvider<IndexPlanner> plannerProvider,
+                                        ObjectProvider<StructureParser> parserProvider,
+                                        RagProperties properties) {
+            RagProperties.Indexing.Reindex reindex = properties.getIndexing().getReindex();
+            List<ReindexTarget> targets = orderBySwitchOrder(
+                    targetProvider.orderedStream().toList(), reindex.getSwitchOrder());
+            if (targets.isEmpty()) {
+                throw new IllegalStateException(
+                        "nebula.ai.rag.indexing.reindex.enabled=true 且配置了别名, 但容器内没有可用的重灌切换目标; "
+                                + "请确认: vector-alias 对应的 Qdrant(客户端 Bean 与 QdrantVectorStore 类)可用, "
+                                + "或 search-alias 对应的 SearchService(Bean 与类)可用");
+            }
+            List<StructureParser> parsers = parserProvider.orderedStream().toList();
+            if (parsers.isEmpty()) {
+                parsers = List.of(new MarkdownStructureParser(), new JsonStructureParser(),
+                        new JsonlStructureParser(), new XmlStructureParser());
+            }
+            IndexPlanner planner = plannerProvider.getIfAvailable(IndexPlanner::new);
+            RagProperties.Chunking chunking = properties.getChunking();
+            PackOptions packOptions = new PackOptions();
+            packOptions.setMaxChunkSize(chunking.getSize());
+            packOptions.setOverlap(chunking.getOverlap());
+            packOptions.setCodeSummaryToContent(chunking.isCodeSummary());
+            log.info("配置 Nebula ReindexPipeline - 切换目标: {}, switch-order: {}, keep-generations: {}",
+                    targets.stream().map(ReindexTarget::name).toList(), reindex.getSwitchOrder(),
+                    reindex.getKeepGenerations());
+            return new ReindexPipeline(source, targets, stateRepository, planner, parsers, packOptions,
+                    reindex.getKeepGenerations());
+        }
+
+        /**
+         * 按 {@code switch-order} 排序目标：{@code search-first} 时 BM25（search-service）在前，
+         * 向量（vector-store）在后；{@code vector-first} 反之。R3 §4.3 默认 search-first。
+         */
+        private static List<ReindexTarget> orderBySwitchOrder(List<ReindexTarget> targets,
+                                                              String switchOrder) {
+            boolean vectorFirst = "vector-first".equalsIgnoreCase(
+                    switchOrder == null ? "" : switchOrder.trim());
+            List<ReindexTarget> ordered = new java.util.ArrayList<>(targets);
+            ordered.sort(java.util.Comparator.comparingInt(t -> weight(t.name(), vectorFirst)));
+            return ordered;
+        }
+
+        private static int weight(String name, boolean vectorFirst) {
+            boolean isVector = VectorStoreIndexSink.NAME.equals(name);
+            if (vectorFirst) {
+                return isVector ? 0 : 1;
+            }
+            return isVector ? 1 : 0;
+        }
+    }
+
+    /**
+     * {@code reindex.vector-alias} 或 {@code reindex.search-alias} 至少一个非空才成立
+     */
+    static class ReindexAliasPresentCondition
+            implements org.springframework.context.annotation.Condition {
+
+        @Override
+        public boolean matches(org.springframework.context.annotation.ConditionContext context,
+                               org.springframework.core.type.AnnotatedTypeMetadata metadata) {
+            return isPresent(context, "nebula.ai.rag.indexing.reindex.vector-alias")
+                    || isPresent(context, "nebula.ai.rag.indexing.reindex.search-alias");
+        }
+
+        static boolean isPresent(org.springframework.context.annotation.ConditionContext context,
+                                 String key) {
+            String value = context.getEnvironment().getProperty(key);
+            return value != null && !value.isBlank();
+        }
+    }
+
+    /**
+     * {@code reindex.vector-alias} 非空才成立
+     */
+    static class VectorAliasPresentCondition
+            implements org.springframework.context.annotation.Condition {
+
+        @Override
+        public boolean matches(org.springframework.context.annotation.ConditionContext context,
+                               org.springframework.core.type.AnnotatedTypeMetadata metadata) {
+            return ReindexAliasPresentCondition.isPresent(context,
+                    "nebula.ai.rag.indexing.reindex.vector-alias");
+        }
+    }
+
+    /**
+     * {@code reindex.search-alias} 非空才成立
+     */
+    static class SearchAliasPresentCondition
+            implements org.springframework.context.annotation.Condition {
+
+        @Override
+        public boolean matches(org.springframework.context.annotation.ConditionContext context,
+                               org.springframework.core.type.AnnotatedTypeMetadata metadata) {
+            return ReindexAliasPresentCondition.isPresent(context,
+                    "nebula.ai.rag.indexing.reindex.search-alias");
         }
     }
 }

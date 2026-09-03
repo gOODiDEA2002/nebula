@@ -439,6 +439,21 @@ public class RagProperties {
          */
         private String searchIndexName = "";
 
+        /**
+         * 启用索引治理并提供了 {@code DocumentSource}，却没有持久化 {@code IndexStateRepository}
+         * 时是否启动快速失败（R3 §7，默认 true）
+         * <p>
+         * 持续增量与删除对齐依赖持久化状态；缺状态库时静默不装配会把配置事故藏到运行期。
+         * 显式声明 {@code InMemoryIndexStateRepository} 的用户不触发本检查（那是明示选择），
+         * 但装配时 warn 一次说明其重启即失忆的局限。仅一次性任务可置 false 关闭本检查。
+         */
+        private boolean failFastWithoutStateRepository = true;
+
+        /**
+         * 版本化重灌与蓝绿切换配置（R3）
+         */
+        private Reindex reindex = new Reindex();
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -453,6 +468,124 @@ public class RagProperties {
 
         public void setSearchIndexName(String searchIndexName) {
             this.searchIndexName = searchIndexName;
+        }
+
+        public boolean isFailFastWithoutStateRepository() {
+            return failFastWithoutStateRepository;
+        }
+
+        public void setFailFastWithoutStateRepository(boolean failFastWithoutStateRepository) {
+            this.failFastWithoutStateRepository = failFastWithoutStateRepository;
+        }
+
+        public Reindex getReindex() {
+            return reindex;
+        }
+
+        public void setReindex(Reindex reindex) {
+            this.reindex = reindex;
+        }
+
+        /**
+         * 版本化重灌与蓝绿切换配置（R3 §5，全部默认关）
+         * <p>
+         * {@code enabled=false} 时不装配任何 {@code CollectionSwitcher} 与重灌管线，默认行为不变。
+         * 别名键为空的一侧不参与切换；两侧别名均空时重灌无目标可切。
+         */
+        public static class Reindex {
+
+            /**
+             * 是否启用版本化重灌装配；默认 false（不装配任何切换器与重灌管线）
+             */
+            private boolean enabled = false;
+
+            /**
+             * 向量集合别名；空表示向量侧不参与切换
+             */
+            private String vectorAlias = "";
+
+            /**
+             * 新建向量集合的维度；必须 {@code > 0} 才允许 {@code prepare} 建集合
+             * <p>
+             * 不从旧集合推断：重灌的典型动因就是换模型换维度，抄旧维度正好抄错。
+             */
+            private int vectorDimension = 0;
+
+            /**
+             * 新建向量集合的距离度量：{@code cosine} | {@code dot} | {@code euclid}
+             */
+            private String vectorDistance = "cosine";
+
+            /**
+             * BM25 索引别名；空表示 BM25 侧不参与切换
+             */
+            private String searchAlias = "";
+
+            /**
+             * 跨后端切换顺序：{@code search-first} | {@code vector-first}
+             */
+            private String switchOrder = "search-first";
+
+            /**
+             * 保留的历史代际数；{@code 0} = 切换后立即清理更旧代际
+             */
+            private int keepGenerations = 2;
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public String getVectorAlias() {
+                return vectorAlias;
+            }
+
+            public void setVectorAlias(String vectorAlias) {
+                this.vectorAlias = vectorAlias;
+            }
+
+            public int getVectorDimension() {
+                return vectorDimension;
+            }
+
+            public void setVectorDimension(int vectorDimension) {
+                this.vectorDimension = vectorDimension;
+            }
+
+            public String getVectorDistance() {
+                return vectorDistance;
+            }
+
+            public void setVectorDistance(String vectorDistance) {
+                this.vectorDistance = vectorDistance;
+            }
+
+            public String getSearchAlias() {
+                return searchAlias;
+            }
+
+            public void setSearchAlias(String searchAlias) {
+                this.searchAlias = searchAlias;
+            }
+
+            public String getSwitchOrder() {
+                return switchOrder;
+            }
+
+            public void setSwitchOrder(String switchOrder) {
+                this.switchOrder = switchOrder;
+            }
+
+            public int getKeepGenerations() {
+                return keepGenerations;
+            }
+
+            public void setKeepGenerations(int keepGenerations) {
+                this.keepGenerations = keepGenerations;
+            }
         }
     }
 

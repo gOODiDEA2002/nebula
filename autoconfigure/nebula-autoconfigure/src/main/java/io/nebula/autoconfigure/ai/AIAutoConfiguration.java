@@ -14,7 +14,7 @@ import io.nebula.ai.spring.embedding.SpringAIEmbeddingService;
 import io.nebula.ai.spring.mcp.SpringAIMcpServerService;
 import io.nebula.ai.spring.mcp.SpringAIMcpClientService;
 import io.nebula.ai.spring.vectorstore.QdrantIdMappingVectorStore;
-import io.nebula.ai.spring.vectorstore.QdrantPointIdMapper;
+import io.nebula.ai.spring.vectorstore.QdrantVectorStoreFactory;
 import io.nebula.ai.spring.vectorstore.SpringAIVectorStoreService;
 
 import io.qdrant.client.QdrantClient;
@@ -228,24 +228,11 @@ public class AIAutoConfiguration {
                 .initializeSchema(qdrantConfig.isInitializeSchema())
                 .build();
 
+        // id-mapping 装饰规则的单一出处，与 QdrantIndexTargetFactory 共用（R3 §4.2），
+        // 避免新旧代际 ID 形态不一致
         AIProperties.QdrantProperties.IdMapping idMapping = qdrantConfig.getIdMapping();
-        if (!idMapping.isEnabled()) {
-            return qdrantVectorStore;
-        }
-
-        // 命名空间缺失时直接启动失败：错配会产生一个全新的命名空间，
-        // 表现为写入成功、全库检索永远为空，比启动不来难查得多
-        if (idMapping.getNamespaceName() == null || idMapping.getNamespaceName().isBlank()) {
-            throw new IllegalStateException(
-                    "nebula.ai.vector-store.qdrant.id-mapping.enabled=true 时必须配置 "
-                            + "nebula.ai.vector-store.qdrant.id-mapping.namespace-name; "
-                            + "命名空间决定全库点 ID, 缺失或改动会让已灌入的数据全部检索不到");
-        }
-        QdrantPointIdMapper pointIdMapper = new QdrantPointIdMapper(idMapping.getNamespaceName());
-        log.info("Qdrant 点 ID 映射已启用, namespaceName={}, namespace={}, payload 字段={}",
-                pointIdMapper.getNamespaceName(), pointIdMapper.getNamespace(),
-                idMapping.getOriginalDocIdField());
-        return new QdrantIdMappingVectorStore(qdrantVectorStore, pointIdMapper,
+        return QdrantVectorStoreFactory.decorateWithIdMapping(qdrantVectorStore,
+                idMapping.isEnabled(), idMapping.getNamespaceName(),
                 idMapping.getOriginalDocIdField());
     }
 
