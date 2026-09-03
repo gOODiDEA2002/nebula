@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.nebula-projects</groupId>
+        <artifactId>nebula-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <groupId>com.nebula-projects.examples</groupId>
+    <artifactId>rag-example</artifactId>
+    <name>Nebula RAG Example</name>
+    <description>RAG example demonstrating nebula-ai-rag: load documents to Q&amp;A</description>
+
+    <dependencies>
+        <!-- AI 启动器：提供 ChatModel / EmbeddingModel / VectorStore / ChatService 等 -->
+        <dependency>
+            <groupId>com.nebula-projects</groupId>
+            <artifactId>nebula-starter-ai</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- 显式引入 RAG 能力：这正是「依赖决定能力」的演示点 -->
+        <dependency>
+            <groupId>com.nebula-projects</groupId>
+            <artifactId>nebula-ai-rag</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <!-- Web：Spring MVC 据此把 Flux 返回值按 SSE 流出，无需 webflux -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- Actuator：暴露 /actuator/metrics，演示 R4 Micrometer 指标 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -485,7 +485,7 @@ perform_request() {
 
     HTTP_REQUEST_COUNT=$((HTTP_REQUEST_COUNT + 1))
     HTTP_BODY_FILE="$E2E_CASE_DIR/http-$(printf '%04d' "$HTTP_REQUEST_COUNT").body"
-    curl_args=(--silent --show-error --noproxy '*' --connect-timeout 5 --max-time 30
+    curl_args=(--silent --show-error --noproxy '*' --connect-timeout 5 --max-time "${E2E_HTTP_MAX_TIME:-30}"
         -X "$method" -o "$HTTP_BODY_FILE" -w '%{http_code}')
 
     if [ -n "$data" ]; then

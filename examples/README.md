@@ -73,6 +73,9 @@ mvn -q -f examples/fullstack-example spring-boot:run
 # OAuth 示例（需 MySQL）
 mvn -q -f examples/oauth-example/backend spring-boot:run   # 后端
 cd examples/oauth-example/frontend && npm ci && npm run dev  # 前端，端口 4010
+
+# RAG 检索问答（端口 8087，需 Chroma + AI 兼容端点，默认关闭；设置 AI_ENABLED=true 启用）
+mvn -q -f examples/rag-example spring-boot:run
 ```
 
 ## 示例对照表
@@ -91,6 +94,7 @@ cd examples/oauth-example/frontend && npm ci && npm run dev  # 前端，端口 4
 | fullstack-example | `nebula-starter-all` | MySQL + Redis + RabbitMQ + Nacos | 全模块综合 |
 | crawler-example | `nebula-crawler-http` + `nebula-crawler-browser` | Playwright Server | 静态与 JS 页面抓取 |
 | websocket-example | `nebula-websocket-spring` | Node.js、Chrome | 实时通信与浏览器流程 |
+| rag-example | `nebula-starter-ai` + `nebula-ai-rag` | Chroma + AI 兼容端点 | RAG 加载文档到问答全链路 |
 | oauth-example | `nebula-starter-web` | MySQL | OAuth 2.0 |
 
 ## 编译

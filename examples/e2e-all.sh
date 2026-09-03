@@ -41,6 +41,7 @@ EXAMPLE_NAMES=(
     fullstack-example
     crawler-example
     websocket-example
+    rag-example
     oauth-example
 )
 
@@ -57,6 +58,7 @@ EXAMPLE_SCRIPTS=(
     "$SCRIPT_DIR/fullstack-example/e2e-test.sh"
     "$SCRIPT_DIR/crawler-example/e2e-test.sh"
     "$SCRIPT_DIR/websocket-example/e2e-test.sh"
+    "$SCRIPT_DIR/rag-example/e2e-test.sh"
     "$SCRIPT_DIR/oauth-example/e2e-test.sh"
 )
 

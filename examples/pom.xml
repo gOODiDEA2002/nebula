@@ -33,6 +33,7 @@
         <module>oauth-example/backend</module>
         <module>crawler-example</module>
         <module>websocket-example/backend</module>
+        <module>rag-example</module>
     </modules>
 
     <properties>

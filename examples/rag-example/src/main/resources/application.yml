@@ -1,0 +1,75 @@
+server:
+  port: ${SERVER_PORT:8087}
+
+spring:
+  application:
+    name: rag-example
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+
+nebula:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:rag-example-jwt-secret-key-for-demo-only-32}
+  data:
+    cache:
+      enabled: false
+  ai:
+    enabled: ${AI_ENABLED:false}
+    openai:
+      api-key: ${vocoor_hy3_token:${OPENAI_API_KEY:}}
+      base-url: ${OPENAI_BASE_URL:https://tokenhub.tencentmaas.com/v1}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:hy3}
+          temperature: 0.1
+          # Hy3 是推理模型，思考 token 也计入 max-tokens；256 会被推理耗尽而正文为空（finish_reason=length）
+          max-tokens: ${OPENAI_MAX_TOKENS:2048}
+          max-retries: ${OPENAI_MAX_RETRIES:0}
+      embedding:
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:kinfra-text-embedding-0.6b}
+    vector-store:
+      default-provider: chroma
+      chroma:
+        host: ${CHROMA_HOST:localhost}
+        port: ${CHROMA_PORT:9002}
+        collection-name: ${CHROMA_COLLECTION:rag_example}
+        initialize-schema: true
+    rag:
+      enabled: ${AI_ENABLED:false}
+      retrieval:
+        top-k: 5
+      fusion:
+        rrf-k: ${RRF_K:60}
+      chunking:
+        size: ${CHUNK_SIZE:500}
+        overlap: ${CHUNK_OVERLAP:100}
+      indexing:
+        enabled: true
+      guard:
+        sanitizer:
+          enabled: ${SANITIZER_ENABLED:true}
+          mode: ${SANITIZER_MODE:replace}
+      streaming:
+        enabled: true
+      metrics:
+        enabled: true
+      generation:
+        timeout-ms: 60000
+      # 重排：默认 NoopReranker（只截断不排序）。接 TEI/Cohere 时取消下面注释填真实地址；
+      # 不要写成 ${RERANK_HTTP_URL:} 空占位——@ConditionalOnProperty(name="url") 对空串也判「存在」，
+      # 会装配出指向空地址的 HTTP 重排器并每次刷 warn（见 README 与设计 §12 F-1）。
+      # rerank:
+      #   http:
+      #     url: http://localhost:8080/rerank
+      #     wire-format: tei
+
+rag-demo:
+  vector-weight: ${VECTOR_WEIGHT:0.6}
+  keyword-weight: ${KEYWORD_WEIGHT:0.4}
+  state-file: ${RAG_STATE_FILE:target/rag-example-state.json}
