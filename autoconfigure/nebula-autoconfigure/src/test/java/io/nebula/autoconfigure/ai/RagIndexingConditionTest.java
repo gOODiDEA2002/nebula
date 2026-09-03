@@ -10,10 +10,13 @@ import io.nebula.ai.rag.index.IndexPlanner;
 import io.nebula.ai.rag.index.IndexStateRepository;
 import io.nebula.ai.rag.index.IndexingPipeline;
 import io.nebula.ai.rag.index.SourceDocument;
+import io.nebula.ai.rag.index.SearchServiceIndexSink;
 import io.nebula.ai.rag.index.VectorStoreIndexSink;
+import io.nebula.search.core.SearchService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -65,6 +68,23 @@ class RagIndexingConditionTest {
                 .run(ctx -> {
                     assertThat(ctx).hasSingleBean(IndexingPipeline.class);
                     assertThat(ctx).hasSingleBean(VectorStoreIndexSink.class);
+                });
+    }
+
+    /**
+     * 回归守护：nebula-search-core 为可选依赖，消费方缺 SearchService 类时
+     * IndexingConfiguration 仍须可内省、可装配（rag-example 首次 E2E 暴露的缺陷）。
+     */
+    @Test
+    void indexingEnabledWithoutSearchCoreOnClasspath_stillBuildsPipeline() {
+        runner.withClassLoader(new FilteredClassLoader(SearchService.class))
+                .withPropertyValues("nebula.ai.rag.indexing.enabled=true")
+                .withUserConfiguration(IndexingBeans.class)
+                .run(ctx -> {
+                    assertThat(ctx).hasNotFailed();
+                    assertThat(ctx).hasSingleBean(IndexingPipeline.class);
+                    assertThat(ctx).hasSingleBean(VectorStoreIndexSink.class);
+                    assertThat(ctx).doesNotHaveBean(SearchServiceIndexSink.class);
                 });
     }
 

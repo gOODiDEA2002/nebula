@@ -99,7 +99,10 @@ import java.util.regex.Pattern;
  * @author Nebula Framework
  * @since 2.1.1
  */
-@AutoConfiguration(after = AIAutoConfiguration.class)
+// afterName 以字符串声明：micrometer 为可选依赖，且自动配置排序先按类名字母序（io.nebula 早于 org.springframework），
+// 不声明则 MetricsConfiguration 的 @ConditionalOnBean(MeterRegistry) 会在 Boot 注册 MeterRegistry 之前求值而静默退化为 Noop
+@AutoConfiguration(after = AIAutoConfiguration.class,
+        afterName = "org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration")
 @ConditionalOnClass({ RagPipeline.class, Retriever.class })
 @ConditionalOnProperty(prefix = "nebula.ai.rag", name = "enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(RagProperties.class)
@@ -536,18 +539,29 @@ public class RagAutoConfiguration {
             return new VectorStoreIndexSink(vectorStoreService);
         }
 
-        @Bean
+        /**
+         * SearchService 写目标（nebula-search-core 为可选依赖）。
+         * <p>
+         * 必须放在独立的嵌套配置类中并以类级 {@code @ConditionalOnClass} 守护：
+         * 方法级 {@code @ConditionalOnClass} 无法阻止 Spring 对外层类做方法签名内省，
+         * 缺类时会以 {@code NoClassDefFoundError} 直接击穿整个 IndexingConfiguration。
+         */
+        @Configuration(proxyBeanMethods = false)
         @ConditionalOnClass(SearchService.class)
-        @ConditionalOnBean(SearchService.class)
-        @ConditionalOnMissingBean(SearchServiceIndexSink.class)
-        @Conditional(IndexingSearchIndexNamePresentCondition.class)
-        SearchServiceIndexSink searchServiceIndexSink(SearchService searchService,
-                                                      RagProperties properties) {
-            RagProperties.Indexing indexing = properties.getIndexing();
-            RagProperties.Search search = properties.getSearch();
-            log.info("配置 Nebula SearchServiceIndexSink - 索引: {}", indexing.getSearchIndexName());
-            return new SearchServiceIndexSink(searchService, indexing.getSearchIndexName(),
-                    search.getAnalyzer(), search.getSearchAnalyzer());
+        static class SearchIndexSinkConfiguration {
+
+            @Bean
+            @ConditionalOnBean(SearchService.class)
+            @ConditionalOnMissingBean(SearchServiceIndexSink.class)
+            @Conditional(IndexingSearchIndexNamePresentCondition.class)
+            SearchServiceIndexSink searchServiceIndexSink(SearchService searchService,
+                                                          RagProperties properties) {
+                RagProperties.Indexing indexing = properties.getIndexing();
+                RagProperties.Search search = properties.getSearch();
+                log.info("配置 Nebula SearchServiceIndexSink - 索引: {}", indexing.getSearchIndexName());
+                return new SearchServiceIndexSink(searchService, indexing.getSearchIndexName(),
+                        search.getAnalyzer(), search.getSearchAnalyzer());
+            }
         }
 
         @Bean

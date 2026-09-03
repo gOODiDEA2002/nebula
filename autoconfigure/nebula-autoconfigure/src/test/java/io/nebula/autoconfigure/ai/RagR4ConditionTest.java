@@ -20,6 +20,9 @@ import io.nebula.ai.rag.retriever.Retriever;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration;
+import org.springframework.boot.micrometer.metrics.autoconfigure.MetricsAutoConfiguration;
+import org.springframework.boot.micrometer.metrics.autoconfigure.export.simple.SimpleMetricsExportAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -179,6 +182,27 @@ class RagR4ConditionTest {
                 .withPropertyValues("nebula.ai.rag.metrics.enabled=true")
                 .run(ctx -> assertThat(ctx.getBean(RagMetrics.class))
                         .isInstanceOf(MicrometerRagMetrics.class));
+    }
+
+    /**
+     * 回归守护：真实应用里 MeterRegistry 由 Boot 的 CompositeMeterRegistryAutoConfiguration 提供，
+     * 自动配置排序先按类名字母序（io.nebula 排在 org.springframework 之前），
+     * 若不显式声明 afterName，{@code @ConditionalOnBean(MeterRegistry)} 求值时 Bean 尚未注册，
+     * 指标会静默退化为 Noop（rag-example 首次 E2E 暴露的缺陷）。
+     */
+    @Test
+    void metricsEnabledWithBootMeterRegistryAutoConfiguration_isMicrometer() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(RagAutoConfiguration.class,
+                        MetricsAutoConfiguration.class, SimpleMetricsExportAutoConfiguration.class,
+                        CompositeMeterRegistryAutoConfiguration.class))
+                .withUserConfiguration(BaseServices.class)
+                .withPropertyValues("nebula.ai.rag.enabled=true", "nebula.ai.rag.metrics.enabled=true")
+                .run(ctx -> {
+                    assertThat(ctx).hasNotFailed();
+                    assertThat(ctx).hasSingleBean(MeterRegistry.class);
+                    assertThat(ctx.getBean(RagMetrics.class)).isInstanceOf(MicrometerRagMetrics.class);
+                });
     }
 
     @Test
