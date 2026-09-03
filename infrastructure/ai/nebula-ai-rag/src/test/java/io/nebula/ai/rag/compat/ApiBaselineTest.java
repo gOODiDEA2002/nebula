@@ -5,18 +5,27 @@ import io.nebula.ai.rag.chunking.TextChunker;
 import io.nebula.ai.rag.config.RagProperties;
 import io.nebula.ai.rag.fusion.FusionStrategy;
 import io.nebula.ai.rag.fusion.RrfFusionStrategy;
+import io.nebula.ai.rag.guard.RetrievedContentSanitizer;
+import io.nebula.ai.rag.metrics.RagMetrics;
 import io.nebula.ai.rag.pipeline.AnswerGenerator;
+import io.nebula.ai.rag.pipeline.CitationPostProcessor;
 import io.nebula.ai.rag.pipeline.ContextAssembler;
+import io.nebula.ai.rag.pipeline.ContextAssembly;
 import io.nebula.ai.rag.pipeline.DefaultRagPipeline;
 import io.nebula.ai.rag.pipeline.HybridRetrievalEngine;
 import io.nebula.ai.rag.pipeline.RagAnswer;
 import io.nebula.ai.rag.pipeline.RagPipeline;
 import io.nebula.ai.rag.pipeline.RagPromptRenderer;
 import io.nebula.ai.rag.pipeline.RagQuery;
+import io.nebula.ai.rag.pipeline.RagStreamEvent;
+import io.nebula.ai.rag.pipeline.StreamingAnswerGenerator;
 import io.nebula.ai.rag.rerank.Reranker;
 import io.nebula.ai.rag.retriever.RetrievalResult;
 import io.nebula.ai.rag.retriever.Retriever;
 import io.nebula.ai.rag.retriever.VectorStoreRetriever;
+import io.nebula.ai.rag.transform.QueryTransformer;
+
+import reactor.core.publisher.Flux;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -512,6 +521,71 @@ class ApiBaselineTest {
             assertThat(FusionStrategy.class.getPackageName()).isEqualTo("io.nebula.ai.rag.fusion");
             assertThat(TextChunker.class.getPackageName()).isEqualTo("io.nebula.ai.rag.chunking");
             assertThat(RagProperties.class.getPackageName()).isEqualTo("io.nebula.ai.rag.config");
+        }
+
+        @Test
+        @DisplayName("R4 增量: 流式 default 方法 + 11 参构造 + 三个 SAM 协作者 + 富上下文 + 常量(§3-§7)")
+        void r4Additions_areComplete() {
+            // 1) RagPipeline.queryStream 保持 default: 下游旧实现不实现它仍可编译
+            Method queryStream = assertPublicMethod(RagPipeline.class, "queryStream",
+                    Flux.class, RagQuery.class);
+            assertThat(queryStream.isDefault())
+                    .as("RagPipeline#queryStream 必须保持 default " + HINT)
+                    .isTrue();
+
+            // 2) DefaultRagPipeline 11 参构造(P6/P7 全量协作者注入), 旧的 6/7 参构造仍在
+            assertPublicConstructor(DefaultRagPipeline.class,
+                    HybridRetrievalEngine.class, Reranker.class, ContextAssembler.class,
+                    RagPromptRenderer.class, AnswerGenerator.class, RagProperties.class,
+                    QueryTransformer.class, RetrievedContentSanitizer.class,
+                    CitationPostProcessor.class, StreamingAnswerGenerator.class, RagMetrics.class);
+            assertPublicConstructor(DefaultRagPipeline.class,
+                    HybridRetrievalEngine.class, Reranker.class, ContextAssembler.class,
+                    RagPromptRenderer.class, AnswerGenerator.class, RagProperties.class);
+
+            // 3) ContextAssembler.assembleDetailed 暴露富上下文(引用后处理依赖它)
+            assertPublicMethod(ContextAssembler.class, "assembleDetailed",
+                    ContextAssembly.class, List.class);
+
+            // 4) 三个新增协作者保持单抽象方法: 装配与测试都用 lambda 实现
+            assertSingleAbstractMethod(RetrievedContentSanitizer.class);
+            assertSingleAbstractMethod(CitationPostProcessor.class);
+            assertSingleAbstractMethod(StreamingAnswerGenerator.class);
+            assertPublicMethod(StreamingAnswerGenerator.class, "generateStream",
+                    Flux.class, String.class);
+
+            // 5) 流式不支持原因常量: default queryStream 内联判等, 值不可变
+            assertConstant(DefaultRagPipeline.class, "REASON_STREAMING_UNSUPPORTED",
+                    String.class, "streaming-unsupported");
+
+            // 6) R4 新增 public 类型: 接口/非 final 类, 满足装配/代理/继承
+            List<Class<?>> r4Types = List.of(
+                    RetrievedContentSanitizer.class, CitationPostProcessor.class,
+                    StreamingAnswerGenerator.class, RagMetrics.class, RagStreamEvent.class);
+            List<String> violations = new ArrayList<>();
+            for (Class<?> type : r4Types) {
+                if (!Modifier.isPublic(type.getModifiers())) {
+                    violations.add(type.getName() + " 不是 public");
+                }
+                if (!type.isInterface() && Modifier.isFinal(type.getModifiers())) {
+                    violations.add(type.getName() + " 变成了 final");
+                }
+            }
+            assertThat(violations)
+                    .as("R4 新增类型必须 public 且非 final " + HINT)
+                    .isEmpty();
+
+            // 7) R4 新增类型包名稳定
+            assertThat(RetrievedContentSanitizer.class.getPackageName())
+                    .isEqualTo("io.nebula.ai.rag.guard");
+            assertThat(RagMetrics.class.getPackageName())
+                    .isEqualTo("io.nebula.ai.rag.metrics");
+            assertThat(StreamingAnswerGenerator.class.getPackageName())
+                    .isEqualTo("io.nebula.ai.rag.pipeline");
+            assertThat(CitationPostProcessor.class.getPackageName())
+                    .isEqualTo("io.nebula.ai.rag.pipeline");
+            assertThat(RagStreamEvent.class.getPackageName())
+                    .isEqualTo("io.nebula.ai.rag.pipeline");
         }
     }
 

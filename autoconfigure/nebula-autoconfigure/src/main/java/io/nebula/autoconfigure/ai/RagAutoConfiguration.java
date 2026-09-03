@@ -44,14 +44,29 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.qdrant.QdrantVectorStore;
 import io.nebula.ai.rag.rerank.NoopReranker;
 import io.nebula.ai.rag.rerank.Reranker;
+import io.nebula.ai.rag.rerank.http.CohereRerankWireCodec;
+import io.nebula.ai.rag.rerank.http.HttpCrossEncoderReranker;
+import io.nebula.ai.rag.rerank.http.RerankWireCodec;
+import io.nebula.ai.rag.rerank.http.TeiRerankWireCodec;
 import io.nebula.ai.rag.retriever.Retriever;
 import io.nebula.ai.rag.retriever.SearchServiceRetriever;
 import io.nebula.ai.rag.retriever.VectorStoreRetriever;
+import io.nebula.ai.rag.guard.NoopRetrievedContentSanitizer;
+import io.nebula.ai.rag.guard.PatternSanitizer;
+import io.nebula.ai.rag.guard.RetrievedContentSanitizer;
+import io.nebula.ai.rag.metrics.MicrometerRagMetrics;
+import io.nebula.ai.rag.metrics.NoopRagMetrics;
+import io.nebula.ai.rag.metrics.RagMetrics;
+import io.nebula.ai.rag.pipeline.ChatServiceStreamingAnswerGenerator;
+import io.nebula.ai.rag.pipeline.CitationPostProcessor;
+import io.nebula.ai.rag.pipeline.NoopCitationPostProcessor;
+import io.nebula.ai.rag.pipeline.StreamingAnswerGenerator;
 import io.nebula.ai.rag.transform.QueryTransformer;
 import io.nebula.ai.rag.transform.TrimQueryTransformer;
 import io.nebula.core.common.diagnostic.NebulaComponentSummary;
 import io.nebula.core.common.diagnostic.SimpleComponentSummary;
 import io.nebula.search.core.SearchService;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +83,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Nebula RAG 自动配置类
@@ -208,6 +228,72 @@ public class RagAutoConfiguration {
     }
 
     /**
+     * 检索内容清洗器（R4 §4.1）
+     * <p>
+     * {@code guard.sanitizer.enabled=true} 装配 {@link PatternSanitizer}（正则命中即整值替换或剔除），
+     * 否则装配 {@link NoopRetrievedContentSanitizer}。{@code patterns} 为空时用内置
+     * {@link PatternSanitizer#DEFAULT_PATTERN}（大小写不敏感）；非空则完全覆盖，任一正则编译失败即启动失败。
+     */
+    @Bean
+    @ConditionalOnMissingBean(RetrievedContentSanitizer.class)
+    public RetrievedContentSanitizer retrievedContentSanitizer(RagProperties properties) {
+        RagProperties.Guard.Sanitizer sanitizer = properties.getGuard().getSanitizer();
+        if (!sanitizer.isEnabled()) {
+            log.info("配置 Nebula NoopRetrievedContentSanitizer (清洗未启用)");
+            return new NoopRetrievedContentSanitizer();
+        }
+        List<Pattern> patterns = new ArrayList<>();
+        if (sanitizer.getPatterns() == null || sanitizer.getPatterns().isEmpty()) {
+            patterns.add(Pattern.compile(PatternSanitizer.DEFAULT_PATTERN, Pattern.CASE_INSENSITIVE));
+        } else {
+            for (String expr : sanitizer.getPatterns()) {
+                patterns.add(Pattern.compile(expr, Pattern.CASE_INSENSITIVE));
+            }
+        }
+        PatternSanitizer.Mode mode = "drop".equalsIgnoreCase(
+                sanitizer.getMode() == null ? "" : sanitizer.getMode().trim())
+                ? PatternSanitizer.Mode.DROP : PatternSanitizer.Mode.REPLACE;
+        log.info("配置 Nebula PatternSanitizer - 模式: {}, 正则数: {}", mode, patterns.size());
+        return new PatternSanitizer(patterns, mode, sanitizer.getReplacement());
+    }
+
+    /**
+     * 引用后处理器（R4 §4.3）：默认 Noop，应用提供 Bean 即生效（Y2 默认零效果）。
+     */
+    @Bean
+    @ConditionalOnMissingBean(CitationPostProcessor.class)
+    public CitationPostProcessor citationPostProcessor() {
+        return new NoopCitationPostProcessor();
+    }
+
+    /**
+     * 默认流式答案生成器（R4 §5.5）
+     * <p>
+     * {@code streaming.enabled=true} 且容器有 {@link ChatService} 才装配；无 {@link ChatService} 时不装配，
+     * 管线注入 null，{@code queryStream} 返回「暂不支持」事件（与 {@code defaultAnswerGenerator} 同处置）。
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "nebula.ai.rag.streaming", name = "enabled", havingValue = "true")
+    @ConditionalOnBean(ChatService.class)
+    @ConditionalOnMissingBean(StreamingAnswerGenerator.class)
+    public StreamingAnswerGenerator streamingAnswerGenerator(ChatService chatService) {
+        log.info("配置 Nebula ChatServiceStreamingAnswerGenerator");
+        return new ChatServiceStreamingAnswerGenerator(chatService);
+    }
+
+    /**
+     * 默认指标端口（R4 §6.3）：兜底 Noop，保证 {@link RagMetrics} 始终存在。
+     * <p>
+     * 嵌套 {@link MetricsConfiguration} 在 {@code metrics.enabled=true} 且有 {@link MeterRegistry} 时先注册
+     * {@link MicrometerRagMetrics}，本兜底 Bean 随即因 {@code @ConditionalOnMissingBean} 让位。
+     */
+    @Bean
+    @ConditionalOnMissingBean(RagMetrics.class)
+    public RagMetrics noopRagMetrics() {
+        return new NoopRagMetrics();
+    }
+
+    /**
      * RAG 管线
      */
     @Bean
@@ -219,12 +305,20 @@ public class RagAutoConfiguration {
                                    RagPromptRenderer ragPromptRenderer,
                                    AnswerGenerator answerGenerator,
                                    RagProperties properties,
-                                   QueryTransformer queryTransformer) {
-        log.info("配置 Nebula RagPipeline - 重排: {}, 生成超时: {}ms, 改写器: {}",
+                                   QueryTransformer queryTransformer,
+                                   RetrievedContentSanitizer retrievedContentSanitizer,
+                                   CitationPostProcessor citationPostProcessor,
+                                   ObjectProvider<StreamingAnswerGenerator> streamingProvider,
+                                   RagMetrics ragMetrics) {
+        StreamingAnswerGenerator streamingGenerator = streamingProvider.getIfAvailable();
+        log.info("配置 Nebula RagPipeline - 重排: {}, 生成超时: {}ms, 改写器: {}, 清洗: {}, 流式: {}",
                 properties.getRerank().isEnabled(), properties.getGeneration().getTimeoutMs(),
-                queryTransformer.getClass().getSimpleName());
+                queryTransformer.getClass().getSimpleName(),
+                retrievedContentSanitizer.getClass().getSimpleName(),
+                streamingGenerator != null);
         return new DefaultRagPipeline(hybridRetrievalEngine, reranker, contextAssembler,
-                ragPromptRenderer, answerGenerator, properties, queryTransformer);
+                ragPromptRenderer, answerGenerator, properties, queryTransformer,
+                retrievedContentSanitizer, citationPostProcessor, streamingGenerator, ragMetrics);
     }
 
     /**
@@ -254,6 +348,72 @@ public class RagAutoConfiguration {
         details.put("Context Max Length", String.valueOf(properties.getContext().getMaxLength()));
         details.put("Generation Timeout", properties.getGeneration().getTimeoutMs() + "ms");
         return new SimpleComponentSummary("AI", "RAG", true, 901, details);
+    }
+
+    /**
+     * HTTP 交叉编码重排装配（P6，R4 §3.3）
+     * <p>
+     * 显式配 {@code rerank.http.url} 才装配；{@code @ConditionalOnMissingBean(Reranker.class)} 让用户自定义
+     * {@link Reranker}（如 SIA 的 BgeReranker）优先。嵌套配置类先于外层 {@code noopReranker} 处理，故配了 url
+     * 时 HTTP 实现胜出。{@code wire-format} 非法或 cohere 缺 model 时启动快速失败。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "nebula.ai.rag.rerank.http", name = "url")
+    static class HttpRerankConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean(Reranker.class)
+        public Reranker httpCrossEncoderReranker(RagProperties properties,
+                                                 ObjectProvider<RagMetrics> metrics) {
+            RagProperties.Rerank rerank = properties.getRerank();
+            RagProperties.Rerank.Http http = rerank.getHttp();
+            String wireFormat = http.getWireFormat() == null ? "" : http.getWireFormat().trim();
+            RerankWireCodec codec;
+            if ("tei".equalsIgnoreCase(wireFormat)) {
+                codec = new TeiRerankWireCodec();
+            } else if ("cohere".equalsIgnoreCase(wireFormat)) {
+                if (http.getModel() == null || http.getModel().isBlank()) {
+                    throw new IllegalArgumentException(
+                            "nebula.ai.rag.rerank.http.wire-format=cohere 需要非空的 model（Cohere 请求体 model 必填）");
+                }
+                codec = new CohereRerankWireCodec();
+            } else {
+                throw new IllegalArgumentException(
+                        "nebula.ai.rag.rerank.http.wire-format 非法: " + http.getWireFormat()
+                                + "（仅支持 tei | cohere）");
+            }
+            long timeoutMillis = rerank.getTimeoutMs();
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofMillis(timeoutMillis))
+                    .build();
+            RagMetrics ragMetrics = metrics.getIfAvailable(NoopRagMetrics::new);
+            log.info("配置 Nebula HttpCrossEncoderReranker - url: {}, wire: {}, batch: {}, timeout: {}ms",
+                    http.getUrl(), wireFormat, http.getBatchSize(), timeoutMillis);
+            return new HttpCrossEncoderReranker(client, URI.create(http.getUrl()), codec,
+                    http.getModel(), http.getApiKey(), timeoutMillis, http.getBatchSize(),
+                    http.getMaxCharsPerDoc(), ragMetrics);
+        }
+    }
+
+    /**
+     * 指标装配（P7-c，R4 §6.3）
+     * <p>
+     * {@code @ConditionalOnClass(MeterRegistry)} 守护本嵌套类加载：Micrometer 缺席时整类不解析，绝不触碰
+     * {@link MicrometerRagMetrics}。{@code metrics.enabled=true} 且容器有 {@link MeterRegistry} Bean 才装配
+     * Micrometer 实现；否则外层 {@code noopRagMetrics} 兜底为 {@link NoopRagMetrics}。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(MeterRegistry.class)
+    static class MetricsConfiguration {
+
+        @Bean
+        @ConditionalOnProperty(prefix = "nebula.ai.rag.metrics", name = "enabled", havingValue = "true")
+        @ConditionalOnBean(MeterRegistry.class)
+        @ConditionalOnMissingBean(RagMetrics.class)
+        public RagMetrics micrometerRagMetrics(MeterRegistry meterRegistry) {
+            log.info("配置 Nebula MicrometerRagMetrics");
+            return new MicrometerRagMetrics(meterRegistry);
+        }
     }
 
     /**

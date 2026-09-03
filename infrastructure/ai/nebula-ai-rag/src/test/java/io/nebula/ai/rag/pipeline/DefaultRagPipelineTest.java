@@ -2,16 +2,22 @@ package io.nebula.ai.rag.pipeline;
 
 import io.nebula.ai.rag.config.RagProperties;
 import io.nebula.ai.rag.fusion.RrfFusionStrategy;
+import io.nebula.ai.rag.guard.RetrievedContentSanitizer;
+import io.nebula.ai.rag.metrics.NoopRagMetrics;
+import io.nebula.ai.rag.metrics.RagMetrics;
 import io.nebula.ai.rag.rerank.NoopReranker;
 import io.nebula.ai.rag.rerank.Reranker;
 import io.nebula.ai.rag.retriever.RetrievalResult;
 import io.nebula.ai.rag.retriever.Retriever;
+import io.nebula.ai.rag.transform.TrimQueryTransformer;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -211,6 +217,124 @@ class DefaultRagPipelineTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    // ---- R4 追加：清洗、引用模式、引用后处理、构造器等价、指标 ----
+
+    @Test
+    void sanitizeRunsBeforeRerank_rerankerSeesCleanedContent() {
+        // 清洗器把正文整值改为 CLEANED；重排器应收到已清洗内容（清洗在融合后、重排前，R4-D4）
+        RecordingReranker reranker = new RecordingReranker();
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A"), hit("B")), reranker,
+                new RecordingGenerator("答案"), properties(),
+                replaceContentSanitizer("CLEANED"), new NoopCitationPostProcessor(), new NoopRagMetrics());
+
+        pipeline.query(RagQuery.of("问题"));
+
+        assertThat(reranker.lastCandidates.get()).extracting(RetrievalResult::getContent)
+                .containsOnly("CLEANED");
+    }
+
+    @Test
+    void sanitizeToEmpty_degradesToNoDocument() {
+        // 清洗后候选全空：与检索为空同路径走 no-document 降级（R4 §9 攻击面 9）
+        RecordingGenerator generator = new RecordingGenerator("不该被调用");
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A"), hit("B")), new NoopReranker(),
+                generator, properties(),
+                result -> null, new NoopCitationPostProcessor(), new NoopRagMetrics());
+
+        RagAnswer answer = pipeline.query(RagQuery.of("问题"));
+
+        assertThat(answer.isDegraded()).isTrue();
+        assertThat(answer.getDegradeReason()).isEqualTo(DefaultRagPipeline.REASON_NO_DOCUMENT);
+        assertThat(answer.getReferences()).isEmpty();
+        assertThat(generator.calls.get()).isZero();
+    }
+
+    @Test
+    void referencesModeAll_returnsAllRerankedReferences() {
+        RagProperties properties = properties();
+        properties.getContext().setMaxLength(15); // 只容得下一篇文档
+        properties.getContext().setReferencesMode("all");
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A"), hit("B")), new NoopReranker(),
+                new RecordingGenerator("答案"), properties);
+
+        RagAnswer answer = pipeline.query(RagQuery.of("问题"));
+
+        assertThat(answer.getReferences()).extracting(RetrievalResult::getId).containsExactly("A", "B");
+    }
+
+    @Test
+    void referencesModeIncluded_returnsOnlyReferencesInContext() {
+        RagProperties properties = properties();
+        properties.getContext().setMaxLength(15); // 只容得下一篇文档
+        properties.getContext().setReferencesMode("included");
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A"), hit("B")), new NoopReranker(),
+                new RecordingGenerator("答案"), properties);
+
+        RagAnswer answer = pipeline.query(RagQuery.of("问题"));
+
+        assertThat(answer.getReferences()).extracting(RetrievalResult::getId).containsExactly("A");
+    }
+
+    @Test
+    void citationPostProcessor_runsOnGenerationSuccess() {
+        RecordingCitation citation = new RecordingCitation();
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A")), new NoopReranker(),
+                new RecordingGenerator("原始答案"), properties(),
+                new NoopSanitizer(), citation, new NoopRagMetrics());
+
+        RagAnswer answer = pipeline.query(RagQuery.of("问题"));
+
+        assertThat(citation.calls.get()).isEqualTo(1);
+        assertThat(answer.getAnswer()).isEqualTo("CITED:原始答案");
+    }
+
+    @Test
+    void citationPostProcessor_skippedOnGenerationFailure() {
+        RecordingCitation citation = new RecordingCitation();
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A")), new NoopReranker(),
+                (prompt, timeoutMillis) -> {
+                    throw new IllegalStateException("模型挂了");
+                }, properties(),
+                new NoopSanitizer(), citation, new NoopRagMetrics());
+
+        RagAnswer answer = pipeline.query(RagQuery.of("问题"));
+
+        assertThat(citation.calls.get()).isZero();
+        assertThat(answer.isDegraded()).isTrue();
+        assertThat(answer.getAnswer()).doesNotStartWith("CITED:");
+    }
+
+    @Test
+    void sixArgConstructor_behavesLikeFullConstructorWithDefaults() {
+        RagProperties properties = properties();
+        DefaultRagPipeline sixArg = pipeline(retriever(hit("A"), hit("B")), new NoopReranker(),
+                new RecordingGenerator("答案"), properties);
+        DefaultRagPipeline fullArg = pipeline(retriever(hit("A"), hit("B")), new NoopReranker(),
+                new RecordingGenerator("答案"), properties,
+                new NoopSanitizer(), new NoopCitationPostProcessor(), new NoopRagMetrics());
+
+        RagAnswer a = sixArg.query(RagQuery.of("问题"));
+        RagAnswer b = fullArg.query(RagQuery.of("问题"));
+
+        assertThat(a.getAnswer()).isEqualTo(b.getAnswer());
+        assertThat(a.getReferences()).extracting(RetrievalResult::getId)
+                .isEqualTo(b.getReferences().stream().map(RetrievalResult::getId).toList());
+        assertThat(a.isDegraded()).isEqualTo(b.isDegraded());
+    }
+
+    @Test
+    void metrics_recordsEachStageAndQuery() {
+        RecordingMetrics metrics = new RecordingMetrics();
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A")), new NoopReranker(),
+                new RecordingGenerator("答案"), properties(),
+                new NoopSanitizer(), new NoopCitationPostProcessor(), metrics);
+
+        pipeline.query(RagQuery.of("问题"));
+
+        assertThat(metrics.stages).contains("retrieval", "rerank", "assemble", "generation");
+        assertThat(metrics.queryCalls.get()).isEqualTo(1);
+    }
+
     private static DefaultRagPipeline pipeline(Retriever retriever, Reranker reranker,
                                                AnswerGenerator generator, RagProperties properties) {
         HybridRetrievalEngine engine = new HybridRetrievalEngine(
@@ -220,6 +344,64 @@ class DefaultRagPipelineTest {
                         properties.getContext().getDocumentTemplate()),
                 (query, context) -> "问题: " + query + "\n资料:\n" + context,
                 generator, properties);
+    }
+
+    private static DefaultRagPipeline pipeline(Retriever retriever, Reranker reranker,
+                                               AnswerGenerator generator, RagProperties properties,
+                                               RetrievedContentSanitizer sanitizer,
+                                               CitationPostProcessor citation, RagMetrics metrics) {
+        HybridRetrievalEngine engine = new HybridRetrievalEngine(
+                List.of(retriever), new RrfFusionStrategy(), 2, 15_000);
+        return new DefaultRagPipeline(engine, reranker,
+                new ContextAssembler(properties.getContext().getMaxLength(),
+                        properties.getContext().getDocumentTemplate()),
+                (query, context) -> "问题: " + query + "\n资料:\n" + context,
+                generator, properties, new TrimQueryTransformer(), sanitizer, citation, null, metrics);
+    }
+
+    private static RetrievedContentSanitizer replaceContentSanitizer(String replacement) {
+        return result -> RetrievalResult.builder()
+                .id(result.getId()).content(replacement).metadata(result.getMetadata())
+                .score(result.getScore()).source(result.getSource()).build();
+    }
+
+    /** 原样返回的清洗器测试替身 */
+    private static final class NoopSanitizer implements RetrievedContentSanitizer {
+        @Override
+        public RetrievalResult sanitize(RetrievalResult result) {
+            return result;
+        }
+    }
+
+    /** 记录调用次数并给答案加前缀的引用后处理替身 */
+    private static final class RecordingCitation implements CitationPostProcessor {
+        private final AtomicInteger calls = new AtomicInteger();
+
+        @Override
+        public String process(String answer, ContextAssembly assembly) {
+            calls.incrementAndGet();
+            return "CITED:" + answer;
+        }
+    }
+
+    /** 记录各阶段与整次查询的指标替身 */
+    private static final class RecordingMetrics implements RagMetrics {
+        private final Set<String> stages = ConcurrentHashMap.newKeySet();
+        private final AtomicInteger queryCalls = new AtomicInteger();
+
+        @Override
+        public void recordStage(String stage, long durationNanos, String outcome) {
+            stages.add(stage);
+        }
+
+        @Override
+        public void recordQuery(long durationNanos, boolean degraded, String reason) {
+            queryCalls.incrementAndGet();
+        }
+
+        @Override
+        public void recordRerankPassthrough(String reason) {
+        }
     }
 
     private static RagProperties properties() {

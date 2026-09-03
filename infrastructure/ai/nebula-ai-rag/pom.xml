@@ -55,6 +55,17 @@
         </dependency>
 
         <!--
+            Micrometer Core（可选，R4）: 仅 MicrometerRagMetrics 一个类 import io.micrometer,
+            由装配层 @ConditionalOnClass(MeterRegistry) 守护。optional 表示不传递给消费方,
+            不采集指标的应用不必引入; 版本由 Spring Boot BOM 统一管理。
+        -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
             Jsoup HTML解析（可选）: 只有 HtmlStructureParser 用它, 且它是模块内唯一 import jsoup 的类。
             optional 表示不传递给消费方, 不解析 HTML 的应用不必引入; 装配层需做类存在检查。
         -->
@@ -69,6 +80,13 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- 测试：流式事件契约用 StepVerifier 验证信号序列与虚拟时间超时（R4） -->
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

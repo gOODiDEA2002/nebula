@@ -45,6 +45,12 @@ public class RagProperties {
 
     private Transform transform = new Transform();
 
+    private Guard guard = new Guard();
+
+    private Streaming streaming = new Streaming();
+
+    private Metrics metrics = new Metrics();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -131,6 +137,30 @@ public class RagProperties {
 
     public void setTransform(Transform transform) {
         this.transform = transform;
+    }
+
+    public Guard getGuard() {
+        return guard;
+    }
+
+    public void setGuard(Guard guard) {
+        this.guard = guard;
+    }
+
+    public Streaming getStreaming() {
+        return streaming;
+    }
+
+    public void setStreaming(Streaming streaming) {
+        this.streaming = streaming;
+    }
+
+    public Metrics getMetrics() {
+        return metrics;
+    }
+
+    public void setMetrics(Metrics metrics) {
+        this.metrics = metrics;
     }
 
     /**
@@ -232,8 +262,15 @@ public class RagProperties {
 
         /**
          * 重排序超时（毫秒）
+         * <p>
+         * R4 起同时作为 HTTP 交叉编码重排的独立超时（含连接与读取）；LLM 重排（SIA）不消费本项。
          */
         private int timeoutMs = 3000;
+
+        /**
+         * HTTP 交叉编码重排配置（P6）；{@code url} 为空时不装配 {@code HttpCrossEncoderReranker}
+         */
+        private Http http = new Http();
 
         public boolean isEnabled() {
             return enabled;
@@ -258,6 +295,101 @@ public class RagProperties {
         public void setTimeoutMs(int timeoutMs) {
             this.timeoutMs = timeoutMs;
         }
+
+        public Http getHttp() {
+            return http;
+        }
+
+        public void setHttp(Http http) {
+            this.http = http;
+        }
+
+        /**
+         * HTTP 交叉编码重排配置（P6，R4 §3、§8）
+         * <p>
+         * 显式配置 {@code url} 才装配 {@code HttpCrossEncoderReranker}；缺 {@code url} 时既有
+         * {@code noopReranker} 路径零变化。{@code wireFormat=cohere} 时 {@code model} 必填。
+         */
+        public static class Http {
+
+            /**
+             * 交叉编码重排服务地址；空表示不装配 HTTP 重排，如 {@code http://tei:8080/rerank}
+             */
+            private String url = "";
+
+            /**
+             * 报文格式：{@code tei} | {@code cohere}
+             */
+            private String wireFormat = "tei";
+
+            /**
+             * 模型名；{@code cohere} 格式必填（随请求发送），{@code tei} 忽略
+             */
+            private String model = "";
+
+            /**
+             * 可选 API Key；非空时发送 {@code Authorization: Bearer}，建议经环境变量注入
+             */
+            private String apiKey = "";
+
+            /**
+             * 每个 HTTP 请求的候选数上限
+             */
+            private int batchSize = 32;
+
+            /**
+             * 单条候选正文的客户端截断字符数；{@code 0} 表示不在客户端截断（TEI 走服务端 {@code truncate}）
+             */
+            private int maxCharsPerDoc = 0;
+
+            public String getUrl() {
+                return url;
+            }
+
+            public void setUrl(String url) {
+                this.url = url;
+            }
+
+            public String getWireFormat() {
+                return wireFormat;
+            }
+
+            public void setWireFormat(String wireFormat) {
+                this.wireFormat = wireFormat;
+            }
+
+            public String getModel() {
+                return model;
+            }
+
+            public void setModel(String model) {
+                this.model = model;
+            }
+
+            public String getApiKey() {
+                return apiKey;
+            }
+
+            public void setApiKey(String apiKey) {
+                this.apiKey = apiKey;
+            }
+
+            public int getBatchSize() {
+                return batchSize;
+            }
+
+            public void setBatchSize(int batchSize) {
+                this.batchSize = batchSize;
+            }
+
+            public int getMaxCharsPerDoc() {
+                return maxCharsPerDoc;
+            }
+
+            public void setMaxCharsPerDoc(int maxCharsPerDoc) {
+                this.maxCharsPerDoc = maxCharsPerDoc;
+            }
+        }
     }
 
     /**
@@ -275,6 +407,12 @@ public class RagProperties {
          */
         private String documentTemplate = "[文档%d] %s\n\n";
 
+        /**
+         * {@code RagAnswer.references} 语义（R4 §4.4）：{@code all}（现状，返回重排后全部 topK）
+         * | {@code included}（只返回实际进入上下文的引用，序号即 {@code [文档n]}）
+         */
+        private String referencesMode = "all";
+
         public int getMaxLength() {
             return maxLength;
         }
@@ -289,6 +427,14 @@ public class RagProperties {
 
         public void setDocumentTemplate(String documentTemplate) {
             this.documentTemplate = documentTemplate;
+        }
+
+        public String getReferencesMode() {
+            return referencesMode;
+        }
+
+        public void setReferencesMode(String referencesMode) {
+            this.referencesMode = referencesMode;
         }
     }
 
@@ -696,6 +842,127 @@ public class RagProperties {
 
         public void setMaxVariants(int maxVariants) {
             this.maxVariants = maxVariants;
+        }
+    }
+
+    /**
+     * 可信上下文清洗配置（P7-a，R4 §4）
+     * <p>
+     * {@code sanitizer.enabled=false}（默认）装 {@code NoopRetrievedContentSanitizer}，
+     * 装配结果与 R3 完全相同。
+     */
+    public static class Guard {
+
+        private Sanitizer sanitizer = new Sanitizer();
+
+        public Sanitizer getSanitizer() {
+            return sanitizer;
+        }
+
+        public void setSanitizer(Sanitizer sanitizer) {
+            this.sanitizer = sanitizer;
+        }
+
+        /**
+         * 检索内容清洗器配置
+         */
+        public static class Sanitizer {
+
+            /**
+             * 是否启用清洗；关闭时装 {@code NoopRetrievedContentSanitizer}
+             */
+            private boolean enabled = false;
+
+            /**
+             * 命中处置：{@code replace}（整值替换为 {@code replacement}）| {@code drop}（剔除该条）
+             */
+            private String mode = "replace";
+
+            /**
+             * {@code replace} 模式的替换文案
+             */
+            private String replacement = "[内容因安全策略未进入上下文]";
+
+            /**
+             * 自定义正则列表；空表示使用内置 {@code PatternSanitizer.DEFAULT_PATTERN}，
+             * 非空则完全覆盖内置正则
+             */
+            private List<String> patterns = new ArrayList<>();
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public String getMode() {
+                return mode;
+            }
+
+            public void setMode(String mode) {
+                this.mode = mode;
+            }
+
+            public String getReplacement() {
+                return replacement;
+            }
+
+            public void setReplacement(String replacement) {
+                this.replacement = replacement;
+            }
+
+            public List<String> getPatterns() {
+                return patterns;
+            }
+
+            public void setPatterns(List<String> patterns) {
+                this.patterns = patterns;
+            }
+        }
+    }
+
+    /**
+     * 流式生成配置（P7-b，R4 §5）
+     * <p>
+     * {@code enabled=false}（默认）不装配 {@code StreamingAnswerGenerator}，
+     * {@code queryStream} 返回「暂不支持」事件。
+     */
+    public static class Streaming {
+
+        /**
+         * 是否启用流式生成；开启后在存在 {@code ChatService} 时装配默认流式适配器
+         */
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    /**
+     * 指标采集配置（P7-c，R4 §6）
+     * <p>
+     * {@code enabled=false}（默认）装 {@code NoopRagMetrics}，不触碰 Micrometer。
+     */
+    public static class Metrics {
+
+        /**
+         * 是否启用指标；开启后在存在 {@code MeterRegistry} 时装配 Micrometer 适配
+         */
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }

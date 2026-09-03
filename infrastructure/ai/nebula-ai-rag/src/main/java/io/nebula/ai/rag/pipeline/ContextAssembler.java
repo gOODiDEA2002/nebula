@@ -2,7 +2,10 @@ package io.nebula.ai.rag.pipeline;
 
 import io.nebula.ai.rag.retriever.RetrievalResult;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 上下文拼接器
@@ -41,12 +44,28 @@ public class ContextAssembler {
      * @return 拼接后的上下文文本；无结果时返回空串
      */
     public String assemble(List<RetrievalResult> results) {
+        return assembleDetailed(results).getContext();
+    }
+
+    /**
+     * 拼接上下文并给出入选引用与序号映射（R4 §4.2）
+     * <p>
+     * 与 {@link #assemble(List)} 共用同一套遍历与预算判断，因此正文<b>逐字相同</b>；
+     * 额外记录实际入选的引用（序号从 1 起）与因预算跳过的条数，供 {@code references-mode=included}
+     * 与 {@code CitationPostProcessor} 使用。
+     *
+     * @param results 已排序的检索结果
+     * @return 组装结果；无结果时正文为空串、引用为空
+     */
+    public ContextAssembly assembleDetailed(List<RetrievalResult> results) {
         if (results == null || results.isEmpty()) {
-            return "";
+            return new ContextAssembly("", List.of(), Map.of(), 0);
         }
 
         StringBuilder sb = new StringBuilder();
         int currentLength = 0;
+        List<RetrievalResult> included = new ArrayList<>();
+        Map<Integer, RetrievalResult> citationMap = new LinkedHashMap<>();
         for (int i = 0; i < results.size(); i++) {
             String docContent = String.format(documentTemplate, i + 1, results.get(i).getContent());
             if (currentLength + docContent.length() > maxLength) {
@@ -54,8 +73,10 @@ public class ContextAssembler {
             }
             sb.append(docContent);
             currentLength += docContent.length();
+            included.add(results.get(i));
+            citationMap.put(i + 1, results.get(i));
         }
-        return sb.toString();
+        return new ContextAssembly(sb.toString(), included, citationMap, results.size() - included.size());
     }
 
     public int getMaxLength() {
