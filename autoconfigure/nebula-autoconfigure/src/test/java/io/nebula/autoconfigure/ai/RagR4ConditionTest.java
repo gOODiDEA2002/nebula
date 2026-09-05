@@ -58,6 +58,16 @@ class RagR4ConditionTest {
     }
 
     @Test
+    void rerankHttpUrlBlank_usesNoopReranker() {
+        runner.withPropertyValues("nebula.ai.rag.rerank.http.url=")
+                .run(ctx -> {
+                    assertThat(ctx).hasSingleBean(Reranker.class);
+                    assertThat(ctx.getBean(Reranker.class)).isInstanceOf(NoopReranker.class);
+                    assertThat(ctx).doesNotHaveBean(HttpCrossEncoderReranker.class);
+                });
+    }
+
+    @Test
     void rerankHttpUrlSet_usesHttpCrossEncoderReranker() {
         runner.withPropertyValues("nebula.ai.rag.rerank.http.url=http://tei:8080/rerank")
                 .run(ctx -> {

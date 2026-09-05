@@ -14,6 +14,7 @@ import io.nebula.ai.rag.transform.TrimQueryTransformer;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -335,6 +336,52 @@ class DefaultRagPipelineTest {
         assertThat(metrics.queryCalls.get()).isEqualTo(1);
     }
 
+    // ---- F-4：空正文降级（新键默认关）----
+
+    /**
+     * 开关开启时，生成器返回空正文（"" 或 null，模拟推理模型耗尽 max-tokens）判降级为检索摘要，
+     * 降级原因 empty-answer，生成阶段指标 outcome=empty。
+     */
+    @Test
+    void emptyAnswer_degradesWhenEnabled() {
+        for (String raw : Arrays.asList("", null)) {
+            RagProperties properties = properties();
+            properties.getDegrade().setOnEmptyAnswer(true);
+            RecordingMetrics metrics = new RecordingMetrics();
+            DefaultRagPipeline pipeline = pipeline(retriever(hit("A")), new NoopReranker(),
+                    new RecordingGenerator(raw), properties,
+                    new NoopSanitizer(), new NoopCitationPostProcessor(), metrics);
+
+            RagAnswer answer = pipeline.query(RagQuery.of("问题"));
+
+            assertThat(answer.isDegraded()).as("raw=%s", raw).isTrue();
+            assertThat(answer.getDegradeReason()).isEqualTo(DefaultRagPipeline.REASON_EMPTY_ANSWER);
+            assertThat(answer.getAnswer())
+                    .startsWith(properties.getDegrade().getFallbackHeader())
+                    .contains("内容A");
+            assertThat(answer.getReferences()).extracting(RetrievalResult::getId).containsExactly("A");
+            assertThat(metrics.stageOutcomes.get("generation")).isEqualTo("empty");
+            assertThat(metrics.lastQueryReason.get()).isEqualTo(DefaultRagPipeline.REASON_EMPTY_ANSWER);
+        }
+    }
+
+    /**
+     * Y2 锁定：开关默认关闭时，生成器返回空正文照旧原样返回（不降级、不改动既有行为）。
+     */
+    @Test
+    void emptyAnswer_notDegradedByDefault() {
+        RagProperties properties = properties();
+        DefaultRagPipeline pipeline = pipeline(retriever(hit("A")), new NoopReranker(),
+                new RecordingGenerator(""), properties,
+                new NoopSanitizer(), new NoopCitationPostProcessor(), new NoopRagMetrics());
+
+        RagAnswer answer = pipeline.query(RagQuery.of("问题"));
+
+        assertThat(answer.isDegraded()).isFalse();
+        assertThat(answer.getDegradeReason()).isNull();
+        assertThat(answer.getAnswer()).isEmpty();
+    }
+
     private static DefaultRagPipeline pipeline(Retriever retriever, Reranker reranker,
                                                AnswerGenerator generator, RagProperties properties) {
         HybridRetrievalEngine engine = new HybridRetrievalEngine(
@@ -387,16 +434,20 @@ class DefaultRagPipelineTest {
     /** 记录各阶段与整次查询的指标替身 */
     private static final class RecordingMetrics implements RagMetrics {
         private final Set<String> stages = ConcurrentHashMap.newKeySet();
+        private final Map<String, String> stageOutcomes = new ConcurrentHashMap<>();
         private final AtomicInteger queryCalls = new AtomicInteger();
+        private final AtomicReference<String> lastQueryReason = new AtomicReference<>();
 
         @Override
         public void recordStage(String stage, long durationNanos, String outcome) {
             stages.add(stage);
+            stageOutcomes.put(stage, outcome);
         }
 
         @Override
         public void recordQuery(long durationNanos, boolean degraded, String reason) {
             queryCalls.incrementAndGet();
+            lastQueryReason.set(reason);
         }
 
         @Override

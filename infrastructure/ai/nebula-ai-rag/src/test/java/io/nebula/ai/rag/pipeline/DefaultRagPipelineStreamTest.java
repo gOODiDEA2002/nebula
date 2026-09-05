@@ -203,6 +203,85 @@ class DefaultRagPipelineStreamTest {
                 .verify();
     }
 
+    // ---- F-4：空正文降级（新键默认关）----
+
+    /**
+     * 开关开启时，流式生成全程空白片段判降级：空白片段不发 DELTA，完成阶段补检索摘要 DELTA + COMPLETE(degraded)。
+     */
+    @Test
+    void blankDeltasOnly_degradesToSummaryWhenEnabled() {
+        RagProperties properties = properties();
+        properties.getDegrade().setOnEmptyAnswer(true);
+        DefaultRagPipeline pipeline = streamingPipeline(properties,
+                prompt -> Flux.just("", ""), hit("A"));
+
+        StepVerifier.create(pipeline.queryStream(RagQuery.of("问题")))
+                .assertNext(e -> assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.REFERENCES))
+                .assertNext(e -> {
+                    assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.DELTA);
+                    assertThat(e.getDelta()).contains("内容A");
+                })
+                .assertNext(e -> {
+                    assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.COMPLETE);
+                    assertThat(e.getAnswer().isDegraded()).isTrue();
+                    assertThat(e.getAnswer().getDegradeReason())
+                            .isEqualTo(DefaultRagPipeline.REASON_EMPTY_ANSWER);
+                })
+                .verifyComplete();
+    }
+
+    /**
+     * Y2 锁定：开关默认关闭时，空白片段照发 DELTA、COMPLETE 不降级（逐字维持现状）。
+     */
+    @Test
+    void blankDeltasOnly_completesNonDegradedByDefault() {
+        DefaultRagPipeline pipeline = streamingPipeline(properties(),
+                prompt -> Flux.just("", ""), hit("A"));
+
+        StepVerifier.create(pipeline.queryStream(RagQuery.of("问题")))
+                .assertNext(e -> assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.REFERENCES))
+                .assertNext(e -> {
+                    assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.DELTA);
+                    assertThat(e.getDelta()).isEmpty();
+                })
+                .assertNext(e -> {
+                    assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.DELTA);
+                    assertThat(e.getDelta()).isEmpty();
+                })
+                .assertNext(e -> {
+                    assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.COMPLETE);
+                    assertThat(e.getAnswer().isDegraded()).isFalse();
+                })
+                .verifyComplete();
+    }
+
+    /**
+     * 开关开启时，只收到空白片段后出错：因 anyDelta 未置真，走「首个片段之前失败」摘要降级路径
+     * （degradeReason 为 generation-failed，非 ERROR）。
+     */
+    @Test
+    void errorAfterBlankDeltas_degradesWhenEnabled() {
+        RagProperties properties = properties();
+        properties.getDegrade().setOnEmptyAnswer(true);
+        DefaultRagPipeline pipeline = streamingPipeline(properties,
+                prompt -> Flux.just("", "").concatWith(Flux.error(new IllegalStateException("模型挂了"))),
+                hit("A"));
+
+        StepVerifier.create(pipeline.queryStream(RagQuery.of("问题")))
+                .assertNext(e -> assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.REFERENCES))
+                .assertNext(e -> {
+                    assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.DELTA);
+                    assertThat(e.getDelta()).contains("内容A");
+                })
+                .assertNext(e -> {
+                    assertThat(e.getType()).isEqualTo(RagStreamEvent.Type.COMPLETE);
+                    assertThat(e.getAnswer().isDegraded()).isTrue();
+                    assertThat(e.getAnswer().getDegradeReason())
+                            .isEqualTo(DefaultRagPipeline.REASON_GENERATION_FAILED);
+                })
+                .verifyComplete();
+    }
+
     // ---- helpers ----
 
     private static DefaultRagPipeline streamingPipeline(RagProperties properties,

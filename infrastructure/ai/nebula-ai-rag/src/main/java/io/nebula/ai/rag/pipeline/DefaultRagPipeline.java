@@ -62,6 +62,9 @@ public class DefaultRagPipeline implements RagPipeline {
     /** 降级原因：生成失败 */
     public static final String REASON_GENERATION_FAILED = "generation-failed";
 
+    /** 降级原因：生成器返回空正文（推理模型耗尽 max-tokens，需显式开启 degrade.on-empty-answer） */
+    public static final String REASON_EMPTY_ANSWER = "empty-answer";
+
     /** 流式不可用原因：未装配 StreamingAnswerGenerator */
     public static final String REASON_STREAMING_UNSUPPORTED = "streaming-unsupported";
 
@@ -255,25 +258,48 @@ public class DefaultRagPipeline implements RagPipeline {
         StringBuilder accumulator = new StringBuilder();
         AtomicBoolean anyDelta = new AtomicBoolean(false);
         long generationStartNanos = System.nanoTime();
+        // 空正文降级开关：关闭时逐字维持现状（空片段照发、anyDelta 照置、COMPLETE 不降级）
+        boolean onEmptyAnswer = properties.getDegrade().isOnEmptyAnswer();
 
         Flux<RagStreamEvent> deltas = streamingGenerator.generateStream(prompt)
                 .takeUntilOther(Mono.delay(Duration.ofMillis(timeoutMs))
                         .flatMap(tick -> Mono.error(new TimeoutException("流式生成总时限超时"))))
-                .map(chunk -> {
+                .handle((chunk, sink) -> {
+                    if (onEmptyAnswer && (chunk == null || chunk.isBlank())) {
+                        // 开关开启时空白片段仅累积，不置 anyDelta、不向下游发 DELTA
+                        accumulator.append(chunk);
+                        return;
+                    }
                     anyDelta.set(true);
                     accumulator.append(chunk);
-                    return RagStreamEvent.delta(chunk);
+                    sink.next(RagStreamEvent.delta(chunk));
                 });
 
-        Mono<RagStreamEvent> completion = Mono.fromSupplier(() -> {
+        Flux<RagStreamEvent> completion = Flux.defer(() -> {
+            if (onEmptyAnswer && accumulator.toString().isBlank()) {
+                // 生成器全程空白（推理模型耗尽 max-tokens）：降级为检索摘要 DELTA + COMPLETE(degraded)
+                log.warn("RAG 流式生成返回空正文，降级为检索摘要");
+                metrics.recordStage("generation", System.nanoTime() - generationStartNanos, "empty");
+                String fallback = buildFallbackAnswer(summaryRefs);
+                recordQuery(queryStartNanos, true, REASON_EMPTY_ANSWER);
+                return Flux.just(
+                        RagStreamEvent.delta(fallback),
+                        RagStreamEvent.complete(RagAnswer.builder()
+                                .answer(fallback)
+                                .references(outputRefs)
+                                .costMs(System.currentTimeMillis() - start)
+                                .degraded(true)
+                                .degradeReason(REASON_EMPTY_ANSWER)
+                                .build()));
+            }
             metrics.recordStage("generation", System.nanoTime() - generationStartNanos, "success");
             String finalAnswer = citationPostProcessor.process(accumulator.toString(), assembly);
             recordQuery(queryStartNanos, false, "none");
-            return RagStreamEvent.complete(RagAnswer.builder()
+            return Flux.just(RagStreamEvent.complete(RagAnswer.builder()
                     .answer(finalAnswer)
                     .references(outputRefs)
                     .costMs(System.currentTimeMillis() - start)
-                    .build());
+                    .build()));
         });
 
         return deltas.concatWith(completion)
@@ -401,7 +427,15 @@ public class DefaultRagPipeline implements RagPipeline {
             Future<String> future = executor.submit(() -> answerGenerator.generate(prompt, timeoutMs));
             try {
                 String raw = future.get(timeoutMs, TimeUnit.MILLISECONDS);
-                answer = citationPostProcessor.process(raw, assembly);
+                if (properties.getDegrade().isOnEmptyAnswer() && (raw == null || raw.isBlank())) {
+                    // 生成器返回空正文（推理模型耗尽 max-tokens）：按检索摘要降级
+                    log.warn("RAG 答案生成返回空正文，返回检索摘要降级");
+                    answer = buildFallbackAnswer(summaryRefs);
+                    degradeReason = REASON_EMPTY_ANSWER;
+                    outcome = "empty";
+                } else {
+                    answer = citationPostProcessor.process(raw, assembly);
+                }
             } catch (TimeoutException e) {
                 future.cancel(true);
                 log.warn("RAG 答案生成超时({}ms)，返回检索摘要降级", timeoutMs);

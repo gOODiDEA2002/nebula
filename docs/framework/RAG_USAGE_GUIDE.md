@@ -378,6 +378,10 @@ nebula:
         enabled: true             # 开启流式生成支持
       metrics:
         enabled: true             # 启用 Micrometer 观测指标
+
+      # 降级策略
+      degrade:
+        on-empty-answer: false    # 生成器返回空正文时是否判降级为检索摘要（默认 false；推理模型思考耗尽 max-tokens 场景可开）
 ```
 
 ---

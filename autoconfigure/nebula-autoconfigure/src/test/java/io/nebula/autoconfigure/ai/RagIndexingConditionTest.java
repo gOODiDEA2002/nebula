@@ -7,6 +7,7 @@ import io.nebula.ai.core.vectorstore.VectorStoreService;
 import io.nebula.ai.rag.index.DocIndexState;
 import io.nebula.ai.rag.index.DocumentSource;
 import io.nebula.ai.rag.index.IndexPlanner;
+import io.nebula.ai.rag.index.IndexSink;
 import io.nebula.ai.rag.index.IndexStateRepository;
 import io.nebula.ai.rag.index.IndexingPipeline;
 import io.nebula.ai.rag.index.SourceDocument;
@@ -86,6 +87,37 @@ class RagIndexingConditionTest {
                     assertThat(ctx).hasSingleBean(VectorStoreIndexSink.class);
                     assertThat(ctx).doesNotHaveBean(SearchServiceIndexSink.class);
                 });
+    }
+
+    /**
+     * F-5：写目标固定顺序——向量写目标（@Order(10)）先于关键词写目标（@Order(20)）。
+     * {@code orderedStream()} 会读取 @Bean 方法上的 @Order。
+     */
+    @Test
+    void indexSinks_orderedVectorThenSearch() {
+        runner.withPropertyValues(
+                        "nebula.ai.rag.indexing.enabled=true",
+                        "nebula.ai.rag.indexing.search-index-name=rag_docs")
+                .withUserConfiguration(SearchServiceBean.class)
+                .run(ctx -> {
+                    assertThat(ctx).hasSingleBean(VectorStoreIndexSink.class);
+                    assertThat(ctx).hasSingleBean(SearchServiceIndexSink.class);
+                    List<Class<?>> order = ctx.getBeanProvider(IndexSink.class)
+                            .orderedStream()
+                            .map(Object::getClass)
+                            .collect(java.util.stream.Collectors.toList());
+                    assertThat(order)
+                            .containsExactly(VectorStoreIndexSink.class, SearchServiceIndexSink.class);
+                });
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class SearchServiceBean {
+
+        @Bean
+        SearchService searchService() {
+            return mock(SearchService.class);
+        }
     }
 
     @Configuration(proxyBeanMethods = false)

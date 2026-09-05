@@ -61,9 +61,11 @@ nebula:
         enabled: true
       generation:
         timeout-ms: 60000
+      degrade:
+        # 生成器返回空正文时判降级为检索摘要（推理模型思考耗尽 max-tokens 可能返回空正文）；默认关闭
+        on-empty-answer: true
       # 重排：默认 NoopReranker（只截断不排序）。接 TEI/Cohere 时取消下面注释填真实地址；
-      # 不要写成 ${RERANK_HTTP_URL:} 空占位——@ConditionalOnProperty(name="url") 对空串也判「存在」，
-      # 会装配出指向空地址的 HTTP 重排器并每次刷 warn（见 README 与设计 §12 F-1）。
+      # url 为空串时框架视为未配置，仍走 NoopReranker（设计 §12 F-1 已修）。
       # rerank:
       #   http:
       #     url: http://localhost:8080/rerank

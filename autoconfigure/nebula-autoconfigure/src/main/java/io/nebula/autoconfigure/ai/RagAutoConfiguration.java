@@ -359,9 +359,12 @@ public class RagAutoConfiguration {
      * 显式配 {@code rerank.http.url} 才装配；{@code @ConditionalOnMissingBean(Reranker.class)} 让用户自定义
      * {@link Reranker}（如 SIA 的 BgeReranker）优先。嵌套配置类先于外层 {@code noopReranker} 处理，故配了 url
      * 时 HTTP 实现胜出。{@code wire-format} 非法或 cohere 缺 model 时启动快速失败。
+     * <p>
+     * 空串视为未配置，走 {@code noopReranker}（{@code @ConditionalOnProperty} 会把空串判为「已设置」，
+     * 故改用 {@link RerankHttpUrlPresentCondition} 显式要求非空）。
      */
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnProperty(prefix = "nebula.ai.rag.rerank.http", name = "url")
+    @Conditional(RerankHttpUrlPresentCondition.class)
     static class HttpRerankConfiguration {
 
         @Bean
@@ -484,6 +487,23 @@ public class RagAutoConfiguration {
     }
 
     /**
+     * {@code nebula.ai.rag.rerank.http.url} 非空才成立
+     * <p>
+     * {@code @ConditionalOnProperty} 无法区分空串与真实值（空串会被判为「已设置」），
+     * 因此用自定义 Condition 显式要求非空；空串视为未配置，走 {@code noopReranker}。
+     */
+    static class RerankHttpUrlPresentCondition implements org.springframework.context.annotation.Condition {
+
+        @Override
+        public boolean matches(org.springframework.context.annotation.ConditionContext context,
+                               org.springframework.core.type.AnnotatedTypeMetadata metadata) {
+            String url = context.getEnvironment()
+                    .getProperty("nebula.ai.rag.rerank.http.url");
+            return url != null && !url.isBlank();
+        }
+    }
+
+    /**
      * 索引治理装配（P2-min，详细设计 §2.4）
      * <p>
      * 需 {@code nebula.ai.rag.indexing.enabled=true}。{@link IndexingPipeline} 还需容器内已有
@@ -532,6 +552,7 @@ public class RagAutoConfiguration {
         // ---- 内置写目标 ----
 
         @Bean
+        @Order(10)
         @ConditionalOnBean(VectorStoreService.class)
         @ConditionalOnMissingBean(VectorStoreIndexSink.class)
         VectorStoreIndexSink vectorStoreIndexSink(VectorStoreService vectorStoreService) {
@@ -551,6 +572,7 @@ public class RagAutoConfiguration {
         static class SearchIndexSinkConfiguration {
 
             @Bean
+            @Order(20)
             @ConditionalOnBean(SearchService.class)
             @ConditionalOnMissingBean(SearchServiceIndexSink.class)
             @Conditional(IndexingSearchIndexNamePresentCondition.class)

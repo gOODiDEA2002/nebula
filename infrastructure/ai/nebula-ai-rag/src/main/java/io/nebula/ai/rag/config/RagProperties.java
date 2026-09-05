@@ -534,6 +534,15 @@ public class RagProperties {
          */
         private int fallbackExcerptLength = 280;
 
+        /**
+         * 生成器返回空正文时是否判降级
+         * <p>
+         * 推理模型（思考 token 也计入 max-tokens）可能在思考耗尽预算后返回空正文
+         * （finish_reason=length），此时生成器拿到的正文为 null 或纯空白。开启后此类空正文
+         * 按检索摘要降级，降级原因为 empty-answer；默认关闭以保持既有行为不变。
+         */
+        private boolean onEmptyAnswer = false;
+
         public String getNoDocumentAnswer() {
             return noDocumentAnswer;
         }
@@ -564,6 +573,14 @@ public class RagProperties {
 
         public void setFallbackExcerptLength(int fallbackExcerptLength) {
             this.fallbackExcerptLength = fallbackExcerptLength;
+        }
+
+        public boolean isOnEmptyAnswer() {
+            return onEmptyAnswer;
+        }
+
+        public void setOnEmptyAnswer(boolean onEmptyAnswer) {
+            this.onEmptyAnswer = onEmptyAnswer;
         }
     }
 
