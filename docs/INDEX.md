@@ -22,6 +22,7 @@ Spring Boot 3 时期的长篇说明统一放在 [`archive/`](archive/README.md)�
 - [快速开始](framework/QUICK_START.md)：创建应用、运行示例和最小配置。
 - [Starter 选择指南](Nebula%20Starter%20选择指南.md)：按项目类型选择入口依赖。
 - [配置说明](Nebula框架配置说明.md)：启用开关、安全配置和配置源码位置。
+- [RAG 使用指南](framework/RAG_USAGE_GUIDE.md)：检索增强生成双管线架构、设计原理解析与接入示例。
 - [示例应用](../examples/README.md)：可直接运行的真实工程，不再维护重复的文档版示例。
 
 ## 设计与维护
